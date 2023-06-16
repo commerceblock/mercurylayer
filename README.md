@@ -1,4 +1,4 @@
-# Mercury layer
+Mercury layer
 
 =====================================
 MercuryLayer is a Bitcoin Layer protocol that allows the offchain transfer of UTXOs.
