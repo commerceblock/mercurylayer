@@ -1,6 +1,7 @@
 Mercury layer
 
 =====================================
+
 MercuryLayer is a Bitcoin Layer protocol that allows the offchain transfer of UTXOs.
 
 Ownership of deposited Bitcoin (or Elements based) UTXOs can be transferred between parties without performing on-chain transactions. This allows for near instant payments, increased privacy and novation of DLCs/Lightning Channels.
