@@ -12,7 +12,6 @@ This implementation is fully blinded meaning that their is no Bitcoin UTXO addre
 
 This repository contains the Server and Client implementation for the protocol. For more information on the components of Mercury see their respective crates.
 
-
 # License
 
 Mercury Layer is released under the terms of the GNU General Public License. See for more information https://opensource.org/licenses/GPL-3.0
