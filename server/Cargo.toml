@@ -1,0 +1,30 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitcoin = "0.30.0"
+rocket = { version = "0.5.0-rc", features = ["json"] }
+diesel = { version = "2.0", features = ["sqlite", "postgres", "r2d2", "uuid"] }
+rocket_sync_db_pools = { version = "0.1.0-rc", features = ["diesel_sqlite_pool", "diesel_postgres_pool"] }
+diesel_migrations = "2.0"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+schemars = { version = "0.8.12", features = ["chrono", "uuid"] }
+uuid = { version = "1.3.1", features = ["v4", "serde"] }
+rand = "0.8.5"
+hex = "0.4.3"
+async-trait = "0.1.68"
+multi-party-ecdsa = { git = "https://github.com/ssantos21/multi-party-ecdsa.git", branch = "blinded_2p_ecdsa_01" }
+kms = { git = "https://github.com/ssantos21/two-party-ecdsa-workflow.git", branch = "blinded_2p_ecdsa_01" }
+curv-kzen = { version = "0.9", default-features = false }
+sha2 = "0.9"
+
+# Added for compatibility with curv-kzen 0.9
+curv-kzen-secp256k1 = { package = "secp256k1", version = "0.20", features = ["serde", "rand-std", "global-context"] }
+
+[dependencies.shared]
+path = "../shared"
