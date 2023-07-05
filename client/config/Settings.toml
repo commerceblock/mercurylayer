@@ -1,0 +1,2 @@
+statechain_entity_url = "http://0.0.0.0:8000"
+electrum_server_url = "127.0.0.1:60401"
