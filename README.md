@@ -1,17 +1,12 @@
-Mercury layer
+# Mercury Layer
 
-=====================================
+Mercury Layer is a Layer 2 protocol for Bitcoin that enables the self-custodial transfer of coins (UTXOs) without on-chain transactions. 
 
-MercuryLayer is a Bitcoin Layer protocol that allows the offchain transfer of UTXOs.
+This repository contains the server, client and enclave implementations. The *enclave* is a trusted platform app utilising Intel SGX that stores key shares, performs partial signatures and ensures sercure key share deletion. The enclave is connected to the server which exposes a public RESTful HTTP API, and connects to a Postgres database. The client is run by the user (as a stand alone app or a WASM component) that makes HTTP requests to the server API.  
 
-Ownership of deposited Bitcoin (or Elements based) UTXOs can be transferred between parties without performing on-chain transactions. This allows for near instant payments, increased privacy and novation of DLCs/Lightning Channels.
-
-Swaps are a method of performing many off-chain transfers atomically. The number of participants in a swap is unlimited. If `n` participants take part in a swap with one distinct UTXO each they receive back ownership of any one of the `n` UTXOs of the same value. 
-
-This implementation is fully blinded meaning that their is no Bitcoin UTXO address stored in the server.
-
-This repository contains the Server and Client implementation for the protocol. For more information on the components of Mercury see their respective crates.
-
+graph LR;
+    Server-->Client;
+    Enclave-->Server
 
 # License
 
