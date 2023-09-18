@@ -2,7 +2,6 @@
 
 ```mermaid
 sequenceDiagram
-sequenceDiagram
     participant Enclave
     participant Server
     participant Client
