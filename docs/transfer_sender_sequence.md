@@ -10,7 +10,7 @@ sequenceDiagram
     Server-->>Client: {backup_fee_rate,initlock,interval}
     note over Client: Sign new_auth_key with auth_key
     note over Client: batch_id is null
-    Client->>Server: /info/fee {statechain_id, batch_id, auth_sig, new_user_auth_key}
+    Client->>Server: /transfer/sender {statechain_id, batch_id, auth_sig, new_user_auth_key}
     note over Server: Generate random x1
     note over Server: Save new_user_auth_key and x1 with statechain_id
     Server-->>Client: {x1}
