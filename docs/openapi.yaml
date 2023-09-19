@@ -133,7 +133,7 @@ paths:
 
             If you get this response please report this as an issue at
             github.com/commerceblock/mercury.
-  /info/rookeylist:
+  /info/keylist:
     get:
       summary: Get the published list of SE public key shares
       operationId: util_get_key_list
@@ -270,262 +270,6 @@ paths:
 
             If you get this response please report this as an issue at
             github.com/commerceblock/mercury.
-  /swap/blinded-spend-signature:
-    post:
-      summary: Get blinded spend token required for second message
-      operationId: conductor_get_blinded_spend_signature
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BSTMsg'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BlindedSpendSignature'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/deregister-utxo:
-    post:
-      description: Remove coin from awaiting in swap pool
-      operationId: conductor_deregister_utxo
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StatechainID'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/first:
-    post:
-      summary: >-
-        Phase 1 of coinswap: Participants sign SwapToken and provide a
-        statechain address and e_prime for blind spend token.
-      operationId: conductor_swap_first_message
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SwapMsg1'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/groupinfo:
-    get:
-      summary: Get information on current group registrations
-      operationId: conductor_get_group_info
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties:
-                  $ref: '#/components/schemas/GroupStatus'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/info:
-    post:
-      summary: Get information a specified swap ID
-      operationId: conductor_get_swap_info
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SwapID'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SwapInfo'
-                nullable: true
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/poll/swap:
-    post:
-      summary: Poll conductor for the status of a specified swap ID
-      operationId: conductor_poll_swap
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SwapID'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SwapStatus'
-                nullable: true
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/poll/utxo:
-    post:
-      summary: Poll conductor for the status of a specified registered statecoin ID
-      operationId: conductor_poll_utxo
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StatechainID'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SwapID'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/register-utxo:
-    post:
-      summary: >-
-        Phase 0 of coinswap: Notify conductor of desire to take part in a swap
-        with signature to prove ownership of statecoin.
-      operationId: conductor_register_utxo
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RegisterUtxo'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /swap/second:
-    post:
-      summary: >-
-        Phase 2 of coinswap: Participants provide blind spend token and recieve
-        address.
-      operationId: conductor_swap_second_message
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SwapMsg2'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SCEAddress'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
   /transfer/batch/init:
     post:
       summary: 'Initiate the batch transfer protocol: provide statechain signatures'
@@ -571,34 +315,6 @@ paths:
             application/json:
               schema:
                 type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /transfer/get_msg:
-    post:
-      summary: Get stored transfer message (TransferMsg3)
-      operationId: transfer_transfer_get_msg
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StatechainID'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransferMsg3'
         '500':
           description: >-
             # [500 Internal Server
@@ -1140,6 +856,12 @@ components:
         - amount
         - pubkey
         - num_sigs
+        - s2_pub
+        - signature_count
+        - blind_commits
+        - r2_commits
+        - r1_values
+        - blind_challenges
       properties:
         amount:
           description: The value of the statecoin (in satoshis)
@@ -1152,6 +874,24 @@ components:
         num_sigs:
           description: The number of signatures generated for this statechain
           type: integer
+        s2_pub:
+          type: string
+        blind_commits:
+          type: array
+          items:
+            type: string
+        r2_commits:
+          type: array
+          items:
+            type: string
+        r1_values:
+          type: array
+          items:
+            type: string
+        blind_challenges:
+          type: array
+          items:
+            type: string
     AuthSig:
       description: Signature object Data necessary to create ownership transfer signatures
       type: object
@@ -1181,18 +921,13 @@ components:
         entity which must be conformed with in the protocol.
       type: object
       required:
-        - address
         - backup_fee_rate
         - deposit
         - initlock
         - interval
         - wallet_message
         - wallet_version
-        - withdraw
       properties:
-        address:
-          description: The Bitcoin address that the SE fee must be paid to
-          type: string
         backup_fee_rate:
           description: Current backup tx fee rate
           type: integer
@@ -1224,13 +959,6 @@ components:
         wallet_version:
           description: The minumum wallet version required
           type: string
-        withdraw:
-          description: >-
-            The withdrawal fee, which is specified as a proportion of the
-            deposit amount in basis points
-          type: integer
-          format: uint64
-          minimum: 0
       example:
         address: bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq
         backup_fee_rate: 1
@@ -1247,91 +975,6 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
-    SwapID:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          $ref: '#/components/schemas/Uuid'
-    SwapInfo:
-      type: object
-      required:
-        - bst_sender_data
-        - status
-        - swap_token
-      properties:
-        bst_sender_data:
-          $ref: '#/components/schemas/BSTSenderData'
-        status:
-          $ref: '#/components/schemas/SwapStatus'
-        swap_token:
-          $ref: '#/components/schemas/SwapToken'
-    SwapMsg1:
-      description: Owner -> Conductor
-      type: object
-      required:
-        - address
-        - bst_e_prime
-        - statechain_id
-        - swap_id
-        - swap_token_sig
-        - transfer_batch_sig
-      properties:
-        address:
-          $ref: '#/components/schemas/SCEAddress'
-        bst_e_prime:
-          $ref: '#/components/schemas/FE'
-        statechain_id:
-          $ref: '#/components/schemas/Uuid'
-        swap_id:
-          $ref: '#/components/schemas/Uuid'
-        swap_token_sig:
-          $ref: '#/components/schemas/Signature'
-        transfer_batch_sig:
-          $ref: '#/components/schemas/AuthSig'
-    SwapMsg2:
-      description: Owner -> Conductor
-      type: object
-      required:
-        - blinded_spend_token
-        - swap_id
-      properties:
-        blinded_spend_token:
-          $ref: '#/components/schemas/BlindedSpendToken'
-        swap_id:
-          $ref: '#/components/schemas/Uuid'
-    SwapStatus:
-      type: string
-      enum:
-        - Phase1
-        - Phase2
-        - Phase3
-        - Phase4
-        - End
-    SwapToken:
-      description: >-
-        Struct defines a Swap. This is signed by each participant as agreement
-        to take part in the swap.
-      type: object
-      required:
-        - amount
-        - id
-        - statechain_ids
-        - time_out
-      properties:
-        amount:
-          type: integer
-          format: uint64
-          minimum: 0
-        id:
-          $ref: '#/components/schemas/Uuid'
-        statechain_ids:
-          $ref: '#/components/schemas/Uuid'
-        time_out:
-          type: integer
-          format: uint64
-          minimum: 0
     TransferBatchDataAPI:
       description: /info/transfer-batch return struct
       type: object
@@ -1363,13 +1006,16 @@ components:
         - batch_id
         - statechain_id
         - auth_sig
+        - new_auth_key
       properties:
         batch_id:
           $ref: '#/components/schemas/Uuid'
         statechain_id:
           $ref: '#/components/schemas/Uuid'
         auth_sig:
-          $ref: '#/components/schemas/AuthSig'
+          type: string
+        new_auth_key:
+          type: string
     TransferMsg2:
       description: SE -> Sender
       type: object
@@ -1377,15 +1023,15 @@ components:
         - x1
       properties:
         x1:
-          $ref: '#/components/schemas/FESer'
+          type: string
     TransferMsg3:
       description: Sender -> Receiver
       type: object
       required:
-        - rec_auth_key
+        - new_auth_key
         - transfer_data
       properties:
-        rec_auth_key:
+        new_auth_key:
           type: string
         transfer_data:
           type: string
@@ -1403,11 +1049,22 @@ components:
           nullable: true
         statechain_id:
           $ref: '#/components/schemas/Uuid'
-        statechain_sig:
-          $ref: '#/components/schemas/AuthSig'
+        auth_sig:
+          type: string
         t2:
-          $ref: '#/components/schemas/FE'
+          type: string
     TransferMsg5:
+      description: State Entity -> Receiver
+      type: object
+      required:
+        - enclave_pubkey
+        - attestation
+      properties:
+        enclave_pubkey:
+          type: string
+        attestation:
+          type: string
+    PrevSigData:
       description: State Entity -> Receiver
       type: object
       required:
@@ -1484,3 +1141,4 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuthSig'
+
