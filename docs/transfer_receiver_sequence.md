@@ -1,4 +1,4 @@
-# Deposit sequence diagram
+# Transfer Receiver sequence diagram
 
 ```mermaid
 sequenceDiagram
