@@ -168,7 +168,7 @@ async fn main() {
             println!("new_user_pubkey: {}", new_user_pubkey);
             println!("new_auth_pubkey: {}", new_auth_pubkey);
 
-            transfer_sender::init(&pool, new_user_pubkey, new_auth_pubkey, &statechain_id).await.unwrap();
+            transfer_sender::init(&pool, new_user_pubkey, new_auth_pubkey, &statechain_id, network).await.unwrap();
 
 
         }

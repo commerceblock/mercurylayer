@@ -71,13 +71,18 @@ pub async fn new_backup_transaction(
 
     let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
 
+    // if qt_backup_tx == 0, it means this is the first backup transaction (Tx0)
+    // In this case, the block_height is equal to the current block height
+    // Otherwise, block_height is equal to the Tx0.lock_time + initlock
+    let initlock = if qt_backup_tx == 0 { initlock } else { 0 };
+
     println!("block_height {}", block_height);
 
     println!("initlock {}", initlock);
     println!("interval {}", interval);
     println!("qt_backup_tx {}", qt_backup_tx);
 
-    let block_height = block_height + (initlock - (interval * qt_backup_tx));
+    let block_height = (block_height + initlock) - (interval * qt_backup_tx);
 
     println!("new block_height {}", block_height);
 
