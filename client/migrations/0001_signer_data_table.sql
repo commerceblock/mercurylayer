@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS signer_data (
     funding_vout INT,
 
     server_pubkey_share BLOB,
-    aggregated_pubkey BLOB,
+    aggregated_xonly_pubkey BLOB,
     p2tr_agg_address TEXT,
 
     agg_key_derivation_path TEXT,

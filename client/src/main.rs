@@ -5,6 +5,7 @@ mod electrum;
 mod wallet;
 mod transaction;
 mod send_backup;
+mod transfer_sender;
 
 use std::str::FromStr;
 
@@ -145,6 +146,11 @@ async fn main() {
                 }
             }
 
+            if list_unspent.len() == 0 {
+                println!("No backup funds to send");
+                return;
+            }
+
             let list_utxo = send_backup::get_address_info(&pool, list_unspent).await;
 
 
@@ -161,6 +167,8 @@ async fn main() {
             let (_, new_user_pubkey, new_auth_pubkey) = key_derivation::decode_transfer_address(&recipient_address).unwrap();
             println!("new_user_pubkey: {}", new_user_pubkey);
             println!("new_auth_pubkey: {}", new_auth_pubkey);
+
+            transfer_sender::init(&pool, new_user_pubkey, new_auth_pubkey, &statechain_id).await.unwrap();
 
 
         }

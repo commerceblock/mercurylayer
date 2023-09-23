@@ -17,6 +17,11 @@ pub async fn get_all_addresses(pool: &sqlx::Pool<Sqlite>, network: Network) -> (
     for row in rows {
 
         let p2tr_agg_address = row.get::<String, _>("p2tr_agg_address");
+
+        if p2tr_agg_address.is_empty() {
+            continue;
+        }
+
         let agg_address = Address::from_str(&p2tr_agg_address).unwrap().require_network(network).unwrap();
         agg_addresses.push(agg_address);
 

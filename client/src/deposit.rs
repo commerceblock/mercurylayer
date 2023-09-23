@@ -8,9 +8,6 @@ use sqlx::{Sqlite, Row};
 
 use crate::{key_derivation, error::CError, electrum};
 
-const TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
-// 163 is the real size one input P2TR and one output P2TR
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DepositRequestPayload {
     amount: u64,
@@ -22,11 +19,11 @@ pub struct DepositRequestPayload {
 pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
 
     let (statechain_id, client_secret_key, client_pubkey_share, to_address, server_pubkey_share, signed_statechain_id) = init(pool, token_id, amount, network).await;
-    let (aggregate_pub_key, address) = create_agg_pub_key(pool, &client_pubkey_share, &server_pubkey_share, network).await?;
+    let (aggregate_pub_key, aggregate_address) = create_agg_pub_key(pool, &client_pubkey_share, &server_pubkey_share, network).await?;
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
-    println!("address: {}", address.to_string());
+    println!("address: {}", aggregate_address.to_string());
 
     println!("waiting for deposit ....");
 
@@ -35,7 +32,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
     let mut utxo: Option<ListUnspentRes> = None;
 
     loop {
-        let utxo_list = electrum::get_script_list_unspent(&client, &address);
+        let utxo_list = electrum::get_script_list_unspent(&client, &aggregate_address);
 
         for unspent in utxo_list {
             if unspent.value == amount {
@@ -55,22 +52,11 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     update_funding_tx_outpoint(pool, &utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
 
-    let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 3);
-    let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
-
-    let absolute_fee: u64 = TX_SIZE * fee_rate_sats_per_byte; 
-    let amount_out = utxo.value - absolute_fee;
-
-    let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
-
     let block_header = electrum::block_headers_subscribe_raw(&client);
-    let mut block_height = block_header.height;
+    let block_height = block_header.height;
 
-    block_height = block_height + 12000;
-
-    crate::transaction::new(pool, &statechain_id,).await.unwrap();
-
-    let (tx, client_pub_nonce, blinding_factor) = crate::transaction::create(
+    let (tx, client_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
+        pool,         
         block_height as u32,
         &statechain_id,
         &signed_statechain_id,
@@ -80,9 +66,9 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
         utxo.tx_hash, 
         utxo.tx_pos as u32, 
         &aggregate_pub_key, 
-        &address.script_pubkey(), 
-        utxo.value, 
-        tx_out).await.unwrap();
+        &aggregate_address.script_pubkey(), 
+        amount,
+        &to_address).await.unwrap();
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
@@ -172,7 +158,7 @@ pub async fn create_agg_pub_key(pool: &sqlx::Pool<Sqlite>, client_pubkey: &Publi
 
     let query = "\
         UPDATE signer_data \
-        SET server_pubkey_share= $1, aggregated_pubkey = $2, p2tr_agg_address = $3 \
+        SET server_pubkey_share= $1, aggregated_xonly_pubkey = $2, p2tr_agg_address = $3 \
         WHERE client_pubkey_share = $4";
 
     let _ = sqlx::query(query)

@@ -1,11 +1,11 @@
 use std::{str::FromStr, collections::BTreeMap};
 
-use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}};
+use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
 use secp256k1_zkp::{SecretKey, PublicKey, XOnlyPublicKey, Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, MusigKeyAggCache, MusigAggNonce, BlindingFactor, MusigSession, MusigPartialSignature}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
 use sqlx::{Sqlite, Row};
 
-use crate::error::CError;
+use crate::{error::CError, electrum};
 
 async fn count_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> u32 {
 
@@ -20,7 +20,25 @@ async fn count_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> u32 
     count
 }
 
-pub async fn new(pool: &sqlx::Pool<Sqlite>, statechain_id: &str,) -> Result<(), CError> {
+pub async fn new_backup_transaction(
+    pool: &sqlx::Pool<Sqlite>, 
+    block_height: u32,
+    statechain_id: &str,
+    signed_statechain_id: &Signature,
+    client_seckey: &SecretKey,
+    client_pubkey: &PublicKey,
+    server_pubkey: &PublicKey,
+    input_txid: Txid, 
+    input_vout: u32, 
+    input_pubkey: &XOnlyPublicKey, 
+    input_scriptpubkey: &ScriptBuf, 
+    input_amount: u64, 
+    to_address: &Address,) 
+    -> Result<(Transaction, MusigPubNonce, BlindingFactor), CError>  {
+
+    const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
+    // 163 is the real size one input P2TR and one output P2TR
+
     let endpoint = "http://127.0.0.1:8000";
     let path = "info/config";
 
@@ -39,19 +57,49 @@ pub async fn new(pool: &sqlx::Pool<Sqlite>, statechain_id: &str,) -> Result<(), 
 
     let value: serde_json::Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let initlock = value.get("initlock").unwrap().as_u64().unwrap();
-    let interval = value.get("interval").unwrap().as_u64().unwrap();
-    let qt_backup_tx = count_backup_tx(pool, statechain_id).await;
+    let initlock = value.get("initlock").unwrap().as_u64().unwrap() as u32;
+    let interval = value.get("interval").unwrap().as_u64().unwrap() as u32;
+    let qt_backup_tx = count_backup_tx(pool, statechain_id).await as u32;
+
+    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
+
+    let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 3);
+    let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
+
+    let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte; 
+    let amount_out = input_amount - absolute_fee;
+
+    let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
+
+    println!("block_height {}", block_height);
 
     println!("initlock {}", initlock);
     println!("interval {}", interval);
     println!("qt_backup_tx {}", qt_backup_tx);
 
-    Ok(())
+    let block_height = block_height + (initlock - (interval * qt_backup_tx));
+
+    println!("new block_height {}", block_height);
+
+    let (tx, client_pub_nonce, blinding_factor) = create(
+        block_height,
+        statechain_id,
+        signed_statechain_id,
+        client_seckey,
+        client_pubkey,
+        server_pubkey,
+        input_txid, 
+        input_vout, 
+        input_pubkey, 
+        input_scriptpubkey, 
+        input_amount, 
+        tx_out).await.unwrap();
+
+    Ok((tx, client_pub_nonce, blinding_factor))
 
 }
 
-pub async fn create(
+async fn create(
     block_height: u32,
     statechain_id: &str,
     signed_statechain_id: &Signature,
@@ -125,7 +173,6 @@ pub async fn create(
             client_seckey,
             client_pubkey,
             server_pubkey,
-            input_pubkey,
             hash,
             &secp,
         ).await.unwrap();
@@ -215,7 +262,6 @@ async fn musig_sign_psbt_taproot(
     client_seckey: &SecretKey,
     client_pubkey: &PublicKey,
     server_pubkey: &PublicKey,
-    aggregated_pubkey: &XOnlyPublicKey,
     hash: TapSighash,
     secp: &Secp256k1<secp256k1::All>,
 )  -> Result<(Signature, MusigPubNonce, BlindingFactor), CError>  {
@@ -356,9 +402,6 @@ async fn musig_sign_psbt_taproot(
     ));
 
     let sig = session.partial_sig_agg(&[client_partial_sig, server_partial_sig]);
-    let agg_pk = key_agg_cache.agg_pk();
-
-    assert!(agg_pk.eq(aggregated_pubkey));
 
     assert!(secp.verify_schnorr(&sig, &msg, &tweaked_pubkey.x_only_public_key().0).is_ok());
    
