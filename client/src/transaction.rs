@@ -413,7 +413,7 @@ async fn musig_sign_psbt_taproot(
     Ok((sig, client_pub_nonce, blinding_factor))
 }
 
-pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, client_pub_nonce: &[u8; 66], blinding_factor: &[u8; 32], statechain_id: &str) { 
+pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, client_pub_nonce: &[u8; 66], blinding_factor: &[u8; 32], statechain_id: &str, recipient_address: &str){ 
 
     let row = sqlx::query("SELECT MAX(tx_n) FROM backup_transaction WHERE statechain_id = $1")
         .bind(statechain_id)
@@ -425,14 +425,15 @@ pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, c
 
     tx_n = tx_n + 1;
 
-    let query = "INSERT INTO backup_transaction (tx_n, statechain_id, client_public_nonce, blinding_factor, backup_tx) \
-        VALUES ($1, $2, $3, $4, $5)";
+    let query = "INSERT INTO backup_transaction (tx_n, statechain_id, client_public_nonce, blinding_factor, backup_tx, recipient_address) \
+        VALUES ($1, $2, $3, $4, $5, $6)";
         let _ = sqlx::query(query)
             .bind(tx_n)
             .bind(statechain_id)
             .bind(client_pub_nonce.to_vec())
             .bind(blinding_factor.to_vec())
             .bind(tx_bytes)
+            .bind(recipient_address)
             .execute(pool)
             .await
             .unwrap();

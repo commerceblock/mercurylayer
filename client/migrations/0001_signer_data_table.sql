@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS signer_data (
     
     fingerprint TEXT,
 
-    coin_sent BOOLEAN DEFAULT FALSE,
+    sent_to TEXT,
     
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS backup_transaction (
     client_public_nonce BLOB,
     blinding_factor BLOB,
     backup_tx BLOB,
-    sent_to TEXT,
+    recipient_address TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 
 );

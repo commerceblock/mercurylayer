@@ -18,7 +18,8 @@ pub struct DepositRequestPayload {
 
 pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
 
-    let (statechain_id, client_secret_key, client_pubkey_share, to_address, server_pubkey_share, signed_statechain_id) = init(pool, token_id, amount, network).await;
+    let (statechain_id, client_secret_key, client_pubkey_share, to_address, server_pubkey_share, signed_statechain_id, transfer_address) = 
+        init(pool, token_id, amount, network).await;
     let (aggregate_pub_key, aggregate_address) = create_agg_pub_key(pool, &client_pubkey_share, &server_pubkey_share, network).await?;
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
@@ -72,13 +73,13 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    crate::transaction::insert_transaction(pool, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id).await;
+    crate::transaction::insert_transaction(pool, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &transfer_address).await;
 
     Ok(statechain_id)
 
 }
 
-pub async fn init(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> (String, SecretKey, PublicKey, Address, PublicKey, Signature) {
+pub async fn init(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> (String, SecretKey, PublicKey, Address, PublicKey, Signature, String) {
 
     let address_data = key_derivation::get_new_address(pool, Some(token_id), Some(amount), network).await;
 
@@ -130,7 +131,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, 
     let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
     let signed_statechain_id = secp.sign_schnorr(&msg, &keypair);
 
-    (statechain_id, address_data.client_secret_key, address_data.client_pubkey_share, address_data.backup_address, server_pubkey_share, signed_statechain_id)
+    (statechain_id, address_data.client_secret_key, address_data.client_pubkey_share, address_data.backup_address, server_pubkey_share, signed_statechain_id, address_data.transfer_address)
 }
 
 pub async fn update_statechain_id(pool: &sqlx::Pool<Sqlite>, statechain_id: String, client_pubkey: &PublicKey) {
