@@ -31,6 +31,7 @@ struct TransferMsg {
     statechain_id: String,
     transfer_signature: String,
     backup_transactions: Vec<SerializedBackupTransaction>,
+    x1: Vec<u8>,
 }
 
 impl BackupTransaction {
@@ -111,6 +112,64 @@ fn verify_transfer_signature(new_user_pubkey: XOnlyPublicKey, input_txid: &Txid,
     secp.verify_schnorr(signature, &msg, &new_user_pubkey).is_ok()
 }
 
+/* async fn sign_statechain_id(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) {
+    let row = sqlx::query("SELECT auth_seckey FROM signer_data WHERE statechain_id = $1")
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let auth_secret_key_bytes = row.get::<Vec<u8>, _>("auth_seckey");
+    let auth_secret_key = SecretKey::from_slice(&auth_secret_key_bytes).unwrap();
+
+
+} */
+
+async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Vec<u8> {
+    let endpoint = "http://127.0.0.1:8000";
+    let path = "transfer/sender";
+
+    let client = reqwest::Client::new();
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    #[derive(Serialize, Deserialize)]
+    struct TransferSenderRequestPayload {
+        statechain_id: String,
+        auth_sig: String, // signed_statechain_id
+        new_user_auth_key: String,
+        batch_id: Option<String>,
+    }
+
+    let transfer_sender_request_payload = TransferSenderRequestPayload {
+        statechain_id: statechain_id.to_string(),
+        auth_sig: signed_statechain_id.to_string(),
+        new_user_auth_key: new_auth_pubkey.to_string(),
+        batch_id: None,
+    };
+
+    let value = match request.json(&transfer_sender_request_payload).send().await {
+        Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            // return Err(CError::Generic(err.to_string()));
+            panic!("error: {}", err);
+        },
+    };
+
+    #[derive(Serialize, Deserialize)]
+    pub struct TransferSenderResponsePayload<'r> {
+        x1: &'r str,
+    }
+
+    let response: TransferSenderResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+
+    let x1 = hex::decode(response.x1).unwrap();
+
+    x1
+}
+
 pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
 
     let (_, new_user_pubkey, new_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
@@ -132,8 +191,16 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     println!("tx1_client_public_nonce: {}", hex::encode(&tx1.client_public_nonce));
     println!("tx1_blinding_factor: {}", hex::encode(&tx1.blinding_factor));
 
-    let (client_seckey, input_txid, input_vout, transaction, client_pub_nonce, blinding_factor) = 
-        create_backup_tx_to_receiver(&pool, &tx1.tx, new_user_pubkey, &statechain_id, network).await;
+    let (client_seckey, 
+        input_txid, 
+        input_vout, 
+        transaction, 
+        client_pub_nonce, 
+        blinding_factor, 
+        signed_statechain_id) = 
+    create_backup_tx_to_receiver(&pool, &tx1.tx, new_user_pubkey, &statechain_id, network).await;
+
+    let x1 = get_new_x1(&statechain_id, &signed_statechain_id, &new_auth_pubkey).await;
 
     let new_tx_n = backup_transactions.last().unwrap().tx_n + 1;
 
@@ -160,6 +227,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         statechain_id: statechain_id.to_string(),
         transfer_signature: transfer_signature.to_string(),
         backup_transactions: serialized_backup_transactions,
+        x1,
     };
 
     let transfer_msg_json = json!(&transfer_msg);
@@ -177,18 +245,6 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         "encrypted_msg": encrypted_msg_string,
         "auth_pubkey": new_auth_pubkey.to_string(),
     })).unwrap());
-
-    // --
-
-    // let serialized_backup_tx = new_bakup_tx.serialize();
-
-    
-
-    // let new_tx_json = json!(&serialized_backup_tx);
-
-    // let serialized_backup_tx_json = serde_json::to_string_pretty(&new_tx_json).unwrap();
-    
-
 
 
     Ok(())
@@ -253,7 +309,7 @@ async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_id: &
 }
 
 pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
-    -> (SecretKey, Txid, u32, Transaction, MusigPubNonce, BlindingFactor) {
+    -> (SecretKey, Txid, u32, Transaction, MusigPubNonce, BlindingFactor, Signature) {
 
     let lock_time = tx1.lock_time;
     assert!(lock_time.is_block_height());
@@ -305,6 +361,6 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
 
     // println!("txid sent: {}", txid);
 
-    (client_seckey, input_txid, input_vout, new_tx, client_pub_nonce, blinding_factor)
+    (client_seckey, input_txid, input_vout, new_tx, client_pub_nonce, blinding_factor, signed_statechain_id)
 
 }
