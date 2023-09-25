@@ -18,31 +18,6 @@ pub struct SignFirstRequestPayload {
     signed_statechain_id: String,
 }
 
-
-async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str) -> Result<XOnlyPublicKey, sqlx::Error> {
-
-    let row = sqlx::query(
-        "SELECT auth_xonly_public_key \
-        FROM public.key_data \
-        WHERE statechain_id = $1")
-        .bind(&statechain_id)
-        .fetch_one(pool)
-        .await;
-
-    match row {
-        Ok(row) => {
-            let public_key_bytes = row.get::<Option<Vec<u8>>, _>("auth_xonly_public_key");
-            let pk = XOnlyPublicKey::from_slice(&public_key_bytes.unwrap()).unwrap();
-            return Ok(pk);
-        },
-        Err(err) => {
-            return Err(err);
-        }
-    };
-
-}
-
-
 pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, statechain_id: &str)  {
 
     let query = "\
@@ -57,17 +32,6 @@ pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_
         .execute(pool)
         .await
         .unwrap();
-}
-
-pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, statechain_id: &str) -> bool {
-
-    let auth_key = get_auth_key_by_statechain_id(pool, statechain_id).await.unwrap();
-
-    let signed_message = Signature::from_str(signed_message_hex).unwrap();
-    let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
-
-    let secp = Secp256k1::new();
-    secp.verify_schnorr(&signed_message, &msg, &auth_key).is_ok()
 }
 
 #[post("/sign/first", format = "json", data = "<sign_first_request_payload>")]
@@ -86,7 +50,7 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
     let blind_commitment = sign_first_request_payload.0.blind_commitment.clone();
     let signed_statechain_id = sign_first_request_payload.0.signed_statechain_id.clone();
 
-    if !validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
+    if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
             "error": "Internal Server Error",
@@ -156,7 +120,7 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
     let statechain_id = partial_signature_request_payload.0.statechain_id.clone();
     let signed_statechain_id = partial_signature_request_payload.0.signed_statechain_id.clone();
 
-    if !validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
+    if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
             "error": "Internal Server Error",

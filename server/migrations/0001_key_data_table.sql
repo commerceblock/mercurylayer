@@ -11,3 +11,12 @@ CREATE TABLE public.key_data (
 	CONSTRAINT key_data_pkey PRIMARY KEY (id),
 	CONSTRAINT key_data_server_public_key_ukey UNIQUE (server_public_key)
 );
+
+CREATE TABLE public.statechain_transfer (
+	id serial4 NOT NULL,
+	statechain_id varchar,
+	auth_xonly_public_key bytea,
+	x1 bytea,
+	transfer_msg varchar NULL,
+	CONSTRAINT transfer_pkey PRIMARY KEY (id)
+);
