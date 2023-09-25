@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, block, Address, Network, secp256k1, hashes::sha256, Txid};
-use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature};
+use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{Sqlite, Row};
@@ -31,7 +31,7 @@ struct TransferMsg {
     statechain_id: String,
     transfer_signature: String,
     backup_transactions: Vec<SerializedBackupTransaction>,
-    x1: Vec<u8>,
+    t1: [u8; 32],
 }
 
 impl BackupTransaction {
@@ -223,11 +223,16 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let transfer_signature = get_transfer_signature(new_user_pubkey, &input_txid, input_vout, &client_seckey);
 
+    let x1: [u8; 32] = x1.try_into().unwrap();
+    let x1 = Scalar::from_be_bytes(x1).unwrap();
+
+    let t1 = client_seckey.add_tweak(&x1).unwrap();
+
     let transfer_msg = TransferMsg {
         statechain_id: statechain_id.to_string(),
         transfer_signature: transfer_signature.to_string(),
         backup_transactions: serialized_backup_transactions,
-        x1,
+        t1: t1.secret_bytes(),
     };
 
     let transfer_msg_json = json!(&transfer_msg);
@@ -241,13 +246,47 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let encrypted_msg_string = hex::encode(&encrypted_msg);
 
-    println!("{}", serde_json::to_string_pretty(&json!({
+    #[derive(Serialize, Deserialize)]
+    struct TransferUpdateMsgRequestPayload {
+        statechain_id: String,
+        auth_sig: String, // signed_statechain_id
+        new_user_auth_key: String,
+        enc_transfer_msg: String,
+    }
+
+    let transfer_update_msg_request_payload = TransferUpdateMsgRequestPayload {
+        statechain_id: statechain_id.to_string(),
+        auth_sig: signed_statechain_id.to_string(),
+        new_user_auth_key: new_auth_pubkey.to_string(),
+        enc_transfer_msg: encrypted_msg_string.clone(),
+    };
+
+    let endpoint = "http://127.0.0.1:8000";
+    let path = "transfer/update_msg";
+
+    let client = reqwest::Client::new();
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    match request.json(&transfer_update_msg_request_payload).send().await {
+        Ok(response) => {
+            let status = response.status();
+            if !status.is_success() {
+                return Err(CError::Generic("Failed to update transfer message".to_string()));
+            }
+        },
+        Err(err) => 
+            return Err(CError::Generic(err.to_string()))
+        ,
+    };
+
+
+/*     println!("{}", serde_json::to_string_pretty(&json!({
         "encrypted_msg": encrypted_msg_string,
         "auth_pubkey": new_auth_pubkey.to_string(),
     })).unwrap());
+*/
 
-
-    Ok(())
+    Ok(()) 
 }
 
 struct StatechainCoinDetails {

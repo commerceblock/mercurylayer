@@ -15,8 +15,10 @@ CREATE TABLE public.key_data (
 CREATE TABLE public.statechain_transfer (
 	id serial4 NOT NULL,
 	statechain_id varchar,
-	auth_xonly_public_key bytea,
+	new_user_auth_public_key bytea,
 	x1 bytea,
-	transfer_msg varchar NULL,
+	encrypted_transfer_msg varchar NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	CONSTRAINT transfer_pkey PRIMARY KEY (id)
 );

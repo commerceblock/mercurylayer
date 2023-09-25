@@ -168,6 +168,10 @@ async fn main() {
 
             transfer_sender::init(&pool, &recipient_address, &statechain_id, network).await.unwrap();
 
+            println!("{}", serde_json::to_string_pretty(&json!({
+                "sent": true,
+            })).unwrap());
+
 
         }
     };

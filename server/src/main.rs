@@ -41,6 +41,7 @@ async fn main() {
             endpoints::sign::sign_first,
             endpoints::sign::sign_second,
             endpoints::transfer::transfer_sender,
+            endpoints::transfer::transfer_update_msg,
             utils::info_config,
         ])
         .register("/", catchers![
