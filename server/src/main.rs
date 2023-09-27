@@ -40,8 +40,8 @@ async fn main() {
             endpoints::deposit::post_deposit,
             endpoints::sign::sign_first,
             endpoints::sign::sign_second,
-            endpoints::transfer::transfer_sender,
-            endpoints::transfer::transfer_update_msg,
+            endpoints::transfer_sender::transfer_sender,
+            endpoints::transfer_sender::transfer_update_msg,
             utils::info_config,
         ])
         .register("/", catchers![

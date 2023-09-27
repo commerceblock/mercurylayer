@@ -1,66 +1,19 @@
+mod db;
+
 use std::str::FromStr;
 
 use bip39::{Mnemonic, Language};
 use bitcoin::{Network, bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address};
 use secp256k1_zkp::{PublicKey, ffi::types::AlignedType, Secp256k1, SecretKey, XOnlyPublicKey};
-use sqlx::{Sqlite, Row};
+use sqlx::Sqlite;
 use uuid::Uuid;
-use bech32::{self, WriteBase32, FromBase32, ToBase32, Variant};
+use bech32::{self, FromBase32, ToBase32, Variant};
 
 use crate::error::CError;
 
-async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
-
-    let rows = sqlx::query("SELECT * FROM signer_seed")
-        .fetch_all(pool)
-        .await
-        .unwrap();
-
-    if rows.len() > 1 {
-        panic!("More than one seed in database");
-    }
-
-    if rows.len() == 1 {
-        let row = rows.get(0).unwrap();
-        let seed = row.get::<Vec<u8>, _>("seed");
-        let mut seed_array = [0u8; 32];
-        seed_array.copy_from_slice(&seed);
-        return seed_array;
-    } else {
-        let mut seed = [0u8; 32];  // 256 bits
-        rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut seed);
-        
-        let query = "INSERT INTO signer_seed (seed) VALUES ($1)";
-        let _ = sqlx::query(query)
-            .bind(seed.to_vec())
-            .execute(pool)
-            .await
-            .unwrap();
-
-        seed
-    }   
-}
-
-pub async fn get_next_address_index(pool: &sqlx::Pool<Sqlite>, change_index: u32) -> u32 {
-
-    let row = sqlx::query("SELECT MAX(address_index) FROM signer_data WHERE change_index = $1")
-        .bind(change_index)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let index = row.get::<Option<u32>, _>(0);
-
-    if index.is_some() {
-        return index.unwrap() + 1;
-    } else {
-        return 0;
-    }
-}
-
 pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, change_index: u32, address_index:u32, network: Network) -> KeyData {
 
-    let seed = generate_or_get_seed(pool).await;
+    let seed = db::generate_or_get_seed(pool).await;
 
     // we need secp256k1 context for key derivation
     let mut buf: Vec<AlignedType> = Vec::new();
@@ -99,55 +52,6 @@ pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, 
     }
 }
 
-pub async fn insert_agg_key_data(pool: &sqlx::Pool<Sqlite>, key_data: &KeyData, backup_address: &Address)  {
-
-    let query = 
-        "INSERT INTO signer_data (token_id, amount, client_seckey_share, client_pubkey_share, backup_address, fingerprint, agg_key_derivation_path, change_index, address_index) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
-
-    let token_id_str = match key_data.token_id {
-        Some(token_id) => Some(token_id.to_string()),
-        None => None,
-    };
-
-    let amount = match key_data.amount {
-        Some(amount) => Some(amount as i64),
-        None => None,
-    };
-
-    let _ = sqlx::query(query)
-        .bind(token_id_str)
-        .bind(amount)
-        .bind(&key_data.secret_key.secret_bytes().to_vec())
-        .bind(&key_data.public_key.serialize().to_vec())
-        .bind(&backup_address.to_string())
-        .bind(&key_data.fingerprint)
-        .bind(&key_data.derivation_path)
-        .bind(key_data.change_index)
-        .bind(key_data.address_index)
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
-pub async fn update_auth_key_data(pool: &sqlx::Pool<Sqlite>, key_data: &KeyData, client_pubkey_share: &PublicKey, transfer_address: &str)  {
-
-    let query = "\
-        UPDATE signer_data \
-        SET auth_derivation_path = $1, auth_seckey = $2, auth_pubkey = $3, transfer_address = $4 \
-        WHERE client_pubkey_share = $5";
-
-    let _ = sqlx::query(query)
-        .bind(&key_data.derivation_path)
-        .bind(&key_data.secret_key.secret_bytes().to_vec())
-        .bind(&key_data.public_key.serialize().to_vec())
-        .bind(transfer_address)
-        .bind(&client_pubkey_share.serialize().to_vec())
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
 pub struct KeyData {
     pub token_id: Option<Uuid>,
     pub amount: Option<u64>,
@@ -160,7 +64,7 @@ pub struct KeyData {
 }
 
 pub async fn get_mnemonic(pool: &sqlx::Pool<Sqlite>) -> String {
-    let seed = generate_or_get_seed(pool).await;
+    let seed = db::generate_or_get_seed(pool).await;
 
     let mnemonic = Mnemonic::from_entropy_in(Language::English,&seed).unwrap();
 
@@ -215,7 +119,7 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
 pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::Uuid>, amount: Option<u64>, network: Network) -> AddressData {
     let derivation_path = "m/86h/0h/0h";
     let change_index = 0;
-    let address_index = get_next_address_index(pool, change_index).await;
+    let address_index = db::get_next_address_index(pool, change_index).await;
     let mut agg_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
     agg_key_data.token_id = token_id;
     agg_key_data.amount = amount;
@@ -224,7 +128,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::U
     let client_pubkey_share = agg_key_data.public_key;
     let backup_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, network);
 
-    insert_agg_key_data(pool, &agg_key_data, &backup_address).await;
+    db::insert_agg_key_data(pool, &agg_key_data, &backup_address).await;
 
     let derivation_path = "m/89h/0h/0h";
     let mut auth_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
@@ -238,7 +142,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::U
 
     let transfer_address = encode_transfer_address(&client_pubkey_share, &auth_key_data.public_key);
 
-    update_auth_key_data(pool, &auth_key_data, &client_pubkey_share, &transfer_address).await;
+    db::update_auth_key_data(pool, &auth_key_data, &client_pubkey_share, &transfer_address).await;
 
     AddressData {
         client_secret_key,

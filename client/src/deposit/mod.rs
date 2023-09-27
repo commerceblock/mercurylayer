@@ -1,10 +1,12 @@
+mod db;
+
 use std::{str::FromStr, thread, time::Duration};
 
-use bitcoin::{Network, secp256k1, hashes::sha256, Address, TxOut, Txid};
+use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
 use electrum_client::ListUnspentRes;
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, SecretKey, XOnlyPublicKey, schnorr::Signature};
+use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature};
 use serde::{Serialize, Deserialize};
-use sqlx::{Sqlite, Row};
+use sqlx::Sqlite;
 
 use crate::{key_derivation, error::CError, electrum};
 
@@ -18,9 +20,28 @@ pub struct DepositRequestPayload {
 
 pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
 
-    let (statechain_id, client_secret_key, client_pubkey_share, to_address, server_pubkey_share, signed_statechain_id, transfer_address) = 
-        init(pool, token_id, amount, network).await;
-    let (aggregate_pub_key, aggregate_address) = create_agg_pub_key(pool, &client_pubkey_share, &server_pubkey_share, network).await?;
+    let address_data = key_derivation::get_new_address(pool, Some(token_id), Some(amount), network).await;
+
+    let (statechain_id, 
+        server_pubkey_share, 
+        signed_statechain_id) = init(&address_data, token_id, amount).await;
+    
+    let secp = Secp256k1::new();
+
+    let key_agg_cache = MusigKeyAggCache::new(&secp, &[address_data.client_pubkey_share, server_pubkey_share]);
+    let aggregate_pub_key = key_agg_cache.agg_pk();
+
+    let aggregate_address = Address::p2tr(&secp, aggregate_pub_key, None, network);
+
+    db::insert_agg_pub_key(
+        pool, 
+        &statechain_id, 
+        amount as u32, 
+        &server_pubkey_share, 
+        &aggregate_pub_key, 
+        &aggregate_address,
+        &address_data.client_pubkey_share,
+        &signed_statechain_id).await.unwrap();
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
@@ -51,18 +72,20 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let utxo = utxo.unwrap();
 
-    update_funding_tx_outpoint(pool, &utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
+    db::update_funding_tx_outpoint(pool, &utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
 
     let block_header = electrum::block_headers_subscribe_raw(&client);
     let block_height = block_header.height;
+
+    let to_address = address_data.backup_address;
 
     let (tx, client_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
         pool,         
         block_height as u32,
         &statechain_id,
         &signed_statechain_id,
-        &client_secret_key,
-        &client_pubkey_share,
+        &address_data.client_secret_key,
+        &address_data.client_pubkey_share,
         &server_pubkey_share,
         utxo.tx_hash, 
         utxo.tx_pos as u32, 
@@ -73,15 +96,13 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    crate::transaction::insert_transaction(pool, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &transfer_address).await;
+    db::insert_transaction(pool, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await;
 
     Ok(statechain_id)
 
 }
 
-pub async fn init(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> (String, SecretKey, PublicKey, Address, PublicKey, Signature, String) {
-
-    let address_data = key_derivation::get_new_address(pool, Some(token_id), Some(amount), network).await;
+pub async fn init(address_data: &key_derivation::AddressData ,token_id: uuid::Uuid, amount: u64) -> (String, PublicKey, Signature) {
 
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 
@@ -126,87 +147,15 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, 
 
     let statechain_id = response.statechain_id.to_string();
 
-    update_statechain_id(pool, statechain_id.clone(), &address_data.client_pubkey_share).await;
-
     let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
     let signed_statechain_id = secp.sign_schnorr(&msg, &keypair);
 
-    (statechain_id, address_data.client_secret_key, address_data.client_pubkey_share, address_data.backup_address, server_pubkey_share, signed_statechain_id, address_data.transfer_address)
+    (statechain_id, server_pubkey_share, signed_statechain_id)
 }
-
-pub async fn update_statechain_id(pool: &sqlx::Pool<Sqlite>, statechain_id: String, client_pubkey: &PublicKey) {
-    let query = "\
-        UPDATE signer_data \
-        SET statechain_id = $1 \
-        WHERE client_pubkey_share = $2";
-
-    let _ = sqlx::query(query)
-        .bind(&statechain_id)
-        .bind(&client_pubkey.serialize().to_vec())
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
-pub async fn create_agg_pub_key(pool: &sqlx::Pool<Sqlite>, client_pubkey: &PublicKey, server_pubkey: &PublicKey, network: Network) -> Result<(XOnlyPublicKey, Address), CError> {
-
-    let secp = Secp256k1::new();
-
-    let key_agg_cache = MusigKeyAggCache::new(&secp, &[client_pubkey.to_owned(), server_pubkey.to_owned()]);
-    let agg_pk = key_agg_cache.agg_pk();
-
-    let address = Address::p2tr(&Secp256k1::new(), agg_pk, None, network);
-
-    let query = "\
-        UPDATE signer_data \
-        SET server_pubkey_share= $1, aggregated_xonly_pubkey = $2, p2tr_agg_address = $3 \
-        WHERE client_pubkey_share = $4";
-
-    let _ = sqlx::query(query)
-        .bind(&server_pubkey.serialize().to_vec())
-        .bind(&agg_pk.serialize().to_vec())
-        .bind(&address.to_string())
-        .bind(&client_pubkey.serialize().to_vec())
-        .execute(pool)
-        .await
-        .unwrap();
-
-    Ok((agg_pk,address))
-
-}
-
-
- async fn update_funding_tx_outpoint(pool: &sqlx::Pool<Sqlite>, txid: &Txid, vout: u32, statechain_id: &str) {
-
-    let query = "\
-        UPDATE signer_data \
-        SET funding_txid = $1, funding_vout = $2 \
-        WHERE statechain_id = $3";
-
-    let _ = sqlx::query(query)
-        .bind(&txid.to_string())
-        .bind(vout)
-        .bind(statechain_id)
-        .execute(pool)
-        .await
-        .unwrap();
- }
 
 pub async fn broadcast_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Txid {
     
-    let query = "\
-        SELECT backup_tx \
-        FROM backup_transaction \
-        WHERE tx_n = (SELECT MAX(tx_n) FROM backup_transaction WHERE statechain_id = $1)
-        AND statechain_id = $1";
-
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let tx_bytes = row.get::<Vec<u8>, _>("backup_tx");
+    let tx_bytes = db::get_backup_tx(pool, statechain_id).await;
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
     

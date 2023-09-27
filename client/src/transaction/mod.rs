@@ -1,3 +1,5 @@
+mod db;
+
 use std::{str::FromStr, collections::BTreeMap};
 
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
@@ -6,19 +8,6 @@ use serde::{Serialize, Deserialize};
 use sqlx::{Sqlite, Row};
 
 use crate::{error::CError, electrum};
-
-async fn count_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> u32 {
-
-    let row = sqlx::query("SELECT count(*) FROM backup_transaction WHERE statechain_id = $1")
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let count = row.get::<u32, _>(0);
-
-    count
-}
 
 pub async fn new_backup_transaction(
     pool: &sqlx::Pool<Sqlite>, 
@@ -59,7 +48,7 @@ pub async fn new_backup_transaction(
 
     let initlock = value.get("initlock").unwrap().as_u64().unwrap() as u32;
     let interval = value.get("interval").unwrap().as_u64().unwrap() as u32;
-    let qt_backup_tx = count_backup_tx(pool, statechain_id).await as u32;
+    let qt_backup_tx = db::count_backup_tx(pool, statechain_id).await as u32;
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
@@ -243,24 +232,6 @@ pub struct PartialSignatureResponsePayload<'r> {
     partial_sig: &'r str,
 }
 
-/*
-async fn update_commitments(pool: &sqlx::Pool<Sqlite>, client_sec_nonce: &[u8; 132], blinding_factor: &[u8; 32], client_pubkey: &PublicKey) {
-
-    let query = "\
-        UPDATE signer_data \
-        SET client_sec_nonce = $1, blinding_factor = $2 \
-        WHERE client_pubkey_share = $3";
-
-    let _ = sqlx::query(query)
-        .bind(client_sec_nonce.to_vec())
-        .bind(blinding_factor.to_vec())
-        .bind(&client_pubkey.serialize().to_vec())
-        .execute(pool)
-        .await
-        .unwrap();
-}
- */
-
 async fn musig_sign_psbt_taproot(
     statechain_id: &str,
     signed_statechain_id: &Signature,
@@ -411,31 +382,4 @@ async fn musig_sign_psbt_taproot(
     assert!(secp.verify_schnorr(&sig, &msg, &tweaked_pubkey.x_only_public_key().0).is_ok());
    
     Ok((sig, client_pub_nonce, blinding_factor))
-}
-
-pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, client_pub_nonce: &[u8; 66], blinding_factor: &[u8; 32], statechain_id: &str, recipient_address: &str){ 
-
-    let row = sqlx::query("SELECT MAX(tx_n) FROM backup_transaction WHERE statechain_id = $1")
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let mut tx_n = row.get::<u32, _>(0);
-
-    tx_n = tx_n + 1;
-
-    let query = "INSERT INTO backup_transaction (tx_n, statechain_id, client_public_nonce, blinding_factor, backup_tx, recipient_address) \
-        VALUES ($1, $2, $3, $4, $5, $6)";
-        let _ = sqlx::query(query)
-            .bind(tx_n)
-            .bind(statechain_id)
-            .bind(client_pub_nonce.to_vec())
-            .bind(blinding_factor.to_vec())
-            .bind(tx_bytes)
-            .bind(recipient_address)
-            .execute(pool)
-            .await
-            .unwrap();
-
 }

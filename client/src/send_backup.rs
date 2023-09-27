@@ -30,7 +30,7 @@ pub async fn get_address_info(pool: &sqlx::Pool<Sqlite>, list_utxo: Vec::<(ListU
 
     for (utxo, backup_address) in list_utxo {
 
-        let query = "SELECT client_seckey_share, client_pubkey_share, fingerprint, agg_key_derivation_path \
+        let query = "SELECT client_seckey_share, client_pubkey_share, fingerprint, client_derivation_path \
             FROM signer_data \
             WHERE backup_address = $1";
 
@@ -47,7 +47,7 @@ pub async fn get_address_info(pool: &sqlx::Pool<Sqlite>, list_utxo: Vec::<(ListU
         let xonly_public_key = PublicKey::from_slice(&public_key_bytes).unwrap().x_only_public_key().0;
 
         let fingerprint = row.get::<String, _>("fingerprint");
-        let derivation_path = row.get::<String, _>("agg_key_derivation_path");
+        let derivation_path = row.get::<String, _>("client_derivation_path");
 
         list_unspent.push(AddressInfo {
             address: backup_address,
