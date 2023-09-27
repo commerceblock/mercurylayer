@@ -5,7 +5,7 @@ use std::{str::FromStr, collections::BTreeMap};
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
 use secp256k1_zkp::{SecretKey, PublicKey, XOnlyPublicKey, Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, MusigKeyAggCache, MusigAggNonce, BlindingFactor, MusigSession, MusigPartialSignature}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
-use sqlx::{Sqlite, Row};
+use sqlx::Sqlite;
 
 use crate::{error::CError, electrum};
 

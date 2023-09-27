@@ -1,15 +1,15 @@
-use std::str::FromStr;
+mod db;
 
-use bitcoin::{Transaction, block, Address, Network, secp256k1, hashes::sha256, Txid};
+use bitcoin::{Transaction, Address, Network, secp256k1, hashes::sha256, Txid};
 use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{Sqlite, Row};
+use sqlx::Sqlite;
 
-use crate::{error::CError, electrum, key_derivation};
+use crate::{error::CError, key_derivation};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct BackupTransaction {
+pub struct BackupTransaction {
     statechain_id: String,
     tx_n: u32,
     tx: Transaction,
@@ -44,42 +44,6 @@ impl BackupTransaction {
         }
     }
 }
-
-async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Vec::<BackupTransaction> {
-
-    let rows = sqlx::query("SELECT * FROM backup_transaction WHERE statechain_id = $1")
-        .bind(statechain_id)
-        .fetch_all(pool)
-        .await
-        .unwrap();
-
-    let mut backup_transactions = Vec::<BackupTransaction>::new();
-
-    for row in rows {
-        let row_statechain_id = row.get::<String, _>("statechain_id");
-        assert!(row_statechain_id == statechain_id);
-        let tx_n = row.get::<u32, _>("tx_n");
-        let client_public_nonce = row.get::<Vec<u8>, _>("client_public_nonce");
-        let blinding_factor = row.get::<Vec<u8>, _>("blinding_factor");
-
-        let tx_bytes = row.get::<Vec<u8>, _>("backup_tx");
-        let tx = bitcoin::consensus::deserialize::<Transaction>(&tx_bytes).unwrap();
-
-        let recipient_address = row.get::<String, _>("recipient_address");
-
-        backup_transactions.push(BackupTransaction {
-            statechain_id: row_statechain_id,
-            tx_n,
-            tx,
-            client_public_nonce,
-            blinding_factor,
-            recipient_address,
-        });
-    }
-
-    backup_transactions
-
-}  
 
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
 fn get_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey) -> Signature {
@@ -176,7 +140,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     println!("new_user_pubkey: {}", new_user_pubkey);
     println!("new_auth_pubkey: {}", new_auth_pubkey);
 
-    let mut backup_transactions = get_backup_transactions(&pool, &statechain_id).await;
+    let mut backup_transactions = db::get_backup_transactions(&pool, &statechain_id).await;
 
     if backup_transactions.len() == 0 {
         return Err(CError::Generic("No backup transactions found".to_string()));
@@ -289,7 +253,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     Ok(()) 
 }
 
-struct StatechainCoinDetails {
+pub struct StatechainCoinDetails {
     pub client_seckey: SecretKey,
     pub client_pubkey: PublicKey,
     pub amount: u64,
@@ -297,54 +261,6 @@ struct StatechainCoinDetails {
     pub aggregated_xonly_pubkey: XOnlyPublicKey,
     pub p2tr_agg_address: Address,
     pub auth_seckey: SecretKey,
-}
-
-async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, network: Network) -> StatechainCoinDetails {
-
-    let query = "SELECT client_seckey_share, client_pubkey_share, amount, server_pubkey_share, aggregated_xonly_pubkey, p2tr_agg_address, auth_seckey \
-            FROM signer_data \
-            WHERE statechain_id = $1";
-
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let secret_key_bytes = row.get::<Vec<u8>, _>("client_seckey_share");
-    let client_seckey = SecretKey::from_slice(&secret_key_bytes).unwrap();
-
-    let client_public_key_bytes = row.get::<Vec<u8>, _>("client_pubkey_share");
-    let client_pubkey = PublicKey::from_slice(&client_public_key_bytes).unwrap();
-
-    let amount = row.get::<i64, _>("amount") as u64;
-
-    let server_public_key_bytes = row.get::<Vec<u8>, _>("server_pubkey_share");
-    let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
-
-    let agg_public_key_bytes = row.get::<Vec<u8>, _>("aggregated_xonly_pubkey");
-    let aggregated_xonly_pubkey = XOnlyPublicKey::from_slice(&agg_public_key_bytes).unwrap();
-
-    let agg_address_str = row.get::<String, _>("p2tr_agg_address");
-    let p2tr_agg_address = Address::from_str(&agg_address_str).unwrap().require_network(network).unwrap();
-
-    let auth_seckey_bytes = row.get::<Vec<u8>, _>("auth_seckey");
-    let auth_seckey = SecretKey::from_slice(&auth_seckey_bytes).unwrap();
-
-    let address = Address::p2tr(&Secp256k1::new(), aggregated_xonly_pubkey, None, network);
-
-    assert!(address.to_string() == p2tr_agg_address.to_string());
-
-    StatechainCoinDetails {
-        client_seckey,
-        client_pubkey,
-        amount,
-        server_pubkey,
-        aggregated_xonly_pubkey,
-        p2tr_agg_address,
-        auth_seckey,
-    }
-
 }
 
 pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
@@ -357,7 +273,7 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
     assert!(tx1.input.len() == 1);
     let input = &tx1.input[0];
     
-    let statechain_coin_details = get_statechain_coin_details(&pool, &statechain_id, network).await;
+    let statechain_coin_details = db::get_statechain_coin_details(&pool, &statechain_id, network).await;
 
     let auth_secret_key = statechain_coin_details.auth_seckey;
 
