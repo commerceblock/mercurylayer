@@ -16,17 +16,26 @@ pub struct TransferSenderequestPayload {
     batch_id: Option<String>,
 }
 
-async fn insert_new_transfer(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, x1: &[u8; 32], statechain_id: &String)  {
+async fn insert_new_transfer(transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, new_user_auth_key: &PublicKey, x1: &[u8; 32], statechain_id: &String)  {
 
-    let query = "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1) VALUES ($1, $2, $3)";
+    let query1 = "DELETE FROM statechain_transfer WHERE statechain_id = $1 AND new_user_auth_public_key = $2";
 
-    let _ = sqlx::query(query)
+    let _ = sqlx::query(query1)
+        .bind(statechain_id)
+        .bind(&new_user_auth_key.serialize())
+        .execute(&mut **transaction)
+        .await
+        .unwrap();
+
+    let query2 = "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1) VALUES ($1, $2, $3)";
+
+    let _ = sqlx::query(query2)
         .bind(statechain_id)
         .bind(&new_user_auth_key.serialize())
         .bind(x1)
-        .execute(pool)
+        .execute(&mut **transaction)
         .await
-        .unwrap();
+        .unwrap();    
 }
 
 #[post("/transfer/sender", format = "json", data = "<transfer_sender_request_payload>")]
@@ -50,7 +59,11 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     let s_x1 = Scalar::random();
     let x1 = s_x1.to_be_bytes();
 
-    insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id).await;
+    let mut transaction = statechain_entity.pool.begin().await.unwrap();
+
+    insert_new_transfer(&mut transaction, &new_user_auth_key, &x1, &statechain_id).await;
+
+    transaction.commit().await.unwrap();
 
     let response_body = json!({
         "x1": hex::encode(x1),
@@ -72,7 +85,7 @@ async fn update_transfer_msg(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey,
 
     let query = "\
         UPDATE statechain_transfer \
-        SET encrypted_transfer_msg = $1 \
+        SET encrypted_transfer_msg = $1, updated_at = NOW() \
         WHERE \
             statechain_id = $2 AND \
             new_user_auth_public_key = $3 AND \

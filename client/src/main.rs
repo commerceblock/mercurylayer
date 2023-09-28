@@ -6,6 +6,7 @@ mod wallet;
 mod transaction;
 mod send_backup;
 mod transfer_sender;
+mod transfer_receiver;
 
 use std::str::FromStr;
 
