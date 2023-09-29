@@ -41,7 +41,9 @@ enum Commands {
     /// Generate a transfer address to receive funds
     NewTransferAddress { },
     /// Send a statechain coin to a transfer address
-    TransferSend { recipient_address: String, statechain_id: String }
+    TransferSend { recipient_address: String, statechain_id: String },
+    /// Retrieve coins from server
+    TransferReceive { },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -174,6 +176,10 @@ async fn main() {
             })).unwrap());
 
 
+        },
+        Commands::TransferReceive {  } => {
+                
+            transfer_receiver::receive(&pool, network).await;
         }
     };
 

@@ -25,7 +25,6 @@ async fn get_transfer_messages(pool: &sqlx::PgPool, new_user_auth_key: &PublicKe
 
     for row in rows {
         let encrypted_transfer_msg: Vec<u8> = row.get(0);
-        println!("encrypted_transfer_msg: {:?}", encrypted_transfer_msg);
         result.push(hex::encode(encrypted_transfer_msg));
     }
 
@@ -50,14 +49,14 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
     
     let result = get_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
 
-    if result.len() == 0 {
+/*     if result.len() == 0 {
         let response_body = json!({
             "error": "Not Found",
             "message": "No transfer messages found"
         });
     
         return status::Custom(Status::NotFound, Json(response_body));
-    }
+    } */
 
     let response_body = json!({
         "list_enc_transfer_msg": result
