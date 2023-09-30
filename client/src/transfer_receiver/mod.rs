@@ -1,5 +1,5 @@
-use bitcoin::{Transaction, Network, Address};
-use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1};
+use bitcoin::{Transaction, Network, Address, transaction};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
@@ -74,6 +74,7 @@ impl SerializedBackupTransaction {
     }
 }
 
+/// step 3. Owner 2 verifies that the latest backup transaction pays to their key O2 and that the input (Tx0) is unspent.
 async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &PublicKey, network: Network,) {
 
     let last_tx = transfer_msg.backup_transactions.last().unwrap();
@@ -93,7 +94,40 @@ async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg,
     println!("aggregate_address.script_pubkey: {}", aggregate_address.script_pubkey().to_hex_string());
 
     println!("x.script_pubkey: {}", x.to_hex_string());
+}
 
+/// step 4a. Verifiy if the signature is valid.
+async fn verify_transaction_signature(transaction: Transaction) {
+/*     let secp = Secp256k1::new();
+
+    let msg = transaction.txid();
+
+    let sig = transaction.input[0].witness[0].clone();
+
+    let pubkey = transaction.input[0].witness[1].clone();
+
+    let pubkey = PublicKey::from_slice(&pubkey[..]).unwrap();
+
+    let sig = secp256k1_zkp::Signature::from_der(&sig[..]).unwrap();
+
+    let msg = secp256k1_zkp::Message::from_slice(&msg[..]).unwrap();
+
+    let res = secp.verify(&msg, &sig, &pubkey);
+
+    assert!(res.is_ok()); */
+
+    let witness = transaction.input[0].witness.clone();
+
+    println!("witness.len(): {}", witness.len());
+
+    let witness_data = witness.nth(0).unwrap();
+
+    // the last element is the hash type
+    let signature_data = witness_data.split_last().unwrap().1;
+
+    let signature = Signature::from_slice(signature_data).unwrap();
+
+    println!("signature_data: {}", signature);
 
 }
 

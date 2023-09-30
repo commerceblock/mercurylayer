@@ -85,7 +85,9 @@ pub async fn insert_transaction(
 
     let mut new_tx_n = row.get::<u32, _>(0);
 
-    new_tx_n = new_tx_n + 1;
+    if new_tx_n != 0 {
+        new_tx_n = new_tx_n + 1;
+    }
 
     if tx_n != new_tx_n {
         return Err(CError::Generic("tx_n is not equal to the next tx_n in the database".to_string()));
