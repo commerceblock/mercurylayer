@@ -68,7 +68,14 @@ pub async fn get_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Ve
     tx_bytes
 }
 
-pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, client_pub_nonce: &[u8; 66], blinding_factor: &[u8; 32], statechain_id: &str, recipient_address: &str){ 
+pub async fn insert_transaction(
+    pool: &sqlx::Pool<Sqlite>, 
+    tx_n: u32, 
+    tx_bytes: &Vec<u8>, 
+    client_pub_nonce: &[u8; 66], 
+    blinding_factor: &[u8; 32], 
+    statechain_id: &str, 
+    recipient_address: &str) -> Result<(), CError>{ 
 
     let row = sqlx::query("SELECT MAX(tx_n) FROM backup_transaction WHERE statechain_id = $1")
         .bind(statechain_id)
@@ -76,9 +83,13 @@ pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, c
         .await
         .unwrap();
 
-    let mut tx_n = row.get::<u32, _>(0);
+    let mut new_tx_n = row.get::<u32, _>(0);
 
-    tx_n = tx_n + 1;
+    new_tx_n = new_tx_n + 1;
+
+    if tx_n != new_tx_n {
+        return Err(CError::Generic("tx_n is not equal to the next tx_n in the database".to_string()));
+    }
 
     let query = "INSERT INTO backup_transaction (tx_n, statechain_id, client_public_nonce, blinding_factor, backup_tx, recipient_address) \
         VALUES ($1, $2, $3, $4, $5, $6)";
@@ -92,5 +103,7 @@ pub async fn insert_transaction(pool: &sqlx::Pool<Sqlite>, tx_bytes: &Vec<u8>, c
             .execute(pool)
             .await
             .unwrap();
+
+    Ok(())
 
 }

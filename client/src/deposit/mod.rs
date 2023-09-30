@@ -1,4 +1,4 @@
-mod db;
+pub mod db;
 
 use std::{str::FromStr, thread, time::Duration};
 
@@ -96,7 +96,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    db::insert_transaction(pool, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await;
+    db::insert_transaction(pool, 0, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await.unwrap();
 
     Ok(statechain_id)
 
