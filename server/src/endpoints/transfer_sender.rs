@@ -4,6 +4,7 @@ use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
+use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
@@ -16,13 +17,31 @@ pub struct TransferSenderequestPayload {
     batch_id: Option<String>,
 }
 
+async fn exists_msg_for_same_statechain_id_and_new_user_auth_key(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, statechain_id: &str) -> bool {
+
+    let query = "\
+        SELECT COUNT(*) \
+        FROM statechain_transfer \
+        WHERE new_user_auth_public_key = $1 AND statechain_id = $2";
+
+    let row = sqlx::query(query)
+        .bind(&new_user_auth_key.serialize())
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let count: i64 = row.get(0);
+
+    count > 0
+}
+
 async fn insert_new_transfer(transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, new_user_auth_key: &PublicKey, x1: &[u8; 32], statechain_id: &String)  {
 
-    let query1 = "DELETE FROM statechain_transfer WHERE statechain_id = $1 AND new_user_auth_public_key = $2";
+    let query1 = "DELETE FROM statechain_transfer WHERE statechain_id = $1";
 
     let _ = sqlx::query(query1)
         .bind(statechain_id)
-        .bind(&new_user_auth_key.serialize())
         .execute(&mut **transaction)
         .await
         .unwrap();
@@ -55,6 +74,16 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     }
 
     let new_user_auth_key = PublicKey::from_str(&transfer_sender_request_payload.0.new_user_auth_key).unwrap();
+
+    if exists_msg_for_same_statechain_id_and_new_user_auth_key(&statechain_entity.pool, &new_user_auth_key, &statechain_id).await {
+
+        let response_body = json!({
+            "error": "Internal Server Error",
+            "message": "Transfer message already exists for this statechain_id and new_user_auth_key."
+        });
+    
+        return status::Custom(Status::BadRequest, Json(response_body));
+    }
 
     let s_x1 = Scalar::random();
     let x1 = s_x1.to_be_bytes();

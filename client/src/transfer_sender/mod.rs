@@ -89,7 +89,7 @@ fn verify_transfer_signature(new_user_pubkey: XOnlyPublicKey, input_txid: &Txid,
 
 } */
 
-async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Vec<u8> {
+async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Result<Vec<u8>, CError> {
     let endpoint = "http://127.0.0.1:8000";
     let path = "transfer/sender";
 
@@ -113,12 +113,18 @@ async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_a
 
     let value = match request.json(&transfer_sender_request_payload).send().await {
         Ok(response) => {
-            let text = response.text().await.unwrap();
-            text
+
+            let status = response.status();
+            let text = response.text().await.unwrap_or("Unexpected error".to_string());
+
+            if status.is_success() {
+                text
+            } else {
+                return Err(CError::Generic(format!("status: {}, error: {}", status, text)));
+            }
         },
         Err(err) => {
-            // return Err(CError::Generic(err.to_string()));
-            panic!("error: {}", err);
+            return Err(CError::Generic(format!("status: {}, error: {}", err.status().unwrap(),err.to_string())));
         },
     };
 
@@ -131,7 +137,7 @@ async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_a
 
     let x1 = hex::decode(response.x1).unwrap();
 
-    x1
+    Ok(x1)
 }
 
 pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
@@ -187,7 +193,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let transfer_signature = get_transfer_signature(new_user_pubkey, &input_txid, input_vout, &client_seckey);
 
-    let x1: [u8; 32] = x1.try_into().unwrap();
+    let x1: [u8; 32] = x1?.try_into().unwrap();
     let x1 = Scalar::from_be_bytes(x1).unwrap();
 
     let t1 = client_seckey.add_tweak(&x1).unwrap();
