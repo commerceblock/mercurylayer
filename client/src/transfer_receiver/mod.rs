@@ -1,9 +1,11 @@
-use bitcoin::{Transaction, Network, Address, transaction};
-use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature};
+use std::str::FromStr;
+
+use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
-use crate::error::CError;
+use crate::{error::CError, electrum};
 
 mod db;
 
@@ -97,28 +99,11 @@ async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg,
 }
 
 /// step 4a. Verifiy if the signature is valid.
-async fn verify_transaction_signature(transaction: Transaction) {
-/*     let secp = Secp256k1::new();
+async fn verify_transaction_signature(transaction: Transaction) -> bool {
 
-    let msg = transaction.txid();
-
-    let sig = transaction.input[0].witness[0].clone();
-
-    let pubkey = transaction.input[0].witness[1].clone();
-
-    let pubkey = PublicKey::from_slice(&pubkey[..]).unwrap();
-
-    let sig = secp256k1_zkp::Signature::from_der(&sig[..]).unwrap();
-
-    let msg = secp256k1_zkp::Message::from_slice(&msg[..]).unwrap();
-
-    let res = secp.verify(&msg, &sig, &pubkey);
-
-    assert!(res.is_ok()); */
+    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
     let witness = transaction.input[0].witness.clone();
-
-    println!("witness.len(): {}", witness.len());
 
     let witness_data = witness.nth(0).unwrap();
 
@@ -127,7 +112,34 @@ async fn verify_transaction_signature(transaction: Transaction) {
 
     let signature = Signature::from_slice(signature_data).unwrap();
 
-    println!("signature_data: {}", signature);
+    let txid = transaction.input[0].previous_output.txid.to_string();
+
+    let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+
+    let funding_tx_bytes = res[0].clone();
+
+    let funding_tx: Transaction = bitcoin::consensus::encode::deserialize(&funding_tx_bytes).unwrap();
+
+    let vout = transaction.input[0].previous_output.vout as usize;
+
+    let funding_tx_output = funding_tx.output[vout].clone();
+
+    let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
+
+    let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
+
+    let hash = SighashCache::new(&transaction).taproot_key_spend_signature_hash(
+        0,
+        &sighash::Prevouts::All(&[TxOut {
+            value: funding_tx_output.value,
+            script_pubkey: funding_tx_output.script_pubkey.clone(),
+        }]),
+        sighash_type,
+    ).unwrap();
+
+    let msg: Message = hash.into();
+
+    Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok()
 
 }
 
@@ -146,6 +158,12 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
         println!("transfer_signature: {}", transfer_msg.transfer_signature);
 
         verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await;
+
+        for backup_tx in transfer_msg.backup_transactions {
+            let backup_tx = backup_tx.deserialize();
+            let is_signature_valid = verify_transaction_signature(backup_tx.tx).await;
+            println!("is_signature_valid: {}", is_signature_valid);
+        }
     }
 }
 

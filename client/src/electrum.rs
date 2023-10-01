@@ -25,3 +25,7 @@ pub fn block_headers_subscribe_raw(electrum_client: &electrum_client::Client) ->
 pub fn estimate_fee(electrum_client: &electrum_client::Client, number: usize) -> f64 {
     electrum_client.estimate_fee(number).unwrap()
 }
+
+pub fn batch_transaction_get_raw(electrum_client: &electrum_client::Client, txids: &[Txid]) -> Vec<Vec<u8>> {
+    electrum_client.batch_transaction_get_raw(txids).unwrap()
+}

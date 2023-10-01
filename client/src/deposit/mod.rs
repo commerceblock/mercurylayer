@@ -2,9 +2,9 @@ pub mod db;
 
 use std::{str::FromStr, thread, time::Duration};
 
-use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
+use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid, Transaction, sighash::{TapSighashType, SighashCache, self}, TxOut};
 use electrum_client::ListUnspentRes;
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature};
+use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature, XOnlyPublicKey};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
@@ -94,9 +94,59 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
         amount,
         &to_address).await.unwrap();
 
+        /*let witness = tx.input[0].witness.clone();
+
+        println!("witness.len(): {}", witness.len());
+    
+        let witness_data = witness.nth(0).unwrap();
+    
+        // the last element is the hash type
+        let signature_data = witness_data.split_last().unwrap().1;
+
+        let signature = Signature::from_slice(signature_data).unwrap();
+    
+        println!("signature_data: {}", signature);
+
+        let txid = tx.input[0].previous_output.txid.to_string();
+
+        let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+
+        let tx0_bytes = res[0].clone();
+
+        let tx0: Transaction = bitcoin::consensus::encode::deserialize(&tx0_bytes).unwrap();
+
+        let vout = tx.input[0].previous_output.vout as usize;
+
+        let tx0_output = tx0.output[vout].clone();
+
+        let xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
+
+        println!("xonly_pubkey: {}", xonly_pubkey.to_string());
+
+        let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
+
+        println!("sighash_type: {}", sighash_type);
+
+        let hash = SighashCache::new(&tx).taproot_key_spend_signature_hash(
+            0,
+            &sighash::Prevouts::All(&[TxOut {
+                value: tx0_output.value,
+                script_pubkey: tx0_output.script_pubkey.clone(),
+            }]),
+            sighash_type,
+        ).unwrap();
+
+        println!("hash: {}", hash);
+
+        let msg: Message = hash.into();
+
+        let res = secp.verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok();
+
+        println!("res verify_schnorr: {}", res);*/
+
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    db::insert_transaction(pool, 0, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await.unwrap();
+    db::insert_transaction(pool, 1, &tx_bytes, &client_pub_nonce.serialize(), blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await.unwrap();
 
     Ok(statechain_id)
 
