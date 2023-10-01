@@ -1,4 +1,4 @@
-CREATE TABLE public.key_data (
+CREATE TABLE public.statechain_data (
 	id serial4 NOT NULL,
 	token_id varchar NULL UNIQUE,
     auth_xonly_public_key bytea NULL UNIQUE,
@@ -8,8 +8,8 @@ CREATE TABLE public.key_data (
     statechain_id varchar NULL UNIQUE,
 	r2_commitment varchar NULL,
 	blind_commitment varchar NULL,
-	CONSTRAINT key_data_pkey PRIMARY KEY (id),
-	CONSTRAINT key_data_server_public_key_ukey UNIQUE (server_public_key)
+	CONSTRAINT statechain_data_pkey PRIMARY KEY (id),
+	CONSTRAINT statechain_data_server_public_key_ukey UNIQUE (server_public_key)
 );
 
 CREATE TABLE public.statechain_transfer (
@@ -20,5 +20,15 @@ CREATE TABLE public.statechain_transfer (
 	encrypted_transfer_msg bytea NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	CONSTRAINT transfer_pkey PRIMARY KEY (id)
+	CONSTRAINT statechain_transfer_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.statechain_signature_data (
+	id serial4 NOT NULL,
+	r2_commitment varchar NULL,
+	blind_commitment varchar NULL,
+	server_pubnonce varchar NULL,
+	blind_challenge varchar NULL,
+	tx_n integer DEFAULT 0,
+	statechain_id varchar NULL
 );

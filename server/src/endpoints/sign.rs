@@ -21,7 +21,7 @@ pub struct SignFirstRequestPayload {
 pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, statechain_id: &str)  {
 
     let query = "\
-        UPDATE key_data \
+        UPDATE statechain_data \
         SET r2_commitment= $1, blind_commitment = $2 \
         WHERE statechain_id = $3";
 
@@ -29,6 +29,33 @@ pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_
         .bind(r2_commitment)
         .bind(blind_commitment)
         .bind(statechain_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, server_pubnonce: &str, statechain_id: &str)  {
+
+    let row = sqlx::query("SELECT COALESCE(MAX(tx_n), 0) FROM public.statechain_signature_data WHERE statechain_id = $1")
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let mut new_tx_n = row.get::<i32, _>(0);
+    new_tx_n = new_tx_n + 1;
+
+    let query = "\
+        INSERT INTO statechain_signature_data \
+        (blind_commitment, r2_commitment, server_pubnonce, statechain_id, tx_n) \
+        VALUES ($1, $2, $3, $4, $5)";
+
+    let _ = sqlx::query(query)
+        .bind(blind_commitment)
+        .bind(r2_commitment)
+        .bind(server_pubnonce)
+        .bind(statechain_id)
+        .bind(new_tx_n)
         .execute(pool)
         .await
         .unwrap();
@@ -86,6 +113,7 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
 
     let response: ServerPublicNonceResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
+    insert_new_signature_data(&statechain_entity.pool, &r2_commitment, &blind_commitment, &response.server_pubnonce, &statechain_id,).await;
 
     let response_body = json!(response);
 

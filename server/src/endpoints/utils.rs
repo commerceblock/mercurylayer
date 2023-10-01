@@ -12,7 +12,7 @@ async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str)
 
     let row = sqlx::query(
         "SELECT auth_xonly_public_key \
-        FROM public.key_data \
+        FROM public.statechain_data \
         WHERE statechain_id = $1")
         .bind(&statechain_id)
         .fetch_one(pool)
@@ -64,7 +64,7 @@ async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Result
 
         let row = sqlx::query(
             "SELECT r2_commitment, blind_commitment, server_public_key \
-            FROM public.key_data \
+            FROM public.statechain_data \
             WHERE statechain_id = $1")
             .bind(&statechain_id)
             .fetch_one(pool)
