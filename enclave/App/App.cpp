@@ -300,6 +300,31 @@ bool load_aggregated_key_data(
     }
 }
 
+bool update_sig_count(std::string& statechain_id) {
+    try
+    {
+        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        if (conn.is_open()) {
+
+            std::string update_query =
+                "UPDATE generated_public_key SET sig_count = sig_count + 1 WHERE statechain_id = $1;";
+            pqxx::work txn(conn);
+
+            txn.exec_params(update_query, statechain_id);
+            txn.commit();
+
+            conn.close();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    catch (std::exception const &e)
+    {
+        return false;
+    }
+}
+
 /* ocall functions (untrusted) */
 void ocall_print_string(const char *str)
 {
@@ -549,6 +574,11 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(500, "Generate Signature Ecall failed ");
             }  if (status != SGX_SUCCESS) {
                 return crow::response(500, "Generate Signature failed ");
+            }
+
+            bool sig_count_updated = update_sig_count(statechain_id);
+            if (!sig_count_updated) {
+                return crow::response(500, "Failed to update signature count!");
             }
 
             auto partial_sig_hex = key_to_string(serialized_partial_sig, sizeof(serialized_partial_sig));
