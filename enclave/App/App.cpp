@@ -585,7 +585,39 @@ int SGX_CDECL main(int argc, char *argv[])
 
             crow::json::wvalue result({{"partial_sig", partial_sig_hex}});
             return crow::response{result};
-    });            
+    });
+
+    CROW_ROUTE(app,"/signature_count/<string>")
+    ([](std::string statechain_id){
+
+        std::string error_message;
+        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        if (conn.is_open()) {
+
+            std::string sig_count_query =
+                "SELECT sig_count FROM generated_public_key WHERE statechain_id = $1;";
+            
+            pqxx::nontransaction ntxn(conn);
+
+            conn.prepare("sig_count_query", sig_count_query);
+
+            pqxx::result result = ntxn.exec_prepared("sig_count_query", statechain_id);
+
+            if (!result.empty()) {
+                auto sig_count_field = result[0]["sig_count"];
+                if (!sig_count_field.is_null()) {
+                    auto sig_count = sig_count_field.as<int>();
+                    crow::json::wvalue response({{"sig_count", sig_count}});
+                    return crow::response{response};
+                }
+            }
+            conn.close();
+            return crow::response(500, "Failed to retrieve signature count!");
+        } else {
+            return crow::response(500, "Failed to connect to the database!");
+        }
+
+    });
 
     app.port(18080).multithreaded().run();
 
