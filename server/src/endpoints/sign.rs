@@ -5,7 +5,7 @@ use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{XOnlyPublicKey, Secp256k1, Message, schnorr::Signature};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::Row;
+use sqlx::{Row, Acquire};
 
 use crate::server::StateChainEntity;
 
@@ -36,9 +36,20 @@ pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_
 
 pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, server_pubnonce: &str, statechain_id: &str)  {
 
-    let row = sqlx::query("SELECT COALESCE(MAX(tx_n), 0) FROM public.statechain_signature_data WHERE statechain_id = $1")
+    let mut transaction = pool.begin().await.unwrap();
+
+    // FOR UPDATE is used to lock the row for the duration of the transaction
+    // It is not allowed with aggregate functions (MAX in this case), so we need to wrap it in a subquery
+    let max_tx_k_query = "\
+        SELECT COALESCE(MAX(tx_n), 0) \
+        FROM (\
+            SELECT * \
+            FROM statechain_signature_data \
+            WHERE statechain_id = $1 FOR UPDATE) AS result";
+
+    let row = sqlx::query(max_tx_k_query)
         .bind(statechain_id)
-        .fetch_one(pool)
+        .fetch_one(&mut *transaction)
         .await
         .unwrap();
 
@@ -56,9 +67,11 @@ pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str,
         .bind(server_pubnonce)
         .bind(statechain_id)
         .bind(new_tx_n)
-        .execute(pool)
+        .execute(&mut *transaction)
         .await
         .unwrap();
+
+    transaction.commit().await.unwrap();
 }
 
 #[post("/sign/first", format = "json", data = "<sign_first_request_payload>")]
