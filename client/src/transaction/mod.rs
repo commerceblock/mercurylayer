@@ -333,11 +333,13 @@ async fn musig_sign_psbt_taproot(
         false => 0,
     };
 
+    let blinded_session = session.remove_fin_nonce_from_session();
+
     let payload = PartialSignatureRequestPayload {
         statechain_id,
         keyaggcoef: &hex::encode(key_agg_coef.serialize()),
         negate_seckey,
-        session: &hex::encode(session.serialize()),
+        session: &hex::encode(blinded_session.serialize()),
         signed_statechain_id: &signed_statechain_id.to_string(),
     };
 
