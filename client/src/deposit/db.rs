@@ -77,6 +77,7 @@ pub async fn insert_transaction(
     client_pubkey: &PublicKey, 
     server_pubkey: &PublicKey, 
     blinding_factor: &[u8; 32], 
+    session: &[u8; 133],
     statechain_id: &str, 
     recipient_address: &str) -> Result<(), CError>{ 
 
@@ -95,8 +96,8 @@ pub async fn insert_transaction(
     }
 
     let query = "INSERT INTO backup_transaction \
-        (tx_n, statechain_id, client_public_nonce, server_public_nonce, client_pubkey, server_pubkey, blinding_factor, backup_tx, recipient_address) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+        (tx_n, statechain_id, client_public_nonce, server_public_nonce, client_pubkey, server_pubkey, blinding_factor, musig_session, backup_tx, recipient_address) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)";
         let _ = sqlx::query(query)
             .bind(tx_n)
             .bind(statechain_id)
@@ -105,6 +106,7 @@ pub async fn insert_transaction(
             .bind(client_pubkey.serialize().to_vec())
             .bind(server_pubkey.serialize().to_vec())
             .bind(blinding_factor.to_vec())
+            .bind(session.to_vec())
             .bind(tx_bytes)
             .bind(recipient_address)
             .execute(pool)

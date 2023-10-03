@@ -46,8 +46,9 @@ pub struct BackupTransaction {
     server_public_nonce: MusigPubNonce,
     client_public_key: PublicKey,
     server_public_key: PublicKey,
-    blinding_factor: BlindingFactor, // Vec<u8>,
+    blinding_factor: BlindingFactor,
     recipient_address: String,
+    session: MusigSession,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -59,6 +60,7 @@ struct SerializedBackupTransaction {
     client_public_key: String,
     server_public_key: String,
     blinding_factor: String,
+    session: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -71,6 +73,9 @@ struct TransferMsg {
 
 impl SerializedBackupTransaction {
     fn deserialize(&self) -> BackupTransaction {
+
+        let session_bytes: [u8; 133] = hex::decode(&self.session).unwrap().try_into().unwrap();
+
         BackupTransaction {
             statechain_id: "".to_string(),
             tx_n: self.tx_n,
@@ -81,6 +86,7 @@ impl SerializedBackupTransaction {
             server_public_key: PublicKey::from_str(&self.server_public_key).unwrap(),
             blinding_factor: BlindingFactor::from_slice(hex::decode(&self.blinding_factor).unwrap().as_slice()).unwrap(),
             recipient_address: "".to_string(),
+            session: MusigSession::from_slice(session_bytes),
         }
     }
 }
@@ -187,7 +193,7 @@ async fn verify_transaction_signature(transaction: &Transaction) -> bool {
 
 }
 
-fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) {
+fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) -> bool {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
@@ -195,14 +201,9 @@ fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) {
     let server_public_key = backup_tx.server_public_key.clone();
     let blinding_factor = &backup_tx.blinding_factor;
 
-    println!("client_public_nonce: {}", hex::encode(client_public_nonce.serialize()));
-    println!("server_public_nonce: {}", hex::encode(server_public_nonce.serialize()));
-    println!("client_public_key: {}", client_public_key.to_string());
-    println!("server_public_key: {}", server_public_key.to_string());
-    println!("blinding_factor: {}", hex::encode(blinding_factor.to_bytes()));
-
     let secp = Secp256k1::new();
 
+    // TODO: this code is repeated in client/src/transaction/mod.rs. Move it to a common place.
     let mut key_agg_cache = MusigKeyAggCache::new(&secp, &[client_public_key, server_public_key]);
 
     let tap_tweak = TapTweakHash::from_key_and_tweak(key_agg_cache.agg_pk(), None);
@@ -217,11 +218,6 @@ fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) {
 
     let msg = get_tx_hash(&backup_tx.tx);
 
-    println!("msg: {}", msg.to_string());
-
-    println!("agg_pk: {}", key_agg_cache.agg_pk().to_string());
-    println!("aggnonce: {}", hex::encode(aggnonce.serialize()));
-
     let session = MusigSession::new_blinded(
         &secp,
         &key_agg_cache,
@@ -230,7 +226,7 @@ fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) {
         blinding_factor
     );
 
-    println!("session: {}", hex::encode(session.serialize()));
+    return session.eq(&backup_tx.session)
 
 }
 
@@ -255,7 +251,8 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx).await;
             println!("is_signature_valid: {}", is_signature_valid);
 
-            verify_blinded_musig_scheme(&backup_tx);
+            let is_scheme_valid = verify_blinded_musig_scheme(&backup_tx);
+            println!("is_scheme_valid: {}", is_scheme_valid);
         }
     }
 }

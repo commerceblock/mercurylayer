@@ -23,7 +23,7 @@ pub async fn new_backup_transaction(
     input_scriptpubkey: &ScriptBuf, 
     input_amount: u64, 
     to_address: &Address,) 
-    -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor), CError>  {
+    -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, MusigSession), CError>  {
 
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
     // 163 is the real size one input P2TR and one output P2TR
@@ -75,7 +75,7 @@ pub async fn new_backup_transaction(
 
     println!("new block_height {}", block_height);
 
-    let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = create(
+    let (tx, client_pub_nonce, server_pub_nonce, blinding_factor, session) = create(
         block_height,
         statechain_id,
         signed_statechain_id,
@@ -89,7 +89,7 @@ pub async fn new_backup_transaction(
         input_amount, 
         tx_out).await.unwrap();
 
-    Ok((tx, client_pub_nonce, server_pub_nonce, blinding_factor))
+    Ok((tx, client_pub_nonce, server_pub_nonce, blinding_factor, session))
 
 }
 
@@ -105,7 +105,7 @@ async fn create(
     input_pubkey: &XOnlyPublicKey, 
     input_scriptpubkey: &ScriptBuf, 
     input_amount: u64, 
-    output: TxOut) -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor), Box<dyn std::error::Error>> {
+    output: TxOut) -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, MusigSession), Box<dyn std::error::Error>> {
 
     let outputs = [output].to_vec();
 
@@ -161,7 +161,7 @@ async fn create(
             hash_ty,
         ).unwrap();
 
-        let (sig, client_pub_nonce, server_pub_nonce, blinding_factor) = musig_sign_psbt_taproot(
+        let (sig, client_pub_nonce, server_pub_nonce, blinding_factor, session) = musig_sign_psbt_taproot(
             statechain_id,
             signed_statechain_id,
             client_seckey,
@@ -201,7 +201,7 @@ async fn create(
     .expect("failed to verify transaction");
 
 
-    Ok((tx, client_pub_nonce, server_pub_nonce, blinding_factor))
+    Ok((tx, client_pub_nonce, server_pub_nonce, blinding_factor, session))
 }
 
 
@@ -240,7 +240,7 @@ async fn musig_sign_psbt_taproot(
     server_pubkey: &PublicKey,
     hash: TapSighash,
     secp: &Secp256k1<secp256k1::All>,
-)  -> Result<(Signature, MusigPubNonce, MusigPubNonce, BlindingFactor), CError>  {
+)  -> Result<(Signature, MusigPubNonce, MusigPubNonce, BlindingFactor, MusigSession), CError>  {
     let msg: Message = hash.into();
 
     let client_session_id = MusigSessionId::new(&mut rand::thread_rng());
@@ -301,16 +301,6 @@ async fn musig_sign_psbt_taproot(
 
     let aggnonce = MusigAggNonce::new(&secp, &[client_pub_nonce, server_pub_nonce]);
 
-    println!("client_public_nonce: {}", hex::encode(client_pub_nonce.serialize()));
-    println!("server_public_nonce: {}", hex::encode(server_pub_nonce.serialize()));
-    println!("client_public_key: {}", client_pubkey.to_string());
-    println!("server_public_key: {}", server_pubkey.to_string());
-    println!("blinding_factor: {}", hex::encode(blinding_factor.to_bytes()));
-    println!("msg: {}", msg.to_string());
-
-    println!("agg_pk: {}", key_agg_cache.agg_pk().to_string());
-    println!("aggnonce: {}", hex::encode(aggnonce.serialize()));
-
     let session = MusigSession::new_blinded(
         &secp,
         &key_agg_cache,
@@ -318,8 +308,6 @@ async fn musig_sign_psbt_taproot(
         msg,
         &blinding_factor
     );
-
-    println!("session: {}", hex::encode(session.serialize()));
 
     let client_keypair = KeyPair::from_secret_key(&secp, &client_seckey);
 
@@ -393,5 +381,5 @@ async fn musig_sign_psbt_taproot(
 
     assert!(secp.verify_schnorr(&sig, &msg, &tweaked_pubkey.x_only_public_key().0).is_ok());
    
-    Ok((sig, client_pub_nonce, server_pub_nonce, blinding_factor))
+    Ok((sig, client_pub_nonce, server_pub_nonce, blinding_factor, session))
 }

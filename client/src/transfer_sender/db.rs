@@ -39,6 +39,8 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
 
         let recipient_address = row.get::<String, _>("recipient_address");
 
+        let session = row.get::<Vec<u8>, _>("musig_session");
+
         backup_transactions.push(BackupTransaction {
             statechain_id: row_statechain_id,
             tx_n,
@@ -49,6 +51,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
             server_public_key,
             blinding_factor,
             recipient_address,
+            session,
         });
     }
 

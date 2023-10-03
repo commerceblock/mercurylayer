@@ -79,7 +79,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let to_address = address_data.backup_address;
 
-    let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
+    let (tx, client_pub_nonce, server_pub_nonce, blinding_factor, session) = crate::transaction::new_backup_transaction(
         pool,         
         block_height as u32,
         &statechain_id,
@@ -146,7 +146,17 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    db::insert_transaction(pool, 1, &tx_bytes, &client_pub_nonce.serialize(), &server_pub_nonce.serialize(), &address_data.client_pubkey_share, &server_pubkey_share, blinding_factor.as_bytes(), &statechain_id, &address_data.transfer_address).await.unwrap();
+    db::insert_transaction(
+        pool, 1, 
+        &tx_bytes, 
+        &client_pub_nonce.serialize(), 
+        &server_pub_nonce.serialize(), 
+        &address_data.client_pubkey_share, &server_pubkey_share, 
+        blinding_factor.as_bytes(), 
+        &session.serialize(), 
+        &statechain_id, 
+        &address_data.transfer_address
+    ).await.unwrap();
 
     Ok(statechain_id)
 
