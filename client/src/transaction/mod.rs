@@ -225,6 +225,7 @@ pub struct PartialSignatureRequestPayload<'r> {
     negate_seckey: u8,
     session: &'r str,
     signed_statechain_id: &'r str,
+    server_pub_nonce: &'r str,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -285,7 +286,7 @@ async fn musig_sign_psbt_taproot(
         server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
     }
 
-    let server_pub_nonce_bytes = hex::decode(server_pubnonce_hex).unwrap();
+    let server_pub_nonce_bytes = hex::decode(server_pubnonce_hex.clone()).unwrap();
     
     let server_pub_nonce = MusigPubNonce::from_slice(server_pub_nonce_bytes.as_slice()).unwrap();
 
@@ -341,6 +342,7 @@ async fn musig_sign_psbt_taproot(
         negate_seckey,
         session: &hex::encode(blinded_session.serialize()),
         signed_statechain_id: &signed_statechain_id.to_string(),
+        server_pub_nonce: server_pubnonce_hex.as_str(),
     };
 
     let endpoint = "http://127.0.0.1:8000";
