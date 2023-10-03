@@ -14,6 +14,9 @@ pub struct BackupTransaction {
     tx_n: u32,
     tx: Transaction,
     client_public_nonce: Vec<u8>,
+    server_public_nonce: Vec<u8>,
+    client_public_key: PublicKey,
+    server_public_key: PublicKey,
     blinding_factor: Vec<u8>,
     recipient_address: String,
 }
@@ -23,6 +26,9 @@ struct SerializedBackupTransaction {
     tx_n: u32,
     tx: String,
     client_public_nonce: String,
+    server_public_nonce: String,
+    client_public_key: String,
+    server_public_key: String,
     blinding_factor: String,
 }
 
@@ -40,6 +46,9 @@ impl BackupTransaction {
             tx_n: self.tx_n,
             tx: hex::encode(&bitcoin::consensus::encode::serialize(&self.tx)),
             client_public_nonce: hex::encode(&self.client_public_nonce),
+            server_public_nonce: hex::encode(&self.server_public_nonce),
+            client_public_key: self.client_public_key.to_string(),
+            server_public_key: self.server_public_key.to_string(),
             blinding_factor: hex::encode(&self.blinding_factor),
         }
     }
@@ -145,13 +154,16 @@ pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_trans
     let tx_n = backup_transaction.tx_n; 
     let tx_bytes = bitcoin::consensus::encode::serialize(&backup_transaction.tx);
     let client_pub_nonce: [u8; 66] = backup_transaction.client_public_nonce.clone().try_into().unwrap();
+    let server_pub_nonce: [u8; 66] = backup_transaction.server_public_nonce.clone().try_into().unwrap();
+    let client_pubkey = &backup_transaction.client_public_key;
+    let server_pubkey = &backup_transaction.server_public_key;
     let blinding_factor: [u8; 32] = backup_transaction.blinding_factor.clone().try_into().unwrap();
     let statechain_id = &backup_transaction.statechain_id;
     let recipient_address = &backup_transaction.recipient_address;
 
     // Here, this file is referring to a function in deposit/db.rs. 
     // TODO: Rearrange it.
-    crate::deposit::db::insert_transaction(pool, tx_n, &tx_bytes, &client_pub_nonce, &blinding_factor, &statechain_id, recipient_address).await.unwrap();
+    crate::deposit::db::insert_transaction(pool, tx_n, &tx_bytes, &client_pub_nonce, &server_pub_nonce, client_pubkey, server_pubkey, &blinding_factor, &statechain_id, recipient_address).await.unwrap();
 }
 
 pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
@@ -176,10 +188,13 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     println!("tx1_blinding_factor: {}", hex::encode(&tx1.blinding_factor));
 
     let (client_seckey, 
+        client_public_key, 
+        server_public_key,
         input_txid, 
         input_vout, 
         transaction, 
         client_pub_nonce, 
+        server_pub_nonce,
         blinding_factor, 
         signed_statechain_id) = 
     create_backup_tx_to_receiver(&pool, &tx1.tx, new_user_pubkey, &statechain_id, network).await;
@@ -193,6 +208,9 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         tx_n: new_tx_n,
         tx: transaction,
         client_public_nonce: client_pub_nonce.serialize().to_vec(),
+        server_public_nonce: server_pub_nonce.serialize().to_vec(),
+        client_public_key,
+        server_public_key,
         blinding_factor: blinding_factor.as_bytes().to_vec(),
         recipient_address: recipient_address.to_string(),
     };
@@ -287,7 +305,7 @@ pub struct StatechainCoinDetails {
 }
 
 pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
-    -> (SecretKey, Txid, u32, Transaction, MusigPubNonce, BlindingFactor, Signature) {
+    -> (SecretKey, PublicKey, PublicKey, Txid, u32, Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, Signature) {
 
     let lock_time = tx1.lock_time;
     assert!(lock_time.is_block_height());
@@ -316,7 +334,7 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
 
     let to_address = Address::p2tr(&Secp256k1::new(), new_user_pubkey.x_only_public_key().0, None, network);
 
-    let (new_tx, client_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
+    let (new_tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
         pool, 
         block_height,
         statechain_id,
@@ -339,6 +357,6 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
 
     // println!("txid sent: {}", txid);
 
-    (client_seckey, input_txid, input_vout, new_tx, client_pub_nonce, blinding_factor, signed_statechain_id)
+    (client_seckey, client_pubkey, server_pubkey, input_txid, input_vout, new_tx, client_pub_nonce, server_pub_nonce, blinding_factor, signed_statechain_id)
 
 }

@@ -73,6 +73,9 @@ pub async fn insert_transaction(
     tx_n: u32, 
     tx_bytes: &Vec<u8>, 
     client_pub_nonce: &[u8; 66], 
+    server_pub_nonce: &[u8; 66], 
+    client_pubkey: &PublicKey, 
+    server_pubkey: &PublicKey, 
     blinding_factor: &[u8; 32], 
     statechain_id: &str, 
     recipient_address: &str) -> Result<(), CError>{ 
@@ -91,12 +94,16 @@ pub async fn insert_transaction(
         return Err(CError::Generic("tx_n is not equal to the next tx_n in the database".to_string()));
     }
 
-    let query = "INSERT INTO backup_transaction (tx_n, statechain_id, client_public_nonce, blinding_factor, backup_tx, recipient_address) \
-        VALUES ($1, $2, $3, $4, $5, $6)";
+    let query = "INSERT INTO backup_transaction \
+        (tx_n, statechain_id, client_public_nonce, server_public_nonce, client_pubkey, server_pubkey, blinding_factor, backup_tx, recipient_address) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
         let _ = sqlx::query(query)
             .bind(tx_n)
             .bind(statechain_id)
             .bind(client_pub_nonce.to_vec())
+            .bind(server_pub_nonce.to_vec())
+            .bind(client_pubkey.serialize().to_vec())
+            .bind(server_pubkey.serialize().to_vec())
             .bind(blinding_factor.to_vec())
             .bind(tx_bytes)
             .bind(recipient_address)

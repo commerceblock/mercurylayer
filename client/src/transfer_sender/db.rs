@@ -19,8 +19,19 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
     for row in rows {
         let row_statechain_id = row.get::<String, _>("statechain_id");
         assert!(row_statechain_id == statechain_id);
+        
         let tx_n = row.get::<u32, _>("tx_n");
+
         let client_public_nonce = row.get::<Vec<u8>, _>("client_public_nonce");
+
+        let server_public_nonce = row.get::<Vec<u8>, _>("server_public_nonce");
+
+        let client_public_key_bytes = row.get::<Vec<u8>, _>("client_pubkey");
+        let client_public_key = PublicKey::from_slice(&client_public_key_bytes).unwrap();
+
+        let server_public_key_bytes = row.get::<Vec<u8>, _>("server_pubkey");
+        let server_public_key = PublicKey::from_slice(&server_public_key_bytes).unwrap();
+
         let blinding_factor = row.get::<Vec<u8>, _>("blinding_factor");
 
         let tx_bytes = row.get::<Vec<u8>, _>("backup_tx");
@@ -33,6 +44,9 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
             tx_n,
             tx,
             client_public_nonce,
+            server_public_nonce,
+            client_public_key,
+            server_public_key,
             blinding_factor,
             recipient_address,
         });
