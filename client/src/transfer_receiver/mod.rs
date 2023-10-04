@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::Hash};
+use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}};
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor}};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
@@ -193,13 +193,20 @@ async fn verify_transaction_signature(transaction: &Transaction) -> bool {
 
 }
 
-fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) -> bool {
+async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> bool {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
     let client_public_key = backup_tx.client_public_key.clone();
     let server_public_key = backup_tx.server_public_key.clone();
     let blinding_factor = &backup_tx.blinding_factor;
+
+    let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
+
+    let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
+
+    assert!(statechain_info.blind_commitment == blind_commitment.to_string());
+    assert!(statechain_info.r2_commitment == r2_commitment.to_string());
 
     let secp = Secp256k1::new();
 
@@ -225,9 +232,60 @@ fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction) -> bool {
         msg,
         blinding_factor
     );
+    // END repeated code
+
+    let challenge = session.get_challenge_from_session();
+    let challenge = hex::encode(challenge);
+
+    assert!(statechain_info.challenge == challenge);
 
     return session.eq(&backup_tx.session)
 
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StatechainInfo {
+    statechain_id: String,
+    r2_commitment: String,
+    blind_commitment: String,
+    server_pubnonce: String,
+    challenge: String,
+    tx_n: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StatechainInfoResponsePayload {
+    num_sigs: u32,
+    statechain_info: Vec<StatechainInfo>,
+}
+
+
+async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoResponsePayload, CError> {
+
+    let endpoint = "http://127.0.0.1:8000";
+    let path = format!("info/statechain/{}", statechain_id.to_string());
+
+    println!("statechain_id: {}", statechain_id.to_string());
+    println!("path: {}", path);
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.get(&format!("{}/{}", endpoint, path));
+
+    let value = match request.send().await {
+        Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            return Err(CError::Generic(err.to_string()));
+        },
+    };
+
+    let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+
+    println!("response: {:?}", response);
+
+    Ok(response)
 }
 
 async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &PublicKey, enc_messages: &Vec<String>, network: Network,) {
@@ -239,6 +297,8 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
 
         let decrypted_msg_str = String::from_utf8(decrypted_msg).unwrap();
 
+        println!("decrypted_msg_str: {}", decrypted_msg_str.as_str());
+
         let transfer_msg: TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
         println!("statechain_id: {}", transfer_msg.statechain_id);
@@ -246,14 +306,23 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
 
         verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await;
 
-        for backup_tx in transfer_msg.backup_transactions {
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
+
+        assert!(statechain_info.num_sigs == transfer_msg.backup_transactions.len() as u32);
+
+        for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
+
+            let statechain_info = statechain_info.statechain_info.get(index).unwrap();
+
             let backup_tx = backup_tx.deserialize();
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx).await;
             println!("is_signature_valid: {}", is_signature_valid);
 
-            let is_scheme_valid = verify_blinded_musig_scheme(&backup_tx);
+            let is_scheme_valid = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
             println!("is_scheme_valid: {}", is_scheme_valid);
         }
+
+        
     }
 }
 

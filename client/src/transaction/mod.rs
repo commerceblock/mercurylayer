@@ -253,8 +253,6 @@ async fn musig_sign_psbt_taproot(
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
 
-    // update_commitments(pool, &client_sec_nonce.serialize(), blinding_factor.as_bytes(), client_pubkey).await;
-
     let endpoint = "http://127.0.0.1:8000";
     let path = "sign/first";
 

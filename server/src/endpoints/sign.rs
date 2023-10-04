@@ -1,11 +1,8 @@
-use std::str::FromStr;
-
-use bitcoin::hashes::sha256;
 use rocket::{State, serde::json::Json, response::status, http::Status};
-use secp256k1_zkp::{XOnlyPublicKey, Secp256k1, Message, schnorr::Signature, musig::MusigSession};
+use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::{Row, Acquire};
+use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
@@ -16,22 +13,6 @@ pub struct SignFirstRequestPayload {
     r2_commitment: String,
     blind_commitment: String,
     signed_statechain_id: String,
-}
-
-pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, statechain_id: &str)  {
-
-    let query = "\
-        UPDATE statechain_data \
-        SET r2_commitment= $1, blind_commitment = $2 \
-        WHERE statechain_id = $3";
-
-    let _ = sqlx::query(query)
-        .bind(r2_commitment)
-        .bind(blind_commitment)
-        .bind(statechain_id)
-        .execute(pool)
-        .await
-        .unwrap();
 }
 
 pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, server_pubnonce: &str, statechain_id: &str)  {
@@ -99,8 +80,6 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
     
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
-
-    update_commitments(&statechain_entity.pool, &r2_commitment, &blind_commitment, &statechain_id).await;
 
     let value = match request.json(&sign_first_request_payload.0).send().await {
         Ok(response) => {
