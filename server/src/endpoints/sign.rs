@@ -1,11 +1,8 @@
-use std::str::FromStr;
-
-use bitcoin::hashes::sha256;
 use rocket::{State, serde::json::Json, response::status, http::Status};
-use secp256k1_zkp::{XOnlyPublicKey, Secp256k1, Message, schnorr::Signature};
+use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::{Row, Acquire};
+use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
@@ -16,22 +13,6 @@ pub struct SignFirstRequestPayload {
     r2_commitment: String,
     blind_commitment: String,
     signed_statechain_id: String,
-}
-
-pub async fn update_commitments(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, statechain_id: &str)  {
-
-    let query = "\
-        UPDATE statechain_data \
-        SET r2_commitment= $1, blind_commitment = $2 \
-        WHERE statechain_id = $3";
-
-    let _ = sqlx::query(query)
-        .bind(r2_commitment)
-        .bind(blind_commitment)
-        .bind(statechain_id)
-        .execute(pool)
-        .await
-        .unwrap();
 }
 
 pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, server_pubnonce: &str, statechain_id: &str)  {
@@ -100,8 +81,6 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
-    update_commitments(&statechain_entity.pool, &r2_commitment, &blind_commitment, &statechain_id).await;
-
     let value = match request.json(&sign_first_request_payload.0).send().await {
         Ok(response) => {
             let text = response.text().await.unwrap();
@@ -126,7 +105,13 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
 
     let response: ServerPublicNonceResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    insert_new_signature_data(&statechain_entity.pool, &r2_commitment, &blind_commitment, &response.server_pubnonce, &statechain_id,).await;
+    let mut server_pubnonce_hex = response.server_pubnonce.to_string();
+
+    if server_pubnonce_hex.starts_with("0x") {
+        server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
+    }
+
+    insert_new_signature_data(&statechain_entity.pool, &r2_commitment, &blind_commitment, &server_pubnonce_hex, &statechain_id,).await;
 
     let response_body = json!(response);
 
@@ -137,6 +122,26 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
     return status::Custom(Status::Ok, Json(response_body));
 }
 
+pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_nonce: &str, challenge: &str, statechain_id: &str)  {
+
+    println!("server_pub_nonce: {}", server_pub_nonce);
+    println!("challenge: {}", challenge);
+    println!("statechain_id: {}", statechain_id);
+
+    let query = "\
+        UPDATE statechain_signature_data \
+        SET challenge = $1 \
+        WHERE statechain_id = $2 AND server_pubnonce= $3";
+
+    let _ = sqlx::query(query)
+        .bind(challenge)
+        .bind(statechain_id)
+        .bind(server_pub_nonce)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct PartialSignatureRequestPayload<'r> {
@@ -145,6 +150,7 @@ pub struct PartialSignatureRequestPayload<'r> {
     negate_seckey: u8,
     session: &'r str,
     signed_statechain_id: String,
+    server_pub_nonce: &'r str,
 }
 
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
@@ -170,6 +176,13 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
     
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
+
+    let session_bytes: [u8; 133] = hex::decode(partial_signature_request_payload.0.session).unwrap().try_into().unwrap();
+    let session = MusigSession::from_slice(session_bytes);
+    let challenge = session.get_challenge_from_session();
+    let challenge_str = hex::encode(challenge);
+
+    update_signature_data_challenge(&statechain_entity.pool, partial_signature_request_payload.0.server_pub_nonce, &challenge_str, statechain_id).await;
 
     let value = match request.json(&partial_signature_request_payload.0).send().await {
         Ok(response) => {

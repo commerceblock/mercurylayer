@@ -225,6 +225,7 @@ pub struct PartialSignatureRequestPayload<'r> {
     negate_seckey: u8,
     session: &'r str,
     signed_statechain_id: &'r str,
+    server_pub_nonce: &'r str,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -251,8 +252,6 @@ async fn musig_sign_psbt_taproot(
 
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
-
-    // update_commitments(pool, &client_sec_nonce.serialize(), blinding_factor.as_bytes(), client_pubkey).await;
 
     let endpoint = "http://127.0.0.1:8000";
     let path = "sign/first";
@@ -285,7 +284,7 @@ async fn musig_sign_psbt_taproot(
         server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
     }
 
-    let server_pub_nonce_bytes = hex::decode(server_pubnonce_hex).unwrap();
+    let server_pub_nonce_bytes = hex::decode(server_pubnonce_hex.clone()).unwrap();
     
     let server_pub_nonce = MusigPubNonce::from_slice(server_pub_nonce_bytes.as_slice()).unwrap();
 
@@ -333,12 +332,15 @@ async fn musig_sign_psbt_taproot(
         false => 0,
     };
 
+    let blinded_session = session.remove_fin_nonce_from_session();
+
     let payload = PartialSignatureRequestPayload {
         statechain_id,
         keyaggcoef: &hex::encode(key_agg_coef.serialize()),
         negate_seckey,
-        session: &hex::encode(session.serialize()),
+        session: &hex::encode(blinded_session.serialize()),
         signed_statechain_id: &signed_statechain_id.to_string(),
+        server_pub_nonce: server_pubnonce_hex.as_str(),
     };
 
     let endpoint = "http://127.0.0.1:8000";
