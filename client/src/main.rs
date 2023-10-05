@@ -7,6 +7,7 @@ mod transaction;
 mod send_backup;
 mod transfer_sender;
 mod transfer_receiver;
+mod utils;
 
 use std::str::FromStr;
 
