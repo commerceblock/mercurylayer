@@ -8,11 +8,13 @@ mod send_backup;
 mod transfer_sender;
 mod transfer_receiver;
 mod utils;
+mod client_config;
 
 use std::str::FromStr;
 
 use bitcoin::Address;
 use clap::{Parser, Subcommand};
+use client_config::ClientConfig;
 use electrum_client::ListUnspentRes;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
@@ -69,6 +71,8 @@ async fn main() {
         .run(&pool)
         .await
         .unwrap();
+
+    let config = ClientConfig::load();
 
     match cli.command {
         Commands::ShowMnemonic { } => {
@@ -180,7 +184,7 @@ async fn main() {
         },
         Commands::TransferReceive {  } => {
                 
-            transfer_receiver::receive(&pool, network).await;
+            transfer_receiver::receive(&pool, network, &config).await;
         }
     };
 

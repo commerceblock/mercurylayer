@@ -1332,6 +1332,7 @@ dependencies = [
  "bip39",
  "bitcoin",
  "clap",
+ "config",
  "ecies",
  "electrum-client",
  "hex",

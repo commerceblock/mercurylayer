@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}};
+use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate};
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor}};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
-use crate::{error::CError, electrum};
+use crate::{error::CError, electrum, utils::InfoConfig, client_config::ClientConfig};
 
 mod db;
 
@@ -143,7 +143,7 @@ fn get_tx_hash(transaction: &Transaction) -> Message {
 }
 
 /// step 4a. Verifiy if the signature is valid.
-async fn verify_transaction_signature(transaction: &Transaction) -> bool {
+async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_per_byte: u64, client_config: &ClientConfig) -> bool {
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
@@ -182,6 +182,19 @@ async fn verify_transaction_signature(transaction: &Transaction) -> bool {
     ).unwrap();
 
     let msg: Message = hash.into();
+
+    let fee = funding_tx_output.value - transaction.output[0].value;
+    let fee_rate = fee / transaction.vsize() as u64;
+
+    if (fee_rate as i64 + client_config.fee_rate_tolerance as i64) < fee_rate_sats_per_byte as i64 {
+        println!("fee_rate too low");
+        return false;
+    }
+
+    if (fee_rate as i64 - client_config.fee_rate_tolerance as i64) > fee_rate_sats_per_byte as i64 {
+        println!("fee_rate too high");
+        return false;
+    }
 
     Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok()
 
@@ -276,12 +289,16 @@ async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoRespon
 
     let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    println!("response: {:?}", response);
-
     Ok(response)
 }
 
-async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &PublicKey, enc_messages: &Vec<String>, network: Network,) {
+async fn process_encrypted_message(
+    auth_key: &SecretKey, 
+    client_pubkey_share: &PublicKey, 
+    enc_messages: &Vec<String>, 
+    network: Network, 
+    info_config: &InfoConfig,
+    client_config: &ClientConfig) -> Result<(), CError> {
     for enc_message in enc_messages {
 
         let decoded_enc_message = hex::decode(enc_message).unwrap();
@@ -290,12 +307,7 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
 
         let decrypted_msg_str = String::from_utf8(decrypted_msg).unwrap();
 
-        println!("decrypted_msg_str: {}", decrypted_msg_str.as_str());
-
         let transfer_msg: TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
-
-        println!("statechain_id: {}", transfer_msg.statechain_id);
-        println!("transfer_signature: {}", transfer_msg.transfer_signature);
 
         verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await;
 
@@ -303,23 +315,37 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
 
         assert!(statechain_info.num_sigs == transfer_msg.backup_transactions.len() as u32);
 
+        let mut previous_lock_time: Option<u32> = None;
+
         for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
 
             let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
             let backup_tx = backup_tx.deserialize();
-            let is_signature_valid = verify_transaction_signature(&backup_tx.tx).await;
+            let is_signature_valid = verify_transaction_signature(&backup_tx.tx, info_config.fee_rate_sats_per_byte, client_config).await;
             println!("is_signature_valid: {}", is_signature_valid);
 
             verify_blinded_musig_scheme(&backup_tx, statechain_info).await.unwrap();
             println!("is_scheme_valid: true");
-        }
 
-        
+            if previous_lock_time.is_some() {
+                let prev_lock_time = previous_lock_time.unwrap();
+                let current_lock_time = backup_tx.tx.lock_time.to_consensus_u32();
+                if (prev_lock_time - current_lock_time) as i32 != info_config.interval as i32 {
+                    return Err(CError::Generic("interval is not correct".to_string()));
+                }
+            }
+
+            previous_lock_time = Some(backup_tx.tx.lock_time.to_consensus_u32());
+        }  
     }
+
+    Ok(())
 }
 
-pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network,) {
+pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network, client_config: &ClientConfig) {
+
+    let info_config = crate::utils::info_config().await.unwrap();
 
     let client_keys = db::get_all_auth_pubkey(pool).await;
 
@@ -328,6 +354,6 @@ pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network,) {
         if enc_messages.len() == 0 {
             continue;
         }
-        process_encrypted_message(&client_key.0, &client_key.2, &enc_messages, network).await;
+        process_encrypted_message(&client_key.0, &client_key.2, &enc_messages, network, &info_config, client_config).await.unwrap();
     }
 }
