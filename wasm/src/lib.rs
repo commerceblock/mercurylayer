@@ -162,7 +162,8 @@ pub fn getBalance(wallet_json: JsValue) -> u32 {
 
 #[wasm_bindgen]
 pub fn getSCAddress(wallet_json: JsValue, index: u32) -> String {
-    let address = "sc1qyq2q3q4q5q6q7q8q9q0q1q2q3q4q5q6q7q8q9q0q1q2q3q4q5q6q7q8q9q0q";
+    let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
+    let address = mercury_lib::get_sc_address(&wallet.mnemonic, index);
     address.to_string()
 }
 

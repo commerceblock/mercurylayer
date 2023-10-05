@@ -1348,6 +1348,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mercury-lib"
+version = "0.1.0"
+dependencies = [
+ "bech32",
+ "bip39",
+ "bitcoin",
+ "hex",
+]
+
+[[package]]
 name = "mercury-server"
 version = "0.1.0"
 dependencies = [
@@ -1363,6 +1373,21 @@ dependencies = [
  "serde_json",
  "sqlx",
  "uuid 1.4.1",
+]
+
+[[package]]
+name = "mercury-wasm"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "mercury-lib",
+ "serde",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]
@@ -1415,20 +1440,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "version_check",
-]
-
-[[package]]
-name = "my-project"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "js-sys",
- "serde",
- "serde-wasm-bindgen",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "web-sys",
 ]
 
 [[package]]
