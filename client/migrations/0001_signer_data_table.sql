@@ -55,7 +55,6 @@ CREATE TABLE IF NOT EXISTS backup_transaction (
     client_pubkey BLOB,
     server_pubkey BLOB,
     blinding_factor BLOB,
-    musig_session BLOB,
     backup_tx BLOB,
     recipient_address TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

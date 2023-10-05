@@ -48,7 +48,6 @@ pub struct BackupTransaction {
     server_public_key: PublicKey,
     blinding_factor: BlindingFactor,
     recipient_address: String,
-    session: MusigSession,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -60,7 +59,6 @@ struct SerializedBackupTransaction {
     client_public_key: String,
     server_public_key: String,
     blinding_factor: String,
-    session: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -73,9 +71,6 @@ struct TransferMsg {
 
 impl SerializedBackupTransaction {
     fn deserialize(&self) -> BackupTransaction {
-
-        let session_bytes: [u8; 133] = hex::decode(&self.session).unwrap().try_into().unwrap();
-
         BackupTransaction {
             statechain_id: "".to_string(),
             tx_n: self.tx_n,
@@ -86,7 +81,6 @@ impl SerializedBackupTransaction {
             server_public_key: PublicKey::from_str(&self.server_public_key).unwrap(),
             blinding_factor: BlindingFactor::from_slice(hex::decode(&self.blinding_factor).unwrap().as_slice()).unwrap(),
             recipient_address: "".to_string(),
-            session: MusigSession::from_slice(session_bytes),
         }
     }
 }
@@ -193,7 +187,7 @@ async fn verify_transaction_signature(transaction: &Transaction) -> bool {
 
 }
 
-async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> bool {
+async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
@@ -202,7 +196,6 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
     let blinding_factor = &backup_tx.blinding_factor;
 
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
-
     let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
 
     assert!(statechain_info.blind_commitment == blind_commitment.to_string());
@@ -239,7 +232,7 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
 
     assert!(statechain_info.challenge == challenge);
 
-    return session.eq(&backup_tx.session)
+    Ok(())
 
 }
 
@@ -318,8 +311,8 @@ async fn process_encrypted_message(auth_key: &SecretKey, client_pubkey_share: &P
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx).await;
             println!("is_signature_valid: {}", is_signature_valid);
 
-            let is_scheme_valid = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
-            println!("is_scheme_valid: {}", is_scheme_valid);
+            verify_blinded_musig_scheme(&backup_tx, statechain_info).await.unwrap();
+            println!("is_scheme_valid: true");
         }
 
         
