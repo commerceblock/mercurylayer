@@ -1,6 +1,9 @@
 // Import our outputted wasm ES6 module
 // Which, export default's, an initialization function
 import init from "./pkg/my_project.js";
+import { fromMnemonic } from "./pkg/my_project.js";
+import { getSCAddress } from "./pkg/my_project.js";
+import { getBalance } from "./pkg/my_project.js";
 
 const runWasm = async () => {
   // Instantiate our wasm module
@@ -11,15 +14,15 @@ const runWasm = async () => {
 
   const wallet_name = "MyWallet";
 
-  const wallet = mercury_wasm.fromMnemonic(wallet_name, mnemonic);
+  const wallet = fromMnemonic(wallet_name, mnemonic);
 
   console.log(wallet);
 
-  console.log(mercury_wasm.getSCAddress(wallet, 1));
+  console.log(getSCAddress(wallet, 1));
 
-  const balance = mercury_wasm.getBalance(wallet);
+  const balance = getBalance(wallet);
 
-  const address = mercury_wasm.getSCAddress(wallet, 1);
+  const address = getSCAddress(wallet, 1);
 
   // Set the result onto the body
   document.body.textContent = `Wallet mnemonic: ${mnemonic} Wallet balance: ${balance} Wallet address: ${address}`;
