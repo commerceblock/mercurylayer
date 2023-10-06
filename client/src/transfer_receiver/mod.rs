@@ -388,7 +388,7 @@ async fn process_encrypted_message(
 
         let response: Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-        println!("response: {}", response.get("list_enc_transfer_msg").unwrap().as_str().unwrap());
+        println!("response: {}", response.get("server_pubkey").unwrap().as_str().unwrap());
     }
 
     Ok(())

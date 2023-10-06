@@ -47,7 +47,7 @@ bool save_generated_public_key(
 {
     try
     {
-         pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
         if (conn.is_open()) {
 
             std::string create_table_query =
@@ -87,6 +87,45 @@ bool save_generated_public_key(
         return false;
     }
 }
+
+bool update_sealed_keypair(
+    char* sealed, size_t sealed_size, 
+    unsigned char* server_public_key, size_t server_public_key_size,
+    std::string& statechain_id,
+    std::string& error_message) 
+{
+    try
+    {
+        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        if (conn.is_open()) {
+
+            std::string insert_query =
+                "UPDATE generated_public_key "
+                "SET sealed_keypair = $1, public_key = $2, sealed_secnonce = NULL, public_nonce = NULL "
+                "WHERE statechain_id = $3;";
+            pqxx::work txn2(conn);
+
+            std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(sealed), sealed_size);
+            std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
+
+            txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
+            txn2.commit();
+
+            conn.close();
+            return true;
+
+        } else {
+            error_message = "Failed to connect to the database!";
+            return false;
+        }
+    }
+    catch (std::exception const &e)
+    {
+        error_message = e.what();
+        return false;
+    }
+}
+
 bool load_generated_key_data(
     std::string& statechain_id, 
     char* sealed_keypair, size_t sealed_keypair_size,
@@ -185,106 +224,6 @@ bool update_sealed_secnonce(
 
             txn.exec_params(updated_query, serialized_server_pubnonce_view, sealed_secnonce_data_view, statechain_id);
             txn.commit();
-
-            conn.close();
-            return true;
-        } else {
-            error_message = "Failed to connect to the database!";
-            return false;
-        }
-    }
-    catch (std::exception const &e)
-    {
-        error_message = e.what();
-        return false;
-    }
-}
-
-bool save_aggregated_key_data(
-    char* sealed, size_t sealed_size, 
-    unsigned char* aggregated_pubkey, size_t aggregated_pubkey_size,
-    unsigned char* keyagg_cache, size_t keyagg_cache_size,
-    std::string& error_message) 
-{
-    try
-    {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
-        if (conn.is_open()) {
-
-            std::string create_table_query =
-                "CREATE TABLE IF NOT EXISTS aggregated_key_data ( "
-                "id SERIAL PRIMARY KEY, "
-                "sealed_keypair BYTEA, "
-                "aggregated_key BYTEA, "
-                "cache BYTEA);";
-
-            pqxx::work txn(conn);
-            txn.exec(create_table_query);
-            txn.commit();
-
-            std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(sealed), sealed_size);
-            std::basic_string_view<std::byte> aggregated_pubkey_data_view(reinterpret_cast<std::byte*>(aggregated_pubkey), aggregated_pubkey_size);
-            std::basic_string_view<std::byte> keyagg_cache_data_view(reinterpret_cast<std::byte*>(keyagg_cache), keyagg_cache_size);
-
-            std::string insert_query =
-                "INSERT INTO aggregated_key_data (sealed_keypair, aggregated_key, cache) VALUES ($1, $2, $3);";
-            pqxx::work txn2(conn);
-
-            txn2.exec_params(insert_query, sealed_data_view, aggregated_pubkey_data_view, keyagg_cache_data_view);
-            txn2.commit();
-
-            conn.close();
-            return true;
-        } else {
-            error_message = "Failed to connect to the database!";
-            return false;
-        }
-    }
-    catch (std::exception const &e)
-    {
-        error_message = e.what();
-        return false;
-    }
-}
-
-bool load_aggregated_key_data(
-    unsigned char* aggregated_pubkey, size_t aggregated_pubkey_size, 
-    char* sealed_keypair, size_t sealed_keypair_size,
-    unsigned char* keyagg_cache, size_t keyagg_cache_size,
-    std::string& error_message) {
-    try
-    {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
-        if (conn.is_open()) {
-
-            std::basic_string_view<std::byte> aggregated_pubkey_data_view(reinterpret_cast<std::byte*>(aggregated_pubkey), aggregated_pubkey_size);
-
-            std::string sealed_keypair_query =
-                "SELECT sealed_keypair, cache FROM aggregated_key_data WHERE aggregated_key = $1;";
-            
-            pqxx::nontransaction ntxn(conn);
-
-            conn.prepare("sealed_keypair_query", sealed_keypair_query);
-
-            pqxx::result result = ntxn.exec_prepared("sealed_keypair_query", aggregated_pubkey_data_view);
-
-            if (!result.empty()) {
-                auto sealed_keypair_view = result[0]["sealed_keypair"].as<std::basic_string<std::byte>>();
-                auto cache_view = result[0]["cache"].as<std::basic_string<std::byte>>();
-
-                if (sealed_keypair_view.size() != sealed_keypair_size) {
-                    error_message = "Failed to retrieve keypair. Different size than expected !";
-                    return false;
-                }
-
-                if (cache_view.size() != keyagg_cache_size) {
-                    error_message = "Failed to retrieve cache. Different size than expected !";
-                    return false;
-                }
-
-                memcpy(sealed_keypair, sealed_keypair_view.data(), sealed_keypair_size);
-                memcpy(keyagg_cache, cache_view.data(), keyagg_cache_size);
-            }
 
             conn.close();
             return true;
@@ -617,6 +556,111 @@ int SGX_CDECL main(int argc, char *argv[])
             return crow::response(500, "Failed to connect to the database!");
         }
 
+    });
+
+    CROW_ROUTE(app, "/keyupdate")
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id](const crow::request& req) {
+
+            auto req_body = crow::json::load(req.body);
+            if (!req_body)
+                return crow::response(400);
+
+            if (req_body.count("statechain_id") == 0 || 
+                req_body.count("t2") == 0 ||
+                req_body.count("x1") == 0) {
+                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 't2' and 'x1'.");
+            }
+
+            std::string statechain_id = req_body["statechain_id"].s();
+            std::string t2_hex = req_body["t2"].s();
+            std::string x1_hex = req_body["x1"].s();
+
+            if (t2_hex.substr(0, 2) == "0x") {
+                t2_hex = t2_hex.substr(2);
+            }
+
+            std::vector<unsigned char> serialized_t2 = ParseHex(t2_hex);
+
+            if (serialized_t2.size() != 32) {
+                return crow::response(400, "Invalid t2 length. Must be 32 bytes!");
+            }
+
+            if (x1_hex.substr(0, 2) == "0x") {
+                x1_hex = x1_hex.substr(2);
+            }
+
+            std::vector<unsigned char> serialized_x1 = ParseHex(x1_hex);
+
+            if (serialized_x1.size() != 32) {
+                return crow::response(400, "Invalid x1 length. Must be 32 bytes!");
+            }
+
+            size_t sealed_keypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            std::vector<char> sealed_keypair(sealed_keypair_size);  // Using a vector to manage dynamic-sized array.
+
+            size_t sealed_secnonce_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
+            std::vector<char> sealed_secnonce(sealed_secnonce_size);  // Using a vector to manage dynamic-sized array.
+
+            unsigned char serialized_server_pubnonce[66];
+
+            memset(sealed_keypair.data(), 0, sealed_keypair_size);
+            memset(sealed_secnonce.data(), 0, sealed_secnonce_size);
+
+            std::string error_message;
+            bool data_loaded = load_generated_key_data(
+                statechain_id,
+                sealed_keypair.data(), sealed_keypair_size,
+                sealed_secnonce.data(), sealed_secnonce_size,
+                serialized_server_pubnonce, sizeof(serialized_server_pubnonce),
+                error_message);
+
+            if (!data_loaded) {
+                error_message = "Failed to load aggregated key data: " + error_message;
+                return crow::response(500, error_message);
+            }
+
+            bool is_sealed_keypair_empty = std::all_of(sealed_keypair.begin(), sealed_keypair.end(), [](char elem){ return elem == 0; });
+
+            if (is_sealed_keypair_empty) {
+                return crow::response(400, "Empty sealed keypair!");
+            }
+
+            // 1. Allocate memory for the aggregated pubkey and sealedprivkey.
+            size_t new_server_pubkey_size = 33; // serialized compressed public keys are 33-byte array
+            unsigned char new_server_pubkey[new_server_pubkey_size];
+
+            size_t new_sealedkeypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            char new_sealedkeypair[new_sealedkeypair_size];
+
+            const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+
+            sgx_status_t ecall_ret;
+            sgx_status_t status = key_update(
+                enclave_id, &ecall_ret, 
+                sealed_keypair.data(), sealed_keypair_size,
+                serialized_x1.data(), serialized_x1.size(),
+                serialized_t2.data(), serialized_t2.size(),
+                new_server_pubkey, new_server_pubkey_size,
+                new_sealedkeypair, new_sealedkeypair_size);
+
+            if (ecall_ret != SGX_SUCCESS) {
+                return crow::response(500, "Key aggregation Ecall failed ");
+            }  if (status != SGX_SUCCESS) {
+                return crow::response(500, "Key aggregation failed ");
+            }
+
+            bool data_saved = update_sealed_keypair(
+                new_sealedkeypair, new_sealedkeypair_size, new_server_pubkey, new_server_pubkey_size, statechain_id, error_message);
+
+            if (!data_saved) {
+                error_message = "Failed to update aggregated key data: " + error_message;
+                return crow::response(500, error_message);
+            }
+
+            auto new_server_seckey_hex = key_to_string(new_server_pubkey, new_server_pubkey_size);
+
+            crow::json::wvalue result({{"server_pubkey", new_server_seckey_hex}});
+            return crow::response{result};
     });
 
     app.port(18080).multithreaded().run();

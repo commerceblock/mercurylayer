@@ -158,10 +158,10 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
     return status::Custom(Status::Ok, Json(response_body));
 }
 
-async fn get_auth_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
+async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, statechain_id: &str) -> Option<(PublicKey, Vec<u8>)> {
 
     let query = "\
-        SELECT new_user_auth_public_key \
+        SELECT new_user_auth_public_key, x1 \
         FROM statechain_transfer \
         WHERE statechain_id = $1";
 
@@ -178,7 +178,9 @@ async fn get_auth_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> Option<Pub
     let new_user_auth_public_key_bytes = row.get::<Vec<u8>, _>(0);
     let new_user_auth_public_key = PublicKey::from_slice(&new_user_auth_public_key_bytes).unwrap();
 
-    Some(new_user_auth_public_key)
+    let x1_bytes = row.get::<Vec<u8>, _>(1);
+
+    Some((new_user_auth_public_key, x1_bytes))
 }
 
 type TransferReceiverRequestPayload = mercury_lib::transfer::receiver::TransferReceiverRequestPayload;
@@ -186,9 +188,9 @@ type TransferReceiverRequestPayload = mercury_lib::transfer::receiver::TransferR
 #[post("/transfer/receiver", format = "json", data = "<transfer_receiver_request_payload>")]
 pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, transfer_receiver_request_payload: Json<TransferReceiverRequestPayload>) -> status::Custom<Json<Value>> {
 
-    let auth_pubkey = get_auth_pubkey(&statechain_entity.pool, &transfer_receiver_request_payload.statechain_id).await;
+    let auth_pubkey_x1 = get_auth_pubkey_and_x1(&statechain_entity.pool, &transfer_receiver_request_payload.statechain_id).await;
 
-    if auth_pubkey.is_none() {
+    if auth_pubkey_x1.is_none() {
         let response_body = json!({
             "error": "Not Found",
             "message": "No transfer messages found for this statechain_id"
@@ -197,8 +199,13 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         return status::Custom(Status::NotFound, Json(response_body));
     }
 
-    let auth_pubkey = auth_pubkey.unwrap().x_only_public_key().0;
+    let auth_pubkey_x1 = auth_pubkey_x1.unwrap();
+    let auth_pubkey = auth_pubkey_x1.0;
+    let x1 = auth_pubkey_x1.1;
 
+    let auth_pubkey = auth_pubkey.x_only_public_key().0;
+
+    let statechain_id = transfer_receiver_request_payload.statechain_id.clone();
     let t2 = transfer_receiver_request_payload.t2.clone();
     let auth_sign = transfer_receiver_request_payload.auth_sig.clone();
 
@@ -217,10 +224,59 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         return status::Custom(Status::InternalServerError, Json(response_body));
 
     }
-    
+
+    let x1_hex = hex::encode(x1);
+
+    let key_update_response_payload = mercury_lib::transfer::receiver::KeyUpdateResponsePayload { 
+        statechain_id: statechain_id.clone(),
+        t2,
+        x1: x1_hex,
+    };
+
+    println!("{}", serde_json::to_string_pretty(&json!(key_update_response_payload)).unwrap());
+
+    // ---
+
+    let lockbox_endpoint = "http://0.0.0.0:18080";
+    let path = "keyupdate";
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.post(&format!("{}/{}", lockbox_endpoint, path));
+
+    let value = match request.json(&key_update_response_payload).send().await {
+        Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            let response_body = json!({
+                "error": "Internal Server Error",
+                "message": err.to_string()
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        },
+    };
+
+    #[derive(Serialize, Deserialize)]
+    pub struct TransferReceiverResponsePayload<'r> {
+        server_pubkey: &'r str,
+    }
+
+    let response: TransferReceiverResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+
+    let mut server_pubkey_hex = response.server_pubkey.to_string();
+
+    if server_pubkey_hex.starts_with("0x") {
+        server_pubkey_hex = server_pubkey_hex[2..].to_string();
+    }
+
+    let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
+
     let response_body = json!({
-        "list_enc_transfer_msg": "test"
+        "server_pubkey": server_pubkey.to_string(),
+        "statechain_id": statechain_id,
     });
 
-    return status::Custom(Status::Ok, Json(response_body));
+    status::Custom(Status::Ok, Json(response_body))
 }
