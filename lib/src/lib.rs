@@ -4,7 +4,7 @@ use bech32::{Variant, ToBase32};
 use bip39::Mnemonic;
 use bitcoin::{secp256k1::{ffi::types::AlignedType, Secp256k1, SecretKey, AllPreallocated, PublicKey}, bip32::{ExtendedPrivKey, DerivationPath, ChildNumber}};
 
-fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey) -> String {
+pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey) -> String {
 
     let hrp = "sc";
     let variant = Variant::Bech32m;

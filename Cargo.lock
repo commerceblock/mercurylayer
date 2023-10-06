@@ -1336,6 +1336,7 @@ dependencies = [
  "ecies",
  "electrum-client",
  "hex",
+ "mercury-lib",
  "rand",
  "reqwest",
  "schemars",

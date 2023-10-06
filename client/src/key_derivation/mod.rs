@@ -80,21 +80,6 @@ pub struct AddressData {
     pub transfer_address: String,
 }
 
-pub fn encode_transfer_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey) -> String {
-
-    let hrp = "sc";
-    let variant = Variant::Bech32m;
-
-    let mut data = Vec::<u8>::new();
-    data.push(0x00); // version
-    data.append(&mut user_pubkey.clone().serialize().to_vec());
-    data.append(&mut auth_pubkey.clone().serialize().to_vec());
-
-    let encoded = bech32::encode(hrp, data.to_base32(), variant).unwrap();
-
-    encoded
-}
-
 pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, PublicKey), CError> {
     let (hrp, data, variant)  = bech32::decode(sc_address).unwrap();
 
@@ -140,7 +125,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::U
     assert!(auth_key_data.change_index == agg_key_data.change_index);
     assert!(auth_key_data.derivation_path != agg_key_data.derivation_path);
 
-    let transfer_address = encode_transfer_address(&client_pubkey_share, &auth_key_data.public_key);
+    let transfer_address = mercury_lib::encode_sc_address(&client_pubkey_share, &auth_key_data.public_key);
 
     db::update_auth_key_data(pool, &auth_key_data, &client_pubkey_share, &transfer_address).await;
 
