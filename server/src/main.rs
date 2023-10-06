@@ -44,6 +44,7 @@ async fn main() {
             endpoints::transfer_sender::transfer_update_msg,
             endpoints::transfer_receiver::get_msg_addr,
             endpoints::transfer_receiver::statechain_info,
+            endpoints::transfer_receiver::transfer_receiver,
             utils::info_config,
         ])
         .register("/", catchers![

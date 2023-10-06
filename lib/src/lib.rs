@@ -1,3 +1,5 @@
+pub mod transfer;
+
 use std::str::FromStr;
 
 use bech32::{Variant, ToBase32};

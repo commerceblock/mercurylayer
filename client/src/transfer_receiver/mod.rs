@@ -1,8 +1,9 @@
 use std::str::FromStr;
 
-use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate};
-use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor}};
+use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate, secp256k1};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor}, Scalar};
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
 use sqlx::Sqlite;
 
 use crate::{error::CError, electrum, utils::InfoConfig, client_config::ClientConfig};
@@ -83,6 +84,17 @@ impl SerializedBackupTransaction {
             recipient_address: "".to_string(),
         }
     }
+}
+
+fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) -> SecretKey {
+
+    let t1 = Scalar::from_be_bytes(transfer_msg.t1).unwrap();
+
+    let negated_seckey = client_seckey_share.negate();
+
+    let t2 = negated_seckey.add_tweak(&t1).unwrap();
+
+    t2
 }
 
 /// step 3. Owner 2 verifies that the latest backup transaction pays to their key O2 and that the input (Tx0) is unspent.
@@ -294,6 +306,7 @@ async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoRespon
 
 async fn process_encrypted_message(
     auth_key: &SecretKey, 
+    client_seckey_share: &SecretKey, 
     client_pubkey_share: &PublicKey, 
     enc_messages: &Vec<String>, 
     network: Network, 
@@ -313,7 +326,9 @@ async fn process_encrypted_message(
 
         let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
 
-        assert!(statechain_info.num_sigs == transfer_msg.backup_transactions.len() as u32);
+        if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
+            return Err(CError::Generic("num_sigs is not correct".to_string()));
+        }
 
         let mut previous_lock_time: Option<u32> = None;
 
@@ -337,7 +352,43 @@ async fn process_encrypted_message(
             }
 
             previous_lock_time = Some(backup_tx.tx.lock_time.to_consensus_u32());
-        }  
+        }
+
+        let t2 = calculate_t2(&transfer_msg, &client_seckey_share);
+
+        let t2_hex = hex::encode(t2.secret_bytes());
+
+        let secp = Secp256k1::new();
+        let keypair = secp256k1::KeyPair::from_seckey_slice(&secp, auth_key.as_ref()).unwrap();
+        let msg = Message::from_hashed_data::<sha256::Hash>(t2_hex.as_bytes());
+        let auth_sig = secp.sign_schnorr(&msg, &keypair);
+
+        let transfer_receiver_request_payload = mercury_lib::transfer::receiver::TransferReceiverRequestPayload {
+            statechain_id: transfer_msg.statechain_id.clone(),
+            batch_data: None,
+            t2: t2_hex,
+            auth_sig: auth_sig.to_string(),
+        };
+
+        let endpoint = "http://127.0.0.1:8000";
+        let path = "transfer/receiver";
+
+        let client = reqwest::Client::new();
+        let request = client.post(&format!("{}/{}", endpoint, path));
+
+        let value = match request.json(&transfer_receiver_request_payload).send().await {
+            Ok(response) => {
+                let text = response.text().await.unwrap();
+                text
+            },
+            Err(err) => {
+                return Err(CError::Generic(err.to_string()));
+            },
+        };
+
+        let response: Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+
+        println!("response: {}", response.get("list_enc_transfer_msg").unwrap().as_str().unwrap());
     }
 
     Ok(())
@@ -354,6 +405,6 @@ pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network, client_config:
         if enc_messages.len() == 0 {
             continue;
         }
-        process_encrypted_message(&client_key.0, &client_key.2, &enc_messages, network, &info_config, client_config).await.unwrap();
+        process_encrypted_message(&client_key.0, &client_key.2,&client_key.3, &enc_messages, network, &info_config, client_config).await.unwrap();
     }
 }
