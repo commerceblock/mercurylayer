@@ -47,7 +47,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_r
         statechain_id: String,
     }
 
-    let lockbox_endpoint = "http://0.0.0.0:18080";
+    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "get_public_key";
 
     let client: reqwest::Client = reqwest::Client::new();

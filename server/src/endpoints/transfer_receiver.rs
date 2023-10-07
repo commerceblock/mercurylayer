@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
 use rocket::{State, response::status, serde::json::Json, http::Status};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
@@ -233,11 +233,8 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         x1: x1_hex,
     };
 
-    println!("{}", serde_json::to_string_pretty(&json!(key_update_response_payload)).unwrap());
 
-    // ---
-
-    let lockbox_endpoint = "http://0.0.0.0:18080";
+    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "keyupdate";
 
     let client: reqwest::Client = reqwest::Client::new();
@@ -273,10 +270,26 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
+    update_statechain(&statechain_entity.pool, &auth_pubkey, &server_pubkey, &statechain_id).await;
+
     let response_body = json!({
         "server_pubkey": server_pubkey.to_string(),
-        "statechain_id": statechain_id,
     });
 
     status::Custom(Status::Ok, Json(response_body))
+}
+
+pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &str)  {
+
+    let query = "UPDATE statechain_data \
+        SET auth_xonly_public_key = $1, server_public_key = $2 \
+        WHERE statechain_id = $3";
+
+    let _ = sqlx::query(query)
+        .bind(&auth_key.serialize())
+        .bind(&server_public_key.serialize())
+        .bind(statechain_id)
+        .execute(pool)
+        .await
+        .unwrap();
 }
