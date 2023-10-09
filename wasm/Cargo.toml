@@ -44,3 +44,6 @@ opt-level = "s"
 
 [dependencies.mercury-lib]
 path = "../lib"
+
+[dependencies.getrandom]
+features = ["js"]
