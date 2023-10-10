@@ -203,14 +203,22 @@ blinded_musig_n_of_n_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STAT
 blinded_musig_n_of_n_example_LDADD = libsecp256k1.la
 blinded_musig_n_of_n_example_LDFLAGS = -static
 
+noinst_PROGRAMS += keyaggcoef_1_musig_example
+keyaggcoef_1_musig_example_SOURCES = examples/keyaggcoef_1_musig.c
+keyaggcoef_1_musig_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+keyaggcoef_1_musig_example_LDADD = libsecp256k1.la
+keyaggcoef_1_musig_example_LDFLAGS = -static
+
 if BUILD_WINDOWS
 musig_example_LDFLAGS += -lbcrypt
 blinded_musig_2_of_2_example_LDFLAGS += -lbcrypt
 blinded_musig_n_of_n_example_LDFLAGS += -lbcrypt
+keyaggcoef_1_musig_example_LDFLAGS += -lbcrypt
 endif
 TESTS += musig_example
 TESTS += blinded_musig_2_of_2_example
 TESTS += blinded_musig_n_of_n_example
+TESTS += keyaggcoef_1_musig_example
 endif
 endif
 

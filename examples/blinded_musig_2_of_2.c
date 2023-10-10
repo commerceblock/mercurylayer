@@ -83,6 +83,9 @@ int test_sign_verify(secp256k1_context* ctx) {
 
     secp256k1_musig_session session;
 
+    /* server receives the session data with the final nonce removed */
+    secp256k1_musig_session server_session;
+
     unsigned char blinding_factor[32];
 
     /* secp256k1_musig_session blinded_session; */
@@ -210,7 +213,15 @@ int test_sign_verify(secp256k1_context* ctx) {
         return 0;
     }
 
-    if (!secp256k1_blinded_musig_partial_sign(ctx, &server_partial_sig, &server_secnonce, &server_keypair, &session, keyaggcoef, negate_seckey)) {
+    memcpy(&server_session, &session, sizeof(session));
+
+    if (!secp256k1_blinded_musig_remove_fin_nonce_from_session(ctx, &server_session)) {
+        printf("fail\n");
+        printf("Failed to remove final nonce from session\n");
+        return 0;
+    }
+
+    if (!secp256k1_blinded_musig_partial_sign(ctx, &server_partial_sig, &server_secnonce, &server_keypair, &server_session, keyaggcoef, negate_seckey)) {
         printf("fail\n");
         printf("Server failed to sign message\n");
         return 0;

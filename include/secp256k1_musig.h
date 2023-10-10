@@ -200,6 +200,31 @@ SECP256K1_API int secp256k1_musig_get_keyaggcoef_and_negation_seckey(
     const secp256k1_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
+/**
+ * Returns if the secret key should be negated.
+ * 
+ * Returns: 1 when the secret key should be negated, 0 otherwise.
+ * Args:    ctx: a secp256k1 context object
+ * Out:     negate_seckey: pointer to an int to store the negation flag
+ * In:      aggregate_pubkey: pointer to the aggregate public key
+ *          parity_acc: the parity of the aggregate public key
+ */
+SECP256K1_API int secp256k1_musig_negate_seckey(
+    const secp256k1_context* ctx,
+    const secp256k1_pubkey *aggregate_pubkey, 
+    const int parity_acc,
+    int *negate_seckey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+SECP256K1_API int secp256k1_blinded_musig_pubkey_xonly_tweak_add(
+    const secp256k1_context* ctx, 
+    secp256k1_pubkey *output_pubkey, 
+    int *parity_acc,
+    const secp256k1_pubkey *aggregate_pubkey, 
+    const unsigned char *tweak32, 
+    unsigned char *out_tweak32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+
 /** Computes an aggregate public key and uses it to initialize a keyagg_cache
  *
  *  Different orders of `pubkeys` result in different `agg_pk`s.
@@ -482,6 +507,42 @@ int secp256k1_blinded_musig_nonce_process(
     unsigned char* blinding_factor
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(7);
 
+/** Takes the public nonces of all signers and computes a session that is
+ *  required for signing and verification of partial signatures.
+ *  This function is identical to `secp256k1_musig_nonce_process` except that
+ *  it will blind the nonce by multiplying it with a blinding factor and also
+ *  will add the blinding factor to the challenge.
+ *
+ *  If the adaptor argument is non-NULL, then the output of
+ *  musig_partial_sig_agg will be a pre-signature which is not a valid Schnorr
+ *  signature. In order to create a valid signature, the pre-signature and the
+ *  secret adaptor must be provided to `musig_adapt`.
+ *
+ *  Returns: 0 if the arguments are invalid or if some signer sent invalid
+ *           pubnonces, 1 otherwise
+ *  Args:          ctx: pointer to a context object
+ *  Out:       session: pointer to a struct to store the session
+ *  In:       aggnonce: pointer to an aggregate public nonce object that is the
+ *                      output of musig_nonce_agg
+ *              msg32:  the 32-byte message to sign
+ *   aggregate_pubkey:  pointer to the aggregate public key
+ *            adaptor:  optional pointer to an adaptor point encoded as a public
+ *                      key if this signing session is part of an adaptor
+ *                      signature protocol (can be NULL)
+ *    blinding_factor:  random value used to blind the nonce and the challenge
+ *            tweak32:  pointer to a 32-byte tweak.
+ */
+int secp256k1_blinded_musig_nonce_process_without_keyaggcoeff(
+    const secp256k1_context* ctx, 
+    secp256k1_musig_session *session, 
+    const secp256k1_musig_aggnonce  *aggnonce, 
+    const unsigned char *msg32, 
+    const secp256k1_pubkey *aggregate_pubkey, 
+    const secp256k1_pubkey *adaptor,
+    unsigned char* blinding_factor,
+    const unsigned char *tweak32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8); 
+
 /** Produces a partial signature
  *
  *  This function overwrites the given secnonce with zeros and will abort if given a
@@ -523,6 +584,33 @@ SECP256K1_API int secp256k1_musig_partial_sign(
     const secp256k1_musig_session *session
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
+/**
+ * Get challenge from session.
+ * 
+ * Returns: 0 if the arguments are invalid, 1 otherwise
+ * 
+ * Args:         ctx: pointer to a context object
+ * In:           session: session data
+ * Out:          challenge: pointer to a 32-byte array to store the challenge
+*/
+SECP256K1_API int secp256k1_get_challenge_from_session(
+    const secp256k1_context* ctx, 
+    const secp256k1_musig_session *session,
+    unsigned char* challenge
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+/**
+ * Removes the final nonce from the session and returns it.
+ *
+ * Returns: 0 if the arguments are invalid, 1 otherwise
+ *
+ * Args:         ctx: pointer to a context object
+ * In/Out:       session: pointer to the session with final nonce removed
+ */
+SECP256K1_API int secp256k1_blinded_musig_remove_fin_nonce_from_session(
+    const secp256k1_context *ctx,
+    secp256k1_musig_session *session
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
 
 /** Produces a blinded partial signature
  *
@@ -566,6 +654,46 @@ SECP256K1_API int secp256k1_blinded_musig_partial_sign(
     const int negate_seckey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
+/** Produces a blinded partial signature
+ *
+ *  This function overwrites the given secnonce with zeros and will abort if given a
+ *  secnonce that is all zeros. This is a best effort attempt to protect against nonce
+ *  reuse. However, this is of course easily defeated if the secnonce has been
+ *  copied (or serialized). Remember that nonce reuse will leak the secret key!
+ *
+ *  For signing to succeed, the secnonce provided to this function must have
+ *  been generated for the provided keypair. This means that when signing for a
+ *  keypair consisting of a seckey and pubkey, the secnonce must have been
+ *  created by calling musig_nonce_gen with that pubkey. Otherwise, the
+ *  illegal_callback is called.
+ *
+ *  This function does not verify the output partial signature, deviating from
+ *  the BIP 327 specification. It is recommended to verify the output partial
+ *  signature with `secp256k1_musig_partial_sig_verify` to prevent random or
+ *  adversarially provoked computation errors.
+ *
+ *  Returns: 0 if the arguments are invalid or the provided secnonce has already
+ *           been used for signing, 1 otherwise
+ *  Args:         ctx: pointer to a context object
+ *  Out:  partial_sig: pointer to struct to store the partial signature
+ *  In/Out:  secnonce: pointer to the secnonce struct created in
+ *                     musig_nonce_gen that has been never used in a
+ *                     partial_sign call before and has been created for the
+ *                     keypair
+ *  In:       keypair: pointer to keypair to sign the message with
+ *            session: pointer to the session that was created with
+ *                     musig_nonce_process
+ *            negate_seckey: flag indicating whether the secret key should be negated
+ */
+SECP256K1_API int secp256k1_blinded_musig_partial_sign_without_keyaggcoeff(
+    const secp256k1_context *ctx,
+    secp256k1_musig_partial_sig *partial_sig,
+    secp256k1_musig_secnonce *secnonce,
+    const secp256k1_keypair *keypair,
+    const secp256k1_musig_session *session,
+    const int negate_seckey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 /** Verifies an individual signer's partial signature
  *
  *  The signature is verified for a specific signing session. In order to avoid
@@ -605,6 +733,47 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_partial_sig_verif
     const secp256k1_pubkey *pubkey,
     const secp256k1_musig_keyagg_cache *keyagg_cache,
     const secp256k1_musig_session *session
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+
+/** Verifies an individual signer's partial signature
+ *
+ *  The signature is verified for a specific signing session. In order to avoid
+ *  accidentally verifying a signature from a different or non-existing signing
+ *  session, you must ensure the following:
+ *    1. The `keyagg_cache` argument is identical to the one used to create the
+ *       `session` with `musig_nonce_process`.
+ *    2. The `pubkey` argument must be identical to the one sent by the signer
+ *       before aggregating it with `musig_pubkey_agg` to create the
+ *       `keyagg_cache`.
+ *    3. The `pubnonce` argument must be identical to the one sent by the signer
+ *       before aggregating it with `musig_nonce_agg` and using the result to
+ *       create the `session` with `musig_nonce_process`.
+ *
+ *  This function is essential when using protocols with adaptor signatures.
+ *  However, it is not essential for regular MuSig sessions, in the sense that if any
+ *  partial signature does not verify, the full signature will not verify either, so the
+ *  problem will be caught. But this function allows determining the specific party
+ *  who produced an invalid signature.
+ *
+ *  Returns: 0 if the arguments are invalid or the partial signature does not
+ *           verify, 1 otherwise
+ *  Args         ctx: pointer to a context object
+ *  In:  partial_sig: pointer to partial signature to verify, sent by
+ *                    the signer associated with `pubnonce` and `pubkey`
+ *          pubnonce: public nonce of the signer in the signing session
+ *            pubkey: public key of the signer in the signing session
+ *  aggregate_pubkey: pointer to the aggregate public key
+ *           session: pointer to the session that was created with
+ *                    `musig_nonce_process`
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_blinded_musig_partial_sig_verify(
+    const secp256k1_context* ctx, 
+    const secp256k1_musig_partial_sig *partial_sig, 
+    const secp256k1_musig_pubnonce *pubnonce, 
+    const secp256k1_pubkey *pubkey, 
+    const secp256k1_pubkey *aggregate_pubkey, 
+    const secp256k1_musig_session *session,
+    const int parity_acc
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
 /** Aggregates partial signatures

@@ -219,6 +219,15 @@ static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_g
     return 1;
 }
 
+static void print_hex(unsigned char* data, size_t size) {
+    size_t i;
+    printf("0x");
+    for (i = 0; i < size; i++) {
+        printf("%02x", data[i]);
+    }
+    printf("\n");
+}
+
 int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_scratch_space *scratch, secp256k1_xonly_pubkey *agg_pk, secp256k1_musig_keyagg_cache *keyagg_cache, const secp256k1_pubkey * const* pubkeys, size_t n_pubkeys) {
     secp256k1_musig_pubkey_agg_ecmult_data ecmult_data;
     secp256k1_gej pkj;
