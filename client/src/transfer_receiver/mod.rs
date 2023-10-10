@@ -182,6 +182,8 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
 
+    println!("--> xonly_pubkey: {}", xonly_pubkey.to_string());
+
     let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
 
     let hash = SighashCache::new(transaction).taproot_key_spend_signature_hash(
@@ -399,10 +401,16 @@ async fn process_encrypted_message(
 
         let aggregate_pubkey = client_pubkey_share.combine(&server_pubkey_share).unwrap();
 
-        let aggregate_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
+        let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
 
-        println!("--> aggregate_pub_key: {}", aggregate_xonly_pubkey.to_string());
-        }
+        println!("--> aggregate_pub_key: {}", aggregated_xonly_pubkey.to_string());
+
+        let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+
+        let xonly_pubkey = XOnlyPublicKey::from_slice(aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
+
+        println!("--> tweaked xonly_pubkey: {}", xonly_pubkey.to_string());
+    }
 
     Ok(())
 }
