@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate, secp256k1};
-use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor}, Scalar};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use sqlx::Sqlite;
@@ -229,31 +229,36 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
     let secp = Secp256k1::new();
 
     // TODO: this code is repeated in client/src/transaction/mod.rs. Move it to a common place.
-    let mut key_agg_cache = MusigKeyAggCache::new(&secp, &[client_public_key, server_public_key]);
+    let aggregate_pubkey = client_public_key.combine(&server_public_key).unwrap();
 
-    let tap_tweak = TapTweakHash::from_key_and_tweak(key_agg_cache.agg_pk(), None);
+    let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
     let tap_tweak_bytes = tap_tweak.as_byte_array();
 
     // tranform tweak: Scalar to SecretKey
     let tweak = SecretKey::from_slice(tap_tweak_bytes).unwrap();
 
-    let _ = key_agg_cache.pubkey_xonly_tweak_add(&secp, tweak).unwrap();
+    let (_, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
     
     let aggnonce = MusigAggNonce::new(&secp, &[client_public_nonce, server_public_nonce]);
 
     let msg = get_tx_hash(&backup_tx.tx);
 
-    let session = MusigSession::new_blinded(
+    let session = MusigSession::new_blinded_without_key_agg_cache(
         &secp,
-        &key_agg_cache,
+        &output_pubkey,
         aggnonce,
         msg,
-        blinding_factor
+        None,
+        &blinding_factor,
+        out_tweak32
     );
     // END repeated code
 
     let challenge = session.get_challenge_from_session();
     let challenge = hex::encode(challenge);
+
+    println!("challenge: {}", challenge);
+    println!("statechain_info.challenge: {}", statechain_info.challenge);
 
     assert!(statechain_info.challenge == challenge);
 
@@ -392,10 +397,11 @@ async fn process_encrypted_message(
 
         let server_pubkey_share = PublicKey::from_str(server_public_key_hex).unwrap();
 
-        let key_agg_cache = MusigKeyAggCache::new(&secp, &[client_pubkey_share.to_owned(), server_pubkey_share]);
-        let aggregate_pub_key = key_agg_cache.agg_pk();
+        let aggregate_pubkey = client_pubkey_share.combine(&server_pubkey_share).unwrap();
 
-        println!("--> aggregate_pub_key: {}", aggregate_pub_key.to_string());
+        let aggregate_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
+
+        println!("--> aggregate_pub_key: {}", aggregate_xonly_pubkey.to_string());
         }
 
     Ok(())
