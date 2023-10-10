@@ -142,19 +142,8 @@ pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_non
         .unwrap();
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct PartialSignatureRequestPayload<'r> {
-    statechain_id: &'r str,
-    keyaggcoef: &'r str,
-    negate_seckey: u8,
-    session: &'r str,
-    signed_statechain_id: String,
-    server_pub_nonce: &'r str,
-}
-
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
-pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<PartialSignatureRequestPayload<'_>>) -> status::Custom<Json<Value>>  {
+pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercury_lib::sign::PartialSignatureRequestPayload<'_> >) -> status::Custom<Json<Value>>  {
     
     let statechain_entity = statechain_entity.inner();
 

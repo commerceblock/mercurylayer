@@ -433,30 +433,20 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(400);
 
             if (req_body.count("statechain_id") == 0 || 
-                req_body.count("keyaggcoef") == 0 ||
                 req_body.count("negate_seckey") == 0 ||
                 req_body.count("session") == 0) {
-                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 'keyaggcoef', 'negate_seckey' and 'session'.");
+                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 'negate_seckey' and 'session'.");
             }
 
             std::string statechain_id = req_body["statechain_id"].s();
-            std::string keyaggcoef_hex = req_body["keyaggcoef"].s();
             int64_t negate_seckey = req_body["negate_seckey"].i();
             std::string session_hex = req_body["session"].s();
 
-            if (keyaggcoef_hex.substr(0, 2) == "0x") {
-                keyaggcoef_hex = keyaggcoef_hex.substr(2);
-            }
 
             if (session_hex.substr(0, 2) == "0x") {
                 session_hex = session_hex.substr(2);
             }
 
-            std::vector<unsigned char> serialized_keyaggcoef = ParseHex(keyaggcoef_hex);
-
-            if (serialized_keyaggcoef.size() != 32) {
-                return crow::response(400, "Invalid keyaggcoef length. Must be 32 bytes!");
-            }
 
             std::vector<unsigned char> serialized_session = ParseHex(session_hex);
 
@@ -503,7 +493,6 @@ int SGX_CDECL main(int argc, char *argv[])
                 enclave_id, &ecall_ret, 
                 sealed_keypair.data(), sealed_keypair_size,
                 sealed_secnonce.data(), sealed_secnonce_size,
-                serialized_keyaggcoef.data(), serialized_keyaggcoef.size(),
                 (int) negate_seckey,
                 serialized_session.data(), serialized_session.size(),
                 serialized_server_pubnonce, sizeof(serialized_server_pubnonce),

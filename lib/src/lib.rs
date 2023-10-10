@@ -1,4 +1,6 @@
 pub mod transfer;
+pub mod deposit;
+pub mod sign;
 
 use std::str::FromStr;
 

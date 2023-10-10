@@ -2,9 +2,9 @@ pub mod db;
 
 use std::{str::FromStr, thread, time::Duration};
 
-use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid, Transaction, sighash::{TapSighashType, SighashCache, self}, TxOut};
+use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
 use electrum_client::ListUnspentRes;
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature, XOnlyPublicKey};
+use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
@@ -28,17 +28,23 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
     
     let secp = Secp256k1::new();
 
-    let key_agg_cache = MusigKeyAggCache::new(&secp, &[address_data.client_pubkey_share, server_pubkey_share]);
-    let aggregate_pub_key = key_agg_cache.agg_pk();
+    // let key_agg_cache = MusigKeyAggCache::new(&secp, &[address_data.client_pubkey_share, server_pubkey_share]);
+    // let aggregate_pub_key = key_agg_cache.agg_pk();
 
-    let aggregate_address = Address::p2tr(&secp, aggregate_pub_key, None, network);
+    let aggregate_pubkey = address_data.client_pubkey_share.combine(&server_pubkey_share).unwrap();
+
+    println!("--> aggregate_pub_key: {}", aggregate_pubkey.to_string());
+
+    let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0; 
+
+    let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
 
     db::insert_agg_pub_key(
         pool, 
         &statechain_id, 
         amount as u32, 
         &server_pubkey_share, 
-        &aggregate_pub_key, 
+        &aggregate_pubkey, 
         &aggregate_address,
         &address_data.client_pubkey_share,
         &signed_statechain_id).await.unwrap();
@@ -89,7 +95,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
         &server_pubkey_share,
         utxo.tx_hash, 
         utxo.tx_pos as u32, 
-        &aggregate_pub_key, 
+        &aggregate_pubkey, 
         &aggregate_address.script_pubkey(), 
         amount,
         &to_address).await.unwrap();

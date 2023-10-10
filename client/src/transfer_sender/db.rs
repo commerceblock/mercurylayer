@@ -58,7 +58,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
 pub async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, network: Network) -> StatechainCoinDetails {
 
     let query = "\
-            SELECT sid.client_seckey_share, sid.client_pubkey_share, std.amount, std.server_pubkey_share, std.aggregated_xonly_pubkey, std.p2tr_agg_address, sid.auth_seckey \
+            SELECT sid.client_seckey_share, sid.client_pubkey_share, std.amount, std.server_pubkey_share, std.aggregated_pubkey, std.p2tr_agg_address, sid.auth_seckey \
             FROM signer_data sid INNER JOIN statechain_data std \
             ON sid.client_pubkey_share = std.client_pubkey_share \
             WHERE std.statechain_id = $1";
@@ -80,8 +80,8 @@ pub async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_i
     let server_public_key_bytes = row.get::<Vec<u8>, _>("server_pubkey_share");
     let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
 
-    let agg_public_key_bytes = row.get::<Vec<u8>, _>("aggregated_xonly_pubkey");
-    let aggregated_xonly_pubkey = XOnlyPublicKey::from_slice(&agg_public_key_bytes).unwrap();
+    let agg_public_key_bytes = row.get::<Vec<u8>, _>("aggregated_pubkey");
+    let aggregated_pubkey = PublicKey::from_slice(&agg_public_key_bytes).unwrap();
 
     let agg_address_str = row.get::<String, _>("p2tr_agg_address");
     let p2tr_agg_address = Address::from_str(&agg_address_str).unwrap().require_network(network).unwrap();
@@ -89,6 +89,7 @@ pub async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_i
     let auth_seckey_bytes = row.get::<Vec<u8>, _>("auth_seckey");
     let auth_seckey = SecretKey::from_slice(&auth_seckey_bytes).unwrap();
 
+    let aggregated_xonly_pubkey = aggregated_pubkey.x_only_public_key().0;
     let address = Address::p2tr(&Secp256k1::new(), aggregated_xonly_pubkey, None, network);
 
     assert!(address.to_string() == p2tr_agg_address.to_string());
@@ -98,7 +99,7 @@ pub async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_i
         client_pubkey,
         amount,
         server_pubkey,
-        aggregated_xonly_pubkey,
+        aggregated_pubkey,
         p2tr_agg_address,
         auth_seckey,
     }

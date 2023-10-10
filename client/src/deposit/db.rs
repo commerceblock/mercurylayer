@@ -8,20 +8,20 @@ pub async fn insert_agg_pub_key(pool: &sqlx::Pool<Sqlite>,
     statechain_id: &str, 
     amount: u32,  
     server_pubkey_share: &PublicKey, 
-    aggregated_xonly_pubkey: &XOnlyPublicKey, 
+    aggregated_pubkey: &PublicKey, 
     p2tr_agg_address: &Address, 
     client_pubkey_share: &PublicKey,
     signed_statechain_id: &Signature) -> Result<(), CError> {
 
     let query = "\
-        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_xonly_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
+        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
         VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
     let _ = sqlx::query(query)
         .bind(statechain_id)
         .bind(amount)
         .bind(server_pubkey_share.serialize().to_vec())
-        .bind(aggregated_xonly_pubkey.serialize().to_vec())
+        .bind(aggregated_pubkey.serialize().to_vec())
         .bind(p2tr_agg_address.to_string())
         .bind(client_pubkey_share.serialize().to_vec())
         .bind(signed_statechain_id.to_string())

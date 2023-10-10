@@ -3,11 +3,11 @@ mod db;
 use std::{str::FromStr, collections::BTreeMap};
 
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
-use secp256k1_zkp::{SecretKey, PublicKey, XOnlyPublicKey, Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, MusigKeyAggCache, MusigAggNonce, BlindingFactor, MusigSession, MusigPartialSignature}, new_musig_nonce_pair, KeyPair};
+use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
-use crate::{error::CError, electrum};
+use crate::error::CError;
 
 pub async fn new_backup_transaction(
     pool: &sqlx::Pool<Sqlite>, 
@@ -19,7 +19,7 @@ pub async fn new_backup_transaction(
     server_pubkey: &PublicKey,
     input_txid: Txid, 
     input_vout: u32, 
-    input_pubkey: &XOnlyPublicKey, 
+    input_pubkey: &PublicKey, 
     input_scriptpubkey: &ScriptBuf, 
     input_amount: u64, 
     to_address: &Address,) 
@@ -83,10 +83,12 @@ async fn create(
     server_pubkey: &PublicKey,
     input_txid: Txid, 
     input_vout: u32, 
-    input_pubkey: &XOnlyPublicKey, 
+    input_pubkey: &PublicKey, 
     input_scriptpubkey: &ScriptBuf, 
     input_amount: u64, 
     output: TxOut) -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor), Box<dyn std::error::Error>> {
+
+    let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
 
     let outputs = [output].to_vec();
 
@@ -111,7 +113,7 @@ async fn create(
     };
     let ty = PsbtSighashType::from_str("SIGHASH_ALL")?;
     input.sighash_type = Some(ty);
-    input.tap_internal_key = Some(input_pubkey.to_owned());
+    input.tap_internal_key = Some(input_xonly_pubkey.to_owned());
     psbt.inputs = vec![input];
 
     let secp = Secp256k1::new();
@@ -148,6 +150,7 @@ async fn create(
             client_seckey,
             client_pubkey,
             server_pubkey,
+            input_pubkey,
             hash,
             &secp,
         ).await.unwrap();
@@ -200,16 +203,6 @@ pub struct ServerPublicNonceResponsePayload<'r> {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartialSignatureRequestPayload<'r> {
-    statechain_id: &'r str,
-    keyaggcoef: &'r str,
-    negate_seckey: u8,
-    session: &'r str,
-    signed_statechain_id: &'r str,
-    server_pub_nonce: &'r str,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PartialSignatureResponsePayload<'r> {
     partial_sig: &'r str,
 }
@@ -220,6 +213,7 @@ async fn musig_sign_psbt_taproot(
     client_seckey: &SecretKey,
     client_pubkey: &PublicKey,
     server_pubkey: &PublicKey,
+    input_pubkey: &PublicKey,
     hash: TapSighash,
     secp: &Secp256k1<secp256k1::All>,
 )  -> Result<(Signature, MusigPubNonce, MusigPubNonce, BlindingFactor), CError>  {
@@ -269,44 +263,45 @@ async fn musig_sign_psbt_taproot(
     
     let server_pub_nonce = MusigPubNonce::from_slice(server_pub_nonce_bytes.as_slice()).unwrap();
 
-    let mut key_agg_cache = MusigKeyAggCache::new(&secp, &[client_pubkey.to_owned(), server_pubkey.to_owned()]);
+    let aggregate_pubkey = client_pubkey.combine(&server_pubkey).unwrap();
 
-    let tap_tweak = TapTweakHash::from_key_and_tweak(key_agg_cache.agg_pk(), None);
+    if aggregate_pubkey != input_pubkey.to_owned() {
+        return Err(CError::Generic("Input public key is different than the combination of client and server public keys.".to_string()));
+    }
+
+    let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
     let tap_tweak_bytes = tap_tweak.as_byte_array();
 
     // tranform tweak: Scalar to SecretKey
     let tweak = SecretKey::from_slice(tap_tweak_bytes).unwrap();
 
-    let tweaked_pubkey = key_agg_cache.pubkey_xonly_tweak_add(secp, tweak).unwrap();
+    let (parity_acc, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
 
     let aggnonce = MusigAggNonce::new(&secp, &[client_pub_nonce, server_pub_nonce]);
 
-    let session = MusigSession::new_blinded(
+    let session = MusigSession::new_blinded_without_key_agg_cache(
         &secp,
-        &key_agg_cache,
+        &output_pubkey,
         aggnonce,
         msg,
-        &blinding_factor
+        None,
+        &blinding_factor,
+        out_tweak32
+    );
+
+    let negate_seckey = blinded_musig_negate_seckey(
+        &secp,
+        &output_pubkey,
+        parity_acc,
     );
 
     let client_keypair = KeyPair::from_secret_key(&secp, &client_seckey);
 
-    let client_partial_sig = session.partial_sign(
-        &secp,
-        client_sec_nonce,
-        &client_keypair,
-        &key_agg_cache,
-    ).unwrap();
+    let client_partial_sig = session.blinded_partial_sign_without_keyaggcoeff(&secp, client_sec_nonce, &client_keypair, negate_seckey).unwrap();
 
-    assert!(session.partial_verify(
-        &secp,
-        &key_agg_cache,
-        client_partial_sig,
-        client_pub_nonce,
-        client_pubkey.to_owned(),
-    ));
+    assert!(session.blinded_musig_partial_sig_verify(&secp, &client_partial_sig, &client_pub_nonce, &client_pubkey, &output_pubkey, parity_acc));
 
-    let (key_agg_coef, negate_seckey) = session.get_keyaggcoef_and_negation_seckey(&secp, &key_agg_cache, &server_pubkey);
+    session.remove_fin_nonce_from_session();
 
     let negate_seckey = match negate_seckey {
         true => 1,
@@ -315,9 +310,8 @@ async fn musig_sign_psbt_taproot(
 
     let blinded_session = session.remove_fin_nonce_from_session();
 
-    let payload = PartialSignatureRequestPayload {
+    let payload = mercury_lib::sign::PartialSignatureRequestPayload {
         statechain_id,
-        keyaggcoef: &hex::encode(key_agg_coef.serialize()),
         negate_seckey,
         session: &hex::encode(blinded_session.serialize()),
         signed_statechain_id: &signed_statechain_id.to_string(),
@@ -352,17 +346,13 @@ async fn musig_sign_psbt_taproot(
 
     let server_partial_sig = MusigPartialSignature::from_slice(server_partial_sig_bytes.as_slice()).unwrap();
 
-    assert!(session.partial_verify(
-        &secp,
-        &key_agg_cache,
-        server_partial_sig,
-        server_pub_nonce,
-        server_pubkey.to_owned(),
-    ));
+    assert!(session.blinded_musig_partial_sig_verify(&secp, &server_partial_sig, &server_pub_nonce, &server_pubkey, &output_pubkey, parity_acc));
 
     let sig = session.partial_sig_agg(&[client_partial_sig, server_partial_sig]);
 
-    assert!(secp.verify_schnorr(&sig, &msg, &tweaked_pubkey.x_only_public_key().0).is_ok());
+    let x_only_key_tweaked = output_pubkey.x_only_public_key().0;
+
+    assert!(secp.verify_schnorr(&sig, &msg, &x_only_key_tweaked).is_ok());
    
     Ok((sig, client_pub_nonce, server_pub_nonce, blinding_factor))
 }

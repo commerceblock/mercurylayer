@@ -299,7 +299,7 @@ pub struct StatechainCoinDetails {
     pub client_pubkey: PublicKey,
     pub amount: u64,
     pub server_pubkey: PublicKey,
-    pub aggregated_xonly_pubkey: XOnlyPublicKey,
+    pub aggregated_pubkey: PublicKey,
     pub p2tr_agg_address: Address,
     pub auth_seckey: SecretKey,
 }
@@ -328,7 +328,7 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
     let server_pubkey = statechain_coin_details.server_pubkey;
     let input_txid = input.previous_output.txid;
     let input_vout = input.previous_output.vout;
-    let input_pubkey =statechain_coin_details.aggregated_xonly_pubkey;
+    let input_pubkey = statechain_coin_details.aggregated_pubkey;
     let input_scriptpubkey = statechain_coin_details.p2tr_agg_address.script_pubkey();
     let input_amount = statechain_coin_details.amount;
 

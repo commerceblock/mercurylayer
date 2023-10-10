@@ -388,8 +388,15 @@ async fn process_encrypted_message(
 
         let response: Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-        println!("response: {}", response.get("server_pubkey").unwrap().as_str().unwrap());
-    }
+        let server_public_key_hex = response.get("server_pubkey").unwrap().as_str().unwrap();
+
+        let server_pubkey_share = PublicKey::from_str(server_public_key_hex).unwrap();
+
+        let key_agg_cache = MusigKeyAggCache::new(&secp, &[client_pubkey_share.to_owned(), server_pubkey_share]);
+        let aggregate_pub_key = key_agg_cache.agg_pk();
+
+        println!("--> aggregate_pub_key: {}", aggregate_pub_key.to_string());
+        }
 
     Ok(())
 }

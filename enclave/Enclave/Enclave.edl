@@ -22,7 +22,6 @@ enclave {
         public sgx_status_t get_partial_signature(
             [in, size=sealed_keypair_size] char* sealed_keypair, size_t sealed_keypair_size,
             [in, size=sealed_secnonce_size] char* sealed_secnonce, size_t sealed_secnonce_size,
-            [in, size=keyaggcoef_size] unsigned char* keyaggcoef, size_t keyaggcoef_size,
             int negate_seckey,
             [in, size=session_data_size] unsigned char* session_data, size_t session_data_size,
             [in, size=serialized_server_pubnonce_size] unsigned char* serialized_server_pubnonce, size_t serialized_server_pubnonce_size,

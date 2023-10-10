@@ -193,7 +193,6 @@ sgx_status_t generate_nonce(
 sgx_status_t get_partial_signature(
     char* sealed_keypair, size_t sealed_keypair_size,
     char* sealed_secnonce, size_t sealed_secnonce_size,
-    unsigned char* keyaggcoef, size_t keyaggcoef_size,
     int negate_seckey,
     unsigned char* session_data, size_t session_data_size,
     unsigned char* serialized_server_pubnonce, size_t serialized_server_pubnonce_size,
@@ -202,7 +201,6 @@ sgx_status_t get_partial_signature(
     (void) partial_sig_data;
     (void) partial_sig_data_size;
     (void) serialized_server_pubnonce_size;
-    (void) keyaggcoef_size;
     // step 0 - Unseal sealed keypair
 
     secp256k1_keypair server_keypair;
@@ -233,7 +231,7 @@ sgx_status_t get_partial_signature(
 
     secp256k1_musig_partial_sig partial_sig;
 
-    return_val = secp256k1_blinded_musig_partial_sign(ctx, &partial_sig, &server_secnonce, &server_keypair, &session, keyaggcoef, negate_seckey);
+    return_val = secp256k1_blinded_musig_partial_sign_without_keyaggcoeff(ctx, &partial_sig, &server_secnonce, &server_keypair, &session, negate_seckey);
     assert(return_val);
 
     unsigned char serialized_partial_sig[32];

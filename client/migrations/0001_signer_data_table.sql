@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS statechain_data (
 
     amount INT,
     server_pubkey_share BLOB,
-    aggregated_xonly_pubkey BLOB,
+    aggregated_pubkey BLOB,
     p2tr_agg_address TEXT,
 
     funding_txid TEXT,
