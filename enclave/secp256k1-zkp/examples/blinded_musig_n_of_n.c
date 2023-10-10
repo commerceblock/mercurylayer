@@ -90,6 +90,9 @@ int sign_and_verify(secp256k1_context* ctx, const size_t _server_count) {
 
     secp256k1_musig_session session;
 
+    /* server receives the session data with the final nonce removed */
+    secp256k1_musig_session server_session;
+
     secp256k1_musig_partial_sig *partial_sig;
 
     const secp256k1_musig_partial_sig **partial_sig_arg;
@@ -189,6 +192,14 @@ int sign_and_verify(secp256k1_context* ctx, const size_t _server_count) {
         goto cleanup;
     }
 
+    memcpy(&server_session, &session, sizeof(session));
+
+    if (!secp256k1_blinded_musig_remove_fin_nonce_from_session(ctx, &server_session)) {
+        printf("fail\n");
+        printf("Failed to remove final nonce from session\n");
+        return 0;
+    }
+
     for (i = 0; i < server_count; i++)
     {
         if (!secp256k1_musig_get_keyaggcoef_and_negation_seckey(ctx, server_data[i].keyaggcoef, &server_data[i].negate_seckey, &cache, &server_data[i].pubkey)) {
@@ -197,12 +208,13 @@ int sign_and_verify(secp256k1_context* ctx, const size_t _server_count) {
             goto cleanup;
         }
 
-         if (!secp256k1_blinded_musig_partial_sign(ctx, &partial_sig[i + 1], &server_data[i].secnonce, &server_data[i].keypair, &session, server_data[i].keyaggcoef, server_data[i].negate_seckey)) {
+         if (!secp256k1_blinded_musig_partial_sign(ctx, &partial_sig[i + 1], &server_data[i].secnonce, &server_data[i].keypair, &server_session, server_data[i].keyaggcoef, server_data[i].negate_seckey)) {
             printf("fail\n");
             printf("Server %d  failed to sign message\n", (int) i);
             goto cleanup;
         }
 
+        /* Verification is done by the client, therefore it uses session data */
         if (!secp256k1_musig_partial_sig_verify(ctx, &partial_sig[i + 1], &server_data[i].pubnonce, &server_data[i].pubkey, &cache, &session)) {
             printf("fail\n");
             printf("Failed to verify server %d partial signature\n", (int) i);

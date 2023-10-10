@@ -68,6 +68,7 @@ contrib/gh-pr-create.sh
 musig_example
 blinded_musig_2_of_2_example
 blinded_musig_n_of_n_example
+keyaggcoef_1_musig_example
 
 ### CMake
 /CMakeUserPresets.json
