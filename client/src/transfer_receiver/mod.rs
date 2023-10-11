@@ -98,25 +98,17 @@ fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) ->
 }
 
 /// step 3. Owner 2 verifies that the latest backup transaction pays to their key O2 and that the input (Tx0) is unspent.
-async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &PublicKey, network: Network,) {
+async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &PublicKey, network: Network,) -> bool {
 
     let last_tx = transfer_msg.backup_transactions.last().unwrap();
 
-    println!("last_tx.tx_n: {}", last_tx.tx_n);
-
     let backup_tx = last_tx.deserialize();
-
-    println!("backup_tx.tx.output.len: {}", backup_tx.tx.output.len());
 
     let output = &backup_tx.tx.output[0];
 
-    let x = &output.script_pubkey;
-
     let aggregate_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, network);
 
-    println!("aggregate_address.script_pubkey: {}", aggregate_address.script_pubkey().to_hex_string());
-
-    println!("x.script_pubkey: {}", x.to_hex_string());
+    output.script_pubkey == aggregate_address.script_pubkey()
 }
 
 fn get_tx_hash(transaction: &Transaction) -> Message {
@@ -182,8 +174,6 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
 
-    println!("--> xonly_pubkey: {}", xonly_pubkey.to_string());
-
     let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
 
     let hash = SighashCache::new(transaction).taproot_key_spend_signature_hash(
@@ -214,6 +204,26 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
 }
 
+async fn get_funding_input_pubkey(transaction: &Transaction) -> XOnlyPublicKey {
+    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
+
+    let txid = transaction.input[0].previous_output.txid.to_string();
+
+    let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+
+    let funding_tx_bytes = res[0].clone();
+
+    let funding_tx: Transaction = bitcoin::consensus::encode::deserialize(&funding_tx_bytes).unwrap();
+
+    let vout = transaction.input[0].previous_output.vout as usize;
+
+    let funding_tx_output = funding_tx.output[vout].clone();
+
+    let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
+
+    xonly_pubkey
+}
+
 async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
@@ -225,8 +235,13 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
     let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
 
-    assert!(statechain_info.blind_commitment == blind_commitment.to_string());
-    assert!(statechain_info.r2_commitment == r2_commitment.to_string());
+    if statechain_info.blind_commitment != blind_commitment.to_string() {
+        return Err(CError::Generic("blind_commitment is not correct".to_string()));
+    }
+
+    if statechain_info.r2_commitment != r2_commitment.to_string() {
+        return Err(CError::Generic("r2_commitment is not correct".to_string()));
+    }
 
     let secp = Secp256k1::new();
 
@@ -236,7 +251,6 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
     let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
     let tap_tweak_bytes = tap_tweak.as_byte_array();
 
-    // tranform tweak: Scalar to SecretKey
     let tweak = SecretKey::from_slice(tap_tweak_bytes).unwrap();
 
     let (_, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
@@ -259,10 +273,9 @@ async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_i
     let challenge = session.get_challenge_from_session();
     let challenge = hex::encode(challenge);
 
-    println!("challenge: {}", challenge);
-    println!("statechain_info.challenge: {}", statechain_info.challenge);
-
-    assert!(statechain_info.challenge == challenge);
+    if statechain_info.challenge != challenge {
+        return Err(CError::Generic("challenge is not correct".to_string()));
+    }
 
     Ok(())
 
@@ -319,6 +332,7 @@ async fn process_encrypted_message(
     network: Network, 
     info_config: &InfoConfig,
     client_config: &ClientConfig) -> Result<(), CError> {
+
     for enc_message in enc_messages {
 
         let decoded_enc_message = hex::decode(enc_message).unwrap();
@@ -329,7 +343,9 @@ async fn process_encrypted_message(
 
         let transfer_msg: TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
-        verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await;
+        if !verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await {
+            return Err(CError::Generic("Latest backup tx does not pay to user pubkey".to_string()));
+        }
 
         let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
 
@@ -343,12 +359,18 @@ async fn process_encrypted_message(
 
             let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
-            let backup_tx = backup_tx.deserialize();
+            let backup_tx = backup_tx.deserialize(); 
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx, info_config.fee_rate_sats_per_byte, client_config).await;
-            println!("is_signature_valid: {}", is_signature_valid);
+            if !is_signature_valid {
+                let msg = format!("Signature of transaction {} is not valid", backup_tx.tx_n);
+                return Err(CError::Generic(msg.to_string()));
+            }
 
-            verify_blinded_musig_scheme(&backup_tx, statechain_info).await.unwrap();
-            println!("is_scheme_valid: true");
+            let res = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
+            
+            if res.is_err() {
+                return Err(res.err().unwrap());
+            }
 
             if previous_lock_time.is_some() {
                 let prev_lock_time = previous_lock_time.unwrap();
@@ -401,19 +423,21 @@ async fn process_encrypted_message(
 
         let aggregate_pubkey = client_pubkey_share.combine(&server_pubkey_share).unwrap();
 
-        println!("--> client_pubkey_share: {}", client_pubkey_share.to_string());
-
-        println!("--> server_pubkey_share: {}", server_pubkey_share.to_string());
-
-        println!("--> aggregate_pubkey: {}", aggregate_pubkey.to_string());
-
         let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
 
         let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
 
         let xonly_pubkey = XOnlyPublicKey::from_slice(aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
 
-        println!("--> tweaked xonly_pubkey: {}", xonly_pubkey.to_string());
+        let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
+
+        let backup_transaction = backup_transaction.deserialize(); 
+
+        let funding_xonly_pubkey = get_funding_input_pubkey(&backup_transaction.tx).await;
+
+        if funding_xonly_pubkey != xonly_pubkey {
+            return Err(CError::Generic("Aggregated public key is not correct".to_string()));
+        }
     }
 
     Ok(())

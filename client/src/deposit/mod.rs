@@ -28,16 +28,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
     
     let secp = Secp256k1::new();
 
-    // let key_agg_cache = MusigKeyAggCache::new(&secp, &[address_data.client_pubkey_share, server_pubkey_share]);
-    // let aggregate_pub_key = key_agg_cache.agg_pk();
-
     let aggregate_pubkey = address_data.client_pubkey_share.combine(&server_pubkey_share).unwrap();
-
-    println!("--> client_pubkey_share: {}", address_data.client_pubkey_share.to_string());
-
-    println!("--> server_pubkey_share: {}", server_pubkey_share.to_string());
-
-    println!("--> aggregate_pub_key: {}", aggregate_pubkey.to_string());
 
     let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0; 
 
