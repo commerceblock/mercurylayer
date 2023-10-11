@@ -401,9 +401,13 @@ async fn process_encrypted_message(
 
         let aggregate_pubkey = client_pubkey_share.combine(&server_pubkey_share).unwrap();
 
-        let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
+        println!("--> client_pubkey_share: {}", client_pubkey_share.to_string());
 
-        println!("--> aggregate_pub_key: {}", aggregated_xonly_pubkey.to_string());
+        println!("--> server_pubkey_share: {}", server_pubkey_share.to_string());
+
+        println!("--> aggregate_pubkey: {}", aggregate_pubkey.to_string());
+
+        let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
 
         let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
 

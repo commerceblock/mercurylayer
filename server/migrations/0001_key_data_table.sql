@@ -17,6 +17,7 @@ CREATE TABLE public.statechain_transfer (
 	encrypted_transfer_msg bytea NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	key_updated boolean DEFAULT false,
 	CONSTRAINT statechain_transfer_pkey PRIMARY KEY (id)
 );
 

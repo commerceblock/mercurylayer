@@ -225,6 +225,28 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     }
 
+    if is_key_already_updated(&statechain_entity.pool, &statechain_id).await {
+
+        let server_public_key = get_server_public_key(&statechain_entity.pool, &statechain_id).await;
+
+        if server_public_key.is_none() {
+            let response_body = json!({
+                "error": "Internal Server Error",
+                "message": "Server public key not found."
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+
+        let server_public_key = server_public_key.unwrap();
+
+        let response_body = json!({
+            "server_pubkey": server_public_key.to_string(),
+        });
+
+        return status::Custom(Status::Ok, Json(response_body));
+    }
+
     let x1_hex = hex::encode(x1);
 
     let key_update_response_payload = mercury_lib::transfer::receiver::KeyUpdateResponsePayload { 
@@ -279,7 +301,51 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
     status::Custom(Status::Ok, Json(response_body))
 }
 
+pub async fn is_key_already_updated(pool: &sqlx::PgPool, statechain_id: &str) -> bool {
+
+    let query = "\
+        SELECT key_updated \
+        FROM statechain_transfer \
+        WHERE statechain_id = $1";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let key_updated: bool = row.get(0);
+
+    key_updated
+}
+
+pub async fn get_server_public_key(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
+
+    let query = "\
+        SELECT server_public_key \
+        FROM statechain_data \
+        WHERE statechain_id = $1";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let server_public_key_bytes: Vec<u8> = row.get(0);
+
+    if server_public_key_bytes.len() == 0 {
+        return None;
+    }
+
+    let server_public_key = PublicKey::from_slice(&server_public_key_bytes).unwrap();
+
+    Some(server_public_key)
+}
+
 pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &str)  {
+
+    let mut transaction = pool.begin().await.unwrap();
 
     let query = "UPDATE statechain_data \
         SET auth_xonly_public_key = $1, server_public_key = $2 \
@@ -289,7 +355,19 @@ pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, s
         .bind(&auth_key.serialize())
         .bind(&server_public_key.serialize())
         .bind(statechain_id)
-        .execute(pool)
+        .execute(&mut *transaction)
         .await
         .unwrap();
+
+    let query = "UPDATE statechain_transfer \
+        SET key_updated = true \
+        WHERE statechain_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(statechain_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
 }
