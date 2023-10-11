@@ -147,7 +147,7 @@ fn get_tx_hash(transaction: &Transaction) -> Message {
 }
 
 /// step 4a. Verifiy if the signature is valid.
-async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_per_byte: u64, client_config: &ClientConfig) -> bool {
+async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_per_byte: u64, client_config: &ClientConfig) -> Result<(), CError> {
 
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
@@ -172,6 +172,12 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
     let funding_tx_output = funding_tx.output[vout].clone();
 
+    let res = electrum::get_script_pubkey_list_unspent(&client, &funding_tx_output.script_pubkey.as_script());
+
+    if res.len() == 0 {
+        return Err(CError::Generic("The funding UTXO is spent".to_string()));
+    } 
+
     let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
 
     let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
@@ -191,16 +197,18 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
     let fee_rate = fee / transaction.vsize() as u64;
 
     if (fee_rate as i64 + client_config.fee_rate_tolerance as i64) < fee_rate_sats_per_byte as i64 {
-        println!("fee_rate too low");
-        return false;
+        return Err(CError::Generic("Fee rate too low".to_string()));
     }
 
     if (fee_rate as i64 - client_config.fee_rate_tolerance as i64) > fee_rate_sats_per_byte as i64 {
-        println!("fee_rate too high");
-        return false;
+        return Err(CError::Generic("Fee rate too high".to_string()));
     }
 
-    Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok()
+    if !Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok() {
+        return Err(CError::Generic("Invalid signature".to_string()));
+    }
+
+    Ok(())
 
 }
 
@@ -361,9 +369,8 @@ async fn process_encrypted_message(
 
             let backup_tx = backup_tx.deserialize(); 
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx, info_config.fee_rate_sats_per_byte, client_config).await;
-            if !is_signature_valid {
-                let msg = format!("Signature of transaction {} is not valid", backup_tx.tx_n);
-                return Err(CError::Generic(msg.to_string()));
+            if is_signature_valid.is_err() {
+                return Err(is_signature_valid.err().unwrap());
             }
 
             let res = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
