@@ -30,6 +30,7 @@ struct SerializedBackupTransaction {
     client_public_key: String,
     server_public_key: String,
     blinding_factor: String,
+    recipient_address: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -50,6 +51,7 @@ impl BackupTransaction {
             client_public_key: self.client_public_key.to_string(),
             server_public_key: self.server_public_key.to_string(),
             blinding_factor: hex::encode(&self.blinding_factor),
+            recipient_address: self.recipient_address.clone(),
         }
     }
 }

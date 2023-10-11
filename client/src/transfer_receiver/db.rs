@@ -1,5 +1,8 @@
-use secp256k1_zkp::{PublicKey, SecretKey};
+use bitcoin::Address;
+use secp256k1_zkp::{PublicKey, SecretKey, schnorr::Signature};
 use sqlx::{Sqlite, Row};
+
+use super::BackupTransaction;
 
 pub async fn get_all_auth_pubkey(pool: &sqlx::Pool<Sqlite>,) -> Vec::<(SecretKey, PublicKey, SecretKey, PublicKey)>{
     let rows = sqlx::query("SELECT auth_seckey, auth_pubkey, client_seckey_share, client_pubkey_share FROM signer_data")
@@ -27,4 +30,80 @@ pub async fn get_all_auth_pubkey(pool: &sqlx::Pool<Sqlite>,) -> Vec::<(SecretKey
     }
 
     auth_pubkeys
+}
+
+pub async fn insert_or_update_new_statechain(
+    pool: &sqlx::Pool<Sqlite>,
+    statechain_id: &str, 
+    amount: u32,  
+    server_pubkey_share: &PublicKey, 
+    aggregated_pubkey: &PublicKey, 
+    p2tr_agg_address: &Address, 
+    client_pubkey_share: &PublicKey,
+    signed_statechain_id: &Signature,
+    vec_backup_transactions: &Vec<BackupTransaction>) {
+
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query = "\
+        DELETE FROM backup_transaction \
+        WHERE statechain_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(statechain_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+    
+    let query = "\
+        DELETE FROM statechain_data \
+        WHERE statechain_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(statechain_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    let query = "\
+        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7)";
+
+    let _ = sqlx::query(query)
+        .bind(statechain_id)
+        .bind(amount)
+        .bind(server_pubkey_share.serialize().to_vec())
+        .bind(aggregated_pubkey.serialize().to_vec())
+        .bind(p2tr_agg_address.to_string())
+        .bind(client_pubkey_share.serialize().to_vec())
+        .bind(signed_statechain_id.to_string())
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    for backup_tx in vec_backup_transactions {
+        
+        let query = "INSERT INTO backup_transaction \
+            (tx_n, statechain_id, client_public_nonce, server_public_nonce, client_pubkey, server_pubkey, blinding_factor, backup_tx, recipient_address) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+
+        let tx_bytes = bitcoin::consensus::encode::serialize(&backup_tx.tx);
+            
+        let _ = sqlx::query(query)
+            .bind(backup_tx.tx_n)
+            .bind(statechain_id)
+            .bind(backup_tx.client_public_nonce.serialize().to_vec())
+            .bind(backup_tx.server_public_nonce.serialize().to_vec())
+            .bind(backup_tx.client_public_key.serialize().to_vec())
+            .bind(backup_tx.server_public_key.serialize().to_vec())
+            .bind(backup_tx.blinding_factor.as_bytes().to_vec())
+            .bind(tx_bytes)
+            .bind(backup_tx.recipient_address.clone())
+            .execute(&mut *transaction)
+            .await
+            .unwrap();
+    }
+
+    transaction.commit().await.unwrap();
+    
 }

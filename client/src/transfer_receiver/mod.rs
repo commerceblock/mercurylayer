@@ -60,6 +60,7 @@ struct SerializedBackupTransaction {
     client_public_key: String,
     server_public_key: String,
     blinding_factor: String,
+    recipient_address: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -81,7 +82,7 @@ impl SerializedBackupTransaction {
             client_public_key: PublicKey::from_str(&self.client_public_key).unwrap(),
             server_public_key: PublicKey::from_str(&self.server_public_key).unwrap(),
             blinding_factor: BlindingFactor::from_slice(hex::decode(&self.blinding_factor).unwrap().as_slice()).unwrap(),
-            recipient_address: "".to_string(),
+            recipient_address: self.recipient_address.clone(),
         }
     }
 }
@@ -212,7 +213,7 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
 }
 
-async fn get_funding_input_pubkey(transaction: &Transaction) -> XOnlyPublicKey {
+async fn get_funding_input_pubkey_and_amount(transaction: &Transaction) -> (XOnlyPublicKey, u64) {
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
     let txid = transaction.input[0].previous_output.txid.to_string();
@@ -229,7 +230,7 @@ async fn get_funding_input_pubkey(transaction: &Transaction) -> XOnlyPublicKey {
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
 
-    xonly_pubkey
+    (xonly_pubkey, funding_tx_output.value)
 }
 
 async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
@@ -333,7 +334,8 @@ async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoRespon
 }
 
 async fn process_encrypted_message(
-    auth_key: &SecretKey, 
+    pool: &sqlx::Pool<Sqlite>, 
+    client_auth_key: &SecretKey, 
     client_seckey_share: &SecretKey, 
     client_pubkey_share: &PublicKey, 
     enc_messages: &Vec<String>, 
@@ -345,7 +347,7 @@ async fn process_encrypted_message(
 
         let decoded_enc_message = hex::decode(enc_message).unwrap();
 
-        let decrypted_msg = ecies::decrypt(auth_key.secret_bytes().as_slice(), decoded_enc_message.as_slice()).unwrap();
+        let decrypted_msg = ecies::decrypt(client_auth_key.secret_bytes().as_slice(), decoded_enc_message.as_slice()).unwrap();
 
         let decrypted_msg_str = String::from_utf8(decrypted_msg).unwrap();
 
@@ -373,10 +375,9 @@ async fn process_encrypted_message(
                 return Err(is_signature_valid.err().unwrap());
             }
 
-            let res = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
-            
-            if res.is_err() {
-                return Err(res.err().unwrap());
+            let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
+            if is_blinded_musig_scheme_valid.is_err() {
+                return Err(is_blinded_musig_scheme_valid.err().unwrap());
             }
 
             if previous_lock_time.is_some() {
@@ -395,9 +396,9 @@ async fn process_encrypted_message(
         let t2_hex = hex::encode(t2.secret_bytes());
 
         let secp = Secp256k1::new();
-        let keypair = secp256k1::KeyPair::from_seckey_slice(&secp, auth_key.as_ref()).unwrap();
+        let client_auth_keypair = secp256k1::KeyPair::from_seckey_slice(&secp, client_auth_key.as_ref()).unwrap();
         let msg = Message::from_hashed_data::<sha256::Hash>(t2_hex.as_bytes());
-        let auth_sig = secp.sign_schnorr(&msg, &keypair);
+        let auth_sig = secp.sign_schnorr(&msg, &client_auth_keypair);
 
         let transfer_receiver_request_payload = mercury_lib::transfer::receiver::TransferReceiverRequestPayload {
             statechain_id: transfer_msg.statechain_id.clone(),
@@ -440,11 +441,43 @@ async fn process_encrypted_message(
 
         let backup_transaction = backup_transaction.deserialize(); 
 
-        let funding_xonly_pubkey = get_funding_input_pubkey(&backup_transaction.tx).await;
+        let (funding_xonly_pubkey, amount) = get_funding_input_pubkey_and_amount(&backup_transaction.tx).await;
 
         if funding_xonly_pubkey != xonly_pubkey {
             return Err(CError::Generic("Aggregated public key is not correct".to_string()));
         }
+
+        // insert
+
+        // client_pubkey_share
+        // server_pubkey_share
+        // aggregate_pubkey
+        // p2tr_agg_address
+        // amount
+        // client_auth_key
+        // signed_statechain_id
+
+        let statechain_id = transfer_msg.statechain_id.clone();
+
+        println!("statechain_id: {}", statechain_id);
+
+        let p2tr_agg_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+
+        let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
+        let signed_statechain_id = secp.sign_schnorr(&msg, &client_auth_keypair);
+
+        let vec_backup_transactions: Vec<BackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
+    
+        db::insert_or_update_new_statechain(
+            pool,
+            &statechain_id, 
+            amount as u32,  
+            &server_pubkey_share, 
+            &aggregate_pubkey, 
+            &p2tr_agg_address, 
+            client_pubkey_share,
+            &signed_statechain_id,
+            &vec_backup_transactions).await;
     }
 
     Ok(())
@@ -461,6 +494,15 @@ pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network, client_config:
         if enc_messages.len() == 0 {
             continue;
         }
-        process_encrypted_message(&client_key.0, &client_key.2,&client_key.3, &enc_messages, network, &info_config, client_config).await.unwrap();
+        process_encrypted_message(
+            pool, 
+            &client_key.0, 
+            &client_key.2,
+            &client_key.3, 
+            &enc_messages, 
+            network, 
+            &info_config, 
+            client_config
+        ).await.unwrap();
     }
 }
