@@ -61,7 +61,7 @@ Owner 1 wishes to transfer the value of the deposit `v` to a new owner (Owner 2)
 
 	c. `SC_sig_1`
 
-	d. `t2`
+	d. `t1`
 
 	e. `statechain_id`
 
