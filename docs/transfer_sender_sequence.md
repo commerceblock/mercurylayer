@@ -42,7 +42,7 @@ sequenceDiagram
     note over Client: Compile TransferMsg: 
     note over Client: All signed backup transactions (Txi i=1,...,K)
     note over Client: For each backup transaction signature (bi,R2_i i=1,...,K)
-    note over Client: t2
+    note over Client: t1
     note over Client: statechain_id
     note over Client: Encrypt TransferMsg with new_auth_key: EncTransferMsg
     Client->>Server: /transfer/update_msg {new_auth_key,EncTransferMsg,statechain_id}
