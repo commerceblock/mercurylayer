@@ -4,9 +4,7 @@ CREATE TABLE IF NOT EXISTS signer_seed (
 );
 
 CREATE TABLE IF NOT EXISTS signer_data (
-    
-    token_id TEXT,
-
+ 
     client_seckey_share BLOB UNIQUE,
     client_pubkey_share BLOB UNIQUE,
     backup_address TEXT,   
@@ -28,6 +26,8 @@ CREATE TABLE IF NOT EXISTS signer_data (
 
 CREATE TABLE IF NOT EXISTS statechain_data (
 
+    token_id TEXT,
+
     statechain_id TEXT,
     signed_statechain_id TEXT,
 
@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS statechain_data (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 CREATE TABLE IF NOT EXISTS backup_transaction (
 
     tx_n INT,
@@ -58,5 +57,4 @@ CREATE TABLE IF NOT EXISTS backup_transaction (
     backup_tx BLOB,
     recipient_address TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-
 );

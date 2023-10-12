@@ -56,16 +56,11 @@ pub async fn get_next_address_index(pool: &sqlx::Pool<Sqlite>, change_index: u32
 pub async fn insert_agg_key_data(pool: &sqlx::Pool<Sqlite>, key_data: &KeyData, backup_address: &Address)  {
 
     let query = 
-        "INSERT INTO signer_data (token_id, client_seckey_share, client_pubkey_share, backup_address, fingerprint, client_derivation_path, change_index, address_index) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
-
-    let token_id_str = match key_data.token_id {
-        Some(token_id) => Some(token_id.to_string()),
-        None => None,
-    };
+        "INSERT INTO signer_data (client_seckey_share, client_pubkey_share, backup_address, fingerprint, client_derivation_path, change_index, address_index) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
     let _ = sqlx::query(query)
-        .bind(token_id_str)
+        // .bind(token_id_str)
         .bind(&key_data.secret_key.secret_bytes().to_vec())
         .bind(&key_data.public_key.serialize().to_vec())
         .bind(&backup_address.to_string())

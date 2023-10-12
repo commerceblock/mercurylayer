@@ -1,10 +1,12 @@
 use bitcoin::{Address, Txid};
-use secp256k1_zkp::{PublicKey, XOnlyPublicKey, schnorr::Signature};
+use secp256k1_zkp::{PublicKey, schnorr::Signature};
 use sqlx::{Sqlite, Row};
 
 use crate::error::CError;
 
-pub async fn insert_agg_pub_key(pool: &sqlx::Pool<Sqlite>, 
+pub async fn insert_agg_pub_key(
+    pool: &sqlx::Pool<Sqlite>, 
+    token_id: &uuid::Uuid,
     statechain_id: &str, 
     amount: u32,  
     server_pubkey_share: &PublicKey, 
@@ -14,10 +16,11 @@ pub async fn insert_agg_pub_key(pool: &sqlx::Pool<Sqlite>,
     signed_statechain_id: &Signature) -> Result<(), CError> {
 
     let query = "\
-        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7)";
+        INSERT INTO statechain_data (token_id, statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
 
     let _ = sqlx::query(query)
+        .bind(token_id.to_string())
         .bind(statechain_id)
         .bind(amount)
         .bind(server_pubkey_share.serialize().to_vec())

@@ -36,6 +36,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     db::insert_agg_pub_key(
         pool, 
+        &token_id,
         &statechain_id, 
         amount as u32, 
         &server_pubkey_share, 

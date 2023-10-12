@@ -41,8 +41,6 @@ pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, 
     let public_key: secp256k1_zkp::PublicKey = xpub.derive_pub(&secp, &[change_index_number, address_index_number]).unwrap().public_key;
 
     KeyData {
-        amount: None,
-        token_id: None,
         secret_key,
         public_key,
         fingerprint,
@@ -53,8 +51,6 @@ pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, 
 }
 
 pub struct KeyData {
-    pub token_id: Option<Uuid>,
-    pub amount: Option<u64>,
     pub secret_key: SecretKey,
     pub public_key: PublicKey,
     pub fingerprint: String,
@@ -105,9 +101,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::U
     let derivation_path = "m/86h/0h/0h";
     let change_index = 0;
     let address_index = db::get_next_address_index(pool, change_index).await;
-    let mut agg_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
-    agg_key_data.token_id = token_id;
-    agg_key_data.amount = amount;
+    let agg_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
 
     let client_secret_key = agg_key_data.secret_key;
     let client_pubkey_share = agg_key_data.public_key;
@@ -116,9 +110,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::U
     db::insert_agg_key_data(pool, &agg_key_data, &backup_address).await;
 
     let derivation_path = "m/89h/0h/0h";
-    let mut auth_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
-    auth_key_data.token_id = token_id;
-    auth_key_data.amount = amount;
+    let auth_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
 
     assert!(auth_key_data.fingerprint == agg_key_data.fingerprint);
     assert!(auth_key_data.address_index == agg_key_data.address_index);
