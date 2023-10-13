@@ -19,6 +19,12 @@ Mercury layer client provides a user interface to the Mercury Layer protocol, vi
 
 `cargo run send-backup <btc-address>` send all backup funds to the address provided
 
-`cargo run new-transfer-address` generates a transfer address to receive statechain coins
+`cargo run new-transfer-address` generates a statechain address to receive statechain coins
+
+`cargo run transfer-send <statechain-address> <statechain-id>` transfers the specified statechain coin to the specified address
+
+`cargo run transfer-receive` scans for new statechain transfers
+
+`cargo run withdraw <btc-address> <statechain-id>` withdraws the statechain coin to the specified bitcoin address
 
 This is a work in progress. Several changes to the project are expected.
