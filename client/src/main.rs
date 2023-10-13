@@ -202,7 +202,7 @@ async fn main() {
                     },
                 };
 
-                let txid =withdraw::execute(&pool, &statechain_id, &to_address, fee_rate, network).await;
+                let txid = withdraw::execute(&pool, &statechain_id, &to_address, fee_rate, network).await.unwrap();
     
                 println!("{}", serde_json::to_string_pretty(&json!({
                     "txid": txid,

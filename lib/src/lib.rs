@@ -1,6 +1,7 @@
 pub mod transfer;
 pub mod deposit;
 pub mod sign;
+pub mod withdraw;
 
 use std::str::FromStr;
 

@@ -4,7 +4,7 @@ use bitcoin::{Address, Network, Txid};
 use secp256k1_zkp::{SecretKey, PublicKey, schnorr::Signature};
 use sqlx::Sqlite;
 
-use crate::electrum;
+use crate::{electrum, error::CError};
 
 pub struct CoinKeyDetails {
     pub new_tx_n: u32,
@@ -20,7 +20,7 @@ pub struct CoinKeyDetails {
     pub utxo_vout: u32,
 }
 
-pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address: &Address, fee_rate: u64, network: Network) -> String {
+pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address: &Address, fee_rate: u64, network: Network) -> Result<String, CError> {
     
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
@@ -60,12 +60,32 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address:
         &to_address.to_string()
     ).await.unwrap();
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
     let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
 
     db::update_coin_status(pool, statechain_id, "WITHDRAWN").await;
 
-    txid.to_string()
+    // delete statechain on the server
+    let delete_statechain_payload = mercury_lib::withdraw::DeleteStatechainPayload {
+        statechain_id: statechain_id.to_string(),
+        signed_statechain_id: coin_key_details.signed_statechain_id.to_string(),
+    };
+
+    let endpoint = "http://127.0.0.1:8000";
+    let path = "delete_statechain";
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.delete(&format!("{}/{}", endpoint, path));
+
+    let _ = match request.json(&delete_statechain_payload).send().await {
+        Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            return Err(CError::Generic(err.to_string()));
+        },
+    };
+
+    Ok(txid.to_string())
     
 }
