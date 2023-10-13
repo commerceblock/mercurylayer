@@ -652,6 +652,29 @@ int SGX_CDECL main(int argc, char *argv[])
             return crow::response{result};
     });
 
+    CROW_ROUTE(app,"/delete_statechain/<string>")
+        .methods("DELETE"_method)([](std::string statechain_id){
+
+        std::string error_message;
+        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        if (conn.is_open()) {
+
+            std::string delete_comm =
+                "DELETE FROM generated_public_key WHERE statechain_id = $1;";
+            pqxx::work txn2(conn);
+
+            txn2.exec_params(delete_comm, statechain_id);
+            txn2.commit();
+
+            conn.close();
+
+            crow::json::wvalue result({{"message", "Statechain deleted."}});
+            return crow::response{result};
+        } else {
+            return crow::response(500, "Failed to connect to the database!");
+        }
+    });
+
     app.port(18080).multithreaded().run();
 
     {

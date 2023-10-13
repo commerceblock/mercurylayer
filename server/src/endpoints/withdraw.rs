@@ -44,6 +44,24 @@ pub async fn delete_statechain(statechain_entity: &State<StateChainEntity>, dele
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
+    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let path = "delete_statechain";
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.delete(&format!("{}/{}/{}", lockbox_endpoint, path, statechain_id));
+
+    let response = request.send().await;
+
+    if response.is_err() {
+
+        let response_body = json!({
+            "error": "Internal Server Error",
+            "message": response.err().unwrap().to_string()
+        });
+
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    };
+
     delete_statechain_db(&statechain_entity.pool, &statechain_id).await;
 
     let response_body = json!({
