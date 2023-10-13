@@ -213,12 +213,12 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
 }
 
-async fn get_funding_input_pubkey_and_amount(transaction: &Transaction) -> (XOnlyPublicKey, u64) {
+async fn get_funding_transaction_info(transaction: &Transaction) -> (XOnlyPublicKey, Txid, usize, u64) {
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
-    let txid = transaction.input[0].previous_output.txid.to_string();
+    let txid = transaction.input[0].previous_output.txid;
 
-    let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+    let res = electrum::batch_transaction_get_raw(&client, &[txid]);
 
     let funding_tx_bytes = res[0].clone();
 
@@ -230,7 +230,7 @@ async fn get_funding_input_pubkey_and_amount(transaction: &Transaction) -> (XOnl
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
 
-    (xonly_pubkey, funding_tx_output.value)
+    (xonly_pubkey, txid, vout, funding_tx_output.value)
 }
 
 async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
@@ -441,7 +441,7 @@ async fn process_encrypted_message(
 
         let backup_transaction = backup_transaction.deserialize(); 
 
-        let (funding_xonly_pubkey, amount) = get_funding_input_pubkey_and_amount(&backup_transaction.tx).await;
+        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
 
         if funding_xonly_pubkey != xonly_pubkey {
             return Err(CError::Generic("Aggregated public key is not correct".to_string()));
@@ -477,6 +477,8 @@ async fn process_encrypted_message(
             &p2tr_agg_address, 
             client_pubkey_share,
             &signed_statechain_id,
+            &txid,
+            vout as u32,
             &vec_backup_transactions).await;
     }
 

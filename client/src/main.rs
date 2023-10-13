@@ -9,6 +9,7 @@ mod transfer_sender;
 mod transfer_receiver;
 mod utils;
 mod client_config;
+mod withdraw;
 
 use std::str::FromStr;
 
@@ -47,6 +48,8 @@ enum Commands {
     TransferSend { recipient_address: String, statechain_id: String },
     /// Retrieve coins from server
     TransferReceive { },
+    /// Withdraw funds from a statechain coin to a bitcoin address
+    Withdraw { recipient_address: String, statechain_id: String, fee_rate: Option<u64> },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -185,6 +188,25 @@ async fn main() {
         Commands::TransferReceive {  } => {
                 
             transfer_receiver::receive(&pool, network, &config).await;
+        },
+        Commands::Withdraw { recipient_address, statechain_id, fee_rate } => {
+                
+                let to_address = bitcoin::Address::from_str(&recipient_address).unwrap().require_network(network).unwrap();
+    
+                let fee_rate = match fee_rate {
+                    Some(fee_rate) => fee_rate,
+                    None => {
+                        let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 1);
+                        let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
+                        fee_rate_sats_per_byte
+                    },
+                };
+
+                let txid =withdraw::execute(&pool, &statechain_id, &to_address, fee_rate, network).await;
+    
+                println!("{}", serde_json::to_string_pretty(&json!({
+                    "txid": txid,
+                })).unwrap());
         }
     };
 
