@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS statechain_data (
     funding_txid TEXT,
     funding_vout INT,
 
-    sent_to TEXT,
+    status TEXT,
 
     client_pubkey_share BLOB,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

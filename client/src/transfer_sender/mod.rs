@@ -286,6 +286,8 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     // Now it is sucessfully sent to the server, we can save it to the database
     save_new_backup_transaction(pool, &new_bakup_tx).await;
 
+    db::update_coin_status(pool, statechain_id, "SPENT").await;
+
 
 /*     println!("{}", serde_json::to_string_pretty(&json!({
         "encrypted_msg": encrypted_msg_string,

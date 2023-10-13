@@ -16,8 +16,8 @@ pub async fn insert_agg_pub_key(
     signed_statechain_id: &Signature) -> Result<(), CError> {
 
     let query = "\
-        INSERT INTO statechain_data (token_id, statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)";
+        INSERT INTO statechain_data (token_id, statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, client_pubkey_share, signed_statechain_id, status) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'AVAILABLE')";
 
     let _ = sqlx::query(query)
         .bind(token_id.to_string())

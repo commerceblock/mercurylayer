@@ -105,3 +105,17 @@ pub async fn get_statechain_coin_details(pool: &sqlx::Pool<Sqlite>, statechain_i
     }
 
 }
+
+pub async fn update_coin_status(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, new_status: &str) {
+
+    let query = "UPDATE statechain_data \
+        SET status = $1 \
+        WHERE statechain_id = $2";
+
+    let _ = sqlx::query(query)
+        .bind(new_status)
+        .bind(statechain_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}

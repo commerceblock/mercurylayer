@@ -68,8 +68,8 @@ pub async fn insert_or_update_new_statechain(
         .unwrap();
 
     let query = "\
-        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, funding_txid, funding_vout, client_pubkey_share, signed_statechain_id) \
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+        INSERT INTO statechain_data (statechain_id, amount, server_pubkey_share, aggregated_pubkey, p2tr_agg_address, funding_txid, funding_vout, client_pubkey_share, signed_statechain_id, status) \
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'AVAILABLE')";
 
     let _ = sqlx::query(query)
         .bind(statechain_id)
