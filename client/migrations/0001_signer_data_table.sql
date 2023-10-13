@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS statechain_data (
     funding_vout INT,
 
     status TEXT,
+    locktime INT,
 
     client_pubkey_share BLOB,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

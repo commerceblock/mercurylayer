@@ -479,6 +479,7 @@ async fn process_encrypted_message(
             &signed_statechain_id,
             &txid,
             vout as u32,
+            previous_lock_time.unwrap(),
             &vec_backup_transactions).await;
     }
 

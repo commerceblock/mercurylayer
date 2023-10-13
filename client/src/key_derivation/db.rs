@@ -60,7 +60,6 @@ pub async fn insert_agg_key_data(pool: &sqlx::Pool<Sqlite>, key_data: &KeyData, 
         VALUES ($1, $2, $3, $4, $5, $6, $7)";
 
     let _ = sqlx::query(query)
-        // .bind(token_id_str)
         .bind(&key_data.secret_key.secret_bytes().to_vec())
         .bind(&key_data.public_key.serialize().to_vec())
         .bind(&backup_address.to_string())

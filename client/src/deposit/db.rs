@@ -36,6 +36,21 @@ pub async fn insert_agg_pub_key(
 
 }
 
+pub async fn update_locktime(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, locktime: u32) {
+
+    let query = "\
+        UPDATE statechain_data \
+        SET locktime = $1 \
+        WHERE statechain_id = $2";
+
+    let _ = sqlx::query(query)
+        .bind(locktime)
+        .bind(statechain_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
 pub async fn update_funding_tx_outpoint(pool: &sqlx::Pool<Sqlite>, txid: &Txid, vout: u32, statechain_id: &str) {
 
     let query = "\

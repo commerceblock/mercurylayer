@@ -94,7 +94,12 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
         &aggregate_pubkey, 
         &aggregate_address.script_pubkey(), 
         amount,
-        &to_address).await.unwrap();
+        &to_address,
+        false,).await.unwrap();
+
+    let lock_time = tx.lock_time.to_consensus_u32();
+
+    db::update_locktime(pool, &statechain_id, lock_time).await;
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 

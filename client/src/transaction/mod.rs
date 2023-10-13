@@ -22,7 +22,8 @@ pub async fn new_backup_transaction(
     input_pubkey: &PublicKey, 
     input_scriptpubkey: &ScriptBuf, 
     input_amount: u64, 
-    to_address: &Address,) 
+    to_address: &Address,
+    is_withdrawal: bool) 
     -> Result<(Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor), CError>  {
 
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
@@ -52,7 +53,7 @@ pub async fn new_backup_transaction(
     println!("interval {}", interval);
     println!("qt_backup_tx {}", qt_backup_tx);
 
-    let block_height = (block_height + initlock) - (interval * qt_backup_tx);
+    let block_height = if is_withdrawal { 0 } else { (block_height + initlock) - (interval * qt_backup_tx) };
 
     println!("new block_height {}", block_height);
 

@@ -42,7 +42,8 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address:
         &coin_key_details.aggregated_pubkey, 
         &coin_key_details.p2tr_agg_address.script_pubkey(), 
         coin_key_details.amount,
-        &to_address).await.unwrap();
+        &to_address,
+        true).await.unwrap();
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
