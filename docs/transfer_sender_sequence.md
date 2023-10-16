@@ -39,9 +39,11 @@ sequenceDiagram
     Server-->>Client: {partial_signature}
     note over Client: Compute full signature and add to Tx1
     note over Client: Compute t1 = privkey + x1
+    note over Client: Concatenate Tx0 outpoint with user_pubkey and sign with privkey (SC_sig)
     note over Client: Compile TransferMsg: 
     note over Client: All signed backup transactions (Txi i=1,...,K)
     note over Client: For each backup transaction signature (bi,R2_i i=1,...,K)
+    note over Client: user_pubkey and SC_sig
     note over Client: t1
     note over Client: statechain_id
     note over Client: Encrypt TransferMsg with new_auth_key: EncTransferMsg
