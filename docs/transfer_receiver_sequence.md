@@ -19,10 +19,12 @@ sequenceDiagram
     Client->>Server: /info/statechain/ {statechain_id}
     Server->>Enclave: /signature_count {statechain_id}
     Enclave-->>Server: {num_sigs}
-    Server-->>Client: {pubkey, num_sigs, blind_commits, r2_commits, r1_values, blind_challenges}
+    Server-->>Client: {enclave_pubkey, num_sigs, blind_commits, r2_commits, r1_values, blind_challenges, x1_pub}
     note over Client: Verify TransferMsg:
     note over Client: Verify latest backup transaction pays to new_user_pubkey
     note over Client: Verify that the input (Tx0) is unspent.
+    note over Client: Verify Tx0 address is enclave_pubkey + user_pubkey
+    note over Client: Verify that t1.G = enclave_pubkey + x1_pub
     note over Client: For each previous K backup transactions (Txi i=1,...,K):
     note over Client: Verify the signature is valid.
     note over Client: Verify the nLocktimes are decremented correctly

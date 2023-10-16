@@ -84,8 +84,8 @@ Owner 1 wishes to transfer the value of the deposit `v` to a new owner (Owner 2)
 
 	d. Verifies the commitments to `R2_i` and `bi` and verfies that `ci = bi + SHA256(P||R_i||mi)` (where `mi` is the sighash of `Txi`).
 
-5. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE public key: `S1`. 
-6. Owner 2 then verifies that `K = N` and then `O1 + S1 = P`
+5. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE public key: `S1`. 3) The public point `X1 = x1.G`
+6. Owner 2 then verifies that `K = N` and then `O1 + S1 = P` and that `t1.G = O1 + X1`
 
 The SE key share update then proceeds as follows:
 
