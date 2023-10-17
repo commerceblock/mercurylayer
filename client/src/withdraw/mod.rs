@@ -62,7 +62,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address:
 
     let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
 
-    db::update_coin_status(pool, statechain_id, "WITHDRAWN").await;
+    db::update_coin_status(pool, statechain_id, "WITHDRAWN", &txid).await;
 
     // delete statechain on the server
     let delete_statechain_payload = mercury_lib::withdraw::DeleteStatechainPayload {

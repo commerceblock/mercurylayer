@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS statechain_data (
     locktime INT,
 
     client_pubkey_share BLOB,
+
+    tx_withdraw TEXT,
+    
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

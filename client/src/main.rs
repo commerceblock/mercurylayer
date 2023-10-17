@@ -11,7 +11,7 @@ mod utils;
 mod client_config;
 mod withdraw;
 
-use std::str::FromStr;
+use std::{str::FromStr, fs::File, io::Write};
 
 use bitcoin::Address;
 use clap::{Parser, Subcommand};
@@ -50,6 +50,8 @@ enum Commands {
     TransferReceive { },
     /// Withdraw funds from a statechain coin to a bitcoin address
     Withdraw { recipient_address: String, statechain_id: String, fee_rate: Option<u64> },
+    /// Export wallet to JSON
+    ExportWallet { },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -79,7 +81,7 @@ async fn main() {
 
     match cli.command {
         Commands::ShowMnemonic { } => {
-            let mnemonic = key_derivation::get_mnemonic(&pool).await;
+            let (mnemonic, _) = key_derivation::get_mnemonic_and_block_height(&pool).await;
             println!("{}", serde_json::to_string_pretty(&json!({
                 "mnemonic": mnemonic,
             })).unwrap());
@@ -207,7 +209,29 @@ async fn main() {
                 println!("{}", serde_json::to_string_pretty(&json!({
                     "txid": txid,
                 })).unwrap());
-        }
+        },
+        Commands::ExportWallet {  } => {
+            let (mnemonic, block_height) = key_derivation::get_mnemonic_and_block_height(&pool).await;
+            
+            let coins = wallet::get_coins(&pool, network).await;
+
+            let wallet_json = serde_json::to_string_pretty(&json!({
+                "wallet": {
+                    "network": network.to_string(),
+                    "mnemonic": mnemonic,
+                    "version": 0.1,
+                    "state_entity_endpoint": "http://127.0.0.1:8000",
+                    "electrum_endpoint": "tcp://127.0.0.1:50001",
+                    "blockheight": block_height,
+                    "coins": coins,
+                }
+            })).unwrap();
+            println!("{}", wallet_json);
+
+            let mut file = File::create("wallet.json").unwrap();
+            file.write_all(wallet_json.as_bytes()).unwrap();
+            println!("JSON written to output.json");
+        },
     };
 
     pool.close().await;

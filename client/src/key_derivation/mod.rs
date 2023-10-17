@@ -12,7 +12,7 @@ use crate::error::CError;
 
 pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, change_index: u32, address_index:u32, network: Network) -> KeyData {
 
-    let seed = db::generate_or_get_seed(pool).await;
+    let (seed, _) = db::generate_or_get_seed(pool).await;
 
     // we need secp256k1 context for key derivation
     let mut buf: Vec<AlignedType> = Vec::new();
@@ -58,12 +58,12 @@ pub struct KeyData {
     pub address_index: u32,
 }
 
-pub async fn get_mnemonic(pool: &sqlx::Pool<Sqlite>) -> String {
-    let seed = db::generate_or_get_seed(pool).await;
+pub async fn get_mnemonic_and_block_height(pool: &sqlx::Pool<Sqlite>) -> (String, u32) {
+    let (seed, block_height) = db::generate_or_get_seed(pool).await;
 
     let mnemonic = Mnemonic::from_entropy_in(Language::English,&seed).unwrap();
 
-    mnemonic.to_string()
+    (mnemonic.to_string(), block_height)
 }
 
 pub struct AddressData {

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, Network, Address};
-use secp256k1_zkp::{SecretKey, PublicKey, XOnlyPublicKey, Secp256k1};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1};
 use sqlx::{Sqlite, Row};
 
 use super::{BackupTransaction, StatechainCoinDetails};

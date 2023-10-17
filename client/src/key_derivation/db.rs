@@ -6,7 +6,7 @@ use crate::electrum;
 
 use super::KeyData;
 
-pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
+pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> ([u8; 32], u32) {
 
     let rows = sqlx::query("SELECT * FROM signer_seed")
         .fetch_all(pool)
@@ -20,9 +20,10 @@ pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
     if rows.len() == 1 {
         let row = rows.get(0).unwrap();
         let seed = row.get::<Vec<u8>, _>("seed");
+        let block_height = row.get::<u32, _>("blockheight");
         let mut seed_array = [0u8; 32];
         seed_array.copy_from_slice(&seed);
-        return seed_array;
+        return (seed_array, block_height);
     } else {
         let mut seed = [0u8; 32];  // 256 bits
         rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut seed);
@@ -43,7 +44,7 @@ pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
             .await
             .unwrap();
 
-        seed
+        (seed, block_height as u32)
     }   
 }
 

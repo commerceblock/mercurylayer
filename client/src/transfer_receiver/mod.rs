@@ -197,6 +197,10 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
     let fee = funding_tx_output.value - transaction.output[0].value;
     let fee_rate = fee / transaction.vsize() as u64;
 
+    println!("fee_rate: {}", fee_rate);
+    println!("client_config.fee_rate_tolerance: {}", client_config.fee_rate_tolerance);
+    println!("fee_rate_sats_per_byte: {}", fee_rate_sats_per_byte);
+
     if (fee_rate as i64 + client_config.fee_rate_tolerance as i64) < fee_rate_sats_per_byte as i64 {
         return Err(CError::Generic("Fee rate too low".to_string()));
     }
