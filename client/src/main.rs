@@ -217,6 +217,7 @@ async fn main() {
 
             let wallet_json = serde_json::to_string_pretty(&json!({
                 "wallet": {
+                    "name": "default",
                     "network": network.to_string(),
                     "mnemonic": mnemonic,
                     "version": 0.1,

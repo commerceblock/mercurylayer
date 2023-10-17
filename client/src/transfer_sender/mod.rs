@@ -8,54 +8,6 @@ use sqlx::Sqlite;
 
 use crate::{error::CError, key_derivation};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BackupTransaction {
-    statechain_id: String,
-    tx_n: u32,
-    tx: Transaction,
-    client_public_nonce: Vec<u8>,
-    server_public_nonce: Vec<u8>,
-    client_public_key: PublicKey,
-    server_public_key: PublicKey,
-    blinding_factor: Vec<u8>,
-    recipient_address: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct SerializedBackupTransaction {
-    tx_n: u32,
-    tx: String,
-    client_public_nonce: String,
-    server_public_nonce: String,
-    client_public_key: String,
-    server_public_key: String,
-    blinding_factor: String,
-    recipient_address: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct TransferMsg {
-    statechain_id: String,
-    transfer_signature: String,
-    backup_transactions: Vec<SerializedBackupTransaction>,
-    t1: [u8; 32],
-}
-
-impl BackupTransaction {
-    fn serialize(&self) -> SerializedBackupTransaction {
-        SerializedBackupTransaction {
-            tx_n: self.tx_n,
-            tx: hex::encode(&bitcoin::consensus::encode::serialize(&self.tx)),
-            client_public_nonce: hex::encode(&self.client_public_nonce),
-            server_public_nonce: hex::encode(&self.server_public_nonce),
-            client_public_key: self.client_public_key.to_string(),
-            server_public_key: self.server_public_key.to_string(),
-            blinding_factor: hex::encode(&self.blinding_factor),
-            recipient_address: self.recipient_address.clone(),
-        }
-    }
-}
-
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
 fn get_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey) -> Signature {
 
@@ -151,7 +103,7 @@ async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_a
     Ok(x1)
 }
 
-pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_transaction: &BackupTransaction) {
+pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_transaction: &mercury_lib::transfer::BackupTransaction) {
 
     let tx_n = backup_transaction.tx_n; 
     let tx_bytes = bitcoin::consensus::encode::serialize(&backup_transaction.tx);
@@ -205,7 +157,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let new_tx_n = backup_transactions.last().unwrap().tx_n + 1;
 
-    let new_bakup_tx = BackupTransaction {
+    let new_bakup_tx = mercury_lib::transfer::BackupTransaction {
         statechain_id: statechain_id.to_string(),
         tx_n: new_tx_n,
         tx: transaction,
@@ -219,7 +171,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     backup_transactions.push(new_bakup_tx.clone());
 
-    let mut serialized_backup_transactions = Vec::<SerializedBackupTransaction>::new();
+    let mut serialized_backup_transactions = Vec::<mercury_lib::transfer::SerializedBackupTransaction>::new();
 
     for backup_tx in backup_transactions {
         serialized_backup_transactions.push(backup_tx.serialize());
@@ -232,7 +184,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let t1 = client_seckey.add_tweak(&x1).unwrap();
 
-    let transfer_msg = TransferMsg {
+    let transfer_msg = mercury_lib::transfer::TransferMsg {
         statechain_id: statechain_id.to_string(),
         transfer_signature: transfer_signature.to_string(),
         backup_transactions: serialized_backup_transactions,

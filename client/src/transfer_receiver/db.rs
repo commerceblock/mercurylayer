@@ -2,8 +2,6 @@ use bitcoin::{Address, Txid};
 use secp256k1_zkp::{PublicKey, SecretKey, schnorr::Signature};
 use sqlx::{Sqlite, Row};
 
-use super::BackupTransaction;
-
 pub async fn get_all_auth_pubkey(pool: &sqlx::Pool<Sqlite>,) -> Vec::<(SecretKey, PublicKey, SecretKey, PublicKey)>{
     let rows = sqlx::query("SELECT auth_seckey, auth_pubkey, client_seckey_share, client_pubkey_share FROM signer_data")
         .fetch_all(pool)
@@ -44,7 +42,7 @@ pub async fn insert_or_update_new_statechain(
     txid: &Txid,
     vout: u32,
     locktime: u32,
-    vec_backup_transactions: &Vec<BackupTransaction>) {
+    vec_backup_transactions: &Vec<mercury_lib::transfer::MusigBackupTransaction>) {
 
     let mut transaction = pool.begin().await.unwrap();
 

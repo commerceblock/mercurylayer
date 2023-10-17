@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bitcoin::{Transaction, Network, Address, transaction, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate, secp256k1};
+use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate, secp256k1};
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
@@ -37,57 +37,7 @@ async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey) -> Result<Vec<Stri
     Ok(response.list_enc_transfer_msg)
 }
 
-// The structs below are repeated in client/src/transfer_sender/mod.rs
-// TODO: move them to a common place 
-pub struct BackupTransaction {
-    statechain_id: String,
-    tx_n: u32,
-    tx: Transaction,
-    client_public_nonce: MusigPubNonce,
-    server_public_nonce: MusigPubNonce,
-    client_public_key: PublicKey,
-    server_public_key: PublicKey,
-    blinding_factor: BlindingFactor,
-    recipient_address: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct SerializedBackupTransaction {
-    tx_n: u32,
-    tx: String,
-    client_public_nonce: String,
-    server_public_nonce: String,
-    client_public_key: String,
-    server_public_key: String,
-    blinding_factor: String,
-    recipient_address: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct TransferMsg {
-    statechain_id: String,
-    transfer_signature: String,
-    backup_transactions: Vec<SerializedBackupTransaction>,
-    t1: [u8; 32],
-}
-
-impl SerializedBackupTransaction {
-    fn deserialize(&self) -> BackupTransaction {
-        BackupTransaction {
-            statechain_id: "".to_string(),
-            tx_n: self.tx_n,
-            tx: bitcoin::consensus::encode::deserialize(&hex::decode(&self.tx).unwrap()).unwrap(),
-            client_public_nonce: MusigPubNonce::from_slice(hex::decode(&self.client_public_nonce).unwrap().as_slice()).unwrap(),
-            server_public_nonce: MusigPubNonce::from_slice(hex::decode(&self.server_public_nonce).unwrap().as_slice()).unwrap(),
-            client_public_key: PublicKey::from_str(&self.client_public_key).unwrap(),
-            server_public_key: PublicKey::from_str(&self.server_public_key).unwrap(),
-            blinding_factor: BlindingFactor::from_slice(hex::decode(&self.blinding_factor).unwrap().as_slice()).unwrap(),
-            recipient_address: self.recipient_address.clone(),
-        }
-    }
-}
-
-fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) -> SecretKey {
+fn calculate_t2(transfer_msg: &mercury_lib::transfer::TransferMsg, client_seckey_share: &SecretKey,) -> SecretKey {
 
     let t1 = Scalar::from_be_bytes(transfer_msg.t1).unwrap();
 
@@ -99,7 +49,7 @@ fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) ->
 }
 
 /// step 3. Owner 2 verifies that the latest backup transaction pays to their key O2 and that the input (Tx0) is unspent.
-async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &PublicKey, network: Network,) -> bool {
+async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &mercury_lib::transfer::TransferMsg, client_pubkey_share: &PublicKey, network: Network,) -> bool {
 
     let last_tx = transfer_msg.backup_transactions.last().unwrap();
 
@@ -237,7 +187,7 @@ async fn get_funding_transaction_info(transaction: &Transaction) -> (XOnlyPublic
     (xonly_pubkey, txid, vout, funding_tx_output.value)
 }
 
-async fn verify_blinded_musig_scheme(backup_tx: &BackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
+async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::MusigBackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
@@ -355,7 +305,7 @@ async fn process_encrypted_message(
 
         let decrypted_msg_str = String::from_utf8(decrypted_msg).unwrap();
 
-        let transfer_msg: TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
+        let transfer_msg: mercury_lib::transfer::TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
         if !verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await {
             return Err(CError::Generic("Latest backup tx does not pay to user pubkey".to_string()));
@@ -470,7 +420,7 @@ async fn process_encrypted_message(
         let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
         let signed_statechain_id = secp.sign_schnorr(&msg, &client_auth_keypair);
 
-        let vec_backup_transactions: Vec<BackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
+        let vec_backup_transactions: Vec<mercury_lib::transfer::MusigBackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
     
         db::insert_or_update_new_statechain(
             pool,

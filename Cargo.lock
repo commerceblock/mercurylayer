@@ -1345,6 +1345,7 @@ dependencies = [
  "bip39",
  "bitcoin",
  "hex",
+ "secp256k1-zkp",
  "serde",
  "serde_json",
 ]

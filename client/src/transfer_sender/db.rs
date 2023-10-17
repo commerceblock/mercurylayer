@@ -4,9 +4,9 @@ use bitcoin::{Transaction, Network, Address};
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1};
 use sqlx::{Sqlite, Row};
 
-use super::{BackupTransaction, StatechainCoinDetails};
+use super::StatechainCoinDetails;
 
-pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Vec::<BackupTransaction> {
+pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Vec::<mercury_lib::transfer::BackupTransaction> {
 
     let rows = sqlx::query("SELECT * FROM backup_transaction WHERE statechain_id = $1")
         .bind(statechain_id)
@@ -14,7 +14,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
         .await
         .unwrap();
 
-    let mut backup_transactions = Vec::<BackupTransaction>::new();
+    let mut backup_transactions = Vec::<mercury_lib::transfer::BackupTransaction>::new();
 
     for row in rows {
         let row_statechain_id = row.get::<String, _>("statechain_id");
@@ -39,7 +39,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
 
         let recipient_address = row.get::<String, _>("recipient_address");
 
-        backup_transactions.push(BackupTransaction {
+        backup_transactions.push(mercury_lib::transfer::BackupTransaction {
             statechain_id: row_statechain_id,
             tx_n,
             tx,
