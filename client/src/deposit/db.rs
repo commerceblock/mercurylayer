@@ -109,7 +109,8 @@ pub async fn insert_transaction(
     new_tx_n = new_tx_n + 1;
 
     if tx_n != new_tx_n {
-        return Err(CError::Generic("tx_n is not equal to the next tx_n in the database".to_string()));
+        let msg = format!("tx_n {} is not equal to the next tx_n {} in the database", tx_n, new_tx_n).to_string();
+        return Err(CError::Generic(msg));
     }
 
     let query = "INSERT INTO backup_transaction \

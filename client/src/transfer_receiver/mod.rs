@@ -187,7 +187,7 @@ async fn get_funding_transaction_info(transaction: &Transaction) -> (XOnlyPublic
     (xonly_pubkey, txid, vout, funding_tx_output.value)
 }
 
-async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::MusigBackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
+async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::ReceiverBackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
@@ -420,7 +420,7 @@ async fn process_encrypted_message(
         let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
         let signed_statechain_id = secp.sign_schnorr(&msg, &client_auth_keypair);
 
-        let vec_backup_transactions: Vec<mercury_lib::transfer::MusigBackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
+        let vec_backup_transactions: Vec<mercury_lib::transfer::ReceiverBackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
     
         db::insert_or_update_new_statechain(
             pool,

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub mod receiver;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BackupTransaction {
+pub struct SenderBackupTransaction {
     pub statechain_id: String,
     pub tx_n: u32,
     pub tx: Transaction,
@@ -19,11 +19,11 @@ pub struct BackupTransaction {
     pub recipient_address: String,
 }
 
-/// This struct is similar to `BackupTransaction`
+/// This struct is similar to `SenderBackupTransaction`
 /// but it is after the deserialization process because
 /// `MusigPubNonce` amd `BlindingFactor` do not support
 /// `Serialize` and `Deserialize` traits.
-pub struct MusigBackupTransaction {
+pub struct ReceiverBackupTransaction {
     pub statechain_id: String,
     pub tx_n: u32,
     pub tx: Transaction,
@@ -47,7 +47,7 @@ pub struct SerializedBackupTransaction {
     pub recipient_address: String,
 }
 
-impl BackupTransaction {
+impl SenderBackupTransaction {
     pub fn serialize(&self) -> SerializedBackupTransaction {
         SerializedBackupTransaction {
             tx_n: self.tx_n,
@@ -63,8 +63,8 @@ impl BackupTransaction {
 }
 
 impl SerializedBackupTransaction {
-    pub fn deserialize(&self) -> MusigBackupTransaction {
-        MusigBackupTransaction {
+    pub fn deserialize(&self) -> ReceiverBackupTransaction {
+        ReceiverBackupTransaction {
             statechain_id: "".to_string(),
             tx_n: self.tx_n,
             tx: bitcoin::consensus::encode::deserialize(&hex::decode(&self.tx).unwrap()).unwrap(),

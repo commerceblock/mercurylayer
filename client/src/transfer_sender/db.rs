@@ -6,7 +6,7 @@ use sqlx::{Sqlite, Row};
 
 use super::StatechainCoinDetails;
 
-pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Vec::<mercury_lib::transfer::BackupTransaction> {
+pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Vec::<mercury_lib::transfer::SenderBackupTransaction> {
 
     let rows = sqlx::query("SELECT * FROM backup_transaction WHERE statechain_id = $1")
         .bind(statechain_id)
@@ -14,7 +14,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
         .await
         .unwrap();
 
-    let mut backup_transactions = Vec::<mercury_lib::transfer::BackupTransaction>::new();
+    let mut backup_transactions = Vec::<mercury_lib::transfer::SenderBackupTransaction>::new();
 
     for row in rows {
         let row_statechain_id = row.get::<String, _>("statechain_id");
@@ -39,7 +39,7 @@ pub async fn get_backup_transactions(pool: &sqlx::Pool<Sqlite>, statechain_id: &
 
         let recipient_address = row.get::<String, _>("recipient_address");
 
-        backup_transactions.push(mercury_lib::transfer::BackupTransaction {
+        backup_transactions.push(mercury_lib::transfer::SenderBackupTransaction {
             statechain_id: row_statechain_id,
             tx_n,
             tx,

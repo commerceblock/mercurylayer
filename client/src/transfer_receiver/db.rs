@@ -42,7 +42,7 @@ pub async fn insert_or_update_new_statechain(
     txid: &Txid,
     vout: u32,
     locktime: u32,
-    vec_backup_transactions: &Vec<mercury_lib::transfer::MusigBackupTransaction>) {
+    vec_backup_transactions: &Vec<mercury_lib::transfer::ReceiverBackupTransaction>) {
 
     let mut transaction = pool.begin().await.unwrap();
 

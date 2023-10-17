@@ -103,7 +103,7 @@ async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_a
     Ok(x1)
 }
 
-pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_transaction: &mercury_lib::transfer::BackupTransaction) {
+pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_transaction: &mercury_lib::transfer::SenderBackupTransaction) {
 
     let tx_n = backup_transaction.tx_n; 
     let tx_bytes = bitcoin::consensus::encode::serialize(&backup_transaction.tx);
@@ -132,7 +132,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         return Err(CError::Generic("No backup transactions found".to_string()));
     }   
 
-    backup_transactions.sort_by(|a, b| b.tx_n.cmp(&a.tx_n));
+    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
 
     let tx1 = &backup_transactions[0];
 
@@ -157,7 +157,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let new_tx_n = backup_transactions.last().unwrap().tx_n + 1;
 
-    let new_bakup_tx = mercury_lib::transfer::BackupTransaction {
+    let new_bakup_tx = mercury_lib::transfer::SenderBackupTransaction {
         statechain_id: statechain_id.to_string(),
         tx_n: new_tx_n,
         tx: transaction,
