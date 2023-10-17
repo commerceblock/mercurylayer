@@ -3,11 +3,30 @@ mod db;
 use std::{str::FromStr, collections::BTreeMap};
 
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
+use rand::Rng;
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
 use crate::error::CError;
+
+/// The purpose of this function is to get a random locktime for the withdrawal transaction.
+/// This is done to improve privacy and discourage fee sniping.
+/// This function assumes that the block_height is the current block height.
+fn get_locktime_for_withdrawal_transaction (block_height: u32) -> u32 {
+
+    let mut locktime = block_height as i32;
+
+    let mut rng = rand::thread_rng();
+    let number = rng.gen_range(0..=10);
+
+    // sometimes locktime is set a bit further back, for privacy reasons
+    if number == 0 {
+        locktime = locktime - rng.gen_range(0..=99);
+    }
+
+    std::cmp::max(0, locktime) as u32
+}
 
 pub async fn new_backup_transaction(
     pool: &sqlx::Pool<Sqlite>, 
@@ -53,7 +72,7 @@ pub async fn new_backup_transaction(
     println!("interval {}", interval);
     println!("qt_backup_tx {}", qt_backup_tx);
 
-    let block_height = if is_withdrawal { 0 } else { (block_height + initlock) - (interval * qt_backup_tx) };
+    let block_height = if is_withdrawal { get_locktime_for_withdrawal_transaction(block_height) } else { (block_height + initlock) - (interval * qt_backup_tx) };
 
     println!("new block_height {}", block_height);
 
