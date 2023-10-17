@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, blockdata::fee_rate, secp256k1};
-use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigKeyAggCache, MusigAggNonce, MusigPubNonce, MusigSession, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add}, Scalar};
+use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, secp256k1};
+use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigAggNonce,  MusigSession,  blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use sqlx::Sqlite;
@@ -147,10 +147,6 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
     let fee = funding_tx_output.value - transaction.output[0].value;
     let fee_rate = fee / transaction.vsize() as u64;
 
-    println!("fee_rate: {}", fee_rate);
-    println!("client_config.fee_rate_tolerance: {}", client_config.fee_rate_tolerance);
-    println!("fee_rate_sats_per_byte: {}", fee_rate_sats_per_byte);
-
     if (fee_rate as i64 + client_config.fee_rate_tolerance as i64) < fee_rate_sats_per_byte as i64 {
         return Err(CError::Generic("Fee rate too low".to_string()));
     }
@@ -256,6 +252,7 @@ pub struct StatechainInfo {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StatechainInfoResponsePayload {
+    enclave_public_key: String,
     num_sigs: u32,
     statechain_info: Vec<StatechainInfo>,
 }
@@ -345,11 +342,35 @@ async fn process_encrypted_message(
             previous_lock_time = Some(backup_tx.tx.lock_time.to_consensus_u32());
         }
 
+        let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
+
+        let backup_transaction = backup_transaction.deserialize(); 
+
+        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
+
+        // validate tranfer.pub_key + client_pub_key = funding_xonly_pubkey
+        let enclave_public_key = PublicKey::from_str(&statechain_info.enclave_public_key).unwrap();
+
+        let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key).unwrap();
+
+        let transfer_aggregate_pubkey = sender_public_key.combine(&enclave_public_key).unwrap();
+        let transfer_aggregate_xonly_pubkey = transfer_aggregate_pubkey.x_only_public_key().0;
+
+        let secp = Secp256k1::new();
+
+        let transfer_aggregate_address = Address::p2tr(&secp, transfer_aggregate_xonly_pubkey, None, network);
+
+        let transfer_aggregate_xonly_pubkey = XOnlyPublicKey::from_slice(transfer_aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
+        
+        if transfer_aggregate_xonly_pubkey != funding_xonly_pubkey {
+            return Err(CError::Generic("Unexpected aggregated public key".to_string()));
+        }
+
         let t2 = calculate_t2(&transfer_msg, &client_seckey_share);
 
         let t2_hex = hex::encode(t2.secret_bytes());
 
-        let secp = Secp256k1::new();
+        
         let client_auth_keypair = secp256k1::KeyPair::from_seckey_slice(&secp, client_auth_key.as_ref()).unwrap();
         let msg = Message::from_hashed_data::<sha256::Hash>(t2_hex.as_bytes());
         let auth_sig = secp.sign_schnorr(&msg, &client_auth_keypair);
@@ -391,25 +412,9 @@ async fn process_encrypted_message(
 
         let xonly_pubkey = XOnlyPublicKey::from_slice(aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
 
-        let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
-
-        let backup_transaction = backup_transaction.deserialize(); 
-
-        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
-
         if funding_xonly_pubkey != xonly_pubkey {
             return Err(CError::Generic("Aggregated public key is not correct".to_string()));
         }
-
-        // insert
-
-        // client_pubkey_share
-        // server_pubkey_share
-        // aggregate_pubkey
-        // p2tr_agg_address
-        // amount
-        // client_auth_key
-        // signed_statechain_id
 
         let statechain_id = transfer_msg.statechain_id.clone();
 

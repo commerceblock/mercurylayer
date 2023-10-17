@@ -66,15 +66,7 @@ pub async fn new_backup_transaction(
     // Otherwise, block_height is equal to the Tx0.lock_time + initlock
     let initlock = if qt_backup_tx == 0 { initlock } else { 0 };
 
-    println!("block_height {}", block_height);
-
-    println!("initlock {}", initlock);
-    println!("interval {}", interval);
-    println!("qt_backup_tx {}", qt_backup_tx);
-
     let block_height = if is_withdrawal { get_locktime_for_withdrawal_transaction(block_height) } else { (block_height + initlock) - (interval * qt_backup_tx) };
-
-    println!("new block_height {}", block_height);
 
     let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = create(
         block_height,

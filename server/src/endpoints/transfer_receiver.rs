@@ -61,6 +61,25 @@ async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Vec::<
     result
 }
 
+async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> PublicKey {
+
+    let query = "\
+        SELECT server_public_key \
+        FROM statechain_data \
+        WHERE statechain_id = $1";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let enclave_public_key_bytes = row.get::<Vec<u8>, _>("server_public_key");
+    let enclave_public_key = PublicKey::from_slice(&enclave_public_key_bytes).unwrap();
+
+    enclave_public_key
+}
+
 #[get("/info/statechain/<statechain_id>")]
 pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
 
@@ -89,8 +108,10 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
     let num_sigs = response["sig_count"].as_u64().unwrap();
 
     let statechain_info = get_statechain_info(&statechain_entity.pool, &statechain_id).await;
+    let enclave_public_key = get_enclave_pubkey(&statechain_entity.pool, &statechain_id).await;
 
     let response_body = json!({
+        "enclave_public_key": enclave_public_key.to_string(),
         "num_sigs": num_sigs,
         "statechain_info": statechain_info
     });

@@ -84,4 +84,5 @@ pub struct TransferMsg {
     pub transfer_signature: String,
     pub backup_transactions: Vec<SerializedBackupTransaction>,
     pub t1: [u8; 32],
+    pub user_public_key: String,
 }

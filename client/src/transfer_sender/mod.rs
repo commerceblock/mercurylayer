@@ -122,9 +122,9 @@ pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_trans
 
 pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
 
-    let (_, new_user_pubkey, new_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
-    println!("new_user_pubkey: {}", new_user_pubkey);
-    println!("new_auth_pubkey: {}", new_auth_pubkey);
+    let (_, recipient_user_pubkey, recipient_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
+    println!("recipient_user_pubkey: {}", recipient_user_pubkey);
+    println!("recipient_auth_pubkey: {}", recipient_auth_pubkey);
 
     let mut backup_transactions = db::get_backup_transactions(&pool, &statechain_id).await;
 
@@ -151,9 +151,9 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         server_pub_nonce,
         blinding_factor, 
         signed_statechain_id) = 
-    create_backup_tx_to_receiver(&pool, &tx1.tx, new_user_pubkey, &statechain_id, network).await;
+    create_backup_tx_to_receiver(&pool, &tx1.tx, recipient_user_pubkey, &statechain_id, network).await;
 
-    let x1 = get_new_x1(&statechain_id, &signed_statechain_id, &new_auth_pubkey).await;
+    let x1 = get_new_x1(&statechain_id, &signed_statechain_id, &recipient_auth_pubkey).await;
 
     let new_tx_n = backup_transactions.last().unwrap().tx_n + 1;
 
@@ -177,7 +177,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         serialized_backup_transactions.push(backup_tx.serialize());
     }
 
-    let transfer_signature = get_transfer_signature(new_user_pubkey, &input_txid, input_vout, &client_seckey);
+    let transfer_signature = get_transfer_signature(recipient_user_pubkey, &input_txid, input_vout, &client_seckey);
 
     let x1: [u8; 32] = x1?.try_into().unwrap();
     let x1 = Scalar::from_be_bytes(x1).unwrap();
@@ -189,6 +189,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
         transfer_signature: transfer_signature.to_string(),
         backup_transactions: serialized_backup_transactions,
         t1: t1.secret_bytes(),
+        user_public_key: client_public_key.to_string(),
     };
 
     let transfer_msg_json = json!(&transfer_msg);
@@ -197,7 +198,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
 
     let msg = transfer_msg_json_str.as_bytes();
 
-    let serialized_new_auth_pubkey = &new_auth_pubkey.serialize();
+    let serialized_new_auth_pubkey = &recipient_auth_pubkey.serialize();
     let encrypted_msg = ecies::encrypt(serialized_new_auth_pubkey, msg).unwrap();
 
     let encrypted_msg_string = hex::encode(&encrypted_msg);
@@ -213,7 +214,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     let transfer_update_msg_request_payload = TransferUpdateMsgRequestPayload {
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
-        new_user_auth_key: new_auth_pubkey.to_string(),
+        new_user_auth_key: recipient_auth_pubkey.to_string(),
         enc_transfer_msg: encrypted_msg_string.clone(),
     };
 
