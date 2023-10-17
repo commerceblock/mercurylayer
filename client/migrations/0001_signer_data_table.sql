@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS signer_seed (
     seed BLOB NOT NULL,
+    blockheight INT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

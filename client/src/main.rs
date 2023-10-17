@@ -168,7 +168,7 @@ async fn main() {
             send_backup::send_all_funds(&list_utxo, &to_address, fee_rate);
         },
         Commands::NewTransferAddress { } => {
-            let address_data = key_derivation::get_new_address(&pool, None, None, network).await;
+            let address_data = key_derivation::get_new_address(&pool, network).await;
             println!("{}", serde_json::to_string_pretty(&json!({
                 "transfer_address": address_data.transfer_address,
             })).unwrap());

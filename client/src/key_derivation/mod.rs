@@ -6,8 +6,7 @@ use bip39::{Mnemonic, Language};
 use bitcoin::{Network, bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address};
 use secp256k1_zkp::{PublicKey, ffi::types::AlignedType, Secp256k1, SecretKey, XOnlyPublicKey};
 use sqlx::Sqlite;
-use uuid::Uuid;
-use bech32::{self, FromBase32, ToBase32, Variant};
+use bech32::{self, FromBase32, Variant};
 
 use crate::error::CError;
 
@@ -97,7 +96,7 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
 }
 
 
-pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, token_id: Option<uuid::Uuid>, amount: Option<u64>, network: Network) -> AddressData {
+pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, network: Network) -> AddressData {
     let derivation_path = "m/86h/0h/0h";
     let change_index = 0;
     let address_index = db::get_next_address_index(pool, change_index).await;

@@ -2,6 +2,8 @@ use bitcoin::Address;
 use secp256k1_zkp::PublicKey;
 use sqlx::{Sqlite, Row};
 
+use crate::electrum;
+
 use super::KeyData;
 
 pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
@@ -24,10 +26,19 @@ pub async fn generate_or_get_seed(pool: &sqlx::Pool<Sqlite>) -> [u8; 32] {
     } else {
         let mut seed = [0u8; 32];  // 256 bits
         rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut seed);
+
+        // TODO: Now that this function gets the block height, it is better to split this function into two
+        // One for generating the seed and one for getting the seed
+
+        let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
+
+        let block_header = electrum::block_headers_subscribe_raw(&client);
+        let block_height = block_header.height;
         
-        let query = "INSERT INTO signer_seed (seed) VALUES ($1)";
+        let query = "INSERT INTO signer_seed (seed, blockheight) VALUES ($1, $2)";
         let _ = sqlx::query(query)
             .bind(seed.to_vec())
+            .bind(block_height as u32)
             .execute(pool)
             .await
             .unwrap();

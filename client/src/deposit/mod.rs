@@ -4,7 +4,7 @@ use std::{str::FromStr, thread, time::Duration};
 
 use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
 use electrum_client::ListUnspentRes;
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, musig::MusigKeyAggCache, schnorr::Signature};
+use secp256k1_zkp::{Secp256k1, Message, PublicKey, schnorr::Signature};
 use serde::{Serialize, Deserialize};
 use sqlx::Sqlite;
 
@@ -20,7 +20,7 @@ pub struct DepositRequestPayload {
 
 pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
 
-    let address_data = key_derivation::get_new_address(pool, Some(token_id), Some(amount), network).await;
+    let address_data = key_derivation::get_new_address(pool, network).await;
 
     let (statechain_id, 
         server_pubkey_share, 
