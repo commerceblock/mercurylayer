@@ -123,8 +123,6 @@ pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_trans
 pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
 
     let (_, recipient_user_pubkey, recipient_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
-    println!("recipient_user_pubkey: {}", recipient_user_pubkey);
-    println!("recipient_auth_pubkey: {}", recipient_auth_pubkey);
 
     let mut backup_transactions = db::get_backup_transactions(&pool, &statechain_id).await;
 
@@ -135,11 +133,6 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
 
     let tx1 = &backup_transactions[0];
-
-    println!("tx1: {}", tx1.tx.txid());
-    println!("tx1_n: {}", tx1.tx_n);
-    println!("tx1_client_public_nonce: {}", hex::encode(&tx1.client_public_nonce));
-    println!("tx1_blinding_factor: {}", hex::encode(&tx1.blinding_factor));
 
     let (client_seckey, 
         client_public_key, 

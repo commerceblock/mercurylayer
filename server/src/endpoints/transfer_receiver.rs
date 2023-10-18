@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
 use rocket::{State, response::status, serde::json::Json, http::Status};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
@@ -61,12 +61,13 @@ async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Vec::<
     result
 }
 
-async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> PublicKey {
+async fn get_enclave_pubkey_and_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> (PublicKey, PublicKey) {
 
     let query = "\
-        SELECT server_public_key \
-        FROM statechain_data \
-        WHERE statechain_id = $1";
+        SELECT std.server_public_key, stt.x1 \
+        FROM statechain_data std INNER JOIN statechain_transfer stt \
+        ON std.statechain_id = stt.statechain_id \
+        WHERE std.statechain_id = $1";
 
     let row = sqlx::query(query)
         .bind(statechain_id)
@@ -77,7 +78,10 @@ async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> PublicK
     let enclave_public_key_bytes = row.get::<Vec<u8>, _>("server_public_key");
     let enclave_public_key = PublicKey::from_slice(&enclave_public_key_bytes).unwrap();
 
-    enclave_public_key
+    let x1_secret_bytes = row.get::<Vec<u8>, _>("x1");
+    let secret_x1 = SecretKey::from_slice(&x1_secret_bytes).unwrap();
+
+    (enclave_public_key, secret_x1.public_key(&Secp256k1::new()))
 }
 
 #[get("/info/statechain/<statechain_id>")]
@@ -108,12 +112,13 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
     let num_sigs = response["sig_count"].as_u64().unwrap();
 
     let statechain_info = get_statechain_info(&statechain_entity.pool, &statechain_id).await;
-    let enclave_public_key = get_enclave_pubkey(&statechain_entity.pool, &statechain_id).await;
+    let (enclave_public_key, x1_pub) = get_enclave_pubkey_and_x1pub(&statechain_entity.pool, &statechain_id).await;
 
     let response_body = json!({
         "enclave_public_key": enclave_public_key.to_string(),
         "num_sigs": num_sigs,
-        "statechain_info": statechain_info
+        "statechain_info": statechain_info,
+        "x1_pub": x1_pub.to_string(),
     });
 
     return status::Custom(Status::Ok, Json(response_body));

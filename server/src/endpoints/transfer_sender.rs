@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use rocket::{State, serde::json::Json, response::status, http::Status};
-use secp256k1_zkp::{PublicKey, Scalar};
+use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
@@ -85,7 +85,9 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
         return status::Custom(Status::BadRequest, Json(response_body));
     }
 
-    let s_x1 = Scalar::random();
+    let secret_x1 = SecretKey::new(&mut rand::thread_rng());
+
+    let s_x1 = Scalar::from(secret_x1);
     let x1 = s_x1.to_be_bytes();
 
     let mut transaction = statechain_entity.pool.begin().await.unwrap();

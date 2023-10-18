@@ -37,6 +37,16 @@ async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey) -> Result<Vec<Stri
     Ok(response.list_enc_transfer_msg)
 }
 
+fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicKey) -> bool {
+
+    let secret_t1 = SecretKey::from_slice(t1).unwrap();
+    let public_t1 = secret_t1.public_key(&Secp256k1::new());
+
+    let result_pubkey = sender_public_key.combine(&x1_pub).unwrap();
+
+    result_pubkey == public_t1
+}
+
 fn calculate_t2(transfer_msg: &mercury_lib::transfer::TransferMsg, client_seckey_share: &SecretKey,) -> SecretKey {
 
     let t1 = Scalar::from_be_bytes(transfer_msg.t1).unwrap();
@@ -255,6 +265,7 @@ pub struct StatechainInfoResponsePayload {
     enclave_public_key: String,
     num_sigs: u32,
     statechain_info: Vec<StatechainInfo>,
+    x1_pub: String,
 }
 
 
@@ -364,6 +375,12 @@ async fn process_encrypted_message(
         
         if transfer_aggregate_xonly_pubkey != funding_xonly_pubkey {
             return Err(CError::Generic("Unexpected aggregated public key".to_string()));
+        }
+
+        let x1_pub = PublicKey::from_str(&statechain_info.x1_pub).unwrap();
+
+        if !validate_t1pub(&transfer_msg.t1, &x1_pub, &sender_public_key) {
+            return Err(CError::Generic("Invalid t1".to_string()));
         }
 
         let t2 = calculate_t2(&transfer_msg, &client_seckey_share);
