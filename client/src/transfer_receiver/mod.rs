@@ -315,11 +315,36 @@ async fn process_encrypted_message(
 
         let transfer_msg: mercury_lib::transfer::TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
+
+        let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
+
+        let backup_transaction = backup_transaction.deserialize(); 
+
+        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
+
+        // validate tranfer.pub_key + client_pub_key = funding_xonly_pubkey
+        let enclave_public_key = PublicKey::from_str(&statechain_info.enclave_public_key).unwrap();
+
+        let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key).unwrap();
+
+        let transfer_aggregate_pubkey = sender_public_key.combine(&enclave_public_key).unwrap();
+        let transfer_aggregate_xonly_pubkey = transfer_aggregate_pubkey.x_only_public_key().0;
+
+        let secp = Secp256k1::new();
+
+        let transfer_aggregate_address = Address::p2tr(&secp, transfer_aggregate_xonly_pubkey, None, network);
+
+        let transfer_aggregate_xonly_pubkey = XOnlyPublicKey::from_slice(transfer_aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
+        
+        if transfer_aggregate_xonly_pubkey != funding_xonly_pubkey {
+            println!("Aggregated public keys do not match. This statecoin may have been updated.");
+            continue;
+        }
+
         if !verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await {
             return Err(CError::Generic("Latest backup tx does not pay to user pubkey".to_string()));
         }
-
-        let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
 
         if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
             return Err(CError::Generic("num_sigs is not correct".to_string()));
@@ -351,30 +376,6 @@ async fn process_encrypted_message(
             }
 
             previous_lock_time = Some(backup_tx.tx.lock_time.to_consensus_u32());
-        }
-
-        let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
-
-        let backup_transaction = backup_transaction.deserialize(); 
-
-        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
-
-        // validate tranfer.pub_key + client_pub_key = funding_xonly_pubkey
-        let enclave_public_key = PublicKey::from_str(&statechain_info.enclave_public_key).unwrap();
-
-        let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key).unwrap();
-
-        let transfer_aggregate_pubkey = sender_public_key.combine(&enclave_public_key).unwrap();
-        let transfer_aggregate_xonly_pubkey = transfer_aggregate_pubkey.x_only_public_key().0;
-
-        let secp = Secp256k1::new();
-
-        let transfer_aggregate_address = Address::p2tr(&secp, transfer_aggregate_xonly_pubkey, None, network);
-
-        let transfer_aggregate_xonly_pubkey = XOnlyPublicKey::from_slice(transfer_aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
-        
-        if transfer_aggregate_xonly_pubkey != funding_xonly_pubkey {
-            return Err(CError::Generic("Unexpected aggregated public key".to_string()));
         }
 
         let x1_pub = PublicKey::from_str(&statechain_info.x1_pub).unwrap();

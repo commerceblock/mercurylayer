@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
 use rocket::{State, response::status, serde::json::Json, http::Status};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey, Scalar};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
