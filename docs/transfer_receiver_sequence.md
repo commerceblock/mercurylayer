@@ -24,7 +24,7 @@ sequenceDiagram
     note over Client: Verify latest backup transaction pays to new_user_pubkey
     note over Client: Verify that the input (Tx0) is unspent.
     note over Client: Verify Tx0 address is enclave_pubkey + user_pubkey
-    note over Client: Verify that t1.G = enclave_pubkey + x1_pub
+    note over Client: Verify that t1.G = user_pubkey + x1_pub
     note over Client: For each previous K backup transactions (Txi i=1,...,K):
     note over Client: Verify the signature is valid.
     note over Client: Verify the nLocktimes are decremented correctly
