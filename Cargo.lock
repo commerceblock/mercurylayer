@@ -1373,10 +1373,12 @@ dependencies = [
 name = "mercury-wasm"
 version = "0.1.0"
 dependencies = [
+ "bip39",
  "console_error_panic_hook",
  "getrandom",
  "js-sys",
  "mercury-lib",
+ "rand",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
