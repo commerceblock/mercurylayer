@@ -1,18 +1,15 @@
-mod db;
-
 use std::str::FromStr;
 
 use bip39::{Mnemonic, Language};
 use bitcoin::{Network, bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address};
 use secp256k1_zkp::{PublicKey, ffi::types::AlignedType, Secp256k1, SecretKey, XOnlyPublicKey};
-use sqlx::Sqlite;
 use bech32::{self, FromBase32, Variant};
 
-use crate::error::CError;
+use crate::{error::CError, client_config::ClientConfig};
 
-pub async fn generate_new_key(pool: &sqlx::Pool<Sqlite>, derivation_path: &str, change_index: u32, address_index:u32, network: Network) -> KeyData {
+pub async fn generate_new_key(client_config: &ClientConfig, derivation_path: &str, change_index: u32, address_index:u32, network: Network) -> KeyData {
 
-    let (seed, _) = db::generate_or_get_seed(pool).await;
+    let (seed, _) = client_config.generate_or_get_seed().await;
 
     // we need secp256k1 context for key derivation
     let mut buf: Vec<AlignedType> = Vec::new();
@@ -58,8 +55,8 @@ pub struct KeyData {
     pub address_index: u32,
 }
 
-pub async fn get_mnemonic_and_block_height(pool: &sqlx::Pool<Sqlite>) -> (String, u32) {
-    let (seed, block_height) = db::generate_or_get_seed(pool).await;
+pub async fn get_mnemonic_and_block_height(client_config: &ClientConfig,) -> (String, u32) {
+    let (seed, block_height) = client_config.generate_or_get_seed().await;
 
     let mnemonic = Mnemonic::from_entropy_in(Language::English,&seed).unwrap();
 
@@ -96,20 +93,21 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
 }
 
 
-pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, network: Network) -> AddressData {
+pub async fn get_new_address(client_config: &ClientConfig, network: Network) -> AddressData {
+
     let derivation_path = "m/86h/0h/0h";
     let change_index = 0;
-    let address_index = db::get_next_address_index(pool, change_index).await;
-    let agg_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
+    let address_index = client_config.get_next_address_index(change_index).await;
+    let agg_key_data = generate_new_key(client_config, derivation_path, change_index, address_index, network).await;
 
     let client_secret_key = agg_key_data.secret_key;
     let client_pubkey_share = agg_key_data.public_key;
     let backup_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, network);
 
-    db::insert_agg_key_data(pool, &agg_key_data, &backup_address).await;
+    client_config.insert_agg_key_data(&agg_key_data, &backup_address).await;
 
     let derivation_path = "m/89h/0h/0h";
-    let auth_key_data = generate_new_key(pool, derivation_path, change_index, address_index, network).await;
+    let auth_key_data = generate_new_key(client_config, derivation_path, change_index, address_index, network).await;
 
     assert!(auth_key_data.fingerprint == agg_key_data.fingerprint);
     assert!(auth_key_data.address_index == agg_key_data.address_index);
@@ -118,7 +116,7 @@ pub async fn get_new_address(pool: &sqlx::Pool<Sqlite>, network: Network) -> Add
 
     let transfer_address = mercury_lib::encode_sc_address(&client_pubkey_share, &auth_key_data.public_key);
 
-    db::update_auth_key_data(pool, &auth_key_data, &client_pubkey_share, &transfer_address).await;
+    client_config.update_auth_key_data(&auth_key_data, &client_pubkey_share, &transfer_address).await;
 
     AddressData {
         client_secret_key,

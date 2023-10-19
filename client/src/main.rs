@@ -81,7 +81,7 @@ async fn main() {
 
     match cli.command {
         Commands::ShowMnemonic { } => {
-            let (mnemonic, _) = key_derivation::get_mnemonic_and_block_height(&pool).await;
+            let (mnemonic, _) = key_derivation::get_mnemonic_and_block_height(&client_config).await;
             println!("{}", serde_json::to_string_pretty(&json!({
                 "mnemonic": mnemonic,
             })).unwrap());
@@ -170,7 +170,7 @@ async fn main() {
             send_backup::send_all_funds(&list_utxo, &to_address, fee_rate);
         },
         Commands::NewTransferAddress { } => {
-            let address_data = key_derivation::get_new_address(&pool, network).await;
+            let address_data = key_derivation::get_new_address(&client_config, network).await;
             println!("{}", serde_json::to_string_pretty(&json!({
                 "transfer_address": address_data.transfer_address,
             })).unwrap());
@@ -209,7 +209,7 @@ async fn main() {
                 })).unwrap());
         },
         Commands::ExportWallet {  } => {
-            let (mnemonic, block_height) = key_derivation::get_mnemonic_and_block_height(&pool).await;
+            let (mnemonic, block_height) = key_derivation::get_mnemonic_and_block_height(&client_config).await;
             
             let coins = wallet::get_coins(&pool, network).await;
 

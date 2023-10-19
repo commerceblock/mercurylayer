@@ -19,7 +19,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
 
     let pool = &client_config.pool;
 
-    let address_data = key_derivation::get_new_address(pool, network).await;
+    let address_data = key_derivation::get_new_address(client_config, network).await;
 
     let (statechain_id, 
         server_pubkey_share, 
@@ -43,8 +43,6 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
         &address_data.client_pubkey_share,
         &signed_statechain_id).await.unwrap();
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
     println!("address: {}", aggregate_address.to_string());
 
     println!("waiting for deposit ....");
@@ -54,7 +52,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
     let mut utxo: Option<ListUnspentRes> = None;
 
     loop {
-        let utxo_list = electrum::get_script_list_unspent(&client, &aggregate_address);
+        let utxo_list = electrum::get_script_list_unspent(&client_config.electrum_client, &aggregate_address);
 
         for unspent in utxo_list {
             if unspent.value == amount {
@@ -74,7 +72,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
 
     client_config.update_funding_tx_outpoint(&utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
 
-    let block_header = electrum::block_headers_subscribe_raw(&client);
+    let block_header = electrum::block_headers_subscribe_raw(&client_config.electrum_client);
     let block_height = block_header.height;
 
     let to_address = address_data.backup_address;
