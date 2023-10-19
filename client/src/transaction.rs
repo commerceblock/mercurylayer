@@ -331,7 +331,6 @@ async fn musig_sign_psbt_taproot(
         server_pub_nonce: server_pubnonce_hex.as_str(),
     };
 
-    let endpoint = "http://127.0.0.1:8000";
     let path = "sign/second";
 
     let client: reqwest::Client = reqwest::Client::new();

@@ -1,10 +1,7 @@
-mod db;
-
 use bitcoin::{Transaction, Address, Network, secp256k1, hashes::sha256, Txid};
 use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::Sqlite;
 
 use crate::{error::CError, key_derivation, client_config::ClientConfig};
 
@@ -39,21 +36,9 @@ fn verify_transfer_signature(new_user_pubkey: XOnlyPublicKey, input_txid: &Txid,
     secp.verify_schnorr(signature, &msg, &new_user_pubkey).is_ok()
 }
 
-/* async fn sign_statechain_id(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) {
-    let row = sqlx::query("SELECT auth_seckey FROM signer_data WHERE statechain_id = $1")
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let auth_secret_key_bytes = row.get::<Vec<u8>, _>("auth_seckey");
-    let auth_secret_key = SecretKey::from_slice(&auth_secret_key_bytes).unwrap();
-
-
-} */
-
-async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Result<Vec<u8>, CError> {
-    let endpoint = "http://127.0.0.1:8000";
+async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Result<Vec<u8>, CError> {
+    
+    let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/sender";
 
     let client = reqwest::Client::new();
@@ -120,11 +105,9 @@ pub async fn save_new_backup_transaction(client_config: &ClientConfig, backup_tr
 
 pub async fn init(client_config: &ClientConfig, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
 
-    let pool = &client_config.pool;
-
     let (_, recipient_user_pubkey, recipient_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
 
-    let mut backup_transactions = db::get_backup_transactions(&pool, &statechain_id).await;
+    let mut backup_transactions = client_config.get_backup_transactions(&statechain_id).await;
 
     if backup_transactions.len() == 0 {
         return Err(CError::Generic("No backup transactions found".to_string()));
@@ -146,7 +129,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
         signed_statechain_id) = 
     create_backup_tx_to_receiver(&client_config, &tx1.tx, recipient_user_pubkey, &statechain_id, network).await;
 
-    let x1 = get_new_x1(&statechain_id, &signed_statechain_id, &recipient_auth_pubkey).await;
+    let x1 = get_new_x1(client_config, &statechain_id, &signed_statechain_id, &recipient_auth_pubkey).await;
 
     let new_tx_n = backup_transactions.last().unwrap().tx_n + 1;
 
@@ -211,7 +194,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
         enc_transfer_msg: encrypted_msg_string.clone(),
     };
 
-    let endpoint = "http://127.0.0.1:8000";
+    let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/update_msg";
 
     let client = reqwest::Client::new();
@@ -232,32 +215,13 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
     // Now it is sucessfully sent to the server, we can save it to the database
     save_new_backup_transaction(client_config, &new_bakup_tx).await;
 
-    db::update_coin_status(pool, statechain_id, "SPENT").await;
-
-
-/*     println!("{}", serde_json::to_string_pretty(&json!({
-        "encrypted_msg": encrypted_msg_string,
-        "auth_pubkey": new_auth_pubkey.to_string(),
-    })).unwrap());
-*/
+    client_config.update_coin_status(statechain_id, "SPENT").await;
 
     Ok(()) 
 }
 
-pub struct StatechainCoinDetails {
-    pub client_seckey: SecretKey,
-    pub client_pubkey: PublicKey,
-    pub amount: u64,
-    pub server_pubkey: PublicKey,
-    pub aggregated_pubkey: PublicKey,
-    pub p2tr_agg_address: Address,
-    pub auth_seckey: SecretKey,
-}
-
 pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
     -> (SecretKey, PublicKey, PublicKey, Txid, u32, Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, Signature) {
-
-    let pool = &client_config.pool;
 
     let lock_time = tx1.lock_time;
     assert!(lock_time.is_block_height());
@@ -266,7 +230,7 @@ pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Tr
     assert!(tx1.input.len() == 1);
     let input = &tx1.input[0];
     
-    let statechain_coin_details = db::get_statechain_coin_details(&pool, &statechain_id, network).await;
+    let statechain_coin_details = client_config.get_statechain_coin_details(&statechain_id).await;
 
     let auth_secret_key = statechain_coin_details.auth_seckey;
 

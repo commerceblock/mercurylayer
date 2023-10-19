@@ -5,6 +5,7 @@ use secp256k1_zkp::musig::{MusigPubNonce, BlindingFactor};
 use serde::{Deserialize, Serialize};
 
 pub mod receiver;
+pub mod sender;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SenderBackupTransaction {
