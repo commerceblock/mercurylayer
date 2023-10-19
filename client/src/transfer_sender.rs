@@ -1,12 +1,12 @@
 use bitcoin::{Transaction, Address, secp256k1, hashes::sha256, Txid};
-use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
+use secp256k1_zkp::{PublicKey, SecretKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{error::CError, key_derivation, client_config::ClientConfig};
 
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
-fn get_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey) -> Signature {
+fn create_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey) -> Signature {
 
     let secp = Secp256k1::new();
     let keypair = secp256k1::KeyPair::from_seckey_slice(&secp, client_seckey.as_ref()).unwrap();
@@ -20,20 +20,6 @@ fn get_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_v
     let signature = secp.sign_schnorr(&msg, &keypair);
 
     signature
-}
-
-fn verify_transfer_signature(new_user_pubkey: XOnlyPublicKey, input_txid: &Txid, input_vout: u32, signature: &Signature) -> bool {
-
-    let secp = Secp256k1::new();
-
-    let mut data_to_verify = Vec::<u8>::new();
-    data_to_verify.extend_from_slice(&input_txid[..]);
-    data_to_verify.extend_from_slice(&input_vout.to_le_bytes());
-    data_to_verify.extend_from_slice(&new_user_pubkey.serialize()[..]);
-
-    let msg = Message::from_hashed_data::<sha256::Hash>(&data_to_verify);
-
-    secp.verify_schnorr(signature, &msg, &new_user_pubkey).is_ok()
 }
 
 async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &Signature, new_auth_pubkey: &PublicKey) -> Result<Vec<u8>, CError> {
@@ -153,7 +139,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
         serialized_backup_transactions.push(backup_tx.serialize());
     }
 
-    let transfer_signature = get_transfer_signature(recipient_user_pubkey, &input_txid, input_vout, &client_seckey);
+    let transfer_signature = create_transfer_signature(recipient_user_pubkey, &input_txid, input_vout, &client_seckey);
 
     let x1: [u8; 32] = x1?.try_into().unwrap();
     let x1 = Scalar::from_be_bytes(x1).unwrap();

@@ -288,6 +288,20 @@ async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -
     Ok(response)
 }
 
+fn verify_transfer_signature(new_user_pubkey: &PublicKey, input_txid: &Txid, input_vout: u32, signature: &Signature, sender_public_key: &XOnlyPublicKey) -> bool {
+
+    let secp = Secp256k1::new();
+
+    let mut data_to_verify = Vec::<u8>::new();
+    data_to_verify.extend_from_slice(&input_txid[..]);
+    data_to_verify.extend_from_slice(&input_vout.to_le_bytes());
+    data_to_verify.extend_from_slice(&new_user_pubkey.serialize()[..]);
+
+    let msg = Message::from_hashed_data::<sha256::Hash>(&data_to_verify);
+
+    secp.verify_schnorr(signature, &msg, &sender_public_key).is_ok()
+}
+
 async fn process_encrypted_message(
     client_config: &ClientConfig, 
     client_auth_key: &SecretKey, 
@@ -314,10 +328,25 @@ async fn process_encrypted_message(
 
         let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx, &client_config.electrum_client).await;
 
+        let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key).unwrap();
+
+        let transfer_signature = Signature::from_str(&transfer_msg.transfer_signature).unwrap();
+
+        let is_transfer_signature_valid = verify_transfer_signature(
+            &client_pubkey_share, 
+            &txid, 
+            vout as u32, 
+            &transfer_signature, 
+            &sender_public_key.x_only_public_key().0
+        );
+
+        if !is_transfer_signature_valid {
+            println!("Invalid transfer signature");
+            continue;
+        }
+
         // validate tranfer.pub_key + client_pub_key = funding_xonly_pubkey
         let enclave_public_key = PublicKey::from_str(&statechain_info.enclave_public_key).unwrap();
-
-        let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key).unwrap();
 
         let transfer_aggregate_pubkey = sender_public_key.combine(&enclave_public_key).unwrap();
         let transfer_aggregate_xonly_pubkey = transfer_aggregate_pubkey.x_only_public_key().0;
