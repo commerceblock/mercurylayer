@@ -8,8 +8,10 @@ use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
 pub struct ClientConfig {
     /// Active lockbox server addresses
     pub statechain_entity: String,
-    /// Electrum server address
+    /// Electrum client
     pub electrum_client: electrum_client::Client,
+    /// Electrum server url
+    pub electrum_server_url: String,
     /// Bitcoin network name (testnet, regtest, mainnet)
     pub network: Network,
     /// Initial deposit backup nlocktime
@@ -65,6 +67,7 @@ impl ClientConfig {
         ClientConfig {
             statechain_entity,
             electrum_client,
+            electrum_server_url: electrum_server,
             network,
             fee_rate_tolerance,
             pool,

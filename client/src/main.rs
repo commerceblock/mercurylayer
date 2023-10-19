@@ -59,8 +59,6 @@ async fn main() {
     // let network = bitcoin::Network::Bitcoin;
     let network = bitcoin::Network::Signet;
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
     let cli = Cli::parse();
 
     if !Sqlite::database_exists("wallet.db").await.unwrap_or(false) {
@@ -105,7 +103,7 @@ async fn main() {
             let (agg_addresses, backup_addresses) = wallet::get_all_addresses(&pool, network).await;
 
             let agg_result: Vec<Balance> = agg_addresses.iter().map(|address| {
-                let balance_res = electrum::get_address_balance(&client, &address);
+                let balance_res = electrum::get_address_balance(&client_config.electrum_client, &address);
                 Balance {
                     address: address.to_string(),
                     balance: balance_res.confirmed,
@@ -114,7 +112,7 @@ async fn main() {
             }).collect();
 
             let backup_result: Vec<Balance> = backup_addresses.iter().map(|address| {
-                let balance_res = electrum::get_address_balance(&client, &address);
+                let balance_res = electrum::get_address_balance(&client_config.electrum_client, &address);
                 Balance {
                     address: address.to_string(),
                     balance: balance_res.confirmed,
@@ -142,7 +140,7 @@ async fn main() {
             let fee_rate = match fee_rate {
                 Some(fee_rate) => fee_rate,
                 None => {
-                    let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 1);
+                    let fee_rate_btc_per_kb = electrum::estimate_fee(&client_config.electrum_client, 1);
                     let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
                     fee_rate_sats_per_byte
                 },
@@ -153,7 +151,7 @@ async fn main() {
             let mut list_unspent = Vec::<(ListUnspentRes, Address)>::new(); 
 
             for address in backup_addresses {
-                let address_utxos = electrum::get_script_list_unspent(&client, &address);
+                let address_utxos = electrum::get_script_list_unspent(&client_config.electrum_client, &address);
                 for utxo in address_utxos {
                     list_unspent.push((utxo, address.clone()));
                 }
@@ -167,7 +165,7 @@ async fn main() {
             let list_utxo = send_backup::get_address_info(&pool, list_unspent).await;
 
 
-            send_backup::send_all_funds(&list_utxo, &to_address, fee_rate);
+            send_backup::send_all_funds(&list_utxo, &to_address, fee_rate, &client_config.electrum_client);
         },
         Commands::NewTransferAddress { } => {
             let address_data = key_derivation::get_new_address(&client_config).await;
@@ -187,7 +185,7 @@ async fn main() {
         },
         Commands::TransferReceive {  } => {
                 
-            transfer_receiver::receive(&pool, network, &client_config).await;
+            transfer_receiver::receive( &client_config).await;
         },
         Commands::Withdraw { recipient_address, statechain_id, fee_rate } => {
                 
@@ -196,7 +194,7 @@ async fn main() {
                 let fee_rate = match fee_rate {
                     Some(fee_rate) => fee_rate,
                     None => {
-                        let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 1);
+                        let fee_rate_btc_per_kb = electrum::estimate_fee(&client_config.electrum_client, 1);
                         let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
                         fee_rate_sats_per_byte
                     },
@@ -213,14 +211,17 @@ async fn main() {
             
             let coins = wallet::get_coins(&pool, network).await;
 
+            let state_entity_endpoint = client_config.statechain_entity.clone();
+            let electrum_endpoint = client_config.electrum_server_url.clone();
+
             let wallet_json = serde_json::to_string_pretty(&json!({
                 "wallet": {
                     "name": "default",
                     "network": network.to_string(),
                     "mnemonic": mnemonic,
                     "version": 0.1,
-                    "state_entity_endpoint": "http://127.0.0.1:8000",
-                    "electrum_endpoint": "tcp://127.0.0.1:50001",
+                    "state_entity_endpoint": state_entity_endpoint,
+                    "electrum_endpoint": electrum_endpoint,
                     "blockheight": block_height,
                     "coins": coins,
                 }

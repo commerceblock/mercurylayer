@@ -6,12 +6,12 @@ pub struct InfoConfig {
     pub fee_rate_sats_per_byte: u64,
 }
 
-pub async fn info_config() -> Result<InfoConfig, CError>{
-    let endpoint = "http://127.0.0.1:8000";
+pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum_client::Client) -> Result<InfoConfig, CError>{
+
     let path = "info/config";
 
     let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}/{}", endpoint, path));
+    let request = client.get(&format!("{}/{}", statechain_entity_url, path));
 
     let value = match request.send().await {
         Ok(response) => {
@@ -28,9 +28,7 @@ pub async fn info_config() -> Result<InfoConfig, CError>{
     let initlock = value.get("initlock").unwrap().as_u64().unwrap() as u32;
     let interval = value.get("interval").unwrap().as_u64().unwrap() as u32;
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
-    let fee_rate_btc_per_kb = electrum::estimate_fee(&client, 3);
+    let fee_rate_btc_per_kb = electrum::estimate_fee(&electrum_client, 3);
     let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
 
     Ok(InfoConfig {    

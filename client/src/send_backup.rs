@@ -66,7 +66,7 @@ pub async fn get_address_info(pool: &sqlx::Pool<Sqlite>, list_utxo: Vec::<(ListU
 
 }
 
-pub fn send_all_funds(list_utxo: &Vec::<AddressInfo>, to_address: &Address, fee_rate_sats_per_byte: u64) {
+pub fn send_all_funds(list_utxo: &Vec::<AddressInfo>, to_address: &Address, fee_rate_sats_per_byte: u64, electrum_client: &electrum_client::Client) {
 
     let input_amount: u64 = list_utxo.iter().map(|s| s.value).sum();
 
@@ -85,11 +85,9 @@ pub fn send_all_funds(list_utxo: &Vec::<AddressInfo>, to_address: &Address, fee_
     ];
 
     let tx = create_transaction(list_utxo, &outputs).unwrap();
-   
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
-    let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
+    let txid = electrum::transaction_broadcast_raw(&electrum_client, &tx_bytes);
 
     println!("--> txid sent: {}", txid);
 

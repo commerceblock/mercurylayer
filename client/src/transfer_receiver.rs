@@ -4,14 +4,11 @@ use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSi
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigAggNonce,  MusigSession,  blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
-use sqlx::Sqlite;
 
 use crate::{error::CError, electrum, utils::InfoConfig, client_config::ClientConfig};
 
-mod db;
-
-async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey) -> Result<Vec<String>, CError> {
-    let endpoint = "http://127.0.0.1:8000";
+async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey, statechain_entity_url: &str) -> Result<Vec<String>, CError> {
+    let endpoint = statechain_entity_url;
     let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
 
     let client: reqwest::Client = reqwest::Client::new();
@@ -72,8 +69,7 @@ async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &mercury_lib:
     output.script_pubkey == aggregate_address.script_pubkey()
 }
 
-fn get_tx_hash(transaction: &Transaction) -> Message {
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
+fn get_tx_hash(transaction: &Transaction, electrum_client: &electrum_client::Client) -> Message {
 
     let witness = transaction.input[0].witness.clone();
 
@@ -83,7 +79,7 @@ fn get_tx_hash(transaction: &Transaction) -> Message {
 
     let txid = transaction.input[0].previous_output.txid.to_string();
 
-    let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+    let res = electrum::batch_transaction_get_raw(electrum_client, &[Txid::from_str(&txid).unwrap()]);
 
     let funding_tx_bytes = res[0].clone();
 
@@ -110,8 +106,6 @@ fn get_tx_hash(transaction: &Transaction) -> Message {
 /// step 4a. Verifiy if the signature is valid.
 async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_per_byte: u64, client_config: &ClientConfig) -> Result<(), CError> {
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
     let witness = transaction.input[0].witness.clone();
 
     let witness_data = witness.nth(0).unwrap();
@@ -123,7 +117,7 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
     let txid = transaction.input[0].previous_output.txid.to_string();
 
-    let res = electrum::batch_transaction_get_raw(&client, &[Txid::from_str(&txid).unwrap()]);
+    let res = electrum::batch_transaction_get_raw(&client_config.electrum_client, &[Txid::from_str(&txid).unwrap()]);
 
     let funding_tx_bytes = res[0].clone();
 
@@ -133,7 +127,7 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
     let funding_tx_output = funding_tx.output[vout].clone();
 
-    let res = electrum::get_script_pubkey_list_unspent(&client, &funding_tx_output.script_pubkey.as_script());
+    let res = electrum::get_script_pubkey_list_unspent(&client_config.electrum_client, &funding_tx_output.script_pubkey.as_script());
 
     if res.len() == 0 {
         return Err(CError::Generic("The funding UTXO is spent".to_string()));
@@ -173,12 +167,11 @@ async fn verify_transaction_signature(transaction: &Transaction, fee_rate_sats_p
 
 }
 
-async fn get_funding_transaction_info(transaction: &Transaction) -> (XOnlyPublicKey, Txid, usize, u64) {
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
+async fn get_funding_transaction_info(transaction: &Transaction, electrum_client: &electrum_client::Client) -> (XOnlyPublicKey, Txid, usize, u64) {
 
     let txid = transaction.input[0].previous_output.txid;
 
-    let res = electrum::batch_transaction_get_raw(&client, &[txid]);
+    let res = electrum::batch_transaction_get_raw(&electrum_client, &[txid]);
 
     let funding_tx_bytes = res[0].clone();
 
@@ -193,7 +186,7 @@ async fn get_funding_transaction_info(transaction: &Transaction) -> (XOnlyPublic
     (xonly_pubkey, txid, vout, funding_tx_output.value)
 }
 
-async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::ReceiverBackupTransaction, statechain_info: &StatechainInfo) -> Result<(), CError> {
+async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::ReceiverBackupTransaction, statechain_info: &StatechainInfo, electrum_client: &electrum_client::Client) -> Result<(), CError> {
 
     let client_public_nonce = backup_tx.client_public_nonce.clone();
     let server_public_nonce = backup_tx.server_public_nonce.clone();
@@ -226,7 +219,7 @@ async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::Receiver
     
     let aggnonce = MusigAggNonce::new(&secp, &[client_public_nonce, server_public_nonce]);
 
-    let msg = get_tx_hash(&backup_tx.tx);
+    let msg = get_tx_hash(&backup_tx.tx, electrum_client);
 
     let session = MusigSession::new_blinded_without_key_agg_cache(
         &secp,
@@ -269,9 +262,9 @@ pub struct StatechainInfoResponsePayload {
 }
 
 
-async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoResponsePayload, CError> {
+async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -> Result<StatechainInfoResponsePayload, CError> {
 
-    let endpoint = "http://127.0.0.1:8000";
+    let endpoint = statechain_entity_url;
     let path = format!("info/statechain/{}", statechain_id.to_string());
 
     println!("statechain_id: {}", statechain_id.to_string());
@@ -296,14 +289,12 @@ async fn get_statechain_info(statechain_id: &str) -> Result<StatechainInfoRespon
 }
 
 async fn process_encrypted_message(
-    pool: &sqlx::Pool<Sqlite>, 
+    client_config: &ClientConfig, 
     client_auth_key: &SecretKey, 
     client_seckey_share: &SecretKey, 
     client_pubkey_share: &PublicKey, 
     enc_messages: &Vec<String>, 
-    network: Network, 
-    info_config: &InfoConfig,
-    client_config: &ClientConfig) -> Result<(), CError> {
+    info_config: &InfoConfig) -> Result<(), CError> {
 
     for enc_message in enc_messages {
 
@@ -315,13 +306,13 @@ async fn process_encrypted_message(
 
         let transfer_msg: mercury_lib::transfer::TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
-        let statechain_info = get_statechain_info(&transfer_msg.statechain_id).await.unwrap();
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity).await.unwrap();
 
         let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
 
         let backup_transaction = backup_transaction.deserialize(); 
 
-        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx).await;
+        let (funding_xonly_pubkey, txid, vout, amount) = get_funding_transaction_info(&backup_transaction.tx, &client_config.electrum_client).await;
 
         // validate tranfer.pub_key + client_pub_key = funding_xonly_pubkey
         let enclave_public_key = PublicKey::from_str(&statechain_info.enclave_public_key).unwrap();
@@ -333,7 +324,7 @@ async fn process_encrypted_message(
 
         let secp = Secp256k1::new();
 
-        let transfer_aggregate_address = Address::p2tr(&secp, transfer_aggregate_xonly_pubkey, None, network);
+        let transfer_aggregate_address = Address::p2tr(&secp, transfer_aggregate_xonly_pubkey, None, client_config.network);
 
         let transfer_aggregate_xonly_pubkey = XOnlyPublicKey::from_slice(transfer_aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
         
@@ -342,7 +333,7 @@ async fn process_encrypted_message(
             continue;
         }
 
-        if !verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, network).await {
+        if !verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, client_pubkey_share, client_config.network).await {
             return Err(CError::Generic("Latest backup tx does not pay to user pubkey".to_string()));
         }
 
@@ -362,7 +353,7 @@ async fn process_encrypted_message(
                 return Err(is_signature_valid.err().unwrap());
             }
 
-            let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, statechain_info).await;
+            let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, statechain_info, &client_config.electrum_client).await;
             if is_blinded_musig_scheme_valid.is_err() {
                 return Err(is_blinded_musig_scheme_valid.err().unwrap());
             }
@@ -400,7 +391,7 @@ async fn process_encrypted_message(
             auth_sig: auth_sig.to_string(),
         };
 
-        let endpoint = "http://127.0.0.1:8000";
+        let endpoint = client_config.statechain_entity.clone();
         let path = "transfer/receiver";
 
         let client = reqwest::Client::new();
@@ -426,7 +417,7 @@ async fn process_encrypted_message(
 
         let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
 
-        let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+        let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, client_config.network);
 
         let xonly_pubkey = XOnlyPublicKey::from_slice(aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
 
@@ -438,15 +429,14 @@ async fn process_encrypted_message(
 
         println!("statechain_id: {}", statechain_id);
 
-        let p2tr_agg_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+        let p2tr_agg_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, client_config.network);
 
         let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
         let signed_statechain_id = secp.sign_schnorr(&msg, &client_auth_keypair);
 
         let vec_backup_transactions: Vec<mercury_lib::transfer::ReceiverBackupTransaction> = transfer_msg.backup_transactions.iter().map(|x| x.deserialize()).collect();
     
-        db::insert_or_update_new_statechain(
-            pool,
+        client_config.insert_or_update_new_statechain(
             &statechain_id, 
             amount as u32,  
             &server_pubkey_share, 
@@ -463,26 +453,24 @@ async fn process_encrypted_message(
     Ok(())
 }
 
-pub async fn receive(pool: &sqlx::Pool<Sqlite>, network: Network, client_config: &ClientConfig) {
+pub async fn receive(client_config: &ClientConfig) {
 
-    let info_config = crate::utils::info_config().await.unwrap();
+    let info_config = crate::utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
 
-    let client_keys = db::get_all_auth_pubkey(pool).await;
+    let client_keys = client_config.get_all_auth_pubkey().await;
 
     for client_key in client_keys {
-        let enc_messages = get_msg_addr(&client_key.1).await.unwrap();
+        let enc_messages = get_msg_addr(&client_key.1, &client_config.statechain_entity).await.unwrap();
         if enc_messages.len() == 0 {
             continue;
         }
         process_encrypted_message(
-            pool, 
+            client_config, 
             &client_key.0, 
             &client_key.2,
             &client_key.3, 
             &enc_messages, 
-            network, 
             &info_config, 
-            client_config
         ).await.unwrap();
     }
 }
