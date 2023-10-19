@@ -1,14 +1,11 @@
-pub mod db;
-
 use std::{str::FromStr, thread, time::Duration};
 
 use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
 use electrum_client::ListUnspentRes;
 use secp256k1_zkp::{Secp256k1, Message, PublicKey, schnorr::Signature};
 use serde::{Serialize, Deserialize};
-use sqlx::Sqlite;
 
-use crate::{key_derivation, error::CError, electrum};
+use crate::{key_derivation, error::CError, electrum, client_config::ClientConfig};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DepositRequestPayload {
@@ -18,7 +15,9 @@ pub struct DepositRequestPayload {
     signed_token_id: String,
 }
 
-pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
+pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
+
+    let pool = &client_config.pool;
 
     let address_data = key_derivation::get_new_address(pool, network).await;
 
@@ -34,8 +33,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
 
-    db::insert_agg_pub_key(
-        pool, 
+    client_config.insert_agg_pub_key(
         &token_id,
         &statechain_id, 
         amount as u32, 
@@ -74,7 +72,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let utxo = utxo.unwrap();
 
-    db::update_funding_tx_outpoint(pool, &utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
+    client_config.update_funding_tx_outpoint(&utxo.tx_hash, utxo.tx_pos as u32, &statechain_id).await;
 
     let block_header = electrum::block_headers_subscribe_raw(&client);
     let block_height = block_header.height;
@@ -99,12 +97,12 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, token_id: uuid::Uuid, amount: u6
 
     let lock_time = tx.lock_time.to_consensus_u32();
 
-    db::update_locktime(pool, &statechain_id, lock_time).await;
+    client_config.update_locktime(&statechain_id, lock_time).await;
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    db::insert_transaction(
-        pool, 1, 
+    client_config.insert_transaction(
+        1, 
         &tx_bytes, 
         &client_pub_nonce.serialize(), 
         &server_pub_nonce.serialize(), 
@@ -169,13 +167,11 @@ pub async fn init(address_data: &key_derivation::AddressData ,token_id: uuid::Uu
     (statechain_id, server_pubkey_share, signed_statechain_id)
 }
 
-pub async fn broadcast_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Txid {
+pub async fn broadcast_backup_tx(client_config: &ClientConfig, statechain_id: &str) -> Txid {
     
-    let tx_bytes = db::get_backup_tx(pool, statechain_id).await;
+    let tx_bytes = client_config.get_backup_tx(statechain_id).await;
 
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-    
-    let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
+    let txid = electrum::transaction_broadcast_raw(&client_config.electrum_client, &tx_bytes);
 
     txid
 }

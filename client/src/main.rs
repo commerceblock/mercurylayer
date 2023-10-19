@@ -77,7 +77,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let config = ClientConfig::load();
+    let client_config = ClientConfig::load().await;
 
     match cli.command {
         Commands::ShowMnemonic { } => {
@@ -88,7 +88,7 @@ async fn main() {
         },
         Commands::Deposit { token_id, amount } => {
             let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
-            let statechain_id = deposit::execute(&pool, token_id, amount, network).await.unwrap();
+            let statechain_id = deposit::execute(&client_config, token_id, amount, network).await.unwrap();
             println!("{}", serde_json::to_string_pretty(&json!({
                 "statechain_id": statechain_id,
             })).unwrap());
@@ -129,7 +129,7 @@ async fn main() {
         },
         Commands::BroadcastBackupTransaction { statechain_id } => {
 
-            let txid = deposit::broadcast_backup_tx(&pool, &statechain_id).await;
+            let txid = deposit::broadcast_backup_tx(&client_config, &statechain_id).await;
 
             println!("{}", serde_json::to_string_pretty(&json!({
                 "txid": txid,
@@ -177,9 +177,7 @@ async fn main() {
         },
         Commands::TransferSend { recipient_address, statechain_id } => {
 
-            
-
-            transfer_sender::init(&pool, &recipient_address, &statechain_id, network).await.unwrap();
+            transfer_sender::init(&client_config, &recipient_address, &statechain_id, network).await.unwrap();
 
             println!("{}", serde_json::to_string_pretty(&json!({
                 "sent": true,
@@ -189,7 +187,7 @@ async fn main() {
         },
         Commands::TransferReceive {  } => {
                 
-            transfer_receiver::receive(&pool, network, &config).await;
+            transfer_receiver::receive(&pool, network, &client_config).await;
         },
         Commands::Withdraw { recipient_address, statechain_id, fee_rate } => {
                 
@@ -204,7 +202,7 @@ async fn main() {
                     },
                 };
 
-                let txid = withdraw::execute(&pool, &statechain_id, &to_address, fee_rate, network).await.unwrap();
+                let txid = withdraw::execute(&client_config, &statechain_id, &to_address, fee_rate, network).await.unwrap();
     
                 println!("{}", serde_json::to_string_pretty(&json!({
                     "txid": txid,

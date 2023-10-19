@@ -2,3 +2,4 @@ statechain_entity = "http://127.0.0.1:8000"
 electrum_server = "tcp://127.0.0.1:50001"
 network = "signet"
 fee_rate_tolerance = 5
+database_file="wallet.db"

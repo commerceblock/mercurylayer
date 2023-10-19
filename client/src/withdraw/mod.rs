@@ -2,9 +2,8 @@ mod db;
 
 use bitcoin::{Address, Network, Txid};
 use secp256k1_zkp::{SecretKey, PublicKey, schnorr::Signature};
-use sqlx::Sqlite;
 
-use crate::{electrum, error::CError};
+use crate::{electrum, error::CError, client_config::ClientConfig};
 
 pub struct CoinKeyDetails {
     pub new_tx_n: u32,
@@ -20,8 +19,10 @@ pub struct CoinKeyDetails {
     pub utxo_vout: u32,
 }
 
-pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address: &Address, fee_rate: u64, network: Network) -> Result<String, CError> {
+pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_address: &Address, fee_rate: u64, network: Network) -> Result<String, CError> {
     
+    let pool = &client_config.pool;
+
     let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
 
     let block_header = electrum::block_headers_subscribe_raw(&client);
@@ -47,8 +48,7 @@ pub async fn execute(pool: &sqlx::Pool<Sqlite>, statechain_id: &str, to_address:
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&tx);
 
-    crate::deposit::db::insert_transaction(
-        pool,
+    client_config.insert_transaction(
         coin_key_details.new_tx_n,
         &tx_bytes, 
         &client_pub_nonce.serialize(), 

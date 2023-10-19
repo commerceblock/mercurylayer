@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::Sqlite;
 
-use crate::{error::CError, key_derivation};
+use crate::{error::CError, key_derivation, client_config::ClientConfig};
 
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
 fn get_transfer_signature(new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey) -> Signature {
@@ -103,7 +103,7 @@ async fn get_new_x1(statechain_id: &str, signed_statechain_id: &Signature, new_a
     Ok(x1)
 }
 
-pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_transaction: &mercury_lib::transfer::SenderBackupTransaction) {
+pub async fn save_new_backup_transaction(client_config: &ClientConfig, backup_transaction: &mercury_lib::transfer::SenderBackupTransaction) {
 
     let tx_n = backup_transaction.tx_n; 
     let tx_bytes = bitcoin::consensus::encode::serialize(&backup_transaction.tx);
@@ -115,12 +115,12 @@ pub async fn save_new_backup_transaction(pool: &sqlx::Pool<Sqlite>, backup_trans
     let statechain_id = &backup_transaction.statechain_id;
     let recipient_address = &backup_transaction.recipient_address;
 
-    // Here, this file is referring to a function in deposit/db.rs. 
-    // TODO: Rearrange it.
-    crate::deposit::db::insert_transaction(pool, tx_n, &tx_bytes, &client_pub_nonce, &server_pub_nonce, client_pubkey, server_pubkey, &blinding_factor, &statechain_id, recipient_address).await.unwrap();
+    client_config.insert_transaction(tx_n, &tx_bytes, &client_pub_nonce, &server_pub_nonce, client_pubkey, server_pubkey, &blinding_factor, &statechain_id, recipient_address).await.unwrap();
 }
 
-pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
+pub async fn init(client_config: &ClientConfig, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
+
+    let pool = &client_config.pool;
 
     let (_, recipient_user_pubkey, recipient_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
 
@@ -230,7 +230,7 @@ pub async fn init(pool: &sqlx::Pool<Sqlite>, recipient_address: &str, statechain
     };
 
     // Now it is sucessfully sent to the server, we can save it to the database
-    save_new_backup_transaction(pool, &new_bakup_tx).await;
+    save_new_backup_transaction(client_config, &new_bakup_tx).await;
 
     db::update_coin_status(pool, statechain_id, "SPENT").await;
 
