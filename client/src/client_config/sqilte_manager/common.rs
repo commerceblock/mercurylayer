@@ -54,14 +54,15 @@ impl ClientConfig {
     
     }
 
-    pub async fn update_coin_status(&self, statechain_id: &str, new_status: &str) {
+    pub async fn update_coin_status_and_tx_withdraw(&self, statechain_id: &str, new_status: &str, txid: Option<String>) {
 
         let query = "UPDATE statechain_data \
-            SET status = $1 \
-            WHERE statechain_id = $2";
+            SET status = $1, tx_withdraw = $2 \
+            WHERE statechain_id = $3";
     
         let _ = sqlx::query(query)
             .bind(new_status)
+            .bind(txid)
             .bind(statechain_id)
             .execute(&self.pool)
             .await

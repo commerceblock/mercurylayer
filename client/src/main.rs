@@ -88,7 +88,7 @@ async fn main() {
         },
         Commands::Deposit { token_id, amount } => {
             let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
-            let statechain_id = deposit::execute(&client_config, token_id, amount, network).await.unwrap();
+            let statechain_id = deposit::execute(&client_config, token_id, amount).await.unwrap();
             println!("{}", serde_json::to_string_pretty(&json!({
                 "statechain_id": statechain_id,
             })).unwrap());
@@ -170,14 +170,14 @@ async fn main() {
             send_backup::send_all_funds(&list_utxo, &to_address, fee_rate);
         },
         Commands::NewTransferAddress { } => {
-            let address_data = key_derivation::get_new_address(&client_config, network).await;
+            let address_data = key_derivation::get_new_address(&client_config).await;
             println!("{}", serde_json::to_string_pretty(&json!({
                 "transfer_address": address_data.transfer_address,
             })).unwrap());
         },
         Commands::TransferSend { recipient_address, statechain_id } => {
 
-            transfer_sender::init(&client_config, &recipient_address, &statechain_id, network).await.unwrap();
+            transfer_sender::init(&client_config, &recipient_address, &statechain_id).await.unwrap();
 
             println!("{}", serde_json::to_string_pretty(&json!({
                 "sent": true,
@@ -202,7 +202,7 @@ async fn main() {
                     },
                 };
 
-                let txid = withdraw::execute(&client_config, &statechain_id, &to_address, fee_rate, network).await.unwrap();
+                let txid = withdraw::execute(&client_config, &statechain_id, &to_address, fee_rate).await.unwrap();
     
                 println!("{}", serde_json::to_string_pretty(&json!({
                     "txid": txid,

@@ -1,4 +1,4 @@
-use bitcoin::{Transaction, Address, Network, secp256k1, hashes::sha256, Txid};
+use bitcoin::{Transaction, Address, secp256k1, hashes::sha256, Txid};
 use secp256k1_zkp::{PublicKey, SecretKey, XOnlyPublicKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -103,7 +103,7 @@ pub async fn save_new_backup_transaction(client_config: &ClientConfig, backup_tr
     client_config.insert_transaction(tx_n, &tx_bytes, &client_pub_nonce, &server_pub_nonce, client_pubkey, server_pubkey, &blinding_factor, &statechain_id, recipient_address).await.unwrap();
 }
 
-pub async fn init(client_config: &ClientConfig, recipient_address: &str, statechain_id: &str, network: Network) -> Result<(), CError>{
+pub async fn init(client_config: &ClientConfig, recipient_address: &str, statechain_id: &str) -> Result<(), CError>{
 
     let (_, recipient_user_pubkey, recipient_auth_pubkey) = key_derivation::decode_transfer_address(recipient_address).unwrap();
 
@@ -127,7 +127,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
         server_pub_nonce,
         blinding_factor, 
         signed_statechain_id) = 
-    create_backup_tx_to_receiver(&client_config, &tx1.tx, recipient_user_pubkey, &statechain_id, network).await;
+    create_backup_tx_to_receiver(&client_config, &tx1.tx, recipient_user_pubkey, &statechain_id).await;
 
     let x1 = get_new_x1(client_config, &statechain_id, &signed_statechain_id, &recipient_auth_pubkey).await;
 
@@ -215,12 +215,12 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
     // Now it is sucessfully sent to the server, we can save it to the database
     save_new_backup_transaction(client_config, &new_bakup_tx).await;
 
-    client_config.update_coin_status(statechain_id, "SPENT").await;
+    client_config.update_coin_status_and_tx_withdraw(statechain_id, "SPENT", None).await;
 
     Ok(()) 
 }
 
-pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
+pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str) 
     -> (SecretKey, PublicKey, PublicKey, Txid, u32, Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, Signature) {
 
     let lock_time = tx1.lock_time;
@@ -248,7 +248,7 @@ pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Tr
     let input_scriptpubkey = statechain_coin_details.p2tr_agg_address.script_pubkey();
     let input_amount = statechain_coin_details.amount;
 
-    let to_address = Address::p2tr(&Secp256k1::new(), new_user_pubkey.x_only_public_key().0, None, network);
+    let to_address = Address::p2tr(&Secp256k1::new(), new_user_pubkey.x_only_public_key().0, None, client_config.network);
 
     let (new_tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
         client_config, 

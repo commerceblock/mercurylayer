@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
 use bip39::{Mnemonic, Language};
-use bitcoin::{Network, bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address};
+use bitcoin::{bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address};
 use secp256k1_zkp::{PublicKey, ffi::types::AlignedType, Secp256k1, SecretKey, XOnlyPublicKey};
 use bech32::{self, FromBase32, Variant};
 
 use crate::{error::CError, client_config::ClientConfig};
 
-pub async fn generate_new_key(client_config: &ClientConfig, derivation_path: &str, change_index: u32, address_index:u32, network: Network) -> KeyData {
+pub async fn generate_new_key(client_config: &ClientConfig, derivation_path: &str, change_index: u32, address_index:u32) -> KeyData {
 
     let (seed, _) = client_config.generate_or_get_seed().await;
 
@@ -17,7 +17,7 @@ pub async fn generate_new_key(client_config: &ClientConfig, derivation_path: &st
     let secp = Secp256k1::preallocated_new(buf.as_mut_slice()).unwrap();
 
     // calculate root key from seed
-    let root = ExtendedPrivKey::new_master(network, &seed).unwrap();
+    let root = ExtendedPrivKey::new_master(client_config.network, &seed).unwrap();
 
     let fingerprint = root.fingerprint(&secp).to_string();
 
@@ -93,21 +93,21 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
 }
 
 
-pub async fn get_new_address(client_config: &ClientConfig, network: Network) -> AddressData {
+pub async fn get_new_address(client_config: &ClientConfig) -> AddressData {
 
     let derivation_path = "m/86h/0h/0h";
     let change_index = 0;
     let address_index = client_config.get_next_address_index(change_index).await;
-    let agg_key_data = generate_new_key(client_config, derivation_path, change_index, address_index, network).await;
+    let agg_key_data = generate_new_key(client_config, derivation_path, change_index, address_index).await;
 
     let client_secret_key = agg_key_data.secret_key;
     let client_pubkey_share = agg_key_data.public_key;
-    let backup_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, network);
+    let backup_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, client_config.network);
 
     client_config.insert_agg_key_data(&agg_key_data, &backup_address).await;
 
     let derivation_path = "m/89h/0h/0h";
-    let auth_key_data = generate_new_key(client_config, derivation_path, change_index, address_index, network).await;
+    let auth_key_data = generate_new_key(client_config, derivation_path, change_index, address_index).await;
 
     assert!(auth_key_data.fingerprint == agg_key_data.fingerprint);
     assert!(auth_key_data.address_index == agg_key_data.address_index);

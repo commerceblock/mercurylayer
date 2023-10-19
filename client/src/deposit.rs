@@ -1,6 +1,6 @@
 use std::{str::FromStr, thread, time::Duration};
 
-use bitcoin::{Network, secp256k1, hashes::sha256, Address, Txid};
+use bitcoin::{secp256k1, hashes::sha256, Address, Txid};
 use electrum_client::ListUnspentRes;
 use secp256k1_zkp::{Secp256k1, Message, PublicKey, schnorr::Signature};
 use serde::{Serialize, Deserialize};
@@ -15,13 +15,13 @@ pub struct DepositRequestPayload {
     signed_token_id: String,
 }
 
-pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
+pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount: u64) -> Result<String, CError> {
 
-    let address_data = key_derivation::get_new_address(client_config, network).await;
+    let address_data = key_derivation::get_new_address(client_config).await;
 
     let (statechain_id, 
         server_pubkey_share, 
-        signed_statechain_id) = init(&address_data, token_id, amount).await;
+        signed_statechain_id) = init(client_config, &address_data, token_id, amount).await;
     
     let secp = Secp256k1::new();
 
@@ -29,7 +29,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
 
     let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0; 
 
-    let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+    let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, client_config.network);
 
     client_config.insert_agg_pub_key(
         &token_id,
@@ -112,7 +112,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
 
 }
 
-pub async fn init(address_data: &key_derivation::AddressData ,token_id: uuid::Uuid, amount: u64) -> (String, PublicKey, Signature) {
+pub async fn init(client_config: &ClientConfig, address_data: &key_derivation::AddressData ,token_id: uuid::Uuid, amount: u64) -> (String, PublicKey, Signature) {
 
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 
@@ -128,7 +128,7 @@ pub async fn init(address_data: &key_derivation::AddressData ,token_id: uuid::Uu
         signed_token_id: signed_token_id.to_string(),
     };
 
-    let endpoint = "http://127.0.0.1:8000";
+    let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/init/pod";
 
     let client: reqwest::Client = reqwest::Client::new();

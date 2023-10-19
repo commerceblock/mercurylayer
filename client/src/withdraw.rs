@@ -1,34 +1,13 @@
-mod db;
-
-use bitcoin::{Address, Network, Txid};
-use secp256k1_zkp::{SecretKey, PublicKey, schnorr::Signature};
+use bitcoin::Address;
 
 use crate::{electrum, error::CError, client_config::ClientConfig};
 
-pub struct CoinKeyDetails {
-    pub new_tx_n: u32,
-    pub client_seckey: SecretKey,
-    pub client_pubkey: PublicKey,
-    pub amount: u64,
-    pub server_pubkey: PublicKey,
-    pub aggregated_pubkey: PublicKey,
-    pub p2tr_agg_address: Address,
-    pub auth_seckey: SecretKey,
-    pub signed_statechain_id: Signature,
-    pub utxo_tx_hash: Txid,
-    pub utxo_vout: u32,
-}
-
-pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_address: &Address, fee_rate: u64, network: Network) -> Result<String, CError> {
+pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_address: &Address, fee_rate: u64) -> Result<String, CError> {
     
-    let pool = &client_config.pool;
-
-    let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-
-    let block_header = electrum::block_headers_subscribe_raw(&client);
+    let block_header = electrum::block_headers_subscribe_raw(&client_config.electrum_client);
     let block_height = block_header.height;
 
-    let coin_key_details = db::get_coin_and_key_info(pool, statechain_id, network).await;
+    let coin_key_details = client_config.get_coin_and_key_info(statechain_id).await;
     
     let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
         client_config,         
@@ -60,9 +39,9 @@ pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_addre
         &to_address.to_string()
     ).await.unwrap();
 
-    let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
+    let txid = electrum::transaction_broadcast_raw(&client_config.electrum_client, &tx_bytes);
 
-    db::update_coin_status(pool, statechain_id, "WITHDRAWN", &txid).await;
+    client_config.update_coin_status_and_tx_withdraw(statechain_id, "WITHDRAWN", Some(txid.to_string())).await;
 
     // delete statechain on the server
     let delete_statechain_payload = mercury_lib::withdraw::DeleteStatechainPayload {
@@ -70,7 +49,7 @@ pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_addre
         signed_statechain_id: coin_key_details.signed_statechain_id.to_string(),
     };
 
-    let endpoint = "http://127.0.0.1:8000";
+    let endpoint = client_config.statechain_entity.clone();
     let path = "delete_statechain";
 
     let client: reqwest::Client = reqwest::Client::new();

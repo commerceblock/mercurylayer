@@ -3,3 +3,4 @@ pub mod common;
 pub mod key_derivation;
 pub mod transaction;
 pub mod transfer_sender;
+pub mod withdraw;
