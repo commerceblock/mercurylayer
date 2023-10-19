@@ -31,7 +31,7 @@ pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_addre
     let coin_key_details = db::get_coin_and_key_info(pool, statechain_id, network).await;
     
     let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
-        pool,         
+        client_config,         
         block_height as u32,
         &statechain_id,
         &coin_key_details.signed_statechain_id,

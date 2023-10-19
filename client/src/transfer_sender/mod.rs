@@ -144,7 +144,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
         server_pub_nonce,
         blinding_factor, 
         signed_statechain_id) = 
-    create_backup_tx_to_receiver(&pool, &tx1.tx, recipient_user_pubkey, &statechain_id, network).await;
+    create_backup_tx_to_receiver(&client_config, &tx1.tx, recipient_user_pubkey, &statechain_id, network).await;
 
     let x1 = get_new_x1(&statechain_id, &signed_statechain_id, &recipient_auth_pubkey).await;
 
@@ -254,8 +254,10 @@ pub struct StatechainCoinDetails {
     pub auth_seckey: SecretKey,
 }
 
-pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
+pub async fn create_backup_tx_to_receiver(client_config: &ClientConfig, tx1: &Transaction, new_user_pubkey: PublicKey, statechain_id: &str, network: Network) 
     -> (SecretKey, PublicKey, PublicKey, Txid, u32, Transaction, MusigPubNonce, MusigPubNonce, BlindingFactor, Signature) {
+
+    let pool = &client_config.pool;
 
     let lock_time = tx1.lock_time;
     assert!(lock_time.is_block_height());
@@ -285,7 +287,7 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
     let to_address = Address::p2tr(&Secp256k1::new(), new_user_pubkey.x_only_public_key().0, None, network);
 
     let (new_tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
-        pool, 
+        client_config, 
         block_height,
         statechain_id,
         &signed_statechain_id,
@@ -299,14 +301,6 @@ pub async fn create_backup_tx_to_receiver(pool: &sqlx::Pool<Sqlite>, tx1: &Trans
         input_amount, 
         &to_address,
         false,).await.unwrap();
-
-    // let tx_bytes = bitcoin::consensus::encode::serialize(&new_tx);
-
-    // let client = electrum_client::Client::new("tcp://127.0.0.1:50001").unwrap();
-    
-    // let txid = electrum::transaction_broadcast_raw(&client, &tx_bytes);
-
-    // println!("txid sent: {}", txid);
 
     (client_seckey, client_pubkey, server_pubkey, input_txid, input_vout, new_tx, client_pub_nonce, server_pub_nonce, blinding_factor, signed_statechain_id)
 

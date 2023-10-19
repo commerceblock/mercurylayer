@@ -1,14 +1,11 @@
-mod db;
-
 use std::{str::FromStr, collections::BTreeMap};
 
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
 use rand::Rng;
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
-use sqlx::Sqlite;
 
-use crate::error::CError;
+use crate::{error::CError, client_config::ClientConfig};
 
 /// The purpose of this function is to get a random locktime for the withdrawal transaction.
 /// This is done to improve privacy and discourage fee sniping.
@@ -29,7 +26,7 @@ fn get_locktime_for_withdrawal_transaction (block_height: u32) -> u32 {
 }
 
 pub async fn new_backup_transaction(
-    pool: &sqlx::Pool<Sqlite>, 
+    client_config: &ClientConfig,
     block_height: u32,
     statechain_id: &str,
     signed_statechain_id: &Signature,
@@ -54,7 +51,7 @@ pub async fn new_backup_transaction(
     let interval = info_config_data.interval;
     let fee_rate_sats_per_byte = info_config_data.fee_rate_sats_per_byte;
 
-    let qt_backup_tx = db::count_backup_tx(pool, statechain_id).await as u32;
+    let qt_backup_tx = client_config.count_backup_tx(statechain_id).await as u32;
 
     let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte; 
     let amount_out = input_amount - absolute_fee;
@@ -69,6 +66,7 @@ pub async fn new_backup_transaction(
     let block_height = if is_withdrawal { get_locktime_for_withdrawal_transaction(block_height) } else { (block_height + initlock) - (interval * qt_backup_tx) };
 
     let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = create(
+        client_config,
         block_height,
         statechain_id,
         signed_statechain_id,
@@ -87,6 +85,7 @@ pub async fn new_backup_transaction(
 }
 
 async fn create(
+    client_config: &ClientConfig,
     block_height: u32,
     statechain_id: &str,
     signed_statechain_id: &Signature,
@@ -157,6 +156,7 @@ async fn create(
         ).unwrap();
 
         let (sig, client_pub_nonce, server_pub_nonce, blinding_factor) = musig_sign_psbt_taproot(
+            client_config,
             statechain_id,
             signed_statechain_id,
             client_seckey,
@@ -220,6 +220,7 @@ pub struct PartialSignatureResponsePayload<'r> {
 }
 
 async fn musig_sign_psbt_taproot(
+    client_config: &ClientConfig,
     statechain_id: &str,
     signed_statechain_id: &Signature,
     client_seckey: &SecretKey,
@@ -240,7 +241,7 @@ async fn musig_sign_psbt_taproot(
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
 
-    let endpoint = "http://127.0.0.1:8000";
+    let endpoint = client_config.statechain_entity.clone();
     let path = "sign/first";
 
     let client: reqwest::Client = reqwest::Client::new();

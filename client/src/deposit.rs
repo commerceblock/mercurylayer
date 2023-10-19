@@ -17,8 +17,6 @@ pub struct DepositRequestPayload {
 
 pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount: u64, network: Network) -> Result<String, CError> {
 
-    let pool = &client_config.pool;
-
     let address_data = key_derivation::get_new_address(client_config, network).await;
 
     let (statechain_id, 
@@ -78,7 +76,7 @@ pub async fn execute(client_config: &ClientConfig, token_id: uuid::Uuid, amount:
     let to_address = address_data.backup_address;
 
     let (tx, client_pub_nonce, server_pub_nonce, blinding_factor) = crate::transaction::new_backup_transaction(
-        pool,         
+        client_config,         
         block_height as u32,
         &statechain_id,
         &signed_statechain_id,
