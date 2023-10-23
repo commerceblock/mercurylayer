@@ -1,5 +1,3 @@
-pub mod sqilte_manager;
-
 use bitcoin::Network;
 use config::Config;
 use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
@@ -62,7 +60,6 @@ impl ClientConfig {
         // Create Electrum client
 
         let electrum_client = electrum_client::Client::new(electrum_server.as_str()).unwrap();
-
 
         ClientConfig {
             statechain_entity,

@@ -1,5 +1,6 @@
 mod utils;
 
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::{Language, Mnemonic};
@@ -8,66 +9,6 @@ use rand::Rng;
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Wallet {
-    name: String,
-    mnemonic: String,
-    version: String,
-    state_entity_endpoint: String,
-    electrum_endpoint: String,
-    blockheight: u32,
-    initlock: u32,
-    interval: u32,
-    backup_fee_rate: u32,
-    tokens: Vec<Token>,
-    activity: Vec<Activity>,
-    coins: Vec<Coin>
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Token {
-    token_id: String,
-    value: u32,
-    invoice: String,
-    confirmed: bool
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Activity {
-    utxo: String,
-    amount: u32,
-    action: String,
-    date: u64
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Coin {
-    utxo: String,
-    index: u32,
-    address: String,
-    amount: u32,
-    statechain_id: String,
-    privkey: String,
-    auth_key: String,
-    locktime: u32,
-    status: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct BackupTx {
-    tx_n: u32,
-    tx: String,
-    client_public_nonce: String,
-    blinding_factor: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ServerConfig {
-    initlock: u32,
-    interval: u32,
-    backup_fee_rate: u32
 }
 
 #[derive(Serialize, Deserialize)]

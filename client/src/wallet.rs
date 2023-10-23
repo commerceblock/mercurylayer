@@ -5,28 +5,30 @@ use secp256k1_zkp::SecretKey;
 use serde::{Serialize, Deserialize};
 use sqlx::{Sqlite, Row};
 
-pub async fn get_all_addresses(pool: &sqlx::Pool<Sqlite>, network: Network) -> (Vec::<Address>, Vec::<Address>){
+use crate::client_config::ClientConfig;
+
+pub async fn get_all_addresses(client_config: &ClientConfig) -> (Vec::<Address>, Vec::<Address>){
     let mut agg_addresses = Vec::<Address>::new();
     let mut backup_addresses = Vec::<Address>::new();
 
     let query = "SELECT backup_address FROM signer_data";
 
     let rows = sqlx::query(query)
-        .fetch_all(pool)
+        .fetch_all(&client_config.pool)
         .await
         .unwrap();
 
     for row in rows {
 
         let backup_address_str = row.get::<String, _>("backup_address");
-        let backup_address = Address::from_str(&backup_address_str).unwrap().require_network(network).unwrap();
+        let backup_address = Address::from_str(&backup_address_str).unwrap().require_network(client_config.network).unwrap();
         backup_addresses.push(backup_address);
     }
 
     let query = "SELECT p2tr_agg_address FROM statechain_data";
 
     let rows = sqlx::query(query)
-        .fetch_all(pool)
+        .fetch_all(&client_config.pool)
         .await
         .unwrap();
 
@@ -38,7 +40,7 @@ pub async fn get_all_addresses(pool: &sqlx::Pool<Sqlite>, network: Network) -> (
             continue;
         }
 
-        let agg_address = Address::from_str(&p2tr_agg_address).unwrap().require_network(network).unwrap();
+        let agg_address = Address::from_str(&p2tr_agg_address).unwrap().require_network(client_config.network).unwrap();
         agg_addresses.push(agg_address);
     }
 
@@ -104,7 +106,7 @@ pub async fn get_backup_tx(pool: &sqlx::Pool<Sqlite>, statechain_id: &str) -> Ve
 
 }
 
-pub async fn get_coins(pool: &sqlx::Pool<Sqlite>, network: Network) -> Vec<CoinJSON> {
+pub async fn get_coins(client_config: &ClientConfig) -> Vec<CoinJSON> {
 
     let query = "SELECT \
         std.funding_txid, \
@@ -121,7 +123,7 @@ pub async fn get_coins(pool: &sqlx::Pool<Sqlite>, network: Network) -> Vec<CoinJ
         ON sid.client_pubkey_share = std.client_pubkey_share";
 
     let rows = sqlx::query(query)
-        .fetch_all(pool)
+        .fetch_all(&client_config.pool)
         .await
         .unwrap();
 
@@ -137,7 +139,7 @@ pub async fn get_coins(pool: &sqlx::Pool<Sqlite>, network: Network) -> Vec<CoinJ
         let utxo = format!("{}:{}", utxo_tx_hash, utxo_vout);
 
         let agg_address_str = row.get::<String, _>("p2tr_agg_address");
-        let p2tr_agg_address = Address::from_str(&agg_address_str).unwrap().require_network(network).unwrap();
+        let p2tr_agg_address = Address::from_str(&agg_address_str).unwrap().require_network(client_config.network).unwrap();
 
         let amount = row.get::<u32, _>("amount");
 
@@ -146,12 +148,12 @@ pub async fn get_coins(pool: &sqlx::Pool<Sqlite>, network: Network) -> Vec<CoinJ
         let client_seckey_share_bytes = row.get::<Vec<u8>, _>("client_seckey_share");
         let client_seckey_share = SecretKey::from_slice(&client_seckey_share_bytes).unwrap();
 
-        let privkey = PrivateKey::new(client_seckey_share, network);
+        let privkey = PrivateKey::new(client_seckey_share, client_config.network);
 
         let auth_seckey_bytes = row.get::<Vec<u8>, _>("auth_seckey");
         let auth_seckey = SecretKey::from_slice(&auth_seckey_bytes).unwrap();
 
-        let auth_key = PrivateKey::new(auth_seckey, network);
+        let auth_key = PrivateKey::new(auth_seckey, client_config.network);
 
         let locktime = row.get::<u32, _>("locktime");
 
@@ -159,7 +161,7 @@ pub async fn get_coins(pool: &sqlx::Pool<Sqlite>, network: Network) -> Vec<CoinJ
 
         let tx_withdraw: Option<String> = row.get::<Option<String>, _>("tx_withdraw");
 
-        let backup_txs = get_backup_tx(pool, &statechain_id).await;
+        let backup_txs = get_backup_tx(&client_config.pool, &statechain_id).await;
 
         coins.push(CoinJSON {
             utxo,

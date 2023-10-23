@@ -1,5 +1,5 @@
 [package]
-name = "mercury-client"
+name = "new-client"
 version = "0.1.0"
 edition = "2021"
 
@@ -23,7 +23,6 @@ clap = { version = "4.2.5", features = ["derive"]}
 rand = "0.8.5"
 hex = "0.4.3"
 secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", branch = "blinded-musig-scheme", features = [ "rand-std", "bitcoin_hashes", "std" ] }
-async-trait = "0.1.74"
 
 [dependencies.mercury-lib]
 path = "../lib"

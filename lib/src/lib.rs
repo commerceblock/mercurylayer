@@ -2,6 +2,8 @@ pub mod transfer;
 pub mod deposit;
 pub mod sign;
 pub mod withdraw;
+pub mod wallet;
+pub mod utils;
 
 use std::str::FromStr;
 

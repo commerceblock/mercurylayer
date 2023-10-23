@@ -46,10 +46,12 @@ pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, s
 pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
     let statechain_entity = statechain_entity.inner();
 
-    let response_body = json!({
-        "interval": statechain_entity.config.lh_decrement,
-        "initlock": statechain_entity.config.lockheight_init,
-    });
+    let server_config = mercury_lib::utils::ServerConfig {
+        initlock: statechain_entity.config.lockheight_init,
+        interval: statechain_entity.config.lh_decrement,
+    };
+
+    let response_body = json!(server_config);
 
     return status::Custom(Status::Ok, Json(response_body));
 }

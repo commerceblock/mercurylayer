@@ -56,24 +56,8 @@ enum Commands {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    // let network = bitcoin::Network::Bitcoin;
-    let network = bitcoin::Network::Signet;
 
     let cli = Cli::parse();
-
-    if !Sqlite::database_exists("wallet.db").await.unwrap_or(false) {
-        match Sqlite::create_database("wallet.db").await {
-            Ok(_) => println!("Create db success"),
-            Err(error) => panic!("error: {}", error),
-        }
-    }
-
-    let pool = SqlitePool::connect("wallet.db").await.unwrap();
-
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .unwrap();
 
     let client_config = ClientConfig::load().await;
 
@@ -100,7 +84,7 @@ async fn main() {
                 unconfirmed_balance: i64,
             }
 
-            let (agg_addresses, backup_addresses) = wallet::get_all_addresses(&pool, network).await;
+            let (agg_addresses, backup_addresses) = wallet::get_all_addresses(&client_config).await;
 
             let agg_result: Vec<Balance> = agg_addresses.iter().map(|address| {
                 let balance_res = electrum::get_address_balance(&client_config.electrum_client, &address);
@@ -135,7 +119,7 @@ async fn main() {
         },
         Commands::SendBackup { address, fee_rate } => {
 
-            let to_address = bitcoin::Address::from_str(&address).unwrap().require_network(network).unwrap();
+            let to_address = bitcoin::Address::from_str(&address).unwrap().require_network(client_config.network).unwrap();
 
             let fee_rate = match fee_rate {
                 Some(fee_rate) => fee_rate,
@@ -146,7 +130,7 @@ async fn main() {
                 },
             };
 
-            let (_, backup_addresses) = wallet::get_all_addresses(&pool, network).await;
+            let (_, backup_addresses) = wallet::get_all_addresses(&client_config).await;
 
             let mut list_unspent = Vec::<(ListUnspentRes, Address)>::new(); 
 
@@ -162,7 +146,7 @@ async fn main() {
                 return;
             }
 
-            let list_utxo = send_backup::get_address_info(&pool, list_unspent).await;
+            let list_utxo = send_backup::get_address_info(&client_config.pool, list_unspent).await;
 
 
             send_backup::send_all_funds(&list_utxo, &to_address, fee_rate, &client_config.electrum_client);
@@ -189,7 +173,7 @@ async fn main() {
         },
         Commands::Withdraw { recipient_address, statechain_id, fee_rate } => {
                 
-                let to_address = bitcoin::Address::from_str(&recipient_address).unwrap().require_network(network).unwrap();
+                let to_address = bitcoin::Address::from_str(&recipient_address).unwrap().require_network(client_config.network).unwrap();
     
                 let fee_rate = match fee_rate {
                     Some(fee_rate) => fee_rate,
@@ -209,7 +193,7 @@ async fn main() {
         Commands::ExportWallet {  } => {
             let (mnemonic, block_height) = key_derivation::get_mnemonic_and_block_height(&client_config).await;
             
-            let coins = wallet::get_coins(&pool, network).await;
+            let coins = wallet::get_coins(&client_config).await;
 
             let state_entity_endpoint = client_config.statechain_entity.clone();
             let electrum_endpoint = client_config.electrum_server_url.clone();
@@ -217,7 +201,7 @@ async fn main() {
             let wallet_json = serde_json::to_string_pretty(&json!({
                 "wallet": {
                     "name": "default",
-                    "network": network.to_string(),
+                    "network": client_config.network.to_string(),
                     "mnemonic": mnemonic,
                     "version": 0.1,
                     "state_entity_endpoint": state_entity_endpoint,
@@ -234,5 +218,5 @@ async fn main() {
         },
     };
 
-    pool.close().await;
+    client_config.pool.close().await;
 }

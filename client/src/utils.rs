@@ -23,10 +23,10 @@ pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum
         },
     };
 
-    let value: serde_json::Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+    let server_config: mercury_lib::utils::ServerConfig = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let initlock = value.get("initlock").unwrap().as_u64().unwrap() as u32;
-    let interval = value.get("interval").unwrap().as_u64().unwrap() as u32;
+    let initlock = server_config.initlock;
+    let interval = server_config.interval;
 
     let fee_rate_btc_per_kb = electrum::estimate_fee(&electrum_client, 3);
     let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
