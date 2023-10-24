@@ -1,0 +1,16 @@
+{
+  "name": "client-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mempool/electrum-client": "^1.1.9",
+    "axios": "^1.5.1",
+    "commander": "^11.1.0"
+  }
+}

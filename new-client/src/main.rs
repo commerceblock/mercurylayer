@@ -1,8 +1,12 @@
 mod client_config;
 mod wallet;
+mod utils;
 
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use client_config::ClientConfig;
+
+use crate::wallet::create_wallet;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -19,7 +23,7 @@ enum Commands {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<()> {
     
     let cli = Cli::parse();
 
@@ -27,7 +31,15 @@ async fn main() {
 
     match cli.command {
         Commands::CreateWallet { name } => {
-            wallet::create_wallet(&name, &client_config); 
+            let wallet = create_wallet(
+                &name, 
+                &client_config.electrum_client, 
+                &client_config.electrum_server_url,
+                &client_config.statechain_entity, 
+                client_config.network).await?;
+            println!("Wallet created: {:?}", wallet);
         }
     }
+
+    Ok(())
 }

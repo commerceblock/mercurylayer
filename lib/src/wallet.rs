@@ -1,14 +1,18 @@
+use bip39::{Mnemonic, Language};
+use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
+use anyhow::Result;
 
 use crate::utils::ServerConfig;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Wallet {
     pub name: String,
     pub mnemonic: String,
     pub version: String,
     pub state_entity_endpoint: String,
     pub electrum_endpoint: String,
+    pub network: String,
     pub blockheight: u32,
     pub initlock: u32,
     pub interval: u32,
@@ -17,7 +21,7 @@ pub struct Wallet {
     pub coins: Vec<Coin>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Token {
     pub token_id: String,
     pub value: u32,
@@ -25,7 +29,7 @@ pub struct Token {
     pub confirmed: bool
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Activity {
     pub utxo: String,
     pub amount: u32,
@@ -33,7 +37,7 @@ pub struct Activity {
     pub date: u64
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Coin {
     pub utxo: String,
     pub index: u32,
@@ -46,7 +50,7 @@ pub struct Coin {
     pub status: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BackupTx {
     tx_n: u32,
     tx: String,
@@ -54,7 +58,14 @@ pub struct BackupTx {
     blinding_factor: String
 } 
 
-pub fn setConfig(wallet: &mut Wallet, config: &ServerConfig) {
+pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
     wallet.initlock = config.initlock;
     wallet.interval = config.interval;
+}
+
+pub fn generate_mnemonic() -> Result<String> {
+    let mut rng = rand::thread_rng();
+    let entropy = (0..16).map(|_| rng.gen::<u8>()).collect::<Vec<u8>>(); // 16 bytes of entropy for 12 words
+    let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)?;
+    Ok(mnemonic.to_string())
 }

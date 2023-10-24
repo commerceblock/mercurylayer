@@ -3,7 +3,7 @@ mod utils;
 use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
-use bip39::{Language, Mnemonic};
+use bip39::Mnemonic;
 use rand::Rng;
 
 #[wasm_bindgen]
@@ -54,9 +54,8 @@ pub struct DepositMsg6 {
 pub fn setConfig(config_json: JsValue, wallet_json: JsValue) -> JsValue {
     let mut wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
     let config: ServerConfig = serde_wasm_bindgen::from_value(config_json).unwrap();
-    wallet.initlock = config.initlock;
-    wallet.interval = config.interval;
-    wallet.backup_fee_rate = config.backup_fee_rate;
+
+    mercury_lib::wallet::set_config(&mut wallet, &config);
 
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
@@ -126,10 +125,10 @@ pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
         version: String::from("0.1.0"),
         state_entity_endpoint: String::from(""),
         electrum_endpoint: String::from(""),
+        network: String::from("testnet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
-        backup_fee_rate: 1,
         tokens: Vec::new(),
         activity: Vec::new(),
         coins: Vec::new()
@@ -250,10 +249,10 @@ pub fn getMockWallet() -> JsValue {
         version: String::from("0.1.0"),
         state_entity_endpoint: String::from(""),
         electrum_endpoint: String::from(""),
+        network: String::from("testnet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
-        backup_fee_rate: 1,
         tokens: tokens,
         activity: activity,
         coins: coins
