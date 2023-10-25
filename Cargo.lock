@@ -396,6 +396,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd7cc57abe963c6d3b9d8be5b06ba7c8957a930305ca90304f24ef040aa6f961"
 
 [[package]]
+name = "client-rust"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bech32",
+ "bip39",
+ "bitcoin",
+ "clap",
+ "config",
+ "ecies",
+ "electrum-client",
+ "hex",
+ "mercury-lib",
+ "rand",
+ "reqwest",
+ "schemars",
+ "secp256k1-zkp",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid 1.4.1",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1462,31 +1487,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "new-client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bech32",
- "bip39",
- "bitcoin",
- "clap",
- "config",
- "ecies",
- "electrum-client",
- "hex",
- "mercury-lib",
- "rand",
- "reqwest",
- "schemars",
- "secp256k1-zkp",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "uuid 1.4.1",
 ]
 
 [[package]]
