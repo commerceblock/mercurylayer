@@ -2,12 +2,13 @@ mod client_config;
 mod wallet;
 mod utils;
 mod sqlite_manager;
+mod deposit;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use client_config::ClientConfig;
 
-use crate::wallet::create_wallet;
+use crate::{wallet::create_wallet, sqlite_manager::get_wallet};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -21,6 +22,8 @@ struct Cli {
 enum Commands {
     /// Create a wallet
     CreateWallet { name: String },
+    /// Create Aggregated Public Key
+    Deposit { wallet_name: String, token_id: String, amount: u64 },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -41,7 +44,14 @@ async fn main() -> Result<()> {
 
             sqlite_manager::insert_wallet(&client_config.pool, &wallet).await?;
             println!("Wallet created: {:?}", wallet);
-        }
+        },
+        Commands::Deposit { wallet_name, token_id, amount } => {
+            
+            let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
+            println!("Deposit: {} {} {}", wallet_name, token_id, amount);
+            deposit::execute(&client_config.pool, &wallet_name, token_id, amount).await.unwrap();
+
+        },
     }
 
     client_config.pool.close().await;

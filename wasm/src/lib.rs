@@ -12,13 +12,6 @@ extern "C" {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct DepositMsg1 {
-    amount: u32,
-    token_id: String,
-    auth_key: String
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct DepositMsg2 {
     statechain_id: String,
     enclave_pubkey: String,
@@ -97,7 +90,7 @@ pub fn getBalance(wallet_json: JsValue) -> u32 {
     let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
     let mut balance = 0;
     for coin in wallet.coins.iter() {
-        balance += coin.amount;
+        balance += coin.amount.unwrap();
     }
     balance
 }
@@ -149,6 +142,27 @@ pub fn getCoins(wallet_json: JsValue) -> JsValue {
 }
 
 #[wasm_bindgen]
+pub fn getNewCoin(wallet_json: JsValue) -> JsValue {
+    let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
+    let coin = wallet.get_new_coin().unwrap();
+    serde_wasm_bindgen::to_value(&coin).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn getNextAddressIndex(wallet_json: JsValue) -> u32 {
+    let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
+    // let index = mercury_lib::wallet::key_derivation::get_next_address_index(&wallet);
+    // index
+    let max_index = wallet.coins.iter().map(|coin| coin.index).max();
+
+    match max_index {
+        Some(index) => index + 1,
+        None => 0, // Vector is empty
+    }
+}
+
+/*
+#[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
     let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
     for coin in wallet.coins.iter() {
@@ -168,7 +182,7 @@ pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
         status: String::from(""),
     }).unwrap()
 }
-
+ */
 #[wasm_bindgen]
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
@@ -207,7 +221,7 @@ pub fn getMockWallet() -> JsValue {
         }
     ];
 
-    let coins = vec![
+    /*let coins = vec![
         Coin {
             utxo: String::from("9ec324592502d377dc92cee0cce84b532ce912e0379bdd3d768339819251cf57:0"),
             index: 1,
@@ -241,7 +255,7 @@ pub fn getMockWallet() -> JsValue {
             locktime: 835321,
             status: String::from("Confirmed"),
         }
-    ]; 
+    ]; */
 
     let wallet = Wallet {
         name: String::from("Mock Wallet"),
@@ -255,7 +269,7 @@ pub fn getMockWallet() -> JsValue {
         interval: 10,
         tokens: tokens,
         activity: activity,
-        coins: coins
+        coins: Vec::new() // coins
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }

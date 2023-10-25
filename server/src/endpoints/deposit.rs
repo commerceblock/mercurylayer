@@ -8,23 +8,15 @@ use serde_json::{Value, json};
 
 use crate::server::StateChainEntity;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DepositRequestPayload {
-    amount: u64,
-    auth_key: String,
-    token_id: String,
-    signed_token_id: String,
-}
-
-#[post("/deposit/init/pod", format = "json", data = "<deposit_request_payload>")]
-pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_request_payload: Json<DepositRequestPayload>) -> status::Custom<Json<Value>> {
+#[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
+pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
     let statechain_entity = statechain_entity.inner();
 
-    let auth_key = XOnlyPublicKey::from_str(&deposit_request_payload.auth_key).unwrap();
-    let amount = deposit_request_payload.amount;
-    let token_id = deposit_request_payload.token_id.clone();
-    let signed_token_id = Signature::from_str(&deposit_request_payload.signed_token_id.to_string()).unwrap();
+    let auth_key = XOnlyPublicKey::from_str(&deposit_msg1.auth_key).unwrap();
+    let amount = deposit_msg1.amount as u64;
+    let token_id = deposit_msg1.token_id.clone();
+    let signed_token_id = Signature::from_str(&deposit_msg1.signed_token_id.to_string()).unwrap();
 
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 

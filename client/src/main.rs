@@ -19,8 +19,6 @@ use client_config::ClientConfig;
 use electrum_client::ListUnspentRes;
 use serde::{Serialize, Deserialize};
 use serde_json::json;
-use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
-
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

@@ -11,11 +11,13 @@ const sqlite3 = require('sqlite3').verbose();
 
 const sqlite_manager = require('./sqlite_manager');
 
+const wallet_manager = require('./wallet');
+
 async function main() {
 
   const db = new sqlite3.Database('wallet.db');
 
-  sqlite_manager.createTable(db);
+  await sqlite_manager.createTable(db);
   
   program
     .name('Statechain nodejs CLI client')
@@ -28,34 +30,36 @@ async function main() {
     .action(async (name) => {
       console.log("The name of the wallet is: " + name);
   
-      const ecl = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-      await ecl.connect(); // connect(promise)
-      let block_header = await ecl.request('blockchain.headers.subscribe'); // request(promise)
-      let blockheight = block_header.height;
-   
-      let server_info = await utils.infoConfig(ecl);
+      const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+      await electrumClient.connect(); // connect(promise)
+
+      const electrumEndpoint = "tcp://127.0.0.1:50001";
+      const statechainEntityEndpoint = "http://127.0.0.1:8000";
+      const network = "signet";
+
+      let wallet = await wallet_manager.createWallet(name, electrumClient, electrumEndpoint, statechainEntityEndpoint, network);
+ 
+      await sqlite_manager.insertWallet(db, wallet);
   
-      let mnemonic = mercury_wasm.generateMnemonic();
-  
-      let wallet = {
-        name,
-        mnemonic,
-        version: "0.1.0",
-        state_entity_endpoint: "http://127.0.0.1:8000",
-        electrum_endpoint: "tcp://127.0.0.1:50001",
-        network: "signet",
-        blockheight,
-        initlock: server_info.initlock,
-        interval: server_info.interval,
-        tokens: [],
-        activity: [],
-        coins: []
-      };
-  
-      sqlite_manager.insertWallet(db, wallet);
-  
-      ecl.close();
+      electrumClient.close();
       db.close();
+    });
+
+  program.command('deposit')
+    .description('Deposit funds into a statecoin')
+    .argument('<wallet_name>', 'name of the wallet')
+    .argument('<token_id>', 'token id of the deposit')
+    .argument('<amount>', 'amount to deposit')
+    .action(async (name) => {
+
+      let wallet = await sqlite_manager.getWallet(db, name);
+
+      // let coin = mercury_wasm.getNewCoin(wallet);
+
+      let address_index = mercury_wasm.getBalance(wallet);
+
+      // console.log("coin: " + JSON.stringify(coin));
+      console.log("address_index: " + address_index);
     });
   
   
