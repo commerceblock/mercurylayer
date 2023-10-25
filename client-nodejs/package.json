@@ -11,6 +11,7 @@
   "dependencies": {
     "@mempool/electrum-client": "^1.1.9",
     "axios": "^1.5.1",
-    "commander": "^11.1.0"
+    "commander": "^11.1.0",
+    "sqlite3": "^5.1.6"
   }
 }

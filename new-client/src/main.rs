@@ -1,6 +1,7 @@
 mod client_config;
 mod wallet;
 mod utils;
+mod sqlite_manager;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -37,9 +38,13 @@ async fn main() -> Result<()> {
                 &client_config.electrum_server_url,
                 &client_config.statechain_entity, 
                 client_config.network).await?;
+
+            sqlite_manager::insert_wallet(&client_config.pool, &wallet).await?;
             println!("Wallet created: {:?}", wallet);
         }
     }
+
+    client_config.pool.close().await;
 
     Ok(())
 }
