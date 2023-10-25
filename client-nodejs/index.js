@@ -1,7 +1,7 @@
 const { Command } = require('commander');
 const program = new Command();
 
-const mercury_wasm = require('../wasm/pkg/mercury_wasm');
+const mercury_wasm = require('mercury-wasm');
 
 const ElectrumCli = require('@mempool/electrum-client');
 

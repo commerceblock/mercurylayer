@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "mercury-wasm": "file:../wasm/pkg",
     "@mempool/electrum-client": "^1.1.9",
     "axios": "^1.5.1",
     "commander": "^11.1.0",

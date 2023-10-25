@@ -1,6 +1,6 @@
 const utils = require('./utils');
 
-const mercury_wasm = require('../wasm/pkg/mercury_wasm');
+const mercury_wasm = require('mercury-wasm');
 
 const createWallet = async (name, electrumClient, electrumEndpoint, statechainEntityEndpoint, network) => {
 
