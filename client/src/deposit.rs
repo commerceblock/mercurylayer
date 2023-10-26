@@ -145,13 +145,7 @@ pub async fn init(client_config: &ClientConfig, address_data: &key_derivation::A
         },
     };
 
-    #[derive(Serialize, Deserialize)]
-    pub struct PublicNonceRequestPayload<'r> {
-        server_pubkey: &'r str,
-        statechain_id: &'r str,
-    }
-
-    let response: PublicNonceRequestPayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+    let response: mercury_lib::deposit::DepositMsg1Response = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
     let server_pubkey_share = PublicKey::from_str(&response.server_pubkey).unwrap();
 

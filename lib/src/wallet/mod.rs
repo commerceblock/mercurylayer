@@ -59,6 +59,7 @@ pub struct Coin {
     pub utxo: Option<String>,
     pub amount: Option<u32>,
     pub statechain_id: Option<String>,
+    pub signed_statechain_id: Option<String>,
     pub locktime: Option<u32>,
     pub status: String// CoinStatus,
 }

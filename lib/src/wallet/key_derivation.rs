@@ -118,6 +118,7 @@ impl Wallet {
             utxo: None,
             amount: None,
             statechain_id: None,
+            signed_statechain_id: None,
             locktime: None,
             status: "INITIALISED".to_string() // CoinStatus::INITIALISED,
         };

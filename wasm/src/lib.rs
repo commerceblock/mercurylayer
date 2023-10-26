@@ -1,6 +1,6 @@
 mod utils;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig, deposit::DepositMsg1Response};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -153,6 +153,14 @@ pub fn createDepositMsg1(coin_json: JsValue, token_id: String, amount: u32) -> J
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let deposit_msg_1 = mercury_lib::deposit::create_deposit_msg1(&coin, &token_id, amount).unwrap();
     serde_wasm_bindgen::to_value(&deposit_msg_1).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn handleDepositMsg1Response(coin_json: JsValue, deposit_msg_1_response_json: JsValue) -> JsValue {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let deposit_msg_1_response: DepositMsg1Response = serde_wasm_bindgen::from_value(deposit_msg_1_response_json).unwrap();
+    let deposit_init_result = mercury_lib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response).unwrap();
+    serde_wasm_bindgen::to_value(&deposit_init_result).unwrap()
 }
 
 /*

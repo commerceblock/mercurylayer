@@ -5,7 +5,7 @@ const mercury_wasm = require('mercury-wasm');
 
 const ElectrumCli = require('@mempool/electrum-client');
 
-const utils = require('./utils');
+const deposit = require('./deposit');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -54,17 +54,11 @@ async function main() {
 
       let wallet = await sqlite_manager.getWallet(db, name);
 
+      await deposit.init(db, wallet, token_id, amount);
+
       console.log(wallet);
 
-      let coin = mercury_wasm.getNewCoin(wallet);
-
-      wallet.coins.push(coin);
-
-      await sqlite_manager.updateWallet(db, wallet);
-
-      let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id, parseInt(amount, 10));
-
-      console.log(depositMsg1);
+      db.close();
     });
   
   

@@ -81,10 +81,12 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, amount, &statechain_id).await;
 
-    let response_body = json!({
-        "server_pubkey": server_pubkey.to_string(),
-        "statechain_id": statechain_id,
-    });
+    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+        server_pubkey: server_pubkey.to_string(),
+        statechain_id,
+    };
+
+    let response_body = json!(deposit_msg1_response);
 
     status::Custom(Status::Ok, Json(response_body))
 }
