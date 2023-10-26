@@ -23,7 +23,7 @@ enum Commands {
     /// Create a wallet
     CreateWallet { name: String },
     /// Create Aggregated Public Key
-    Deposit { wallet_name: String, token_id: String, amount: u64 },
+    Deposit { wallet_name: String, token_id: String, amount: u32 },
 }
 
 #[tokio::main(flavor = "current_thread")]

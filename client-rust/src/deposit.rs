@@ -4,7 +4,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::sqlite_manager::{update_wallet, get_wallet};
 
-pub async fn execute(pool: &Pool<Sqlite>, wallet_name: &str, token_id: uuid::Uuid, amount: u64) -> Result<()> {
+pub async fn execute(pool: &Pool<Sqlite>, wallet_name: &str, token_id: uuid::Uuid, amount: u32) -> Result<()> {
 
     let mut wallet = get_wallet(pool, wallet_name).await?;
 

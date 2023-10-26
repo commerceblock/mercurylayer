@@ -1,4 +1,4 @@
-use crate::wallet::{Wallet, Coin};
+use crate::wallet::Coin;
 use anyhow::Result;
 use bitcoin::{hashes::sha256, PrivateKey, secp256k1};
 use secp256k1_zkp::{Message, Secp256k1};
@@ -12,7 +12,7 @@ pub struct DepositMsg1 {
     pub signed_token_id: String,
 }
 
-pub fn create_deposit_msg1(coin: &Coin ,token_id: &str, amount: u64) -> Result<DepositMsg1>{
+pub fn create_deposit_msg1(coin: &Coin, token_id: &str, amount: u32) -> Result<DepositMsg1>{
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 
     let secp = Secp256k1::new();

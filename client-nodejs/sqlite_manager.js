@@ -32,7 +32,8 @@ const getWallet  = async (db, walletName) => {
             if (err) {
                 reject(err);
             } else {
-                resolve(row);
+                let wallet = JSON.parse(row.wallet_json);
+                resolve(wallet);
             }
         });
     });

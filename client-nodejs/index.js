@@ -50,16 +50,21 @@ async function main() {
     .argument('<wallet_name>', 'name of the wallet')
     .argument('<token_id>', 'token id of the deposit')
     .argument('<amount>', 'amount to deposit')
-    .action(async (name) => {
+    .action(async (name, token_id, amount) => {
 
       let wallet = await sqlite_manager.getWallet(db, name);
 
-      // let coin = mercury_wasm.getNewCoin(wallet);
+      console.log(wallet);
 
-      let address_index = mercury_wasm.getBalance(wallet);
+      let coin = mercury_wasm.getNewCoin(wallet);
 
-      // console.log("coin: " + JSON.stringify(coin));
-      console.log("address_index: " + address_index);
+      wallet.coins.push(coin);
+
+      await sqlite_manager.updateWallet(db, wallet);
+
+      let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id, parseInt(amount, 10));
+
+      console.log(depositMsg1);
     });
   
   
