@@ -7,6 +7,24 @@ const mercury_wasm = require('mercury-wasm');
 
 const sqlite_manager = require('./sqlite_manager');
 
+const execute = async (db, wallet_name, token_id, amount) => {
+
+    let wallet = await sqlite_manager.getWallet(db, wallet_name);
+
+    await init(db, wallet, token_id, amount);
+
+    let coin = wallet.coins[wallet.coins.length - 1];
+
+    let aggregatedPublicKey = mercury_wasm.createAggregatedAddress(coin, wallet.network);
+
+    coin.aggregated_address = aggregatedPublicKey.aggregate_address;
+    coin.aggregated_pubkey = aggregatedPublicKey.aggregate_pubkey;
+
+    await sqlite_manager.updateWallet(db, wallet);
+
+    console.log(wallet);
+}
+
 const init = async (db, wallet, token_id, amount) => {
     console.log(wallet);
 
@@ -39,4 +57,4 @@ const init = async (db, wallet, token_id, amount) => {
     await sqlite_manager.updateWallet(db, wallet);
 }
 
-module.exports = { init };
+module.exports = { execute };

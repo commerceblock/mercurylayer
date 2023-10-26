@@ -163,6 +163,13 @@ pub fn handleDepositMsg1Response(coin_json: JsValue, deposit_msg_1_response_json
     serde_wasm_bindgen::to_value(&deposit_init_result).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn createAggregatedAddress(coin_json: JsValue, network: String) -> JsValue {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let aggregated_public_key = mercury_lib::deposit::create_aggregated_address(&coin, network).unwrap();
+    serde_wasm_bindgen::to_value(&aggregated_public_key).unwrap()
+}
+
 /*
 #[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {

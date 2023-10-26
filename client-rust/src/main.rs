@@ -47,11 +47,7 @@ async fn main() -> Result<()> {
         },
         Commands::Deposit { wallet_name, token_id, amount } => {
             
-            let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
-            println!("Deposit: {} {} {}", wallet_name, token_id, amount);
-            let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
-            let wallet = deposit::init(&client_config, &wallet, token_id, amount).await?;
-            println!("Wallet: {:?}", wallet);
+            deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
 
         },
     }

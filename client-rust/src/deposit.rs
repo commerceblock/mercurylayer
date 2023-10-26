@@ -1,7 +1,26 @@
 use anyhow::Result;
-use mercury_lib::{deposit::create_deposit_msg1, wallet::Wallet};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet};
 
-use crate::{sqlite_manager::{update_wallet}, client_config::ClientConfig};
+use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig};
+
+pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
+
+    let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
+    println!("Deposit: {} {} {}", wallet_name, token_id, amount);
+    let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet = init(&client_config, &wallet, token_id, amount).await?;
+
+    let coin = wallet.coins.last_mut().unwrap();
+
+    let aggregated_public_key = create_aggregated_address(&coin, wallet.network.clone())?;
+
+    coin.aggregated_address = Some(aggregated_public_key.aggregate_address);
+    coin.aggregated_pubkey = Some(aggregated_public_key.aggregate_pubkey);
+
+    update_wallet(&client_config.pool, &wallet).await?;
+
+    Ok(())
+}
 
 pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid::Uuid, amount: u32) -> Result<Wallet> {
 

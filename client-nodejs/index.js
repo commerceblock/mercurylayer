@@ -50,13 +50,9 @@ async function main() {
     .argument('<wallet_name>', 'name of the wallet')
     .argument('<token_id>', 'token id of the deposit')
     .argument('<amount>', 'amount to deposit')
-    .action(async (name, token_id, amount) => {
+    .action(async (wallet_name, token_id, amount) => {
 
-      let wallet = await sqlite_manager.getWallet(db, name);
-
-      await deposit.init(db, wallet, token_id, amount);
-
-      console.log(wallet);
+      await deposit.execute(db, wallet_name, token_id, amount);
 
       db.close();
     });

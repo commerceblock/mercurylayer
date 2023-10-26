@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use crate::wallet::Coin;
+use crate::{wallet::Coin, utils::get_network};
 use anyhow::Result;
-use bitcoin::{hashes::sha256, PrivateKey, secp256k1};
+use bitcoin::{hashes::sha256, PrivateKey, secp256k1, Address};
 use secp256k1_zkp::{Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 
@@ -25,6 +25,12 @@ pub struct DepositInitResult {
     pub server_pubkey: String,
     pub statechain_id: String,
     pub signed_statechain_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AggregatedPublicKey {
+    pub aggregate_pubkey: String,
+    pub aggregate_address: String,
 }
 
 pub fn create_deposit_msg1(coin: &Coin, token_id: &str, amount: u32) -> Result<DepositMsg1>{
@@ -66,4 +72,26 @@ pub fn handle_deposit_msg_1_response(coin: &Coin, deposit_msg_1_response: &Depos
         statechain_id,
         signed_statechain_id: signed_statechain_id.to_string(),
     })
+}
+
+pub fn create_aggregated_address(coin: &Coin, network: String) -> Result<AggregatedPublicKey> {
+
+    let network = get_network(&network)?;
+
+    let secp = Secp256k1::new();
+
+    let user_pubkey_share = PublicKey::from_str(&coin.user_pubkey)?;
+    let server_pubkey_share = PublicKey::from_str(&coin.server_pubkey.as_ref().unwrap())?;
+
+    let aggregate_pubkey = user_pubkey_share.combine(&server_pubkey_share)?;
+
+    let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0; 
+
+    let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+
+    Ok(AggregatedPublicKey {
+        aggregate_pubkey: aggregate_pubkey.to_string(),
+        aggregate_address: aggregate_address.to_string(),
+    })
+
 }

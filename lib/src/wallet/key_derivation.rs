@@ -5,7 +5,7 @@ use bip39::Mnemonic;
 use bitcoin::{bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address, PrivateKey};
 use secp256k1_zkp::{SecretKey, PublicKey, ffi::types::AlignedType, Secp256k1};
 
-use crate::{wallet::{Wallet, Coin, CoinStatus}, encode_sc_address};
+use crate::{wallet::{Wallet, Coin, CoinStatus}, encode_sc_address, utils::get_network};
 
 pub struct KeyData {
     pub secret_key: SecretKey,
@@ -36,7 +36,7 @@ impl Wallet {
     pub fn generate_new_key(&self, derivation_path: &str, change_index: u32, address_index:u32) -> Result<KeyData> {
 
         let seed= self.get_seed()?;
-        let network = self.get_network()?;
+        let network = get_network(&self.network)?;
 
         // we need secp256k1 context for key derivation
         let mut buf: Vec<AlignedType> = Vec::new();
@@ -73,7 +73,7 @@ impl Wallet {
 
     pub fn get_new_coin(&self) -> Result<Coin> {
 
-        let network = self.get_network()?;
+        let network = get_network(&self.network)?;
 
         let derivation_path = "m/86h/0h/0h";
         let change_index = 0;
@@ -114,6 +114,7 @@ impl Wallet {
             address:coin_address,
             backup_address: backup_address.to_string(),
             server_pubkey: None,
+            aggregated_pubkey: None,
             aggregated_address: None,
             utxo: None,
             amount: None,
