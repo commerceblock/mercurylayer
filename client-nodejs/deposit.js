@@ -27,7 +27,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     console.log(wallet);
 
-    await wait_for_deposit(electrumClient, coin, amount, wallet.network);
+    await waitForDeposit(electrumClient, coin, amount, wallet.network);
 
     await sqlite_manager.updateWallet(db, wallet);
 }
@@ -68,7 +68,7 @@ const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const wait_for_deposit = async (electrumClient, coin, amount, wallet_network) => {
+const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
 
     console.log(`address: ${coin.aggregated_address}`);
     console.log("waiting for deposit ....");
@@ -106,6 +106,11 @@ const wait_for_deposit = async (electrumClient, coin, amount, wallet_network) =>
 
         await sleep(5000);
     }
+}
+
+const getServerPublicNonce = async (coin) => {
+
+    
 
 }
 

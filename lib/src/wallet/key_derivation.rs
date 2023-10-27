@@ -121,6 +121,9 @@ impl Wallet {
             statechain_id: None,
             signed_statechain_id: None,
             locktime: None,
+            secret_nonce: None,
+            public_nonce: None,
+            server_public_nonce: None,
             status: "INITIALISED".to_string() // CoinStatus::INITIALISED,
         };
 

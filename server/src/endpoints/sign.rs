@@ -98,14 +98,9 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
 
     println!("value: {}", value);
 
-    #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub struct ServerPublicNonceResponsePayload {
-        server_pubnonce: String,
-    }
+    let response: mercury_lib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let response: ServerPublicNonceResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
-
-    let mut server_pubnonce_hex = response.server_pubnonce.to_string();
+    let mut server_pubnonce_hex = response.server_pubnonce.clone();
 
     if server_pubnonce_hex.starts_with("0x") {
         server_pubnonce_hex = server_pubnonce_hex[2..].to_string();

@@ -63,6 +63,9 @@ pub struct Coin {
     pub statechain_id: Option<String>,
     pub signed_statechain_id: Option<String>,
     pub locktime: Option<u32>,
+    pub secret_nonce: Option<String>,
+    pub public_nonce: Option<String>,
+    pub server_public_nonce: Option<String>,
     pub status: String// CoinStatus,
 }
 

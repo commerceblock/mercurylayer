@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 mod utils;
 
 use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig, deposit::DepositMsg1Response};
@@ -168,6 +170,13 @@ pub fn createAggregatedAddress(coin_json: JsValue, network: String) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let aggregated_public_key = mercury_lib::deposit::create_aggregated_address(&coin, network).unwrap();
     serde_wasm_bindgen::to_value(&aggregated_public_key).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn createAndCommitNonces(coin_json: JsValue) -> JsValue {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin).unwrap();
+    serde_wasm_bindgen::to_value(&coin_nonce).unwrap()
 }
 
 /*

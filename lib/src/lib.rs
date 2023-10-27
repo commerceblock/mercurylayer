@@ -4,6 +4,7 @@ pub mod sign;
 pub mod withdraw;
 pub mod wallet;
 pub mod utils;
+pub mod transaction;
 
 use std::str::FromStr;
 
