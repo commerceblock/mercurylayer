@@ -1,4 +1,7 @@
 const axios = require('axios').default;
+const bitcoinjs = require("bitcoinjs-lib");
+const ecc = require("tiny-secp256k1");
+const utils = require('./utils');
 
 // used only for random token. Can be removed later
 const crypto = require('crypto');
@@ -7,7 +10,7 @@ const mercury_wasm = require('mercury-wasm');
 
 const sqlite_manager = require('./sqlite_manager');
 
-const execute = async (db, wallet_name, token_id, amount) => {
+const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
@@ -23,6 +26,10 @@ const execute = async (db, wallet_name, token_id, amount) => {
     await sqlite_manager.updateWallet(db, wallet);
 
     console.log(wallet);
+
+    await wait_for_deposit(electrumClient, coin, amount, wallet.network);
+
+    await sqlite_manager.updateWallet(db, wallet);
 }
 
 const init = async (db, wallet, token_id, amount) => {
@@ -55,6 +62,51 @@ const init = async (db, wallet, token_id, amount) => {
     coin.server_pubkey = depositInitResult.server_pubkey;
 
     await sqlite_manager.updateWallet(db, wallet);
+}
+
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const wait_for_deposit = async (electrumClient, coin, amount, wallet_network) => {
+
+    console.log(`address: ${coin.aggregated_address}`);
+    console.log("waiting for deposit ....");
+
+    bitcoinjs.initEccLib(ecc);
+
+    const network = utils.getNetwork(wallet_network);
+
+    let script = bitcoinjs.address.toOutputScript(coin.aggregated_address, network);
+    let hash = bitcoinjs.crypto.sha256(script);
+    let reversedHash = Buffer.from(hash.reverse());
+    reversedHash = reversedHash.toString('hex');
+
+    let is_waiting = true;
+
+    while (is_waiting) {
+        console.log("waiting ....");
+
+        try {
+            let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
+
+            for (let utxo of utxo_list) {
+                if (utxo.value === parseInt(amount, 10)) {
+                    console.log("utxo found");
+                    console.log(utxo);
+
+                    coin.utxo = `${utxo.tx_hash}:${utxo.tx_pos}`;
+                    is_waiting = false;
+                    break;
+                }
+            }
+        } catch (e) {
+            console.log(e);
+        }
+
+        await sleep(5000);
+    }
+
 }
 
 module.exports = { execute };

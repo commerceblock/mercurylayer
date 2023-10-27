@@ -52,8 +52,12 @@ async function main() {
     .argument('<amount>', 'amount to deposit')
     .action(async (wallet_name, token_id, amount) => {
 
-      await deposit.execute(db, wallet_name, token_id, amount);
+      const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+      await electrumClient.connect(); // connect(promise)
 
+      await deposit.execute(electrumClient, db, wallet_name, token_id, amount);
+
+      electrumClient.close();
       db.close();
     });
   

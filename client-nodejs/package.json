@@ -9,10 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "mercury-wasm": "file:../wasm/pkg",
     "@mempool/electrum-client": "^1.1.9",
     "axios": "^1.5.1",
+    "bitcoinjs-lib": "^6.1.5",
     "commander": "^11.1.0",
-    "sqlite3": "^5.1.6"
+    "mercury-wasm": "file:../wasm/pkg",
+    "sqlite3": "^5.1.6",
+    "tiny-secp256k1": "^2.2.3"
   }
 }
