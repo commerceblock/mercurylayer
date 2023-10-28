@@ -3,9 +3,9 @@ use std::{time::Duration, str::FromStr, thread};
 use anyhow::Result;
 use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{SignFirstRequestPayload, create_and_commit_nonces}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig};
+use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::sign_first};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -38,7 +38,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
     coin.public_nonce = Some(coin_nonce.public_nonce);
 
-    let server_public_nonce = get_server_public_nonce(&client_config, &coin_nonce.sign_first_request_payload).await?;
+    // new transaction
+
+    let server_public_nonce = sign_first(&client_config, &coin_nonce.sign_first_request_payload).await?;
 
     coin.server_public_nonce = Some(server_public_nonce);
 
@@ -127,17 +129,3 @@ pub fn wait_for_deposit(client_config: &ClientConfig, coin: &mercury_lib::wallet
     Ok(coin_utxo)
 }
 
-pub async fn get_server_public_nonce(client_config: &ClientConfig,sign_first_request_payload: &SignFirstRequestPayload) -> Result<String> {
-
-    let endpoint = client_config.statechain_entity.clone();
-    let path = "sign/first";
-
-    let client: reqwest::Client = reqwest::Client::new();
-    let request = client.post(&format!("{}/{}", endpoint, path));
-
-    let value = request.json(&sign_first_request_payload).send().await?.text().await?;
-
-    let sign_first_response_payload: mercury_lib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str())?;
-
-    Ok(sign_first_response_payload.server_pubnonce)
-}

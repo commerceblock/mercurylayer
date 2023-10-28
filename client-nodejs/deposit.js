@@ -2,6 +2,7 @@ const axios = require('axios').default;
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
+const transaction = require('./transaction');
 
 // used only for random token. Can be removed later
 const crypto = require('crypto');
@@ -30,6 +31,21 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     await waitForDeposit(electrumClient, coin, amount, wallet.network);
 
     await sqlite_manager.updateWallet(db, wallet);
+
+    // new transaction
+
+    let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
+
+    let server_pubnonce = await transaction.signFirst(coin_nonce.sign_first_request_payload);
+
+    console.log("server_pubnonce:", server_pubnonce);
+
+    coin.secret_nonce = coin_nonce.secret_nonce;
+    coin.public_nonce = coin_nonce.public_nonce;
+    coin.server_public_nonce = server_pubnonce;
+
+    await sqlite_manager.updateWallet(db, wallet);
+
 }
 
 const init = async (db, wallet, token_id, amount) => {
@@ -44,8 +60,6 @@ const init = async (db, wallet, token_id, amount) => {
     token_id = crypto.randomUUID().replace('-','');
 
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id, parseInt(amount, 10));
-
-    console.log(depositMsg1);
 
     const statechain_entity_url = 'http://127.0.0.1:8000';
     const path = "deposit/init/pod";
@@ -110,7 +124,7 @@ const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
 
 const getServerPublicNonce = async (coin) => {
 
-    
+
 
 }
 

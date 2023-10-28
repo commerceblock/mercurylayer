@@ -3,6 +3,7 @@ mod wallet;
 mod utils;
 mod sqlite_manager;
 mod deposit;
+mod transaction;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
