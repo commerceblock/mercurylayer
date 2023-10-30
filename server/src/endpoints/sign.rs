@@ -138,7 +138,7 @@ pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_non
 }
 
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
-pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercury_lib::sign::PartialSignatureRequestPayload<'_> >) -> status::Custom<Json<Value>>  {
+pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercury_lib::transaction::PartialSignatureRequestPayload>) -> status::Custom<Json<Value>>  {
     
     let statechain_entity = statechain_entity.inner();
 
@@ -161,14 +161,18 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
-    let session_bytes: [u8; 133] = hex::decode(partial_signature_request_payload.0.session).unwrap().try_into().unwrap();
+    let partial_signature_request_payload = partial_signature_request_payload.0.clone(); 
+    let session = partial_signature_request_payload.session.clone();
+    let server_pub_nonce = partial_signature_request_payload.server_pub_nonce.clone();
+
+    let session_bytes: [u8; 133] = hex::decode(&session).unwrap().try_into().unwrap();
     let session = MusigSession::from_slice(session_bytes);
     let challenge = session.get_challenge_from_session();
     let challenge_str = hex::encode(challenge);
 
-    update_signature_data_challenge(&statechain_entity.pool, partial_signature_request_payload.0.server_pub_nonce, &challenge_str, statechain_id).await;
+    update_signature_data_challenge(&statechain_entity.pool, &server_pub_nonce, &challenge_str, &statechain_id).await;
 
-    let value = match request.json(&partial_signature_request_payload.0).send().await {
+    let value = match request.json(&partial_signature_request_payload).send().await {
         Ok(response) => {
             let text = response.text().await.unwrap();
             text

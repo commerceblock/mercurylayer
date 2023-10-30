@@ -444,7 +444,7 @@ pub fn create_tx_out(
     coin: &Coin, 
     fee_rate_sats_per_byte: u64,
     to_address: &str,
-    network: &str,
+    network: Network,
 ) -> Result<TxOut>
 {
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
@@ -454,8 +454,6 @@ pub fn create_tx_out(
     let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte;
     let amount_out = input_amount - absolute_fee;
 
-    let network = utils::get_network(&network)?;
-
     let to_address = Address::from_str(&to_address).unwrap().require_network(network)?;
 
     let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
@@ -464,7 +462,6 @@ pub fn create_tx_out(
 }
 
 pub fn calculate_block_height(
-    coin: &Coin, 
     block_height: u32, 
     initlock: u32, 
     interval: u32, 
@@ -490,28 +487,34 @@ pub fn get_partial_sig_request(
     qt_backup_tx: u32,
     to_address: String,
     network: String,
-    is_withdrawal: bool) -> Result<()>
+    is_withdrawal: bool) -> Result<PartialSignatureMsg1>
 {
+    let network = utils::get_network(&network)?;
     
     let tx_out = create_tx_out(
-        coin, fee_rate_sats_per_byte, &to_address, &network)?;
+        coin, fee_rate_sats_per_byte, &to_address, network)?;
 
     let block_height = calculate_block_height(
-        coin, 
         block_height, 
         initlock, 
         interval, 
         qt_backup_tx,
         is_withdrawal)?;
 
-    Ok(())
+    let session = get_musig_session(
+        coin,
+        block_height, 
+        &tx_out,
+        network)?;
+
+    Ok(session)
 }
 
-pub fn create(
+pub fn get_musig_session(
     coin: &Coin,
     block_height: u32, 
     output: &TxOut,
-    network: Network) -> Result<()>
+    network: Network) -> Result<PartialSignatureMsg1>
 {
     let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
     let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
@@ -573,7 +576,11 @@ pub fn create(
         hash_ty,
     )?;
 
-    Ok(())
+    let session = calculate_musig_session(
+        coin,
+        hash)?;
+
+    Ok(session)
 }
 
 
@@ -592,7 +599,7 @@ pub struct PartialSignatureRequestPayload {
     pub server_pub_nonce: String,
 }
 
-pub fn get_musig_session(
+pub fn calculate_musig_session(
     coin: &Coin,
     hash: TapSighash,) -> Result<PartialSignatureMsg1>
 {
