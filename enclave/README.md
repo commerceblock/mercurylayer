@@ -6,11 +6,27 @@ Key share management in SGX secure enclaves. This system is designed to interact
 
 To install and setup Intel SGX drivers and SDK, follow the steps described in [Intel SGX for Linux repository](https://github.com/intel/linux-sgx).
 
+# Prerequisite
+
+This project requires gcc/g++ version 11.4.0 or higher.
+
 ## Build and run this application
 
 Build and run this application as follows.
 
-```
+```bash
+# Install libpqxx-dev 7.8.1 (C++ client API for PostgreSQ)
+# Remove any other version of libpqxx-dev from the operating system if necessary
+$ sudo apt remove libpqxx-dev
+# Clone libpqxx project
+$ git clone https://github.com/jtv/libpqxx.git
+# Change to 7.8.1 version
+$ git checkout 7.8.1
+# Build it
+$ cd cmake && cmake --build .
+# Install it
+$ sudo cmake --install .
+
 # clone this repo
 $ git clone https://github.com/commerceblock/mercurylayer
 $ git checkout -b dev origin/dev
