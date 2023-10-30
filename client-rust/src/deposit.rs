@@ -26,9 +26,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     let coin = wallet.coins.last_mut().unwrap();
 
-    let coin_utxo = wait_for_deposit(&client_config, &coin)?;
+    let (utxo_txid, utxo_vout) = wait_for_deposit(&client_config, &coin)?;
 
-    coin.utxo = Some(coin_utxo);
+    coin.utxo_txid = Some(utxo_txid);
+    coin.utxo_vout = Some(utxo_vout);
 
     update_wallet(&client_config.pool, &wallet).await?;
 
@@ -37,6 +38,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
     coin.public_nonce = Some(coin_nonce.public_nonce);
+    coin.blinding_factor = Some(coin_nonce.blinding_factor);
 
     // new transaction
 
@@ -93,7 +95,7 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     Ok(wallet)
 }
 
-pub fn wait_for_deposit(client_config: &ClientConfig, coin: &mercury_lib::wallet::Coin) -> Result<String> {
+pub fn wait_for_deposit(client_config: &ClientConfig, coin: &mercury_lib::wallet::Coin) -> Result<(String, u32)> {
 
     println!("address: {}", coin.aggregated_address.as_ref().unwrap().clone());
 
@@ -124,8 +126,6 @@ pub fn wait_for_deposit(client_config: &ClientConfig, coin: &mercury_lib::wallet
 
     let utxo = utxo.unwrap();
 
-    let coin_utxo = format!("{}:{}", &utxo.tx_hash, &utxo.tx_pos);
-    
-    Ok(coin_utxo)
+    Ok((utxo.tx_hash.to_string(), utxo.tx_pos as u32))
 }
 

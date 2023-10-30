@@ -323,12 +323,12 @@ async fn musig_sign_psbt_taproot(
 
     let blinded_session = session.remove_fin_nonce_from_session();
 
-    let payload = mercury_lib::sign::PartialSignatureRequestPayload {
-        statechain_id,
+    let payload = mercury_lib::transaction::PartialSignatureRequestPayload {
+        statechain_id: statechain_id.to_string(),
         negate_seckey,
-        session: &hex::encode(blinded_session.serialize()),
-        signed_statechain_id: &signed_statechain_id.to_string(),
-        server_pub_nonce: server_pubnonce_hex.as_str(),
+        session: hex::encode(blinded_session.serialize()).to_string(),
+        signed_statechain_id: signed_statechain_id.to_string(),
+        server_pub_nonce: server_pubnonce_hex,
     };
 
     let path = "sign/second";

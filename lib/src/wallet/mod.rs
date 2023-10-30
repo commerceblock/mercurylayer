@@ -58,13 +58,15 @@ pub struct Coin {
     pub aggregated_pubkey: Option<String>,
     /// The aggregated address is the P2TR address from aggregated_pubkey
     pub aggregated_address: Option<String>,
-    pub utxo: Option<String>,
+    pub utxo_txid: Option<String>,
+    pub utxo_vout: Option<u32>,
     pub amount: Option<u32>,
     pub statechain_id: Option<String>,
     pub signed_statechain_id: Option<String>,
     pub locktime: Option<u32>,
     pub secret_nonce: Option<String>,
     pub public_nonce: Option<String>,
+    pub blinding_factor: Option<String>,
     pub server_public_nonce: Option<String>,
     pub status: String// CoinStatus,
 }

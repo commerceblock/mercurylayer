@@ -109,7 +109,9 @@ const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
                     console.log("utxo found");
                     console.log(utxo);
 
-                    coin.utxo = `${utxo.tx_hash}:${utxo.tx_pos}`;
+                    // coin.utxo = `${utxo.tx_hash}:${utxo.tx_pos}`;
+                    coin.utxo_txid = utxo.tx_hash;
+                    coin.utxo_vout = utxo.tx_pos;
                     is_waiting = false;
                     break;
                 }

@@ -1,12 +1,12 @@
 use std::{str::FromStr, collections::BTreeMap};
 
-use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address, PrivateKey};
-use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
+use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address, PrivateKey, Network};
+use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce, MusigSecNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
 use serde::{Serialize, Deserialize};
 
 use anyhow::Result;
 
-use crate::{sign::PartialSignatureRequestPayload, wallet::Coin};
+use crate::{wallet::Coin, utils};
 
 /*
 
@@ -382,6 +382,7 @@ pub struct SignFirstRequestPayload {
 pub struct CoinNonce {
     pub secret_nonce: String,
     pub public_nonce: String,
+    pub blinding_factor: String,
     pub sign_first_request_payload: SignFirstRequestPayload,
 }
 
@@ -416,6 +417,265 @@ pub fn create_and_commit_nonces(coin: &Coin) -> Result<CoinNonce>{
     Ok(CoinNonce {
         secret_nonce: hex::encode(client_sec_nonce.serialize()),
         public_nonce: hex::encode(client_pub_nonce.serialize()),
+        blinding_factor: hex::encode(blinding_factor.as_bytes()),
         sign_first_request_payload,
+    })
+}
+
+/// The purpose of this function is to get a random locktime for the withdrawal transaction.
+/// This is done to improve privacy and discourage fee sniping.
+/// This function assumes that the block_height is the current block height.
+fn get_locktime_for_withdrawal_transaction (block_height: u32) -> u32 {
+
+    let mut locktime = block_height as i32;
+
+    let mut rng = rand::thread_rng();
+    let number = rng.gen_range(0..=10);
+
+    // sometimes locktime is set a bit further back, for privacy reasons
+    if number == 0 {
+        locktime = locktime - rng.gen_range(0..=99);
+    }
+
+    std::cmp::max(0, locktime) as u32
+}
+
+pub fn create_tx_out(
+    coin: &Coin, 
+    fee_rate_sats_per_byte: u64,
+    to_address: &str,
+    network: &str,
+) -> Result<TxOut>
+{
+    const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
+    // 163 is the real size one input P2TR and one output P2TR
+
+    let input_amount: u64 = coin.amount.unwrap() as u64;
+    let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte;
+    let amount_out = input_amount - absolute_fee;
+
+    let network = utils::get_network(&network)?;
+
+    let to_address = Address::from_str(&to_address).unwrap().require_network(network)?;
+
+    let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
+
+    Ok(tx_out)
+}
+
+pub fn calculate_block_height(
+    coin: &Coin, 
+    block_height: u32, 
+    initlock: u32, 
+    interval: u32, 
+    qt_backup_tx: u32,
+    is_withdrawal: bool)  -> Result<u32>
+{
+    // if qt_backup_tx == 0, it means this is the first backup transaction (Tx0)
+    // In this case, the block_height is equal to the current block height
+    // Otherwise, block_height is equal to the Tx0.lock_time + initlock
+    let initlock = if qt_backup_tx == 0 { initlock } else { 0 };
+
+    let block_height = if is_withdrawal { get_locktime_for_withdrawal_transaction(block_height) } else { (block_height + initlock) - (interval * qt_backup_tx) };
+    
+    Ok(block_height)
+}
+
+pub fn get_partial_sig_request(
+    coin: &Coin, 
+    block_height: u32, 
+    initlock: u32, 
+    interval: u32, 
+    fee_rate_sats_per_byte: u64,
+    qt_backup_tx: u32,
+    to_address: String,
+    network: String,
+    is_withdrawal: bool) -> Result<()>
+{
+    
+    let tx_out = create_tx_out(
+        coin, fee_rate_sats_per_byte, &to_address, &network)?;
+
+    let block_height = calculate_block_height(
+        coin, 
+        block_height, 
+        initlock, 
+        interval, 
+        qt_backup_tx,
+        is_withdrawal)?;
+
+    Ok(())
+}
+
+pub fn create(
+    coin: &Coin,
+    block_height: u32, 
+    output: &TxOut,
+    network: Network) -> Result<()>
+{
+    let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
+    let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
+
+    let outputs = [output.to_owned()].to_vec();
+
+    let lock_time = absolute::LockTime::from_height(block_height)?;
+
+    let input_txid = Txid::from_str(&coin.utxo_txid.as_ref().unwrap())?;
+    let input_vout = coin.utxo_vout.unwrap();
+
+    let tx1 = Transaction {
+        version: 2,
+        lock_time,
+        input: vec![TxIn {
+            previous_output: OutPoint { txid: input_txid, vout: input_vout },
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence(0xFFFFFFFF), // Ignore nSequence.
+            witness: Witness::default(),
+        }],
+        output: outputs,
+    };
+    let mut psbt = Psbt::from_unsigned_tx(tx1)?;
+
+    let input_amount = coin.amount.unwrap() as u64;
+    
+    let input_address = Address::from_str(&coin.aggregated_address.as_ref().unwrap())?.require_network(network)?;
+    let input_scriptpubkey = input_address.script_pubkey();
+    let mut input = Input {
+        witness_utxo: Some(TxOut { value: input_amount, script_pubkey: input_scriptpubkey }),
+        ..Default::default()
+    };
+
+    let ty = PsbtSighashType::from_str("SIGHASH_ALL")?;
+    input.sighash_type = Some(ty);
+    input.tap_internal_key = Some(input_xonly_pubkey.to_owned());
+    psbt.inputs = vec![input];
+
+    let unsigned_tx = psbt.unsigned_tx.clone();
+
+    // There must not be more than one input.
+    // The input is the funding transaction and the output the backup address.
+    assert!(psbt.inputs.len() == 1);
+
+    let vout = 0; // the vout is always 0 (only one input)
+    let input = psbt.inputs.iter_mut().nth(vout).unwrap();
+
+    let hash_ty = input
+        .sighash_type
+        .and_then(|psbt_sighash_type| psbt_sighash_type.taproot_hash_ty().ok())
+        .unwrap_or(TapSighashType::All);
+
+    let hash = SighashCache::new(&unsigned_tx).taproot_key_spend_signature_hash(
+        vout,
+        &sighash::Prevouts::All(&[TxOut {
+            value: input.witness_utxo.as_ref().unwrap().value,
+            script_pubkey: input.witness_utxo.as_ref().unwrap().script_pubkey.clone(),
+        }]),
+        hash_ty,
+    )?;
+
+    Ok(())
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartialSignatureMsg1 {
+    client_partial_sig: String,
+    partial_signature_request_payload: PartialSignatureRequestPayload,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartialSignatureRequestPayload {
+    pub statechain_id: String,
+    pub negate_seckey: u8,
+    pub session: String,
+    pub signed_statechain_id: String,
+    pub server_pub_nonce: String,
+}
+
+pub fn get_musig_session(
+    coin: &Coin,
+    hash: TapSighash,) -> Result<PartialSignatureMsg1>
+{
+    let secp = Secp256k1::new();
+
+    let aggregate_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?; 
+
+    let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
+    let tap_tweak_bytes = tap_tweak.as_byte_array();
+
+    // tranform tweak: Scalar to SecretKey
+    let tweak = SecretKey::from_slice(tap_tweak_bytes).unwrap();
+
+    let (parity_acc, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
+
+    let client_pub_nonce_bytes = hex::decode(coin.public_nonce.as_ref().unwrap())?;
+    let client_pub_nonce = MusigPubNonce::from_slice(client_pub_nonce_bytes.as_slice())?;
+
+    let server_pubnonce_hex = coin.server_public_nonce.as_ref().unwrap().to_string();
+    let server_pub_nonce_bytes = hex::decode(&server_pubnonce_hex)?;
+    let server_pub_nonce = MusigPubNonce::from_slice(server_pub_nonce_bytes.as_slice())?;
+
+    let aggnonce = MusigAggNonce::new(&secp, &[client_pub_nonce, server_pub_nonce]);
+
+    let blinding_factor_bytes = hex::decode(coin.blinding_factor.as_ref().unwrap())?;
+    let blinding_factor = BlindingFactor::from_slice(blinding_factor_bytes.as_slice())?;
+
+    let msg: Message = hash.into();
+
+    let session = MusigSession::new_blinded_without_key_agg_cache(
+        &secp,
+        &output_pubkey,
+        aggnonce,
+        msg,
+        None,
+        &blinding_factor,
+        out_tweak32
+    );
+
+    let negate_seckey = blinded_musig_negate_seckey(
+        &secp,
+        &output_pubkey,
+        parity_acc,
+    );
+
+    let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+
+    let client_pubkey = PublicKey::from_str(&coin.user_pubkey)?;
+
+    let client_keypair = KeyPair::from_secret_key(&secp, &client_seckey);
+
+    let client_sec_nonce_bytes = hex::decode(coin.secret_nonce.as_ref().unwrap())?;
+    let client_sec_nonce_bytes: [u8; 132] = client_sec_nonce_bytes.try_into().unwrap();
+    let client_sec_nonce = MusigSecNonce::from_slice(client_sec_nonce_bytes);
+
+    let client_partial_sig = session.blinded_partial_sign_without_keyaggcoeff(&secp, client_sec_nonce, &client_keypair, negate_seckey).unwrap();
+
+    assert!(session.blinded_musig_partial_sig_verify(&secp, &client_partial_sig, &client_pub_nonce, &client_pubkey, &output_pubkey, parity_acc));
+
+    session.remove_fin_nonce_from_session();
+
+    let negate_seckey = match negate_seckey {
+        true => 1,
+        false => 0,
+    };
+
+    let blinded_session = session.remove_fin_nonce_from_session();
+
+    let statechain_id = coin.statechain_id.as_ref().unwrap();
+    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
+
+    let payload = PartialSignatureRequestPayload {
+        statechain_id: statechain_id.to_string(),
+        negate_seckey,
+        session: hex::encode(blinded_session.serialize()),
+        signed_statechain_id: signed_statechain_id.to_string(),
+        server_pub_nonce: server_pubnonce_hex,
+    };
+
+    let client_partial_sig_hex = hex::encode(client_partial_sig.serialize());
+
+    Ok(PartialSignatureMsg1 {
+        client_partial_sig: client_partial_sig_hex,
+        partial_signature_request_payload: payload,
     })
 }
