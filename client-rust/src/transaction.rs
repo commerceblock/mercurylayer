@@ -15,5 +15,11 @@ pub async fn sign_first(client_config: &ClientConfig,sign_first_request_payload:
 
     let sign_first_response_payload: mercury_lib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str())?;
 
-    Ok(sign_first_response_payload.server_pubnonce)
+    let mut server_pubnonce_hex = sign_first_response_payload.server_pubnonce.to_string();
+
+    if server_pubnonce_hex.starts_with("0x") {
+        server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
+    }
+
+    Ok(server_pubnonce_hex)
 }

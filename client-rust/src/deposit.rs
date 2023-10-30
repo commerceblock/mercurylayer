@@ -1,11 +1,12 @@
 use std::{time::Duration, str::FromStr, thread};
 
 use anyhow::Result;
-use bitcoin::Address;
+use bitcoin::{Address, network};
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::get_partial_sig_request};
+use secp256k1_zkp::{Secp256k1, PublicKey};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::sign_first};
+use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::sign_first, utils::info_config};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -47,6 +48,37 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     coin.server_public_nonce = Some(server_public_nonce);
 
     update_wallet(&client_config.pool, &wallet).await?;
+
+    let coin = wallet.coins.last_mut().unwrap();
+
+    let server_info = info_config(&client_config.statechain_entity, &client_config.electrum_client).await?;
+
+    let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
+    let block_height = block_header.height as u32;
+
+    let initlock = server_info.initlock;
+    let interval = server_info.interval;
+    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte;
+    let qt_backup_tx = 0;
+
+    let user_pubkey = PublicKey::from_str(&coin.user_pubkey.clone())?;
+    let to_address = Address::p2tr(&Secp256k1::new(), user_pubkey.x_only_public_key().0, None, client_config.network);
+    let to_address = to_address.to_string();
+    let network = wallet.network.clone();
+    let is_withdrawal = false;
+
+    let partial_sig_request = get_partial_sig_request(
+        &coin, 
+        block_height, 
+        initlock, 
+        interval, 
+        fee_rate_sats_per_byte,
+        qt_backup_tx,
+        to_address,
+        network,
+        is_withdrawal)?;
+
+    println!("partial_sig_request: {:?}", partial_sig_request);
 
     Ok(())
 }
