@@ -21,9 +21,9 @@ $ sudo apt remove libpqxx-dev
 # Clone libpqxx project
 $ git clone https://github.com/jtv/libpqxx.git
 # Change to 7.8.1 version
-$ git checkout 7.8.1
+$ cd libpqxx && git checkout 7.8.1
 # Build it
-$ cd cmake && cmake --build .
+$ cd cmake && cmake .. && cmake --build .
 # Install it
 $ sudo cmake --install .
 
@@ -36,6 +36,10 @@ $ make SGX_MODE=SIM INCLUDE_SECP256K1_ZKP=1
 # run application
 $ ./app
 ```
+
+On Ubuntu 23.10, it is necessary to install `libpq-dev` first.
+
+`sudo apt-get install libpq-dev`
 
 ## More MAKE commands
 
