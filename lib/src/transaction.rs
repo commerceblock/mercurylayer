@@ -391,6 +391,32 @@ pub struct SignFirstResponsePayload {
     pub server_pubnonce: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartialSignatureMsg1 {
+    pub client_partial_sig: String,
+    pub partial_signature_request_payload: PartialSignatureRequestPayload,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartialSignatureRequestPayload {
+    pub statechain_id: String,
+    pub negate_seckey: u8,
+    pub session: String,
+    pub signed_statechain_id: String,
+    pub server_pub_nonce: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServerPublicNonceResponsePayload<'r> {
+    pub server_pubnonce: &'r str,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartialSignatureResponsePayload<'r> {
+    pub partial_sig: &'r str,
+}
+
+
 pub fn create_and_commit_nonces(coin: &Coin) -> Result<CoinNonce>{
     
     let secp = Secp256k1::new();
@@ -581,22 +607,6 @@ pub fn get_musig_session(
         hash)?;
 
     Ok(session)
-}
-
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartialSignatureMsg1 {
-    client_partial_sig: String,
-    partial_signature_request_payload: PartialSignatureRequestPayload,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartialSignatureRequestPayload {
-    pub statechain_id: String,
-    pub negate_seckey: u8,
-    pub session: String,
-    pub signed_statechain_id: String,
-    pub server_pub_nonce: String,
 }
 
 pub fn calculate_musig_session(

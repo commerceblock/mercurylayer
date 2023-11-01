@@ -1,12 +1,12 @@
 use std::{time::Duration, str::FromStr, thread};
 
 use anyhow::Result;
-use bitcoin::{Address, network};
+use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
 use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::get_partial_sig_request};
 use secp256k1_zkp::{Secp256k1, PublicKey};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::sign_first, utils::info_config};
+use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, get_server_partial_sig}, utils::info_config};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -78,7 +78,11 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
         network,
         is_withdrawal)?;
 
-    println!("partial_sig_request: {:?}", partial_sig_request);
+    let server_partial_sig_request = partial_sig_request.partial_signature_request_payload;
+
+    let server_partial_sig = get_server_partial_sig(&client_config, &server_partial_sig_request).await?;
+
+    println!("server_partial_sig: {}", hex::encode(server_partial_sig.serialize()));
 
     Ok(())
 }
@@ -160,4 +164,3 @@ pub fn wait_for_deposit(client_config: &ClientConfig, coin: &mercury_lib::wallet
 
     Ok((utxo.tx_hash.to_string(), utxo.tx_pos as u32))
 }
-

@@ -1,6 +1,7 @@
 use std::{str::FromStr, collections::BTreeMap};
 
 use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, secp256k1, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address};
+use mercury_lib::transaction::{ServerPublicNonceResponsePayload, PartialSignatureResponsePayload};
 use rand::Rng;
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce}, new_musig_nonce_pair, KeyPair};
 use serde::{Serialize, Deserialize};
@@ -207,16 +208,6 @@ pub struct SignFirstRequestPayload<'r> {
     r2_commitment: &'r str,
     blind_commitment: &'r str,
     signed_statechain_id: &'r str,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ServerPublicNonceResponsePayload<'r> {
-    server_pubnonce: &'r str,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartialSignatureResponsePayload<'r> {
-    partial_sig: &'r str,
 }
 
 async fn musig_sign_psbt_taproot(
