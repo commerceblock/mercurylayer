@@ -21,12 +21,11 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let aggregatedPublicKey = mercury_wasm.createAggregatedAddress(coin, wallet.network);
 
+    coin.amount = parseInt(amount, 10);
     coin.aggregated_address = aggregatedPublicKey.aggregate_address;
     coin.aggregated_pubkey = aggregatedPublicKey.aggregate_pubkey;
 
     await sqlite_manager.updateWallet(db, wallet);
-
-    console.log(wallet);
 
     await waitForDeposit(electrumClient, coin, amount, wallet.network);
 
@@ -36,6 +35,8 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
+    console.log("-- 1");
+
     let server_pubnonce = await transaction.signFirst(coin_nonce.sign_first_request_payload);
 
     console.log("server_pubnonce:", server_pubnonce);
@@ -43,14 +44,48 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     coin.secret_nonce = coin_nonce.secret_nonce;
     coin.public_nonce = coin_nonce.public_nonce;
     coin.server_public_nonce = server_pubnonce;
+    coin.blinding_factor = coin_nonce.blinding_factor;
 
     await sqlite_manager.updateWallet(db, wallet);
 
+    const serverInfo = await utils.infoConfig(electrumClient);
+
+    const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const blockheight = block_header.height;
+
+    const initlock = serverInfo.initlock;
+    const interval = serverInfo.interval;
+    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+    const qtBackupTx = 0;
+
+    const network = wallet.network;
+    const toAddress = mercury_wasm.getUserBackupAddress(coin, network);
+    const isWithdrawal = false;
+
+    console.log("toAddress: ", toAddress);
+    console.log("coin.amount: ", coin.amount);
+
+    let partialSigRequest = mercury_wasm.getPartialSigRequest(
+        coin,
+        blockheight,
+        initlock, 
+        interval,
+        feeRateSatsPerByte,
+        qtBackupTx,
+        toAddress,
+        network,
+        isWithdrawal);
+
+    console.log("partialSigRequest: ", partialSigRequest);
+
+    const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
+
+    let serverPartialSig = await transaction.signSecond(serverPartialSigRequest);
+
+    console.log("serverPartialSig: ", serverPartialSig);
 }
 
 const init = async (db, wallet, token_id, amount) => {
-    console.log(wallet);
-
     let coin = mercury_wasm.getNewCoin(wallet);
 
     wallet.coins.push(coin);

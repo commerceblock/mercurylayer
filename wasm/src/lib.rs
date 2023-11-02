@@ -2,7 +2,7 @@
 
 mod utils;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig, deposit::DepositMsg1Response};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -177,6 +177,41 @@ pub fn createAndCommitNonces(coin_json: JsValue) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin).unwrap();
     serde_wasm_bindgen::to_value(&coin_nonce).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn getUserBackupAddress(coin_json: JsValue, network: String) -> String {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let backup_address = mercury_lib::transaction::get_user_backup_address(&coin, network).unwrap();
+    backup_address
+}
+
+#[wasm_bindgen]
+pub fn getPartialSigRequest(
+    coin_json: JsValue, 
+    block_height: u32, 
+    initlock: u32, 
+    interval: u32, 
+    fee_rate_sats_per_byte: u32,
+    qt_backup_tx: u32,
+    to_address: String,
+    network: String,
+    is_withdrawal: bool) -> JsValue
+{
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+
+    let partial_sig_request = mercury_lib::transaction::get_partial_sig_request(
+        &coin, 
+        block_height, 
+        initlock, 
+        interval, 
+        fee_rate_sats_per_byte,
+        qt_backup_tx,
+        to_address,
+        network,
+        is_withdrawal).unwrap();
+
+    serde_wasm_bindgen::to_value(&partial_sig_request).unwrap()
 }
 
 /*

@@ -7,7 +7,7 @@ const createWallet = async (name, electrumClient, electrumEndpoint, statechainEn
     let block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     let blockheight = block_header.height;
 
-    let server_info = await utils.infoConfig(electrumClient);
+    let serverInfo = await utils.infoConfig(electrumClient);
 
     let mnemonic = mercury_wasm.generateMnemonic();
     
@@ -19,8 +19,8 @@ const createWallet = async (name, electrumClient, electrumEndpoint, statechainEn
         electrum_endpoint: electrumEndpoint,
         network: network,
         blockheight,
-        initlock: server_info.initlock,
-        interval: server_info.interval,
+        initlock: serverInfo.initlock,
+        interval: serverInfo.interval,
         tokens: [],
         activity: [],
         coins: []

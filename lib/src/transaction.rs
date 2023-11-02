@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 
 use anyhow::Result;
 
-use crate::{wallet::Coin, utils};
+use crate::{wallet::Coin, utils::{self, get_network}};
 
 /*
 
@@ -504,12 +504,21 @@ pub fn calculate_block_height(
     Ok(block_height)
 }
 
+pub fn get_user_backup_address(coin: &Coin, network: String) -> Result<String> {
+
+    let network = get_network(&network)?;
+
+    let user_pubkey = PublicKey::from_str(&coin.user_pubkey.clone())?;
+    let to_address = Address::p2tr(&Secp256k1::new(), user_pubkey.x_only_public_key().0, None, network);
+    Ok(to_address.to_string())
+}
+
 pub fn get_partial_sig_request(
     coin: &Coin, 
     block_height: u32, 
     initlock: u32, 
     interval: u32, 
-    fee_rate_sats_per_byte: u64,
+    fee_rate_sats_per_byte: u32,
     qt_backup_tx: u32,
     to_address: String,
     network: String,
@@ -518,7 +527,7 @@ pub fn get_partial_sig_request(
     let network = utils::get_network(&network)?;
     
     let tx_out = create_tx_out(
-        coin, fee_rate_sats_per_byte, &to_address, network)?;
+        coin, fee_rate_sats_per_byte as u64, &to_address, network)?;
 
     let block_height = calculate_block_height(
         block_height, 
@@ -621,7 +630,7 @@ pub fn calculate_musig_session(
     let tap_tweak_bytes = tap_tweak.as_byte_array();
 
     // tranform tweak: Scalar to SecretKey
-    let tweak = SecretKey::from_slice(tap_tweak_bytes).unwrap();
+    let tweak = SecretKey::from_slice(tap_tweak_bytes)?;
 
     let (parity_acc, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
 
@@ -665,7 +674,7 @@ pub fn calculate_musig_session(
     let client_sec_nonce_bytes: [u8; 132] = client_sec_nonce_bytes.try_into().unwrap();
     let client_sec_nonce = MusigSecNonce::from_slice(client_sec_nonce_bytes);
 
-    let client_partial_sig = session.blinded_partial_sign_without_keyaggcoeff(&secp, client_sec_nonce, &client_keypair, negate_seckey).unwrap();
+    let client_partial_sig = session.blinded_partial_sign_without_keyaggcoeff(&secp, client_sec_nonce, &client_keypair, negate_seckey)?;
 
     assert!(session.blinded_musig_partial_sig_verify(&secp, &client_partial_sig, &client_pub_nonce, &client_pubkey, &output_pubkey, parity_acc));
 

@@ -25,7 +25,7 @@ pub async fn sign_first(client_config: &ClientConfig, sign_first_request_payload
     Ok(server_pubnonce_hex)
 }
 
-pub async fn get_server_partial_sig(client_config: &ClientConfig, partial_sig_request: &PartialSignatureRequestPayload) -> Result<MusigPartialSignature> {
+pub async fn sign_second(client_config: &ClientConfig, partial_sig_request: &PartialSignatureRequestPayload) -> Result<MusigPartialSignature> {
     let endpoint = client_config.statechain_entity.clone();
     let path = "sign/second";
 

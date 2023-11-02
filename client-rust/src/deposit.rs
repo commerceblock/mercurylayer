@@ -3,10 +3,10 @@ use std::{time::Duration, str::FromStr, thread};
 use anyhow::Result;
 use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::get_partial_sig_request};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{get_partial_sig_request, get_user_backup_address}};
 use secp256k1_zkp::{Secp256k1, PublicKey};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, get_server_partial_sig}, utils::info_config};
+use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -58,13 +58,11 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     let initlock = server_info.initlock;
     let interval = server_info.interval;
-    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte;
+    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
     let qt_backup_tx = 0;
 
-    let user_pubkey = PublicKey::from_str(&coin.user_pubkey.clone())?;
-    let to_address = Address::p2tr(&Secp256k1::new(), user_pubkey.x_only_public_key().0, None, client_config.network);
-    let to_address = to_address.to_string();
     let network = wallet.network.clone();
+    let to_address = get_user_backup_address(&coin, network.clone())?;
     let is_withdrawal = false;
 
     let partial_sig_request = get_partial_sig_request(
@@ -80,7 +78,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     let server_partial_sig_request = partial_sig_request.partial_signature_request_payload;
 
-    let server_partial_sig = get_server_partial_sig(&client_config, &server_partial_sig_request).await?;
+    let server_partial_sig = sign_second(&client_config, &server_partial_sig_request).await?;
 
     println!("server_partial_sig: {}", hex::encode(server_partial_sig.serialize()));
 
