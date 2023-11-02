@@ -393,6 +393,8 @@ pub struct SignFirstResponsePayload {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PartialSignatureMsg1 {
+    pub msg: String,
+    pub output_pubkey: String, // the tweaked pubkey
     pub client_partial_sig: String,
     pub partial_signature_request_payload: PartialSignatureRequestPayload,
 }
@@ -701,7 +703,42 @@ pub fn calculate_musig_session(
     let client_partial_sig_hex = hex::encode(client_partial_sig.serialize());
 
     Ok(PartialSignatureMsg1 {
+        msg: hex::encode(hash.as_byte_array()),
+        output_pubkey: output_pubkey.to_string(),
         client_partial_sig: client_partial_sig_hex,
         partial_signature_request_payload: payload,
     })
+}
+
+pub fn create_signature(
+    msg: String,
+    client_partial_sig_hex: String,
+    server_partial_sig_hex: String,
+    session_hex: String,
+    output_pubkey_hex: String) -> Result<()> 
+{
+    let secp = Secp256k1::new();
+
+    let msg = Message::from_slice(hex::decode(msg)?.as_slice())?;
+
+    let server_partial_sig_bytes = hex::decode(server_partial_sig_hex)?;
+    let server_partial_sig = MusigPartialSignature::from_slice(server_partial_sig_bytes.as_slice())?;
+
+    let client_partial_sig_bytes = hex::decode(client_partial_sig_hex)?;
+    let client_partial_sig = MusigPartialSignature::from_slice(client_partial_sig_bytes.as_slice())?;
+
+    let session_bytes: [u8; 133] = hex::decode(&session_hex)?.try_into().unwrap();
+    let session = MusigSession::from_slice(session_bytes);
+
+    let sig = session.partial_sig_agg(&[client_partial_sig, server_partial_sig]);
+
+    let output_pubkey = PublicKey::from_str(&output_pubkey_hex)?;
+
+    let x_only_key_tweaked = output_pubkey.x_only_public_key().0;
+
+    assert!(secp.verify_schnorr(&sig, &msg, &x_only_key_tweaked).is_ok());
+
+    println!("signature: {}", sig.to_string());
+
+    Ok(())
 }

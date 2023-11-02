@@ -3,7 +3,7 @@ use std::{time::Duration, str::FromStr, thread};
 use anyhow::Result;
 use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{get_partial_sig_request, get_user_backup_address}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{get_partial_sig_request, get_user_backup_address, create_signature}};
 use secp256k1_zkp::{Secp256k1, PublicKey};
 
 use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
@@ -81,6 +81,14 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     let server_partial_sig = sign_second(&client_config, &server_partial_sig_request).await?;
 
     println!("server_partial_sig: {}", hex::encode(server_partial_sig.serialize()));
+
+    let client_partial_sig_hex = partial_sig_request.client_partial_sig;
+    let server_partial_sig_hex = hex::encode(server_partial_sig.serialize());
+    let msg = partial_sig_request.msg;
+    let session_hex = server_partial_sig_request.session;
+    let output_pubkey_hex = partial_sig_request.output_pubkey;
+    
+    let _ = create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex)?;
 
     Ok(())
 }
