@@ -214,6 +214,18 @@ pub fn getPartialSigRequest(
     serde_wasm_bindgen::to_value(&partial_sig_request).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn createSignature(
+    msg: String,
+    client_partial_sig_hex: String,
+    server_partial_sig_hex: String,
+    session_hex: String,
+    output_pubkey_hex: String) -> String
+{
+    let signature = mercury_lib::transaction::create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex).unwrap();
+    signature
+}
+
 /*
 #[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {

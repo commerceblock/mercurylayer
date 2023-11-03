@@ -4,7 +4,8 @@ use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, T
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce, MusigSecNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
 use serde::{Serialize, Deserialize};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+
 
 use crate::{wallet::Coin, utils::{self, get_network}};
 
@@ -396,6 +397,7 @@ pub struct PartialSignatureMsg1 {
     pub msg: String,
     pub output_pubkey: String, // the tweaked pubkey
     pub client_partial_sig: String,
+    pub encoded_session: String,
     pub partial_signature_request_payload: PartialSignatureRequestPayload,
 }
 
@@ -680,6 +682,8 @@ pub fn calculate_musig_session(
 
     assert!(session.blinded_musig_partial_sig_verify(&secp, &client_partial_sig, &client_pub_nonce, &client_pubkey, &output_pubkey, parity_acc));
 
+    let encoded_session = hex::encode(session.serialize());
+
     session.remove_fin_nonce_from_session();
 
     let negate_seckey = match negate_seckey {
@@ -706,6 +710,7 @@ pub fn calculate_musig_session(
         msg: hex::encode(hash.as_byte_array()),
         output_pubkey: output_pubkey.to_string(),
         client_partial_sig: client_partial_sig_hex,
+        encoded_session,
         partial_signature_request_payload: payload,
     })
 }
@@ -715,7 +720,7 @@ pub fn create_signature(
     client_partial_sig_hex: String,
     server_partial_sig_hex: String,
     session_hex: String,
-    output_pubkey_hex: String) -> Result<()> 
+    output_pubkey_hex: String) -> Result<String> 
 {
     let secp = Secp256k1::new();
 
@@ -736,9 +741,9 @@ pub fn create_signature(
 
     let x_only_key_tweaked = output_pubkey.x_only_public_key().0;
 
-    assert!(secp.verify_schnorr(&sig, &msg, &x_only_key_tweaked).is_ok());
+    if !secp.verify_schnorr(&sig, &msg, &x_only_key_tweaked).is_ok() {
+        return Err(anyhow!("Unkown network"));
+    }
 
-    println!("signature: {}", sig.to_string());
-
-    Ok(())
+    Ok(sig.to_string())
 }
