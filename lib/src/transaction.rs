@@ -577,7 +577,8 @@ pub fn get_musig_session(
         }],
         output: outputs,
     };
-    let mut psbt = Psbt::from_unsigned_tx(tx1.clone())?;
+
+    let mut psbt = Psbt::from_unsigned_tx(tx1)?;
 
     let input_amount = coin.amount.unwrap() as u64;
     
@@ -616,7 +617,7 @@ pub fn get_musig_session(
         hash_ty,
     )?;
 
-    let tx_bytes = bitcoin::consensus::encode::serialize(&tx1);
+    let tx_bytes = bitcoin::consensus::encode::serialize(&unsigned_tx);
     let encoded_unsigned_tx = hex::encode(tx_bytes);
 
     let session = calculate_musig_session(
@@ -755,9 +756,77 @@ pub fn create_signature(
     Ok(sig.to_string())
 }
 
-/* pub fn new_backup_transaction(
-    Coin: &Coin,
-    block_height: u32,
-) {
+pub fn new_backup_transaction(
+    coin: &Coin,
+    encoded_unsigned_tx: String,
+    signature_hex: String,
+    network: String,
+) -> Result<String> {
 
-} */
+    let network = utils::get_network(&network)?;
+
+    let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
+
+    let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
+
+    let input_address = Address::from_str(&coin.aggregated_address.as_ref().unwrap())?.require_network(network)?;
+    let input_scriptpubkey = input_address.script_pubkey();
+
+    let input_amount = coin.amount.unwrap() as u64;
+
+    let tx_bytes = hex::decode(encoded_unsigned_tx)?;
+    let tx: Transaction = bitcoin::consensus::encode::deserialize(&tx_bytes)?;
+
+    let mut psbt = Psbt::from_unsigned_tx(tx)?;
+
+    if psbt.inputs.len() != 1 {
+        return Err(anyhow!("There must be only one input"));
+    }
+
+    let mut input = Input {
+        witness_utxo: Some(TxOut { value: input_amount, script_pubkey: input_scriptpubkey.to_owned() }),
+        ..Default::default()
+    };
+    let ty = PsbtSighashType::from_str("SIGHASH_ALL")?;
+    input.sighash_type = Some(ty);
+    input.tap_internal_key = Some(input_xonly_pubkey.to_owned());
+    psbt.inputs = vec![input];
+
+    let vout = 0;
+    let input = psbt.inputs.iter_mut().nth(vout).unwrap();
+
+    let hash_ty = input
+        .sighash_type
+        .and_then(|psbt_sighash_type| psbt_sighash_type.taproot_hash_ty().ok())
+        .unwrap_or(TapSighashType::All);
+
+    let sig = Signature::from_str(signature_hex.as_str())?;
+
+    let final_signature = taproot::Signature { sig, hash_ty };
+
+    input.tap_key_sig = Some(final_signature);
+
+    psbt.inputs.iter_mut().for_each(|input| {
+        let mut script_witness: Witness = Witness::new();
+        script_witness.push(input.tap_key_sig.unwrap().to_vec());
+        input.final_script_witness = Some(script_witness);
+
+        // Clear all the data fields as per the spec.
+        input.partial_sigs = BTreeMap::new();
+        input.sighash_type = None;
+        input.redeem_script = None;
+        input.witness_script = None;
+        input.bip32_derivation = BTreeMap::new();
+    });
+
+    let signed_tx = psbt.extract_tx();
+
+    let wit = bitcoin::consensus::encode::serialize(&signed_tx.input[0].witness);
+    let wit_hex = hex::encode(wit);
+    println!("wit_hex: {}", wit_hex);
+
+    let tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
+    let encoded_signed_tx = hex::encode(tx_bytes);
+    
+    Ok(encoded_signed_tx)
+}

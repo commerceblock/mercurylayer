@@ -3,7 +3,7 @@ use std::{time::Duration, str::FromStr, thread};
 use anyhow::Result;
 use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{get_partial_sig_request, get_user_backup_address, create_signature}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::Wallet, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
 use secp256k1_zkp::{Secp256k1, PublicKey};
 
 use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
@@ -73,7 +73,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
         fee_rate_sats_per_byte,
         qt_backup_tx,
         to_address,
-        network,
+        network.clone(),
         is_withdrawal)?;
 
     let server_partial_sig_request = partial_sig_request.partial_signature_request_payload;
@@ -95,6 +95,16 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     println!("signature: {}", signature);
     println!("encoded_unsigned_tx: {}", encoded_unsigned_tx);
 
+    let signed_tx = new_backup_transaction(&coin, encoded_unsigned_tx, signature, network)?;
+
+    println!("signed_tx: {}", signed_tx);
+
+    // let tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
+    // let tx_bytes: &[u8] = tx_bytes.as_slice();
+    let tx_bytes = hex::decode(signed_tx)?;
+    let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;
+
+    println!("--> txid sent: {}", txid);
     Ok(())
 }
 
