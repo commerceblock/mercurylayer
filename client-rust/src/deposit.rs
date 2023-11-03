@@ -87,10 +87,13 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     let msg = partial_sig_request.msg;
     let session_hex = partial_sig_request.encoded_session;
     let output_pubkey_hex = partial_sig_request.output_pubkey;
+
+    let encoded_unsigned_tx = partial_sig_request.encoded_unsigned_tx;
     
     let signature = create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex)?;
 
     println!("signature: {}", signature);
+    println!("encoded_unsigned_tx: {}", encoded_unsigned_tx);
 
     Ok(())
 }

@@ -80,18 +80,21 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
-    let serverPartialSig = await transaction.signSecond(serverPartialSigRequest);
+    const serverPartialSig = await transaction.signSecond(serverPartialSigRequest);
 
     console.log("serverPartialSig: ", serverPartialSig);
 
-    let clientPartialSig = partialSigRequest.client_partial_sig;
-    let msg = partialSigRequest.msg;
-    let session = partialSigRequest.encoded_session;
-    let outputPubkey = partialSigRequest.output_pubkey;
+    const clientPartialSig = partialSigRequest.client_partial_sig;
+    const msg = partialSigRequest.msg;
+    const session = partialSigRequest.encoded_session;
+    const outputPubkey = partialSigRequest.output_pubkey;
 
-    let signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
+    const signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
+
+    const encoded_unsigned_tx = partialSigRequest.encoded_unsigned_tx;
 
     console.log("signature: ", signature);
+    console.log("encoded_unsigned_tx: ", encoded_unsigned_tx);
 }
 
 const init = async (db, wallet, token_id, amount) => {

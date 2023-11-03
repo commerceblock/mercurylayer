@@ -398,6 +398,7 @@ pub struct PartialSignatureMsg1 {
     pub output_pubkey: String, // the tweaked pubkey
     pub client_partial_sig: String,
     pub encoded_session: String,
+    pub encoded_unsigned_tx: String,
     pub partial_signature_request_payload: PartialSignatureRequestPayload,
 }
 
@@ -576,7 +577,7 @@ pub fn get_musig_session(
         }],
         output: outputs,
     };
-    let mut psbt = Psbt::from_unsigned_tx(tx1)?;
+    let mut psbt = Psbt::from_unsigned_tx(tx1.clone())?;
 
     let input_amount = coin.amount.unwrap() as u64;
     
@@ -615,16 +616,21 @@ pub fn get_musig_session(
         hash_ty,
     )?;
 
+    let tx_bytes = bitcoin::consensus::encode::serialize(&tx1);
+    let encoded_unsigned_tx = hex::encode(tx_bytes);
+
     let session = calculate_musig_session(
         coin,
-        hash)?;
+        hash,
+        encoded_unsigned_tx)?;
 
     Ok(session)
 }
 
 pub fn calculate_musig_session(
     coin: &Coin,
-    hash: TapSighash,) -> Result<PartialSignatureMsg1>
+    hash: TapSighash,
+    encoded_unsigned_tx: String,) -> Result<PartialSignatureMsg1>
 {
     let secp = Secp256k1::new();
 
@@ -711,6 +717,7 @@ pub fn calculate_musig_session(
         output_pubkey: output_pubkey.to_string(),
         client_partial_sig: client_partial_sig_hex,
         encoded_session,
+        encoded_unsigned_tx,
         partial_signature_request_payload: payload,
     })
 }
@@ -747,3 +754,10 @@ pub fn create_signature(
 
     Ok(sig.to_string())
 }
+
+/* pub fn new_backup_transaction(
+    Coin: &Coin,
+    block_height: u32,
+) {
+
+} */
