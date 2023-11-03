@@ -798,10 +798,7 @@ pub fn new_backup_transaction(
     });
 
     let signed_tx = psbt.extract_tx();
-
-    let wit = bitcoin::consensus::encode::serialize(&signed_tx.input[0].witness);
-    let wit_hex = hex::encode(wit);
-
+    
     let tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
     let encoded_signed_tx = hex::encode(tx_bytes);
     

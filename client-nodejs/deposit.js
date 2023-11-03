@@ -91,10 +91,18 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     const signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
 
-    const encoded_unsigned_tx = partialSigRequest.encoded_unsigned_tx;
+    const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
 
     console.log("signature: ", signature);
-    console.log("encoded_unsigned_tx: ", encoded_unsigned_tx);
+    console.log("encoded_unsigned_tx: ", encodedUnsignedTx);
+
+    let signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
+
+    console.log("signed_tx: ", signed_tx);
+   
+    let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
+
+    console.log("res: ", res);
 }
 
 const init = async (db, wallet, token_id, amount) => {

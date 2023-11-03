@@ -226,6 +226,13 @@ pub fn createSignature(
     signature
 }
 
+#[wasm_bindgen]
+pub fn newBackupTransaction(encoded_unsigned_tx: String, signature_hex: String) -> String
+{
+    let backup_tx = mercury_lib::transaction::new_backup_transaction(encoded_unsigned_tx, signature_hex).unwrap();
+    backup_tx
+}
+
 /*
 #[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
