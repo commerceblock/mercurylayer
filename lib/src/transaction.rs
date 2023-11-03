@@ -757,22 +757,9 @@ pub fn create_signature(
 }
 
 pub fn new_backup_transaction(
-    coin: &Coin,
     encoded_unsigned_tx: String,
     signature_hex: String,
-    network: String,
 ) -> Result<String> {
-
-    let network = utils::get_network(&network)?;
-
-    let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
-
-    let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
-
-    let input_address = Address::from_str(&coin.aggregated_address.as_ref().unwrap())?.require_network(network)?;
-    let input_scriptpubkey = input_address.script_pubkey();
-
-    let input_amount = coin.amount.unwrap() as u64;
 
     let tx_bytes = hex::decode(encoded_unsigned_tx)?;
     let tx: Transaction = bitcoin::consensus::encode::deserialize(&tx_bytes)?;
@@ -782,15 +769,6 @@ pub fn new_backup_transaction(
     if psbt.inputs.len() != 1 {
         return Err(anyhow!("There must be only one input"));
     }
-
-    let mut input = Input {
-        witness_utxo: Some(TxOut { value: input_amount, script_pubkey: input_scriptpubkey.to_owned() }),
-        ..Default::default()
-    };
-    let ty = PsbtSighashType::from_str("SIGHASH_ALL")?;
-    input.sighash_type = Some(ty);
-    input.tap_internal_key = Some(input_xonly_pubkey.to_owned());
-    psbt.inputs = vec![input];
 
     let vout = 0;
     let input = psbt.inputs.iter_mut().nth(vout).unwrap();
@@ -823,7 +801,6 @@ pub fn new_backup_transaction(
 
     let wit = bitcoin::consensus::encode::serialize(&signed_tx.input[0].witness);
     let wit_hex = hex::encode(wit);
-    println!("wit_hex: {}", wit_hex);
 
     let tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
     let encoded_signed_tx = hex::encode(tx_bytes);
