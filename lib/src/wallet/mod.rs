@@ -19,7 +19,7 @@ pub struct Wallet {
     pub initlock: u32,
     pub interval: u32,
     pub tokens: Vec<Token>,
-    pub activity: Vec<Activity>,
+    pub activities: Vec<Activity>,
     pub coins: Vec<Coin>
 }
 
@@ -36,7 +36,7 @@ pub struct Activity {
     pub utxo: String,
     pub amount: u32,
     pub action: String,
-    pub date: u64
+    pub date: u128
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

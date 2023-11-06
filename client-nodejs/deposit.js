@@ -103,6 +103,17 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
     console.log("res: ", res);
+
+    let activity = {
+        utxo: coin.utxo_txid,
+        amount: coin.amount,
+        action: "Deposit",
+        date: Date.now() // Milliseconds since Unix epoch
+    };
+
+    wallet.activities.push(activity);
+
+    await sqlite_manager.updateWallet(db, wallet);
 }
 
 const init = async (db, wallet, token_id, amount) => {
@@ -177,12 +188,6 @@ const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
 
         await sleep(5000);
     }
-}
-
-const getServerPublicNonce = async (coin) => {
-
-
-
 }
 
 module.exports = { execute };

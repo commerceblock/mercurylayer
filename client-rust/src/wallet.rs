@@ -30,7 +30,7 @@ pub async fn create_wallet(
         initlock: server_info.initlock,
         interval: server_info.interval,
         tokens: Vec::new(),
-        activity: Vec::new(),
+        activities: Vec::new(),
         coins: Vec::new()
     };
 

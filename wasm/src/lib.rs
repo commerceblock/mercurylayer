@@ -125,7 +125,7 @@ pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
         initlock: 100000,
         interval: 10,
         tokens: Vec::new(),
-        activity: Vec::new(),
+        activities: Vec::new(),
         coins: Vec::new()
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
@@ -134,7 +134,7 @@ pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
 #[wasm_bindgen]
 pub fn getActivityLog(wallet_json: JsValue) -> JsValue {
     let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
-    serde_wasm_bindgen::to_value(&wallet.activity).unwrap()
+    serde_wasm_bindgen::to_value(&wallet.activities).unwrap()
 }
 
 #[wasm_bindgen]
@@ -339,8 +339,8 @@ pub fn getMockWallet() -> JsValue {
         blockheight: 0,
         initlock: 100000,
         interval: 10,
-        tokens: tokens,
-        activity: activity,
+        tokens,
+        activities: activity,
         coins: Vec::new() // coins
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()

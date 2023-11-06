@@ -22,7 +22,7 @@ const createWallet = async (name, electrumClient, electrumEndpoint, statechainEn
         initlock: serverInfo.initlock,
         interval: serverInfo.interval,
         tokens: [],
-        activity: [],
+        activities: [],
         coins: []
     };
 
