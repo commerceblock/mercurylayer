@@ -99,6 +99,15 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     let signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
 
     console.log("signed_tx: ", signed_tx);
+
+    let backup_tx = {
+        tx_n: 0,
+        tx: signed_tx,
+        client_public_nonce: coin.public_nonce,
+        blinding_factor: coin.blinding_factor,
+    };
+
+    await sqlite_manager.insertTransaction(db, coin.statechain_id, [backup_tx]);
    
     let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
@@ -165,8 +174,6 @@ const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
     let is_waiting = true;
 
     while (is_waiting) {
-        console.log("waiting ....");
-
         try {
             let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
 

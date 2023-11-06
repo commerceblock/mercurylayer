@@ -11,14 +11,12 @@ const run = (db, sql, params) => {
     });
 };
 
-const createTable = async (db) => {
+const createTables = async (db) => {
     await run(db, "CREATE TABLE IF NOT EXISTS wallet (wallet_name TEXT NOT NULL UNIQUE, wallet_json TEXT NOT NULL)", []);
+    await run(db, "CREATE TABLE IF NOT EXISTS backup_txs (statechain_id TEXT NOT NULL, txs TEXT NOT NULL)", []);
 }
 
 const insertWallet = async (db, wallet) => {
-    console.log("wallet 11: " + JSON.stringify(wallet));
-    console.log("wallet.name: " + wallet.name);
-
     await run(db, "INSERT INTO wallet (wallet_name, wallet_json) VALUES (?, ?)", [ wallet.name, JSON.stringify(wallet) ]);
 }
 
@@ -39,4 +37,8 @@ const getWallet  = async (db, walletName) => {
     });
 }
 
-module.exports = { createTable, insertWallet, updateWallet, getWallet };
+const insertTransaction = async (db, statechain_id, txs) => {
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
+}
+
+module.exports = { createTables, insertWallet, updateWallet, getWallet, insertTransaction };

@@ -80,11 +80,17 @@ pub enum CoinStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StatechainBackupTxs {
+    pub statechain_id: String,
+    pub backup_txs: Vec<BackupTx>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BackupTx {
-    tx_n: u32,
-    tx: String,
-    client_public_nonce: String,
-    blinding_factor: String
+    pub tx_n: u32,
+    pub tx: String,
+    pub client_public_nonce: String,
+    pub blinding_factor: String
 } 
 
 pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {

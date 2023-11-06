@@ -17,7 +17,7 @@ async function main() {
 
   const db = new sqlite3.Database('wallet.db');
 
-  await sqlite_manager.createTable(db);
+  await sqlite_manager.createTables(db);
   
   program
     .name('Statechain nodejs CLI client')

@@ -3,9 +3,9 @@ use std::{time::{Duration, SystemTime, UNIX_EPOCH}, str::FromStr, thread};
 use anyhow::Result;
 use bitcoin::Address;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
+use crate::{sqlite_manager::{update_wallet, get_wallet, insert_backup_txs}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -98,12 +98,36 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     println!("signed_tx: {}", signed_tx);
 
-    // let tx_bytes = bitcoin::consensus::encode::serialize(&signed_tx);
-    // let tx_bytes: &[u8] = tx_bytes.as_slice();
-    let tx_bytes = hex::decode(signed_tx)?;
-    let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;
+    if coin.public_nonce.is_none() {
+        return Err(anyhow::anyhow!("coin.public_nonce is None"));
+    }
 
-    println!("--> txid sent: {}", txid);
+    if coin.blinding_factor.is_none() {
+        return Err(anyhow::anyhow!("coin.blinding_factor is None"));
+    }
+
+    if coin.statechain_id.is_none() {
+        return Err(anyhow::anyhow!("coin.statechain_id is None"));
+    }
+
+    let backup_tx = BackupTx {
+        tx_n: 0,
+        tx: signed_tx,
+        client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+        blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
+    };
+
+    // let wallet_backup_txs = WalletBackupTxs {
+    //     statechain_id: coin.statechain_id.as_ref().unwrap().to_string(),
+    //     backup_txs: [backup_tx].to_vec(),
+    // };
+
+    insert_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
+
+    // let tx_bytes = hex::decode(signed_tx)?;
+    // let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;
+
+    // println!("--> txid sent: {}", txid);
 
     let date = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
 

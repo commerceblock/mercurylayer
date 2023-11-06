@@ -1,4 +1,4 @@
-use mercury_lib::wallet::Wallet;
+use mercury_lib::wallet::{Wallet, BackupTx};
 use serde_json::json;
 use sqlx::{Pool, Sqlite, Row};
 use anyhow::Result;
@@ -43,6 +43,22 @@ pub async fn update_wallet(pool: &Pool<Sqlite>, wallet: &Wallet) -> Result<()> {
     let _ = sqlx::query(query)
             .bind(wallet_json)
             .bind(wallet.name.clone())
+            .execute(pool)
+            .await?;
+    
+    Ok(())
+}
+
+
+pub async fn insert_backup_txs(pool: &Pool<Sqlite>, statechain_id: &str, backup_txs: &Vec<BackupTx>) -> Result<()> {
+
+    let backup_txs_json = json!(backup_txs).to_string();
+
+    let query = "INSERT INTO backup_txs (statechain_id, txs) VALUES ($1, $2)";
+
+    let _ = sqlx::query(query)
+            .bind(statechain_id)
+            .bind(backup_txs_json)
             .execute(pool)
             .await?;
     
