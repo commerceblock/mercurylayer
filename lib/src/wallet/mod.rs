@@ -1,11 +1,15 @@
 pub mod key_derivation;
+pub mod cpfp_tx;
+
+use std::str::FromStr;
 
 use bip39::{Mnemonic, Language};
+use bitcoin::{Transaction, Address};
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
-use crate::utils::ServerConfig;
+use crate::utils::{ServerConfig, get_network};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Wallet {
@@ -47,6 +51,8 @@ pub struct Coin {
     pub user_pubkey: String,
     pub auth_privkey: String,
     pub auth_pubkey: String,
+    pub derivation_path: String,
+    pub fingerprint: String,
     /// The coin address is the user_pubkey || auth_pubkey
     /// Used to transfer the coin to another wallet
     pub address: String,
@@ -104,3 +110,22 @@ pub fn generate_mnemonic() -> Result<String> {
     let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)?;
     Ok(mnemonic.to_string())
 }
+/* 
+pub fn verify_backup_tx(backup_tx: &BackupTx, coin: &Coin, network: &str) -> Result<bool> {
+
+    let network = get_network(network)?;
+
+    let tx_bytes = hex::decode(&backup_tx.tx)?;
+    let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes)?;
+
+    if tx.output.len() != 1 {
+        return Err(anyhow!("Unkown network"));
+    }
+
+    let output = tx.output.get(0).unwrap();
+
+    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
+
+    Ok(backup_address.script_pubkey() == output.script_pubkey)
+}
+ */

@@ -111,6 +111,8 @@ impl Wallet {
             user_pubkey,
             auth_privkey: auth_secret_wif,
             auth_pubkey,
+            derivation_path: agg_key_data.derivation_path,
+            fingerprint: agg_key_data.fingerprint,
             address:coin_address,
             backup_address: backup_address.to_string(),
             server_pubkey: None,
