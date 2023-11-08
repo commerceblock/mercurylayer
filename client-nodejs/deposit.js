@@ -35,11 +35,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
-    console.log("-- 1");
-
     let server_pubnonce = await transaction.signFirst(coin_nonce.sign_first_request_payload);
-
-    console.log("server_pubnonce:", server_pubnonce);
 
     coin.secret_nonce = coin_nonce.secret_nonce;
     coin.public_nonce = coin_nonce.public_nonce;
@@ -62,8 +58,6 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     const toAddress = mercury_wasm.getUserBackupAddress(coin, network);
     const isWithdrawal = false;
 
-    console.log("toAddress: ", toAddress);
-    console.log("coin.amount: ", coin.amount);
 
     let partialSigRequest = mercury_wasm.getPartialSigRequest(
         coin,
@@ -76,13 +70,9 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
         network,
         isWithdrawal);
 
-    console.log("partialSigRequest: ", partialSigRequest);
-
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
     const serverPartialSig = await transaction.signSecond(serverPartialSigRequest);
-
-    console.log("serverPartialSig: ", serverPartialSig);
 
     const clientPartialSig = partialSigRequest.client_partial_sig;
     const msg = partialSigRequest.msg;
@@ -93,12 +83,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
 
-    console.log("signature: ", signature);
-    console.log("encoded_unsigned_tx: ", encodedUnsignedTx);
-
     let signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
-
-    console.log("signed_tx: ", signed_tx);
 
     let backup_tx = {
         tx_n: 0,
@@ -109,15 +94,13 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     await sqlite_manager.insertTransaction(db, coin.statechain_id, [backup_tx]);
    
-    let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
-
-    console.log("res: ", res);
+    // let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
     let activity = {
         utxo: coin.utxo_txid,
         amount: coin.amount,
         action: "Deposit",
-        date: Date.now() // Milliseconds since Unix epoch
+        date: new Date().toISOString()
     };
 
     wallet.activities.push(activity);

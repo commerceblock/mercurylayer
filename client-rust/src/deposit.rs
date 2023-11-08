@@ -2,6 +2,7 @@ use std::{time::{Duration, SystemTime, UNIX_EPOCH}, str::FromStr, thread};
 
 use anyhow::Result;
 use bitcoin::Address;
+use chrono::Utc;
 use electrum_client::{ListUnspentRes, ElectrumApi};
 use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
 
@@ -129,13 +130,14 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     // println!("--> txid sent: {}", txid);
 
-    let date = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+    let date = Utc::now(); // This will get the current date and time in UTC
+    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
 
     let activity = Activity {
         utxo: utxo_txid,
         amount,
         action: "Deposit".to_string(),
-        date
+        date: iso_string
     };
 
     wallet.activities.push(activity);

@@ -55,9 +55,7 @@ async fn main() -> Result<()> {
             println!("Wallet created: {:?}", wallet);
         },
         Commands::Deposit { wallet_name, token_id, amount } => {
-            
             deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
-
         },
         Commands::BroadcastBackupTransaction { wallet_name, statechain_id, to_address, fee_rate } => {
             broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;

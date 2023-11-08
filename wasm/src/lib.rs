@@ -2,7 +2,7 @@
 
 mod utils;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -233,6 +233,16 @@ pub fn newBackupTransaction(encoded_unsigned_tx: String, signature_hex: String) 
     backup_tx
 }
 
+#[wasm_bindgen]
+pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: String, fee_rate_sats_per_byte: u32, network: String) -> String {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx_json).unwrap();
+
+    let backup_tx = mercury_lib::wallet::cpfp_tx::create(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
+    backup_tx
+    // "".to_string()
+}
+
 /*
 #[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
@@ -277,19 +287,19 @@ pub fn getMockWallet() -> JsValue {
             utxo: String::from("9ec324592502d377dc92cee0cce84b532ce912e0379bdd3d768339819251cf57:0"),
             amount: 1000000,
             action: String::from("deposit"),
-            date: 1681731386490
+            date: "2023-11-07T12:34:56.789Z".to_string()
         },
         Activity {
             utxo: String::from("e29e13b48c83b40e1fd81120c55144c5593dca6017f098422983f7dfaeb70913:0"),
             amount: 10000000,
             action: String::from("Receive"),
-            date: 1687283786064
+            date: "2023-11-07T12:34:56.789Z".to_string()
         },
         Activity {
             utxo: String::from("84fa1bd2ff0fb9bd5ee4256671c4f6a40dca311e5301668b282dbf66a6bedcc6100p:0"),
             amount: 5000000,
             action: String::from("Receive"),
-            date: 1681320270800
+            date: "2023-11-07T12:34:56.789Z".to_string()
         }
     ];
 

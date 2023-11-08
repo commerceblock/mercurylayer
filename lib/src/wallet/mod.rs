@@ -40,7 +40,7 @@ pub struct Activity {
     pub utxo: String,
     pub amount: u32,
     pub action: String,
-    pub date: u128
+    pub date: String
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

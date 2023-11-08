@@ -6,6 +6,7 @@ const mercury_wasm = require('mercury-wasm');
 const ElectrumCli = require('@mempool/electrum-client');
 
 const deposit = require('./deposit');
+const broadcast_backup_tx = require('./broadcast_backup_tx');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -24,7 +25,7 @@ async function main() {
     .description('CLI to test the Statechain nodejs client')
     .version('0.0.1');
   
-  program.command('create_wallet')
+  program.command('create-wallet')
     .description('Create a new wallet')
     .argument('<name>', 'name of the wallet')
     .action(async (name) => {
@@ -59,6 +60,45 @@ async function main() {
 
       electrumClient.close();
       db.close();
+    });
+
+    program.command('broadcast-backup-transaction')
+      .description('Broadcast a backup transaction via CPFP') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .argument('<to_address>', 'recipient bitcoin address')
+      .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
+      .action(async (wallet_name, statechain_id, to_address, options) => {
+
+       const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+       await electrumClient.connect(); // connect(promise)
+
+       console.log("options", options);
+
+       await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
+
+       electrumClient.close();
+       db.close();
+    });
+
+    program.command('list-statecoins')
+      .description("List wallet's statecoins") 
+      .argument('<wallet_name>', 'name of the wallet')
+      .action(async (wallet_name) => {
+        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+        await electrumClient.connect(); // connect(promise)
+
+        let wallet = await sqlite_manager.getWallet(db, wallet_name);
+
+        for (let coin of wallet.coins) {
+          console.log("statechain_id: ", coin.statechain_id);
+          console.log("coin.amount: {}", coin.amount);
+          console.log("coin.status: {}", coin.status);
+        }
+
+        electrumClient.close();
+        db.close();
+
     });
   
   
