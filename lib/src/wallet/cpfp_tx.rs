@@ -41,10 +41,14 @@ pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats
 
     let absolute_fee: u64 = tx.vsize() as u64 * fee_rate_sats_per_byte;
 
-    let amount_out = input_amount - absolute_fee;
+    let amount_out = input_amount as i64 - absolute_fee as i64;
+
+    if amount_out < 0 {
+        return Err(anyhow!("Fee is too high"));
+    }
 
     let outputs = vec![
-            TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() },
+        TxOut { value: amount_out as u64, script_pubkey: to_address.script_pubkey() },
     ];
 
     let tx = create_transaction(&input_tx_hash, input_vout, &coin, input_amount, &outputs, network)?;
