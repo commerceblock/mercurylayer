@@ -123,7 +123,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     //     backup_txs: [backup_tx].to_vec(),
     // };
 
-    insert_backup_txs(&client_config.pool, wallet_name, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
+    insert_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
 
     // let tx_bytes = hex::decode(signed_tx)?;
     // let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;

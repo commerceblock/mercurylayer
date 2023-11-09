@@ -53,14 +53,13 @@ pub async fn update_wallet(pool: &Pool<Sqlite>, wallet: &Wallet) -> Result<()> {
     Ok(())
 }
 
-pub async fn insert_backup_txs(pool: &Pool<Sqlite>, wallet_name: &str,statechain_id: &str, backup_txs: &Vec<BackupTx>) -> Result<()> {
+pub async fn insert_backup_txs(pool: &Pool<Sqlite>, statechain_id: &str, backup_txs: &Vec<BackupTx>) -> Result<()> {
 
     let backup_txs_json = json!(backup_txs).to_string();
 
-    let query = "INSERT INTO backup_txs (wallet_name, statechain_id, txs) VALUES ($1, $2, $3)";
+    let query = "INSERT INTO backup_txs (statechain_id, txs) VALUES ($1, $2)";
 
     let _ = sqlx::query(query)
-            .bind(wallet_name)
             .bind(statechain_id)
             .bind(backup_txs_json)
             .execute(pool)
