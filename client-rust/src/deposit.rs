@@ -1,10 +1,10 @@
-use std::{time::{Duration, SystemTime, UNIX_EPOCH}, str::FromStr, thread};
+use std::{time::Duration, str::FromStr, thread};
 
 use anyhow::Result;
 use bitcoin::Address;
 use chrono::Utc;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx, CoinStatus}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
 
 use crate::{sqlite_manager::{update_wallet, get_wallet, insert_backup_txs}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
 
@@ -31,6 +31,8 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     coin.utxo_txid = Some(utxo_txid.clone());
     coin.utxo_vout = Some(utxo_vout);
+
+    coin.status = CoinStatus::IN_MEMPOOL;
 
     update_wallet(&client_config.pool, &wallet).await?;
 

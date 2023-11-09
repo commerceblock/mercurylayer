@@ -2,7 +2,9 @@
 
 mod utils;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
+use std::str::FromStr;
+
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;

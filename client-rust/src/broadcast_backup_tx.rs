@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_wallet}};
 use anyhow::{anyhow, Result};
 use electrum_client::ElectrumApi;
-use mercury_lib::wallet::cpfp_tx;
+use mercury_lib::wallet::{cpfp_tx, CoinStatus};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()> {
     
@@ -46,6 +46,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     println!("Broadcasting CPFP transaction: {}", txid);
 
     coin.tx_cpfp = Some(txid.to_string());
+    coin.status = CoinStatus::WITHDRAWING;
 
     update_wallet(&client_config.pool, &wallet).await?;
 

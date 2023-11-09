@@ -5,7 +5,7 @@ use bip39::Mnemonic;
 use bitcoin::{bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address, PrivateKey};
 use secp256k1_zkp::{SecretKey, PublicKey, ffi::types::AlignedType, Secp256k1};
 
-use crate::{wallet::{Wallet, Coin}, encode_sc_address, utils::get_network};
+use crate::{wallet::{Wallet, Coin, CoinStatus}, encode_sc_address, utils::get_network};
 
 pub struct KeyData {
     pub secret_key: SecretKey,
@@ -130,7 +130,7 @@ impl Wallet {
             server_public_nonce: None,
             tx_cpfp: None,
             tx_withdraw: None,
-            status: "INITIALISED".to_string() // CoinStatus::INITIALISED,
+            status: CoinStatus::INITIALISED,
         };
 
         Ok(coin)

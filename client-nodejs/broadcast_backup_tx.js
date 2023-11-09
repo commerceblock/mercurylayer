@@ -4,6 +4,8 @@ const sqlite_manager = require('./sqlite_manager');
 
 const utils = require('./utils');
 
+const { CoinStatus } = require('./coin_status');
+
 const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
@@ -49,6 +51,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     console.log(`Broadcasting CPFP transaction: ${txid}`);
 
     coin.tx_cpfp = txid;
+    coin.status = CoinStatus.WITHDRAWING;
 
     await sqlite_manager.updateWallet(db, wallet);
 }

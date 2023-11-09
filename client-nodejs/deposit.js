@@ -11,6 +11,8 @@ const mercury_wasm = require('mercury-wasm');
 
 const sqlite_manager = require('./sqlite_manager');
 
+const { CoinStatus } = require('./coin_status');
+
 const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
@@ -28,6 +30,8 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     await sqlite_manager.updateWallet(db, wallet);
 
     await waitForDeposit(electrumClient, coin, amount, wallet.network);
+
+    coin.status = CoinStatus.IN_MEMPOOL;
 
     await sqlite_manager.updateWallet(db, wallet);
 

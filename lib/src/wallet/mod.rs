@@ -1,15 +1,14 @@
 pub mod key_derivation;
 pub mod cpfp_tx;
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use bip39::{Mnemonic, Language};
-use bitcoin::{Transaction, Address};
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
-use crate::utils::{ServerConfig, get_network};
+use crate::utils::ServerConfig;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Wallet {
@@ -76,17 +75,62 @@ pub struct Coin {
     pub server_public_nonce: Option<String>,
     pub tx_cpfp: Option<String>,
     pub tx_withdraw: Option<String>,
-    pub status: String// CoinStatus,
+    pub status: CoinStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum CoinStatus {
-    INITIALISED,
-    AVAILABLE,
-    SPENT,
-    WITHDRAWN,
+    INITIALISED, //  address generated but no Tx0 yet
+    IN_MEMPOOL, // Tx0 in mempool
+    CONFIRMED, // Tx0 confirmed and coin available to be sent
+    IN_TRANSFER, // transfer-sender performed, but receiver hasn't completed transfer-receiver
+    WITHDRAWING, // withdrawal tx signed and broadcast but not yet confirmed
+    TRANSFERRED, // the coin was transferred
+    WITHDRAWN, // the coin was withdrawn
 }
 
+impl fmt::Display for CoinStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Match the enum variants
+        write!(f, "{}", match self {
+            Self::INITIALISED => "INITIALISED",
+            Self::IN_MEMPOOL => "IN_MEMPOOL",
+            Self::CONFIRMED => "CONFIRMED",
+            Self::IN_TRANSFER => "IN_TRANSFER",
+            Self::WITHDRAWING => "WITHDRAWING",
+            Self::TRANSFERRED => "TRANSFERRED",
+            Self::WITHDRAWN => "WITHDRAWN",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoinStatusParseError;
+
+impl fmt::Display for CoinStatusParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "provided string was not a valid CoinStatus")
+    }
+}
+
+impl std::error::Error for CoinStatusParseError {}
+
+impl FromStr for CoinStatus {
+    type Err = CoinStatusParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "INITIALISED" => Ok(CoinStatus::INITIALISED),
+            "IN_MEMPOOL" => Ok(CoinStatus::IN_MEMPOOL),
+            "CONFIRMED" => Ok(CoinStatus::CONFIRMED),
+            "IN_TRANSFER" => Ok(CoinStatus::IN_TRANSFER),
+            "WITHDRAWING" => Ok(CoinStatus::WITHDRAWING),
+            "TRANSFERRED" => Ok(CoinStatus::TRANSFERRED),
+            "WITHDRAWN" => Ok(CoinStatus::WITHDRAWN),
+            _ => Err(CoinStatusParseError {}),
+        }
+    }
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StatechainBackupTxs {
     pub statechain_id: String,
