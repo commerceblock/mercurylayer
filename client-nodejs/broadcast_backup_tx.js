@@ -47,6 +47,10 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
 
     txid = await electrumClient.request('blockchain.transaction.broadcast', [cpfp_tx]);
     console.log(`Broadcasting CPFP transaction: ${txid}`);
+
+    coin.tx_cpfp = txid;
+
+    await sqlite_manager.updateWallet(db, wallet);
 }
 
 module.exports = { execute };

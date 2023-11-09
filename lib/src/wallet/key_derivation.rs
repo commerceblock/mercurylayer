@@ -128,6 +128,8 @@ impl Wallet {
             public_nonce: None,
             blinding_factor: None,
             server_public_nonce: None,
+            tx_cpfp: None,
+            tx_withdraw: None,
             status: "INITIALISED".to_string() // CoinStatus::INITIALISED,
         };
 

@@ -74,6 +74,8 @@ pub struct Coin {
     pub public_nonce: Option<String>,
     pub blinding_factor: Option<String>,
     pub server_public_nonce: Option<String>,
+    pub tx_cpfp: Option<String>,
+    pub tx_withdraw: Option<String>,
     pub status: String// CoinStatus,
 }
 
