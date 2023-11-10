@@ -1,4 +1,54 @@
 const axios = require('axios').default;
+const mercury_wasm = require('mercury-wasm');
+const utils = require('./utils');
+
+const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, network) => {
+    let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
+
+    let server_pubnonce = await signFirst(coin_nonce.sign_first_request_payload);
+
+    coin.secret_nonce = coin_nonce.secret_nonce;
+    coin.public_nonce = coin_nonce.public_nonce;
+    coin.server_public_nonce = server_pubnonce;
+    coin.blinding_factor = coin_nonce.blinding_factor;
+
+    const serverInfo = await utils.infoConfig(electrumClient);
+
+    const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const blockheight = block_header.height;
+
+    const initlock = serverInfo.initlock;
+    const interval = serverInfo.interval;
+    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+
+    let partialSigRequest = mercury_wasm.getPartialSigRequest(
+        coin,
+        blockheight,
+        initlock, 
+        interval,
+        feeRateSatsPerByte,
+        qtBackupTx,
+        toAddress,
+        network,
+        isWithdrawal);
+
+    const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
+
+    const serverPartialSig = await signSecond(serverPartialSigRequest);
+
+    const clientPartialSig = partialSigRequest.client_partial_sig;
+    const msg = partialSigRequest.msg;
+    const session = partialSigRequest.encoded_session;
+    const outputPubkey = partialSigRequest.output_pubkey;
+
+    const signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
+
+    const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
+
+    const signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
+
+    return signed_tx;
+}
 
 const signFirst = async (signFirstRequestPayload) => {
 
@@ -34,4 +84,4 @@ const signSecond = async (partialSigRequest) => {
     return server_partial_sig_hex;
 }
 
-module.exports = { signFirst, signSecond };
+module.exports = { signFirst, signSecond, new_transaction };

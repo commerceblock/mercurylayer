@@ -36,7 +36,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     await sqlite_manager.updateWallet(db, wallet);
 
     // new transaction
-
+    /*
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
     let server_pubnonce = await transaction.signFirst(coin_nonce.sign_first_request_payload);
@@ -88,9 +88,16 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
 
     let signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
+    */
+
+    const toAddress = mercury_wasm.getUserBackupAddress(coin, wallet.network);
+    const isWithdrawal = false;
+    const qtBackupTx = 0;
+
+    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, wallet.network);
 
     let backup_tx = {
-        tx_n: 0,
+        tx_n: 1,
         tx: signed_tx,
         client_public_nonce: coin.public_nonce,
         blinding_factor: coin.blinding_factor,

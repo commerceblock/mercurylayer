@@ -7,6 +7,7 @@ const ElectrumCli = require('@mempool/electrum-client');
 
 const deposit = require('./deposit');
 const broadcast_backup_tx = require('./broadcast_backup_tx');
+const withdraw = require('./withdraw');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -73,8 +74,6 @@ async function main() {
        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
        await electrumClient.connect(); // connect(promise)
 
-       console.log("options", options);
-
        await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
        electrumClient.close();
@@ -100,6 +99,23 @@ async function main() {
         db.close();
 
     });
+
+    program.command('withdraw')
+      .description('Withdraw funds from a statecoin to a BTC address') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .argument('<to_address>', 'recipient bitcoin address')
+      .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
+      .action(async (wallet_name, statechain_id, to_address, options) => {
+
+        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+        await electrumClient.connect(); // connect(promise)
+
+        await withdraw.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
+
+        electrumClient.close();
+        db.close();
+      });
   
   
   program.parse();

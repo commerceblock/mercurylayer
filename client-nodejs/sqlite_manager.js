@@ -41,6 +41,10 @@ const insertTransaction = async (db, statechain_id, txs) => {
     await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
 }
 
+const updateTransaction = async (db, statechain_id, txs) => {
+    await run(db, "UPDATE backup_txs SET txs = ? WHERE statechain_id = ?", [ JSON.stringify(txs), statechain_id ]); 
+}
+
 const getBackupTxs  = async (db, statechainId) => {
     return new Promise((resolve, reject) => {
         db.get("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
@@ -54,4 +58,4 @@ const getBackupTxs  = async (db, statechainId) => {
     });
 }
 
-module.exports = { createTables, insertWallet, updateWallet, getWallet, insertTransaction, getBackupTxs };
+module.exports = { createTables, insertWallet, updateWallet, getWallet, insertTransaction, updateTransaction, getBackupTxs };
