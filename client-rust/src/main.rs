@@ -5,6 +5,7 @@ mod sqlite_manager;
 mod deposit;
 mod transaction;
 mod broadcast_backup_tx;
+mod withdraw;
 
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
@@ -33,6 +34,8 @@ enum Commands {
     BroadcastBackupTransaction { wallet_name: String, statechain_id: String, to_address: String, fee_rate: Option<u64> },
     /// Broadcast the backup transaction to the network
     ListStatecoins { wallet_name: String },
+    /// Withdraw funds from a statechain coin to a bitcoin address
+    Withdraw { wallet_name: String, statechain_id: String, to_address: String, fee_rate: Option<u64> },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -68,6 +71,9 @@ async fn main() -> Result<()> {
                 println!("coin.status: {}", coin.status);
             }
         },
+        Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
+            withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
+        }
     }
 
     client_config.pool.close().await;

@@ -1,7 +1,62 @@
-use mercury_lib::transaction::{SignFirstRequestPayload, PartialSignatureMsg1, PartialSignatureRequestPayload, PartialSignatureResponsePayload};
+use electrum_client::ElectrumApi;
+use mercury_lib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_user_backup_address, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
 use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
-use crate::client_config::ClientConfig;
+use crate::{client_config::ClientConfig, utils::info_config};
+
+pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, network: &str) -> Result<String> {
+
+    let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
+    coin.secret_nonce = Some(coin_nonce.secret_nonce);
+    coin.public_nonce = Some(coin_nonce.public_nonce);
+    coin.blinding_factor = Some(coin_nonce.blinding_factor);
+
+    let server_public_nonce = sign_first(&client_config, &coin_nonce.sign_first_request_payload).await?;
+
+    coin.server_public_nonce = Some(server_public_nonce);
+
+    let server_info = info_config(&client_config.statechain_entity, &client_config.electrum_client).await?;
+
+    let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
+    let block_height = block_header.height as u32;
+
+    let initlock = server_info.initlock;
+    let interval = server_info.interval;
+    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
+    let qt_backup_tx = 0;
+
+    let to_address = get_user_backup_address(&coin, network.to_string())?;
+    let is_withdrawal = false;
+
+    let partial_sig_request = get_partial_sig_request(
+        &coin, 
+        block_height, 
+        initlock, 
+        interval, 
+        fee_rate_sats_per_byte,
+        qt_backup_tx,
+        to_address,
+        network.to_string(),
+        is_withdrawal)?;
+
+    let server_partial_sig_request = partial_sig_request.partial_signature_request_payload;
+
+    let server_partial_sig = sign_second(&client_config, &server_partial_sig_request).await?;
+
+    let client_partial_sig_hex = partial_sig_request.client_partial_sig;
+    let server_partial_sig_hex = hex::encode(server_partial_sig.serialize());
+    let msg = partial_sig_request.msg;
+    let session_hex = partial_sig_request.encoded_session;
+    let output_pubkey_hex = partial_sig_request.output_pubkey;
+
+    let encoded_unsigned_tx = partial_sig_request.encoded_unsigned_tx;
+    
+    let signature = create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex)?;
+
+    let signed_tx = new_backup_transaction(encoded_unsigned_tx, signature)?;
+
+    Ok(signed_tx)
+}
 
 /// This function gets the server public nonce from the statechain entity.
 pub async fn sign_first(client_config: &ClientConfig, sign_first_request_payload: &SignFirstRequestPayload) -> Result<String> {

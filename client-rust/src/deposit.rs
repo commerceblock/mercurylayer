@@ -6,7 +6,7 @@ use chrono::Utc;
 use electrum_client::{ListUnspentRes, ElectrumApi};
 use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx, CoinStatus}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
 
-use crate::{sqlite_manager::{update_wallet, get_wallet, insert_backup_txs}, client_config::ClientConfig, transaction::{sign_first, sign_second}, utils::info_config};
+use crate::{sqlite_manager::{update_wallet, get_wallet, insert_backup_txs}, client_config::ClientConfig, transaction::{sign_first, sign_second, new_transaction}, utils::info_config};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<()> {
 
@@ -38,12 +38,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     let coin = wallet.coins.last_mut().unwrap();
 
+    // new transaction
+/*
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
     coin.public_nonce = Some(coin_nonce.public_nonce);
     coin.blinding_factor = Some(coin_nonce.blinding_factor);
-
-    // new transaction
 
     let server_public_nonce = sign_first(&client_config, &coin_nonce.sign_first_request_payload).await?;
 
@@ -100,6 +100,8 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     let signed_tx = new_backup_transaction(encoded_unsigned_tx, signature)?;
 
     println!("signed_tx: {}", signed_tx);
+*/
+    let signed_tx = new_transaction(&client_config, coin, &wallet.network).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));
