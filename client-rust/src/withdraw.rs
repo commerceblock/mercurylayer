@@ -1,4 +1,4 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, insert_backup_txs, update_wallet}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, insert_backup_txs, update_wallet, get_backup_txs, update_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
@@ -8,7 +8,13 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
-    let new_tx_n = wallet.coins.len() as u32 + 1;
+    let mut backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    
+    if backup_txs.len() == 0 {
+        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
+    }
+
+    let new_tx_n = backup_txs.len() as u32 + 1;
 
     let coin = wallet.coins.iter_mut().find(|tx| tx.statechain_id == Some(statechain_id.to_string()));
 
@@ -43,7 +49,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
 
-    insert_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
+    backup_txs.push(backup_tx);
+
+    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &backup_txs).await?;
 
     let tx_bytes = hex::decode(&signed_tx)?;
     let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;
