@@ -101,7 +101,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 
     println!("signed_tx: {}", signed_tx);
 */
-    let signed_tx = new_transaction(&client_config, coin, &wallet.network).await?;
+    let to_address = get_user_backup_address(&coin, wallet.network.to_string())?;
+
+    let signed_tx = new_transaction(&client_config, coin, &to_address, &wallet.network).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));
@@ -116,7 +118,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     }
 
     let backup_tx = BackupTx {
-        tx_n: 0,
+        tx_n: 1,
         tx: signed_tx,
         client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),

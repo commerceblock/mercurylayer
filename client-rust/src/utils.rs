@@ -20,6 +20,8 @@ pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum
     let fee_rate_btc_per_kb = electrum_client.estimate_fee(number_blocks)?;
     let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
 
+    println!("fee_rate_sats_per_byte: {}", fee_rate_sats_per_byte);
+
     Ok(InfoConfig {    
         initlock,
         interval,

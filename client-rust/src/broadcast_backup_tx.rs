@@ -13,7 +13,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     let backup_tx = backup_txs.iter().max_by_key(|tx| tx.tx_n);
 
     if backup_tx.is_none() {
-        return Err(anyhow!("No backup transaction found"));
+        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
     }
 
     let backup_tx = backup_tx.unwrap();
@@ -21,7 +21,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     let coin = wallet.coins.iter_mut().find(|tx| tx.statechain_id == Some(statechain_id.to_string()));
 
     if coin.is_none() {
-        return Err(anyhow!("No coin found"));
+        return Err(anyhow!("No coins associated with this statechain ID were found"));
     }
 
     let coin = coin.unwrap();

@@ -4,7 +4,7 @@ use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
 use crate::{client_config::ClientConfig, utils::info_config};
 
-pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, network: &str) -> Result<String> {
+pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, network: &str) -> Result<String> {
 
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
@@ -25,7 +25,6 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, netw
     let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
     let qt_backup_tx = 0;
 
-    let to_address = get_user_backup_address(&coin, network.to_string())?;
     let is_withdrawal = false;
 
     let partial_sig_request = get_partial_sig_request(
@@ -35,7 +34,7 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, netw
         interval, 
         fee_rate_sats_per_byte,
         qt_backup_tx,
-        to_address,
+        to_address.to_string(),
         network.to_string(),
         is_withdrawal)?;
 
