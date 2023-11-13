@@ -176,23 +176,3 @@ pub fn verify_backup_tx(backup_tx: &BackupTx, coin: &Coin, network: &str) -> Res
     Ok(backup_address.script_pubkey() == output.script_pubkey)
 }
  */
-
-pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, PublicKey)> {
-    let (hrp, data, variant)  = bech32::decode(sc_address).unwrap();
-
-    if hrp != "sc" {
-        return Err(anyhow!("Invalid address".to_string()));
-    }
-
-    if variant != Variant::Bech32m {
-        return Err(anyhow!("Invalid address".to_string()));
-    }
-
-    let decoded_data = Vec::<u8>::from_base32(&data).unwrap();
-
-    let version = decoded_data[0];
-    let user_pubkey = PublicKey::from_slice(&decoded_data[1..34]).unwrap();
-    let auth_pubkey = PublicKey::from_slice(&decoded_data[34..67]).unwrap();
-
-    Ok((version, user_pubkey, auth_pubkey))
-}

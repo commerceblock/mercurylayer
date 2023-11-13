@@ -165,8 +165,7 @@ async fn main() {
 
 
         },
-        Commands::TransferReceive {  } => {
-                
+        Commands::TransferReceive { } => {
             transfer_receiver::receive( &client_config).await;
         },
         Commands::Withdraw { recipient_address, statechain_id, fee_rate } => {

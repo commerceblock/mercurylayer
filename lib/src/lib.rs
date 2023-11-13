@@ -7,9 +7,11 @@ pub mod transaction;
 
 use std::str::FromStr;
 
-use bech32::{Variant, ToBase32};
+use bech32::{Variant, ToBase32, FromBase32};
 use bip39::Mnemonic;
 use bitcoin::{secp256k1::{ffi::types::AlignedType, Secp256k1, SecretKey, AllPreallocated, PublicKey}, bip32::{ExtendedPrivKey, DerivationPath, ChildNumber}};
+
+use anyhow::{Result, anyhow};
 
 pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey) -> String {
 
@@ -24,6 +26,26 @@ pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey) -> St
     let encoded = bech32::encode(hrp, data.to_base32(), variant).unwrap();
 
     encoded
+}
+
+pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, PublicKey)> {
+    let (hrp, data, variant)  = bech32::decode(sc_address).unwrap();
+
+    if hrp != "sc" {
+        return Err(anyhow!("Invalid address".to_string()));
+    }
+
+    if variant != Variant::Bech32m {
+        return Err(anyhow!("Invalid address".to_string()));
+    }
+
+    let decoded_data = Vec::<u8>::from_base32(&data).unwrap();
+
+    let version = decoded_data[0];
+    let user_pubkey = PublicKey::from_slice(&decoded_data[1..34]).unwrap();
+    let auth_pubkey = PublicKey::from_slice(&decoded_data[34..67]).unwrap();
+
+    Ok((version, user_pubkey, auth_pubkey))
 }
 
 fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivation_path: &str, change_index: u32, address_index:u32) -> SecretKey {

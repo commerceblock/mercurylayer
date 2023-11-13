@@ -1,10 +1,10 @@
 use electrum_client::ElectrumApi;
-use mercury_lib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_user_backup_address, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
+use mercury_lib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
 use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
 use crate::{client_config::ClientConfig, utils::info_config};
 
-pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, network: &str) -> Result<String> {
+pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, qt_backup_tx: u32, is_withdrawal: bool, block_height: Option<u32>, network: &str) -> Result<String> {
 
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
@@ -17,15 +17,17 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_a
 
     let server_info = info_config(&client_config.statechain_entity, &client_config.electrum_client).await?;
 
-    let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
-    let block_height = block_header.height as u32;
-
+    let block_height = match block_height {
+        Some(block_height) => block_height,
+        None => {
+            let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
+            block_header.height as u32
+        },
+    };
+           
     let initlock = server_info.initlock;
     let interval = server_info.interval;
     let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
-    let qt_backup_tx = 0;
-
-    let is_withdrawal = false;
 
     let partial_sig_request = get_partial_sig_request(
         &coin, 

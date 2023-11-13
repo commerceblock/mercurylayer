@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 
 use anyhow::{anyhow, Result};
 
-use crate::{wallet::Coin, utils::{self, get_network}};
+use crate::{wallet::Coin, utils::{self, get_network}, decode_transfer_address};
 
 #[derive(Serialize, Deserialize)]
 pub struct SignFirstRequestPayload {
@@ -122,9 +122,21 @@ pub fn create_tx_out(
     let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte;
     let amount_out = input_amount - absolute_fee;
 
-    let to_address = Address::from_str(&to_address).unwrap().require_network(network)?;
+    let mut recipient_address: Option<Address> = None;
 
-    let tx_out = TxOut { value: amount_out, script_pubkey: to_address.script_pubkey() };
+    let hrp = "sc";
+    if to_address.starts_with(hrp) {
+        let (_, recipient_user_pubkey, _) = decode_transfer_address(to_address)?;
+        let new_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, network);
+        recipient_address = Some(new_address);
+    } else {
+        let new_address = Address::from_str(&to_address).unwrap().require_network(network)?;
+        recipient_address = Some(new_address);
+    }
+
+    let recipient_address = recipient_address.unwrap();
+
+    let tx_out = TxOut { value: amount_out, script_pubkey: recipient_address.script_pubkey() };
 
     Ok(tx_out)
 }

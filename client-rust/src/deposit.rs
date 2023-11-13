@@ -103,7 +103,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
 */
     let to_address = get_user_backup_address(&coin, wallet.network.to_string())?;
 
-    let signed_tx = new_transaction(&client_config, coin, &to_address, &wallet.network).await?;
+    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, &wallet.network).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));

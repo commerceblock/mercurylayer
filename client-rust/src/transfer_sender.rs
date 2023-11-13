@@ -1,7 +1,7 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs}};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, network, Network, Address};
-use mercury_lib::{wallet::{Coin, BackupTx, key_derivation, decode_transfer_address}, utils::get_network};
+use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::get_network, decode_transfer_address};
 use secp256k1_zkp::{PublicKey, Secp256k1};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
@@ -37,9 +37,7 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     Ok(())
 }
 
-async fn create_backup_tx_to_receiver(coin:&Coin, bkp_tx1: &BackupTx, recipient_address: &str, network: &str) -> Result<()> {
-
-    let network = get_network(network)?;
+async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut Coin, bkp_tx1: &BackupTx, recipient_address: &str, network: &str) -> Result<()> {
 
     let (_, recipient_user_pubkey, _) = decode_transfer_address(recipient_address).unwrap();
 
@@ -53,7 +51,10 @@ async fn create_backup_tx_to_receiver(coin:&Coin, bkp_tx1: &BackupTx, recipient_
     assert!(tx1.input.len() == 1);
     let input = &tx1.input[0];
 
-    let to_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, network);
+    let to_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, get_network(network)?);
+    let to_address = to_address.script_pubkey();
+
+    //let signed_tx = new_transaction(client_config, coin, &to_address, &network).await?;
     
     Ok(())
 }

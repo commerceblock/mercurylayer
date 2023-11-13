@@ -14,7 +14,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
     }
 
-    let new_tx_n = backup_txs.len() as u32 + 1;
+    let qt_backup_tx = backup_txs.len() as u32;
+
+    let new_tx_n = qt_backup_tx + 1;
 
     let coin = wallet.coins.iter_mut().find(|tx| tx.statechain_id == Some(statechain_id.to_string()));
 
@@ -28,7 +30,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
-    let signed_tx = new_transaction(client_config, coin, &to_address, &wallet.network).await?;
+    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));
