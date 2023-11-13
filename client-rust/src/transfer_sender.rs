@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, network, Network, Address};
-use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::get_network, decode_transfer_address};
+use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::{get_network, get_blockheight}, decode_transfer_address};
 use secp256k1_zkp::{PublicKey, Secp256k1};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
@@ -13,6 +13,8 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     if backup_transactions.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
     }
+
+    let qt_backup_tx = backup_transactions.len() as u32;
 
     backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
 
@@ -30,31 +32,21 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
-    let tx1 = &backup_transactions[0];
+    let bkp_tx1 = &backup_transactions[0];
 
+    let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
 
+    println!("signed_tx: {}", signed_tx);
 
     Ok(())
 }
 
-async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut Coin, bkp_tx1: &BackupTx, recipient_address: &str, network: &str) -> Result<()> {
+async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut Coin, bkp_tx1: &BackupTx, recipient_address: &str, qt_backup_tx: u32, network: &str) -> Result<String> {
 
-    let (_, recipient_user_pubkey, _) = decode_transfer_address(recipient_address).unwrap();
+    let block_height = Some(get_blockheight(bkp_tx1)?);
 
-    let tx_bytes = hex::decode(&bkp_tx1.tx)?;
-    let tx1 = bitcoin::consensus::deserialize::<Transaction>(&tx_bytes).unwrap();
+    let is_withdrawal = false;
+    let signed_tx = new_transaction(client_config, coin, recipient_address, qt_backup_tx, is_withdrawal, block_height, network).await?;
 
-    let lock_time = tx1.lock_time;
-    assert!(lock_time.is_block_height());
-    let block_height = lock_time.to_consensus_u32();
-
-    assert!(tx1.input.len() == 1);
-    let input = &tx1.input[0];
-
-    let to_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, get_network(network)?);
-    let to_address = to_address.script_pubkey();
-
-    //let signed_tx = new_transaction(client_config, coin, &to_address, &network).await?;
-    
-    Ok(())
+    Ok(signed_tx)
 }

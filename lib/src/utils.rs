@@ -1,5 +1,8 @@
+use bitcoin::Transaction;
 use serde::{Serialize, Deserialize};
 use anyhow::{anyhow, Result};
+
+use crate::wallet::BackupTx;
 
 #[derive(Serialize, Deserialize)]
 pub struct ServerConfig {
@@ -21,4 +24,17 @@ pub fn get_network(network: &str) -> Result<bitcoin::Network> {
         "mainnet" => Ok(bitcoin::Network::Bitcoin),
         _ => Err(anyhow!("Unkown network"))
     }
+}
+
+pub fn get_blockheight(bkp_tx: &BackupTx) -> Result<u32> {
+    let tx_bytes = hex::decode(&bkp_tx.tx)?;
+    let tx1 = bitcoin::consensus::deserialize::<Transaction>(&tx_bytes).unwrap();
+
+    let lock_time = tx1.lock_time;
+    if !(lock_time.is_block_height()) {
+        return Err(anyhow!("Locktime is not block height"));
+    }
+    let block_height = lock_time.to_consensus_u32();
+
+    Ok(block_height)
 }

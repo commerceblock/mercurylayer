@@ -9,6 +9,7 @@ const deposit = require('./deposit');
 const broadcast_backup_tx = require('./broadcast_backup_tx');
 const withdraw = require('./withdraw');
 const transfer_receive = require('./transfer_receive');
+const transfer_send = require('./transfer_send');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -119,15 +120,31 @@ async function main() {
       });
 
     program.command('new-transfer-address')
-    .description('New transfer address for a statecoin') 
-    .argument('<wallet_name>', 'name of the wallet')
-    .action(async (wallet_name) => {
+      .description('New transfer address for a statecoin') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .action(async (wallet_name) => {
 
-      const addr = await transfer_receive.newTransferAddress(db, wallet_name)
-      console.log({transfer_receive: addr});
+        const addr = await transfer_receive.newTransferAddress(db, wallet_name)
+        console.log({transfer_receive: addr});
 
-      db.close();
+        db.close();
     });
+
+    program.command('transfer-send')
+      .description('Send the specified statecoin to an SC address') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .argument('<to_address>', 'recipient bitcoin address')
+      .action(async (wallet_name, statechain_id, to_address, options) => {
+
+        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+        await electrumClient.connect(); // connect(promise)
+
+        await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
+
+        electrumClient.close();
+        db.close();
+      });
   
   
   program.parse();

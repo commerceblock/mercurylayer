@@ -38,7 +38,7 @@ enum Commands {
     /// Generate a transfer address to receive funds
     NewTransferAddress { wallet_name: String },
     /// Send a statechain coin to a transfer address
-    TransferSend { recipient_address: String, wallet_name: String, statechain_id: String },
+    TransferSend { wallet_name: String, statechain_id: String, to_address: String,  },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -81,8 +81,8 @@ async fn main() -> Result<()> {
             let address = transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;
             println!("{}", address);
         },
-        Commands::TransferSend { recipient_address, wallet_name, statechain_id } => {
-            transfer_sender::execute(&client_config, &recipient_address, &wallet_name, &statechain_id).await?;
+        Commands::TransferSend { wallet_name, statechain_id, to_address } => {
+            transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id).await?;
         }
     }
 
