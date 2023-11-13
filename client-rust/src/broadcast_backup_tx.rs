@@ -6,7 +6,6 @@ use mercury_lib::wallet::{cpfp_tx, CoinStatus};
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()> {
     
     let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
-    // transaction::broadcast_backup_transaction(&client_config, &wallet).await?;
 
     let backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
     

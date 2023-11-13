@@ -6,13 +6,12 @@ mod deposit;
 mod transaction;
 mod broadcast_backup_tx;
 mod withdraw;
+mod transfer_sender;
+mod transfer_receiver;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use client_config::ClientConfig;
-use electrum_client::ElectrumApi;
-use mercury_lib::wallet::cpfp_tx;
-use sqlite_manager::get_backup_txs;
 
 use crate::{wallet::create_wallet, sqlite_manager::get_wallet};
 
@@ -36,6 +35,10 @@ enum Commands {
     ListStatecoins { wallet_name: String },
     /// Withdraw funds from a statechain coin to a bitcoin address
     Withdraw { wallet_name: String, statechain_id: String, to_address: String, fee_rate: Option<u64> },
+    /// Generate a transfer address to receive funds
+    NewTransferAddress { wallet_name: String },
+    /// Send a statechain coin to a transfer address
+    TransferSend { recipient_address: String, wallet_name: String, statechain_id: String },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -73,6 +76,13 @@ async fn main() -> Result<()> {
         },
         Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
             withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
+        },
+        Commands::NewTransferAddress { wallet_name } => {
+            let address = transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;
+            println!("{}", address);
+        },
+        Commands::TransferSend { recipient_address, wallet_name, statechain_id } => {
+            transfer_sender::execute(&client_config, &recipient_address, &wallet_name, &statechain_id).await?;
         }
     }
 

@@ -8,6 +8,7 @@ const ElectrumCli = require('@mempool/electrum-client');
 const deposit = require('./deposit');
 const broadcast_backup_tx = require('./broadcast_backup_tx');
 const withdraw = require('./withdraw');
+const transfer_receive = require('./transfer_receive');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -116,6 +117,17 @@ async function main() {
         electrumClient.close();
         db.close();
       });
+
+    program.command('new-transfer-address')
+    .description('New transfer address for a statecoin') 
+    .argument('<wallet_name>', 'name of the wallet')
+    .action(async (wallet_name) => {
+
+      const addr = await transfer_receive.newTransferAddress(db, wallet_name)
+      console.log({transfer_receive: addr});
+
+      db.close();
+    });
   
   
   program.parse();
