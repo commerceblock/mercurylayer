@@ -471,7 +471,6 @@ dependencies = [
  "chrono",
  "clap",
  "config",
- "ecies",
  "electrum-client",
  "hex",
  "mercury-lib",

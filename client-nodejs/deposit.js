@@ -107,8 +107,10 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
    
     // let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
+    let utxo = `${coin.utxo_txid}:${coin.input_vout}`;
+
     let activity = {
-        utxo: coin.utxo_txid,
+        utxo: utxo,
         amount: coin.amount,
         action: "Deposit",
         date: new Date().toISOString()

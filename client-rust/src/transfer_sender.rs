@@ -2,7 +2,7 @@ use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup
 use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, network, Network, Address};
 use chrono::Utc;
-use mercury_lib::{wallet::{Coin, BackupTx, key_derivation, Activity}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use mercury_lib::{wallet::{Coin, BackupTx, key_derivation, Activity, CoinStatus}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
 use secp256k1_zkp::{PublicKey, Secp256k1, schnorr::Signature};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
@@ -95,6 +95,7 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     };
 
     wallet.activities.push(activity);
+    coin.status = CoinStatus::IN_TRANSFER;
 
     update_wallet(&client_config.pool, &wallet).await?;
 

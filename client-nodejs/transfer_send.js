@@ -2,6 +2,7 @@ const sqlite_manager = require('./sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const transaction = require('./transaction');
 const axios = require('axios').default;
+const { CoinStatus } = require('./coin_status');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress)  => {
 
@@ -64,6 +65,33 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     console.log("transferUpdateMsgRequestPayload", transferUpdateMsgRequestPayload);
 
+    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const path = "transfer/update_msg";
+    const url = statechain_entity_url + '/' + path;
+
+    const response = await axios.post(url, transferUpdateMsgRequestPayload);
+
+    if (!response.data.updated) {
+        throw new Error(`Transfer update failed`);
+    }
+
+    await sqlite_manager.updateTransaction(db, coin.statechain_id, backupTxs);
+
+    let utxo = `${coin.utxo_txid}:${coin.input_vout}`;
+
+    let activity = {
+        utxo: utxo,
+        amount: coin.amount,
+        action: "Transfer",
+        date: new Date().toISOString()
+    };
+
+    wallet.activities.push(activity);
+    coin.status = CoinStatus.IN_TRANSFER;
+
+    await sqlite_manager.updateWallet(db, wallet);
+
+    console.log("Transfer completed");
 }
 
 const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) => {
