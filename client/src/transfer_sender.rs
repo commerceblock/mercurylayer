@@ -1,5 +1,5 @@
 use bitcoin::{Transaction, Address, secp256k1, hashes::sha256, Txid};
-use mercury_lib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload};
+use mercury_lib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
 use secp256k1_zkp::{PublicKey, SecretKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -134,7 +134,7 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
 
     let t1 = client_seckey.add_tweak(&x1).unwrap();
 
-    let transfer_msg = mercury_lib::transfer::TransferMsg {
+    let transfer_msg = mercury_lib::transfer::TransferMsg1 {
         statechain_id: statechain_id.to_string(),
         transfer_signature: transfer_signature.to_string(),
         backup_transactions: serialized_backup_transactions,
@@ -152,14 +152,6 @@ pub async fn init(client_config: &ClientConfig, recipient_address: &str, statech
     let encrypted_msg = ecies::encrypt(serialized_new_auth_pubkey, msg).unwrap();
 
     let encrypted_msg_string = hex::encode(&encrypted_msg);
-
-    #[derive(Serialize, Deserialize)]
-    struct TransferUpdateMsgRequestPayload {
-        statechain_id: String,
-        auth_sig: String, // signed_statechain_id
-        new_user_auth_key: String,
-        enc_transfer_msg: String,
-    }
 
     let transfer_update_msg_request_payload = TransferUpdateMsgRequestPayload {
         statechain_id: statechain_id.to_string(),

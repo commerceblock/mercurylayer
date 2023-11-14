@@ -44,7 +44,7 @@ fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicK
     result_pubkey == public_t1
 }
 
-fn calculate_t2(transfer_msg: &mercury_lib::transfer::TransferMsg, client_seckey_share: &SecretKey,) -> SecretKey {
+fn calculate_t2(transfer_msg: &mercury_lib::transfer::TransferMsg1, client_seckey_share: &SecretKey,) -> SecretKey {
 
     let t1 = Scalar::from_be_bytes(transfer_msg.t1).unwrap();
 
@@ -56,7 +56,7 @@ fn calculate_t2(transfer_msg: &mercury_lib::transfer::TransferMsg, client_seckey
 }
 
 /// step 3. Owner 2 verifies that the latest backup transaction pays to their key O2 and that the input (Tx0) is unspent.
-async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &mercury_lib::transfer::TransferMsg, client_pubkey_share: &PublicKey, network: Network,) -> bool {
+async fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &mercury_lib::transfer::TransferMsg1, client_pubkey_share: &PublicKey, network: Network,) -> bool {
 
     let last_tx = transfer_msg.backup_transactions.last().unwrap();
 
@@ -318,7 +318,7 @@ async fn process_encrypted_message(
 
         let decrypted_msg_str = String::from_utf8(decrypted_msg).unwrap();
 
-        let transfer_msg: mercury_lib::transfer::TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
+        let transfer_msg: mercury_lib::transfer::TransferMsg1 = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
         let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity).await.unwrap();
 

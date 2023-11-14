@@ -1,7 +1,8 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs, update_wallet, update_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, network, Network, Address};
-use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature}};
+use chrono::Utc;
+use mercury_lib::{wallet::{Coin, BackupTx, key_derivation, Activity}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
 use secp256k1_zkp::{PublicKey, Secp256k1, schnorr::Signature};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
@@ -64,6 +65,38 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     let transfer_signature = create_transfer_signature(recipient_address, input_txid, input_vout, client_seckey)?; 
 
     println!("transfer_signature: {}", transfer_signature);
+
+    let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
+
+    let endpoint = client_config.statechain_entity.clone();
+    let path = "transfer/update_msg";
+
+    let client = reqwest::Client::new();
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    let status = request.json(&transfer_update_msg_request_payload).send().await?.status();
+
+    if !status.is_success() {
+        return Err(anyhow::anyhow!("Failed to update transfer message".to_string()));
+    }
+
+    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
+
+    let date = Utc::now(); // This will get the current date and time in UTC
+    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
+
+    let utxo = format!("{}:{}", input_txid, input_vout);
+
+    let activity = Activity {
+        utxo,
+        amount: coin.amount.unwrap(),
+        action: "Transfer".to_string(),
+        date: iso_string
+    };
+
+    wallet.activities.push(activity);
+
+    update_wallet(&client_config.pool, &wallet).await?;
 
     Ok(())
 }

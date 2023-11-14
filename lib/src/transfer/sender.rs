@@ -1,11 +1,14 @@
 use std::str::FromStr;
 
 use bitcoin::{secp256k1, hashes::sha256, Txid, PrivateKey};
-use secp256k1_zkp::{Secp256k1, Message, PublicKey};
+use secp256k1_zkp::{Secp256k1, Message, PublicKey, Scalar};
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
+use serde_json::json;
 
-use crate::decode_transfer_address;
+use crate::{decode_transfer_address, wallet::{Coin, BackupTx}};
+
+use super::TransferMsg;
 
 #[derive(Serialize, Deserialize)]
 pub struct TransferSenderRequestPayload {
@@ -18,6 +21,14 @@ pub struct TransferSenderRequestPayload {
 #[derive(Serialize, Deserialize)]
 pub struct TransferSenderResponsePayload {
     pub x1: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TransferUpdateMsgRequestPayload {
+    pub statechain_id: String,
+    pub auth_sig: String, // signed_statechain_id
+    pub new_user_auth_key: String,
+    pub enc_transfer_msg: String,
 }
 
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
@@ -43,3 +54,49 @@ pub fn create_transfer_signature(recipient_address: &str, input_txid: &str, inpu
 
     Ok(signature.to_string())
 }
+
+pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
+
+    let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
+
+    let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+    let client_public_key = coin.user_pubkey.to_string();
+
+    let x1 = hex::decode(x1)?;
+    let x1: [u8; 32] = x1.try_into().unwrap();
+    let x1 = Scalar::from_be_bytes(x1)?;
+    
+    let t1 = client_seckey.add_tweak(&x1)?;
+
+    let statechain_id = coin.statechain_id.as_ref().unwrap();
+    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
+
+    let transfer_msg = TransferMsg {
+        statechain_id: statechain_id.to_string(),
+        transfer_signature: transfer_signature.to_string(),
+        backup_transactions: backup_transactions.to_owned(),
+        t1: t1.secret_bytes(),
+        user_public_key: client_public_key,
+    };
+
+    let transfer_msg_json = json!(&transfer_msg);
+
+    let transfer_msg_json_str = serde_json::to_string_pretty(&transfer_msg_json)?;
+
+    let msg = transfer_msg_json_str.as_bytes();
+
+    let serialized_new_auth_pubkey = &recipient_auth_pubkey.serialize();
+    let encrypted_msg = ecies::encrypt(serialized_new_auth_pubkey, msg)?;
+
+    let encrypted_msg_string = hex::encode(&encrypted_msg);
+
+    let transfer_update_msg_request_payload = TransferUpdateMsgRequestPayload {
+        statechain_id: statechain_id.to_string(),
+        auth_sig: signed_statechain_id.to_string(),
+        new_user_auth_key: recipient_auth_pubkey.to_string(),
+        enc_transfer_msg: encrypted_msg_string.clone(),
+    };
+
+    Ok(transfer_update_msg_request_payload)
+}
+ 

@@ -1420,6 +1420,7 @@ dependencies = [
  "bech32",
  "bip39",
  "bitcoin",
+ "ecies",
  "hex",
  "secp256k1-zkp",
  "serde",

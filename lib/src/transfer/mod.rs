@@ -4,6 +4,8 @@ use bitcoin::{Transaction, secp256k1::PublicKey};
 use secp256k1_zkp::musig::{MusigPubNonce, BlindingFactor};
 use serde::{Deserialize, Serialize};
 
+use crate::wallet::BackupTx;
+
 pub mod receiver;
 pub mod sender;
 
@@ -80,10 +82,19 @@ impl SerializedBackupTransaction {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct TransferMsg {
+pub struct TransferMsg1 {
     pub statechain_id: String,
     pub transfer_signature: String,
     pub backup_transactions: Vec<SerializedBackupTransaction>,
+    pub t1: [u8; 32],
+    pub user_public_key: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TransferMsg {
+    pub statechain_id: String,
+    pub transfer_signature: String,
+    pub backup_transactions: Vec<BackupTx>,
     pub t1: [u8; 32],
     pub user_public_key: String,
 }
