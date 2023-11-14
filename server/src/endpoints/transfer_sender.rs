@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use mercury_lib::transfer::sender::TransferSenderResponsePayload;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
 use serde::{Serialize, Deserialize};
@@ -96,9 +97,11 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
 
     transaction.commit().await.unwrap();
 
-    let response_body = json!({
-        "x1": hex::encode(x1),
-    });
+    let transfer_sender_response_payload = TransferSenderResponsePayload {
+        x1: hex::encode(x1),
+    };
+
+    let response_body = json!(transfer_sender_response_payload);
 
     return status::Custom(Status::Ok, Json(response_body));
 }

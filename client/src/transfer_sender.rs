@@ -1,4 +1,5 @@
 use bitcoin::{Transaction, Address, secp256k1, hashes::sha256, Txid};
+use mercury_lib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload};
 use secp256k1_zkp::{PublicKey, SecretKey, Secp256k1, Message, musig::{MusigPubNonce, BlindingFactor}, schnorr::Signature, Scalar};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -30,14 +31,6 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
     let client = reqwest::Client::new();
     let request = client.post(&format!("{}/{}", endpoint, path));
 
-    #[derive(Serialize, Deserialize)]
-    struct TransferSenderRequestPayload {
-        statechain_id: String,
-        auth_sig: String, // signed_statechain_id
-        new_user_auth_key: String,
-        batch_id: Option<String>,
-    }
-
     let transfer_sender_request_payload = TransferSenderRequestPayload {
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
@@ -61,11 +54,6 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
             return Err(CError::Generic(format!("status: {}, error: {}", err.status().unwrap(),err.to_string())));
         },
     };
-
-    #[derive(Serialize, Deserialize)]
-    pub struct TransferSenderResponsePayload<'r> {
-        x1: &'r str,
-    }
 
     let response: TransferSenderResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 

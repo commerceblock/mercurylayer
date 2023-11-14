@@ -1,11 +1,20 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, Address};
-use mercury_lib::transfer::sender::StatechainCoinDetails;
 use secp256k1_zkp::{PublicKey, SecretKey, Secp256k1};
 use sqlx::Row;
 
 use crate::client_config::ClientConfig;
+
+pub struct StatechainCoinDetails {
+    pub client_seckey: SecretKey,
+    pub client_pubkey: PublicKey,
+    pub amount: u64,
+    pub server_pubkey: PublicKey,
+    pub aggregated_pubkey: PublicKey,
+    pub p2tr_agg_address: Address,
+    pub auth_seckey: SecretKey,
+}
 
 impl ClientConfig {
 

@@ -1,12 +1,14 @@
-use bitcoin::Address;
-use secp256k1_zkp::{SecretKey, PublicKey};
+use serde::{Serialize, Deserialize};
 
-pub struct StatechainCoinDetails {
-    pub client_seckey: SecretKey,
-    pub client_pubkey: PublicKey,
-    pub amount: u64,
-    pub server_pubkey: PublicKey,
-    pub aggregated_pubkey: PublicKey,
-    pub p2tr_agg_address: Address,
-    pub auth_seckey: SecretKey,
+#[derive(Serialize, Deserialize)]
+pub struct TransferSenderRequestPayload {
+    pub statechain_id: String,
+    pub auth_sig: String, // signed_statechain_id
+    pub new_user_auth_key: String,
+    pub batch_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TransferSenderResponsePayload {
+    pub x1: String,
 }
