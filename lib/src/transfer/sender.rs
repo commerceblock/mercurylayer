@@ -23,7 +23,7 @@ pub struct TransferSenderResponsePayload {
     pub x1: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TransferUpdateMsgRequestPayload {
     pub statechain_id: String,
     pub auth_sig: String, // signed_statechain_id

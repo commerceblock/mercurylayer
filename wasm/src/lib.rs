@@ -251,6 +251,17 @@ pub fn createTransferSignature(recipient_address: String, input_txid: String, in
     signature
 }
 
+#[wasm_bindgen]
+pub fn createTransferUpdateMsg(x1: String, recipient_address: String, coin_json: JsValue, transfer_signature: String, backup_transactions: JsValue) -> JsValue {
+    let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
+    let backup_transactions: Vec<BackupTx> = serde_wasm_bindgen::from_value(backup_transactions).unwrap();
+
+    let transfer_update_msg_request_payload = mercury_lib::transfer::sender::create_transfer_update_msg(&x1, &recipient_address, &coin, &transfer_signature, &backup_transactions).unwrap();
+
+    serde_wasm_bindgen::to_value(&transfer_update_msg_request_payload).unwrap()
+}
+// pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
+
 /*
 #[wasm_bindgen]
 pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
