@@ -37,6 +37,29 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     const new_auth_pubkey = coin.auth_pubkey;
 
     const new_x1 = await get_new_x1(statechain_id, signed_statechain_id, new_auth_pubkey);
+
+    console.log("new_x1: ", new_x1);
+
+    let backup_tx = {
+        tx_n: new_tx_n,
+        tx: signed_tx,
+        client_public_nonce: coin.public_nonce,
+        blinding_factor: coin.blinding_factor,
+    };
+
+    backupTxs.push(backup_tx);
+
+    let input_txid = coin.utxo_txid;
+    let input_vout = coin.utxo_vout;
+    let client_seckey = coin.user_privkey;
+    let recipient_address = toAddress;
+
+    console.log("recipient_address", recipient_address);
+
+    let transfer_signature = mercury_wasm.createTransferSignature(recipient_address, input_txid, input_vout, client_seckey);
+
+    console.log("transfer_signature", transfer_signature);
+
 }
 
 const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) => {

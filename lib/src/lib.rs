@@ -32,7 +32,7 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
     let (hrp, data, variant)  = bech32::decode(sc_address).unwrap();
 
     if hrp != "sc" {
-        return Err(anyhow!("Invalid address".to_string()));
+        return Err(anyhow!("Invalid SC address".to_string()));
     }
 
     if variant != Variant::Bech32m {

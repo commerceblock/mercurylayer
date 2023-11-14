@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, network, Network, Address};
-use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload}};
+use mercury_lib::{wallet::{Coin, BackupTx, key_derivation}, utils::{get_network, get_blockheight}, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature}};
 use secp256k1_zkp::{PublicKey, Secp256k1, schnorr::Signature};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
@@ -45,6 +45,25 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, new_auth_pubkey).await?;
 
     println!("x1: {}", x1);
+
+    let backup_tx = BackupTx {
+        tx_n: new_tx_n,
+        tx: signed_tx.clone(),
+        client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+        blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
+    };
+
+    backup_transactions.push(backup_tx);
+
+    let input_txid = coin.utxo_txid.as_ref().unwrap();
+    let input_vout = coin.utxo_vout.unwrap();
+    let client_seckey = coin.user_privkey.as_ref();
+
+    println!("recipient_address: {}", recipient_address);
+
+    let transfer_signature = create_transfer_signature(recipient_address, input_txid, input_vout, client_seckey)?; 
+
+    println!("transfer_signature: {}", transfer_signature);
 
     Ok(())
 }
@@ -97,3 +116,5 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
 
     Ok(response.x1)
 }
+
+

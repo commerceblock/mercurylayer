@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::sender::create_transfer_signature};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -243,6 +243,12 @@ pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: Str
     let backup_tx = mercury_lib::wallet::cpfp_tx::create(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
     backup_tx
     // "".to_string()
+}
+
+#[wasm_bindgen]
+pub fn createTransferSignature(recipient_address: String, input_txid: String, input_vout: u32, client_seckey: String) -> String {
+    let signature = create_transfer_signature(&recipient_address, &input_txid, input_vout, &client_seckey).unwrap();
+    signature
 }
 
 /*
