@@ -145,6 +145,16 @@ async function main() {
         electrumClient.close();
         db.close();
       });
+
+    program.command('transfer-receive')
+      .description('Retrieve coins from server') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .action(async (wallet_name) => {
+
+        await transfer_receive.execute(db, wallet_name)
+
+        db.close();
+    });
   
   
   program.parse();
