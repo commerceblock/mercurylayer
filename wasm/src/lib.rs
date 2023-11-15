@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::sender::create_transfer_signature};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::sender::create_transfer_signature, decode_transfer_address};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -260,6 +260,29 @@ pub fn createTransferUpdateMsg(x1: String, recipient_address: String, coin_json:
 
     serde_wasm_bindgen::to_value(&transfer_update_msg_request_payload).unwrap()
 }
+
+#[wasm_bindgen]
+pub fn decodeTransferAddress(sc_address: String) -> JsValue {
+    
+    let (version, user_pubkey, auth_pubkey) = decode_transfer_address(&sc_address).unwrap();
+
+    #[derive(Serialize, Deserialize)]
+    struct DecodedSCAddress {
+        version: u8,
+        user_pubkey: String,
+        auth_pubkey: String,
+    }
+
+    let decoded_sc_address = DecodedSCAddress {
+        version,
+        user_pubkey: user_pubkey.to_string(),
+        auth_pubkey: auth_pubkey.to_string(),
+    };
+
+    serde_wasm_bindgen::to_value(&decoded_sc_address).unwrap()
+}
+
+
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*

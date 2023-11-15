@@ -721,7 +721,6 @@ dependencies = [
  "hkdf",
  "libsecp256k1",
  "once_cell",
- "openssl",
  "parking_lot",
  "rand_core 0.6.4",
  "sha2",

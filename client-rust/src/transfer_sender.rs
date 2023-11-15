@@ -37,15 +37,11 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
 
     let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
 
-    println!("signed_tx: {}", signed_tx);
-
     let statechain_id = coin.statechain_id.as_ref().unwrap();
     let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
-    let new_auth_pubkey = coin.auth_pubkey.as_ref();
 
-    let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, new_auth_pubkey).await?;
-
-    println!("x1: {}", x1);
+    let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
+    let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string()).await?;
 
     let backup_tx = BackupTx {
         tx_n: new_tx_n,
@@ -60,11 +56,7 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
     let input_vout = coin.utxo_vout.unwrap();
     let client_seckey = coin.user_privkey.as_ref();
 
-    println!("recipient_address: {}", recipient_address);
-
     let transfer_signature = create_transfer_signature(recipient_address, input_txid, input_vout, client_seckey)?; 
-
-    println!("transfer_signature: {}", transfer_signature);
 
     let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
 
@@ -112,7 +104,7 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
     Ok(signed_tx)
 }
 
-async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, new_auth_pubkey: &str) -> Result<String> {
+async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, recipient_auth_pubkey: &str) -> Result<String> {
     
     let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/sender";
@@ -123,7 +115,7 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
     let transfer_sender_request_payload = TransferSenderRequestPayload {
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
-        new_user_auth_key: new_auth_pubkey.to_string(),
+        new_user_auth_key: recipient_auth_pubkey.to_string(),
         batch_id: None,
     };
 

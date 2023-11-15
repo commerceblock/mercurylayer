@@ -14,3 +14,8 @@ pub struct KeyUpdateResponsePayload {
     pub t2: String,
     pub x1: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetMsgAddrResponsePayload {
+    pub list_enc_transfer_msg: Vec<String>,
+}

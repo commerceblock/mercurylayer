@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, secp256k1};
+use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigAggNonce,  MusigSession,  blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
@@ -23,11 +24,6 @@ async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey, statechain_entity_
             return Err(CError::Generic(err.to_string()));
         },
     };
-
-    #[derive(Serialize, Deserialize)]
-    pub struct GetMsgAddrResponsePayload {
-        list_enc_transfer_msg: Vec<String>,
-    }
 
     let response: GetMsgAddrResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 

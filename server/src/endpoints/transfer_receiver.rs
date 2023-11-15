@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
+use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
 use serde::{Serialize, Deserialize};
@@ -168,18 +169,11 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
     
     let result = get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
 
-/*     if result.len() == 0 {
-        let response_body = json!({
-            "error": "Not Found",
-            "message": "No transfer messages found"
-        });
-    
-        return status::Custom(Status::NotFound, Json(response_body));
-    } */
+    let get_msg_addr_response_payload = GetMsgAddrResponsePayload {
+        list_enc_transfer_msg:result
+    };
 
-    let response_body = json!({
-        "list_enc_transfer_msg": result
-    });
+    let response_body = json!(get_msg_addr_response_payload);
 
     return status::Custom(Status::Ok, Json(response_body));
 }

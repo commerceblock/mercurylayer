@@ -39,6 +39,8 @@ enum Commands {
     NewTransferAddress { wallet_name: String },
     /// Send a statechain coin to a transfer address
     TransferSend { wallet_name: String, statechain_id: String, to_address: String,  },
+    /// Send a statechain coin to a transfer address
+    TransferReceive { wallet_name: String },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -69,8 +71,10 @@ async fn main() -> Result<()> {
         Commands::ListStatecoins { wallet_name } => {
             let wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
             for coin in wallet.coins.iter() {
-                println!("statechain_id: {}", coin.statechain_id.as_ref().unwrap());
-                println!("coin.amount: {}", coin.amount.unwrap());
+                println!("----\ncoin.user_pubkey: {}", coin.user_pubkey);
+                println!("coin.address: {}", coin.address);
+                println!("coin.statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));
+                println!("coin.amount: {}", coin.amount.unwrap_or(0));
                 println!("coin.status: {}", coin.status);
             }
         },
@@ -83,7 +87,11 @@ async fn main() -> Result<()> {
         },
         Commands::TransferSend { wallet_name, statechain_id, to_address } => {
             transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id).await?;
-        }
+            println!("Transfer sent");
+        },
+        Commands::TransferReceive { wallet_name } => {
+            transfer_receiver::execute(&client_config, &wallet_name).await?;
+        },
     }
 
     client_config.pool.close().await;

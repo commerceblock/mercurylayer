@@ -31,15 +31,13 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, wallet.network);
 
-    console.log("signed_tx: ", signed_tx);
-
     const statechain_id = coin.statechain_id;
     const signed_statechain_id = coin.signed_statechain_id;
-    const new_auth_pubkey = coin.auth_pubkey;
+
+    const decodedTransferAddress = mercury_wasm.decodeTransferAddress(toAddress);
+    const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
 
     const new_x1 = await get_new_x1(statechain_id, signed_statechain_id, new_auth_pubkey);
-
-    console.log("new_x1: ", new_x1);
 
     const backup_tx = {
         tx_n: new_tx_n,
@@ -55,15 +53,9 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     const client_seckey = coin.user_privkey;
     const recipient_address = toAddress;
 
-    console.log("recipient_address", recipient_address);
-
     const transfer_signature = mercury_wasm.createTransferSignature(recipient_address, input_txid, input_vout, client_seckey);
 
-    console.log("transfer_signature", transfer_signature);
-
     const transferUpdateMsgRequestPayload = mercury_wasm.createTransferUpdateMsg(new_x1, recipient_address, coin, transfer_signature, backupTxs);
-
-    console.log("transferUpdateMsgRequestPayload", transferUpdateMsgRequestPayload);
 
     const statechain_entity_url = 'http://127.0.0.1:8000';
     const path = "transfer/update_msg";
