@@ -80,10 +80,17 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechain_info.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
 
-        console.log("isTx0OutputPubkeyValid", isTx0OutputPubkeyValid);
-
         if (!isTx0OutputPubkeyValid) {
             console.log("Invalid tx0 output pubkey");
+            continue;
+        }
+
+        let latestBackupTxPaysToUserPubkey = mercury_wasm.verifyLatestBackupTxPaysToUserPubkey(transferMsg, newUserPubkey, network);
+
+        console.log("latestBackupTxPaysToUserPubkey", latestBackupTxPaysToUserPubkey);
+
+        if (!latestBackupTxPaysToUserPubkey) {
+            console.log("Latest Backup Tx does not pay to the expected public key");
             continue;
         }
     }

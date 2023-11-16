@@ -4,7 +4,7 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::Txid;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey}, wallet::Coin};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey}, wallet::Coin};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -93,10 +93,17 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
 
         let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
 
-        println!("is_tx0_output_pubkey_valid: {}", is_tx0_output_pubkey_valid);
-
         if !is_tx0_output_pubkey_valid {
             println!("Invalid tx0 output pubkey");
+            continue;
+        }
+
+        let latest_backup_tx_pays_to_user_pubkey = verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
+    
+        println!("latest_backup_tx_pays_to_user_pubkey: {}", latest_backup_tx_pays_to_user_pubkey);
+
+        if !latest_backup_tx_pays_to_user_pubkey {
+            println!("Latest Backup Tx does not pay to the expected public key");
             continue;
         }
     }

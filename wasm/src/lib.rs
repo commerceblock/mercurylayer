@@ -311,6 +311,13 @@ pub fn validateTx0OutputPubkey(enclave_public_key: String, transfer_msg: JsValue
     result
 }
 
+#[wasm_bindgen]
+pub fn verifyLatestBackupTxPaysToUserPubkey(transfer_msg: JsValue, client_pubkey_share: String, network: String) -> bool {
+    let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
+    let result = mercury_lib::transfer::receiver::verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &client_pubkey_share, &network).unwrap();
+    result
+}
+
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*

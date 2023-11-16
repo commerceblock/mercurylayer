@@ -140,3 +140,26 @@ pub fn validate_tx0_output_pubkey(enclave_public_key: &str, transfer_msg: &Trans
 
     Ok(transfer_aggregate_xonly_pubkey == tx0_output_xonly_pubkey)
 }
+
+pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &str, network: &str) -> Result<bool> {
+
+    let client_pubkey_share = PublicKey::from_str(&client_pubkey_share)?;
+    
+    let network = get_network(&network)?;
+
+    let last_bkp_tx = transfer_msg.backup_transactions.last();
+
+    if last_bkp_tx.is_none() {
+        return Err(anyhow!("No backup transaction found"));
+    }
+
+    let last_bkp_tx = last_bkp_tx.unwrap();
+
+    let last_tx: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&last_bkp_tx.tx)?)?;
+
+    let output = &last_tx.output[0];
+
+    let aggregate_address = Address::p2tr(&Secp256k1::new(), client_pubkey_share.x_only_public_key().0, None, network);
+
+    Ok(output.script_pubkey == aggregate_address.script_pubkey())
+}
