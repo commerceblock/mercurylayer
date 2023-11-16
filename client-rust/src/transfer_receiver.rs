@@ -4,7 +4,7 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::Txid;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::GetMsgAddrResponsePayload, wallet::Coin};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature}, wallet::Coin};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -64,20 +64,25 @@ async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<
 async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>) -> Result<()> {
 
     let client_auth_key = coin.auth_privkey.clone();
-    
+    let new_user_pubkey = coin.user_pubkey.clone();
+
     for enc_message in enc_messages {
 
         let transfer_msg = mercury_lib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
 
-        println!("transfer_msg: {:?}", transfer_msg);
+        // println!("transfer_msg: {:?}", transfer_msg);
 
-        let tx0_txid = mercury_lib::transfer::receiver::get_tx0_txid(&transfer_msg.backup_transactions)?;
+        let tx0_outpoint = mercury_lib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
         
-        println!("tx0_txid: {}", tx0_txid);
+        println!("tx0_outpoint: {:?}", tx0_outpoint);
 
-        let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_txid).await?;
+        let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
 
         println!("tx0_hex: {}", tx0_hex);
+
+        let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
+
+        println!("is_transfer_signature_valid: {}", is_transfer_signature_valid);
     }
 
     Ok(())
@@ -98,3 +103,4 @@ async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> R
 
     Ok(tx0_hex)
 }
+

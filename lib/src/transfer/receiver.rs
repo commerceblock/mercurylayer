@@ -1,4 +1,7 @@
-use bitcoin::{PrivateKey, Transaction};
+use std::str::FromStr;
+
+use bitcoin::{PrivateKey, Transaction, hashes::sha256, Txid};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message};
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
 
@@ -41,7 +44,13 @@ pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> R
     Ok(transfer_msg)
 }
 
-pub fn get_tx0_txid(backup_transactions: &Vec<BackupTx>) -> Result<String> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TxOutpoint {
+    pub txid: String,
+    pub vout: u32,
+}
+
+pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoint> {
 
     let mut backup_transactions = backup_transactions.clone();
 
@@ -60,6 +69,30 @@ pub fn get_tx0_txid(backup_transactions: &Vec<BackupTx>) -> Result<String> {
     }
 
     let tx0_txid = tx1.input[0].previous_output.txid;
+    let tx0_vout = tx1.input[0].previous_output.vout as u32;
 
-    Ok(tx0_txid.to_string())
+    Ok(TxOutpoint{ txid: tx0_txid.to_string(), vout: tx0_vout })
+}
+
+pub fn verify_transfer_signature(new_user_pubkey: &str, tx0_outpoint: &TxOutpoint, transfer_msg: &TransferMsg) -> Result<bool> {
+
+    let new_user_pubkey = PublicKey::from_str(new_user_pubkey)?;
+    let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key)?.x_only_public_key().0;
+
+    let input_vout = tx0_outpoint.vout;
+    let input_txid = Txid::from_str(&tx0_outpoint.txid)?;
+
+    let signature = Signature::from_str(&transfer_msg.transfer_signature)?;
+
+    let secp = Secp256k1::new();
+
+    let mut data_to_verify = Vec::<u8>::new();
+    data_to_verify.extend_from_slice(&input_txid[..]);
+    data_to_verify.extend_from_slice(&input_vout.to_le_bytes());
+    data_to_verify.extend_from_slice(&new_user_pubkey.serialize()[..]);
+
+    let msg = Message::from_hashed_data::<sha256::Hash>(&data_to_verify);
+
+    Ok(secp.verify_schnorr(&signature, &msg, &sender_public_key).is_ok())
+
 }

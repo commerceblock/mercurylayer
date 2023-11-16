@@ -53,6 +53,7 @@ const get_msg_addr = async (auth_pubkey) => {
 
 const process_encrypted_message = async (electrumClient, coin, encMessages) => {
     let clientAuthKey = coin.auth_privkey;
+    let newUserPubkey = coin.user_pubkey;
 
     for (let encMessage of encMessages) {
 
@@ -60,13 +61,17 @@ const process_encrypted_message = async (electrumClient, coin, encMessages) => {
 
         console.log("transferMsg", transferMsg);
 
-        let tx0_txid = mercury_wasm.getTx0TxId(transferMsg.backup_transactions);
+        let tx0Outpoint = mercury_wasm.getTx0Outpoint(transferMsg.backup_transactions);
 
-        console.log("tx0_txid", tx0_txid);
+        console.log("tx0_outpoint", tx0Outpoint);
         
-        const tx0_hex = await getTx0(electrumClient, tx0_txid);
+        const tx0_hex = await getTx0(electrumClient, tx0Outpoint.txid);
 
         console.log("tx0_hex", tx0_hex);
+
+        const isTransferSignatureValid = mercury_wasm.verifyTransferSignature(newUserPubkey, tx0Outpoint, transferMsg);
+
+        console.log("isTransferSignatureValid", isTransferSignatureValid);
         
     }
 }
