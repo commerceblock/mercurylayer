@@ -36,7 +36,7 @@ const execute = async (electrumClient, db, wallet_name) => {
 
         console.log("encMessages", encMessages);
 
-        await process_encrypted_message(electrumClient, coin, encMessages);
+        await process_encrypted_message(electrumClient, coin, encMessages, wallet.network);
     }
 }
 
@@ -51,7 +51,7 @@ const get_msg_addr = async (auth_pubkey) => {
     return response.data.list_enc_transfer_msg;
 }
 
-const process_encrypted_message = async (electrumClient, coin, encMessages) => {
+const process_encrypted_message = async (electrumClient, coin, encMessages, network) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
 
@@ -65,19 +65,42 @@ const process_encrypted_message = async (electrumClient, coin, encMessages) => {
 
         console.log("tx0_outpoint", tx0Outpoint);
         
-        const tx0_hex = await getTx0(electrumClient, tx0Outpoint.txid);
+        const tx0Hex = await getTx0(electrumClient, tx0Outpoint.txid);
 
-        console.log("tx0_hex", tx0_hex);
+        console.log("tx0_hex", tx0Hex);
 
         const isTransferSignatureValid = mercury_wasm.verifyTransferSignature(newUserPubkey, tx0Outpoint, transferMsg);
 
-        console.log("isTransferSignatureValid", isTransferSignatureValid);
+        if (!isTransferSignatureValid) {
+            console.log("Invalid transfer signature");
+            continue;
+        }
         
+        const statechain_info = await getStatechainInfo(transferMsg.statechain_id);
+
+        const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechain_info.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
+
+        console.log("isTx0OutputPubkeyValid", isTx0OutputPubkeyValid);
+
+        if (!isTx0OutputPubkeyValid) {
+            console.log("Invalid tx0 output pubkey");
+            continue;
+        }
     }
 }
 
 const getTx0 = async (electrumClient, tx0_txid) => {
     return await electrumClient.request('blockchain.transaction.get', [tx0_txid]); // request(promise)
+}
+
+const getStatechainInfo = async (statechain_id) => {
+
+    const statechainEntityUrl = 'http://127.0.0.1:8000';
+    const path = `info/statechain/${statechain_id}`;
+
+    let response = await axios.get(statechainEntityUrl + '/' + path);
+
+    return response.data;
 }
 
 module.exports = { newTransferAddress, execute };

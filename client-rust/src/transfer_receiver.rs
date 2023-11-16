@@ -4,7 +4,7 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::Txid;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature}, wallet::Coin};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey}, wallet::Coin};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -41,7 +41,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
         println!("enc_messages: {:?}", enc_messages);
 
-        process_encrypted_message(client_config, coin, &enc_messages).await?;
+        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network).await?;
     }
 
     Ok(())
@@ -61,7 +61,7 @@ async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>) -> Result<()> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>, network: &str) -> Result<()> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -83,6 +83,22 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
         let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
 
         println!("is_transfer_signature_valid: {}", is_transfer_signature_valid);
+
+        if !is_transfer_signature_valid {
+            println!("Invalid transfer signature");
+            continue;
+        }
+
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity).await?;
+
+        let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
+
+        println!("is_tx0_output_pubkey_valid: {}", is_tx0_output_pubkey_valid);
+
+        if !is_tx0_output_pubkey_valid {
+            println!("Invalid tx0 output pubkey");
+            continue;
+        }
     }
 
     Ok(())
@@ -102,5 +118,28 @@ async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> R
     let tx0_hex = hex::encode(&tx_bytes[0]);
 
     Ok(tx0_hex)
+}
+
+async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -> Result<StatechainInfoResponsePayload> {
+
+    let endpoint = statechain_entity_url;
+    let path = format!("info/statechain/{}", statechain_id.to_string());
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.get(&format!("{}/{}", endpoint, path));
+
+    let value = match request.send().await {
+        Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            return Err(anyhow!(err.to_string()));
+        },
+    };
+
+    let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str())?;
+
+    Ok(response)
 }
 

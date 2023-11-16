@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::{Transaction, Network, Address, Txid, sighash::{SighashCache, TapSighashType, self}, TxOut, taproot::TapTweakHash, hashes::{Hash, sha256}, secp256k1};
-use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
+use mercury_lib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfoResponsePayload, StatechainInfo};
 use secp256k1_zkp::{SecretKey, PublicKey, Secp256k1, schnorr::Signature, XOnlyPublicKey, Message, musig::{MusigAggNonce,  MusigSession,  blinded_musig_pubkey_xonly_tweak_add}, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
@@ -238,25 +238,6 @@ async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::Receiver
     Ok(())
 
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StatechainInfo {
-    statechain_id: String,
-    r2_commitment: String,
-    blind_commitment: String,
-    server_pubnonce: String,
-    challenge: String,
-    tx_n: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StatechainInfoResponsePayload {
-    enclave_public_key: String,
-    num_sigs: u32,
-    statechain_info: Vec<StatechainInfo>,
-    x1_pub: String,
-}
-
 
 async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -> Result<StatechainInfoResponsePayload, CError> {
 

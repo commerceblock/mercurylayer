@@ -303,6 +303,14 @@ pub fn verifyTransferSignature(new_user_pubkey: String, tx0_outpoint: JsValue, t
     result
 }
 
+#[wasm_bindgen]
+pub fn validateTx0OutputPubkey(enclave_public_key: String, transfer_msg: JsValue, tx0_outpoint: JsValue, tx0_hex: String, network: String) -> bool {
+    let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
+    let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
+    let result = mercury_lib::transfer::receiver::validate_tx0_output_pubkey(&enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, &network).unwrap();
+    result
+}
+
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*
