@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::sender::create_transfer_signature, decode_transfer_address};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::decrypt_transfer_msg, TransferMsg}, decode_transfer_address};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -282,6 +282,18 @@ pub fn decodeTransferAddress(sc_address: String) -> JsValue {
     serde_wasm_bindgen::to_value(&decoded_sc_address).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn decryptTransferMsg(encrypted_message: String, private_key_wif: String) -> JsValue {
+    let transfer_msg = decrypt_transfer_msg(&encrypted_message, &private_key_wif).unwrap();
+    serde_wasm_bindgen::to_value(&transfer_msg).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn getTx0TxId(backup_transactions: JsValue) -> String {
+    let backup_transactions: Vec<BackupTx> = serde_wasm_bindgen::from_value(backup_transactions).unwrap();
+    let tx0_txid = mercury_lib::transfer::receiver::get_tx0_txid(&backup_transactions).unwrap();
+    tx0_txid
+}
 
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 

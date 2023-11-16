@@ -1,6 +1,10 @@
+use std::str::FromStr;
+
 use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientConfig};
-use anyhow::Result;
-use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
+use anyhow::{anyhow, Result};
+use bitcoin::Txid;
+use electrum_client::ElectrumApi;
+use mercury_lib::{transfer::receiver::GetMsgAddrResponsePayload, wallet::Coin};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -15,20 +19,6 @@ pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &st
     update_wallet(&client_config.pool, &wallet).await?;
 
     Ok(coin.address)
-}
-
-async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<Vec<String>> {
-    let endpoint = statechain_entity_url;
-    let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
-
-    let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}/{}", endpoint, path));
-
-    let value = request.send().await?.text().await?;
-
-    let response: GetMsgAddrResponsePayload = serde_json::from_str(value.as_str())?;
-
-    Ok(response.list_enc_transfer_msg)
 }
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<()>{
@@ -50,7 +40,61 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
         }
 
         println!("enc_messages: {:?}", enc_messages);
+
+        process_encrypted_message(client_config, coin, &enc_messages).await?;
     }
 
     Ok(())
+}
+
+async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<Vec<String>> {
+    let endpoint = statechain_entity_url;
+    let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.get(&format!("{}/{}", endpoint, path));
+
+    let value = request.send().await?.text().await?;
+
+    let response: GetMsgAddrResponsePayload = serde_json::from_str(value.as_str())?;
+
+    Ok(response.list_enc_transfer_msg)
+}
+
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>) -> Result<()> {
+
+    let client_auth_key = coin.auth_privkey.clone();
+    
+    for enc_message in enc_messages {
+
+        let transfer_msg = mercury_lib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
+
+        println!("transfer_msg: {:?}", transfer_msg);
+
+        let tx0_txid = mercury_lib::transfer::receiver::get_tx0_txid(&transfer_msg.backup_transactions)?;
+        
+        println!("tx0_txid: {}", tx0_txid);
+
+        let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_txid).await?;
+
+        println!("tx0_hex: {}", tx0_hex);
+    }
+
+    Ok(())
+}
+
+async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> Result<String> {
+
+    let tx0_txid = Txid::from_str(tx0_txid)?;
+    let tx_bytes = electrum_client.batch_transaction_get_raw(&[tx0_txid])?;
+
+    if tx_bytes.len() == 0 {
+        return Err(anyhow!("tx0 not found"));
+    }
+
+    // let tx0 = bitcoin::consensus::encode::deserialize(&tx_bytes[0])?;
+
+    let tx0_hex = hex::encode(&tx_bytes[0]);
+
+    Ok(tx0_hex)
 }

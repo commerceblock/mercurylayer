@@ -15,18 +15,7 @@ const newTransferAddress = async (db, wallet_name) => {
     return coin.address;
 }
 
-const get_msg_addr = async (auth_pubkey) => {
-
-    const statechain_entity_url = 'http://127.0.0.1:8000';
-    const path = "transfer/get_msg_addr/";
-    const url = statechain_entity_url + '/' + path + auth_pubkey;
-
-    const response = await axios.get(url);
-
-    return response.data.list_enc_transfer_msg;
-}
-
-const execute = async (db, wallet_name) => {
+const execute = async (electrumClient, db, wallet_name) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
@@ -46,7 +35,44 @@ const execute = async (db, wallet_name) => {
         }
 
         console.log("encMessages", encMessages);
+
+        await process_encrypted_message(electrumClient, coin, encMessages);
     }
+}
+
+const get_msg_addr = async (auth_pubkey) => {
+
+    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const path = "transfer/get_msg_addr/";
+    const url = statechain_entity_url + '/' + path + auth_pubkey;
+
+    const response = await axios.get(url);
+
+    return response.data.list_enc_transfer_msg;
+}
+
+const process_encrypted_message = async (electrumClient, coin, encMessages) => {
+    let clientAuthKey = coin.auth_privkey;
+
+    for (let encMessage of encMessages) {
+
+        let transferMsg = mercury_wasm.decryptTransferMsg(encMessage, clientAuthKey);
+
+        console.log("transferMsg", transferMsg);
+
+        let tx0_txid = mercury_wasm.getTx0TxId(transferMsg.backup_transactions);
+
+        console.log("tx0_txid", tx0_txid);
+        
+        const tx0_hex = await getTx0(electrumClient, tx0_txid);
+
+        console.log("tx0_hex", tx0_hex);
+        
+    }
+}
+
+const getTx0 = async (electrumClient, tx0_txid) => {
+    return await electrumClient.request('blockchain.transaction.get', [tx0_txid]); // request(promise)
 }
 
 module.exports = { newTransferAddress, execute };

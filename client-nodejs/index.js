@@ -151,8 +151,12 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
-        await transfer_receive.execute(db, wallet_name)
+        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+        await electrumClient.connect(); // connect(promise)
 
+        await transfer_receive.execute(electrumClient, db, wallet_name)
+
+        electrumClient.close();
         db.close();
     });
   
