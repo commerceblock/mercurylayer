@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientConfig};
 use anyhow::{anyhow, Result};
-use bitcoin::Txid;
+use bitcoin::{Txid, Address, network};
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey}, wallet::Coin};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint}, wallet::Coin, utils::get_network};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -106,6 +106,27 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
             println!("Latest Backup Tx does not pay to the expected public key");
             continue;
         }
+
+        if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
+            println!("num_sigs is not correct");
+            continue;
+        }
+
+        let is_tx0_output_unspent = verify_tx0_output_is_unspent(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network).await?;
+
+        if !is_tx0_output_unspent {
+            println!("tx0 output is spent");
+            continue;
+        }
+
+        let mut previous_lock_time: Option<u32> = None;
+
+        for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
+
+            let statechain_info = statechain_info.statechain_info.get(index).unwrap();
+
+
+        }
     }
 
     Ok(())
@@ -148,5 +169,18 @@ async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -
     let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str())?;
 
     Ok(response)
+}
+
+async fn verify_tx0_output_is_unspent(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<bool> {
+    let output_address = mercury_lib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network)?;
+
+    let network = get_network(&network)?;
+    let address = Address::from_str(&output_address)?.require_network(network)?;
+    let script = address.script_pubkey();
+    let script = script.as_script();
+
+    let res = electrum_client.script_list_unspent(script)?;
+
+    Ok(res.len() > 0)
 }
 

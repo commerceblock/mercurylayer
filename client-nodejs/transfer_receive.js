@@ -1,6 +1,9 @@
 const sqlite_manager = require('./sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const axios = require('axios').default;
+const bitcoinjs = require("bitcoinjs-lib");
+const ecc = require("tiny-secp256k1");
+const utils = require('./utils');
 
 const newTransferAddress = async (db, wallet_name) => {
 
@@ -76,9 +79,9 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
             continue;
         }
         
-        const statechain_info = await getStatechainInfo(transferMsg.statechain_id);
+        const statechainInfo = await getStatechainInfo(transferMsg.statechain_id);
 
-        const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechain_info.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
+        const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechainInfo.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
 
         if (!isTx0OutputPubkeyValid) {
             console.log("Invalid tx0 output pubkey");
@@ -91,6 +94,17 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         if (!latestBackupTxPaysToUserPubkey) {
             console.log("Latest Backup Tx does not pay to the expected public key");
+            continue;
+        }
+
+        if (statechainInfo.num_sigs != transferMsg.backup_transactions.length) {
+            console.log("num_sigs is not correct");
+            continue;
+        }
+        
+        let isTx0OutputUnspent = await verifyTx0OutputIsUnspent(electrumClient, tx0Outpoint, tx0Hex, network);
+        if (!isTx0OutputUnspent) {
+            console.log("tx0 output is spent");
             continue;
         }
     }
@@ -108,6 +122,24 @@ const getStatechainInfo = async (statechain_id) => {
     let response = await axios.get(statechainEntityUrl + '/' + path);
 
     return response.data;
+}
+
+const verifyTx0OutputIsUnspent = async (electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {
+
+    let tx0outputAddress = mercury_wasm.getOutputAddressFromTx0(tx0Outpoint, tx0Hex, wallet_network);
+
+    const network = utils.getNetwork(wallet_network);
+
+    bitcoinjs.initEccLib(ecc);
+
+    let script = bitcoinjs.address.toOutputScript(tx0outputAddress, network);
+    let hash = bitcoinjs.crypto.sha256(script);
+    let reversedHash = Buffer.from(hash.reverse());
+    reversedHash = reversedHash.toString('hex');
+
+    let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
+
+    return utxo_list.length > 0;
 }
 
 module.exports = { newTransferAddress, execute };

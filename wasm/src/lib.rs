@@ -318,6 +318,13 @@ pub fn verifyLatestBackupTxPaysToUserPubkey(transfer_msg: JsValue, client_pubkey
     result
 }
 
+#[wasm_bindgen]
+pub fn getOutputAddressFromTx0(tx0_outpoint: JsValue, tx0_hex: String, network: String) -> String {
+    let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
+    let output_address = mercury_lib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network).unwrap();
+    output_address
+}
+
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*
