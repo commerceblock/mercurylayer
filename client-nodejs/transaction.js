@@ -1,6 +1,7 @@
 const axios = require('axios').default;
 const mercury_wasm = require('mercury-wasm');
 const utils = require('./utils');
+const config = require('config');
 
 const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
@@ -57,7 +58,7 @@ const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtB
 
 const signFirst = async (signFirstRequestPayload) => {
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "sign/first";
     const url = statechain_entity_url + '/' + path;
     
@@ -74,7 +75,7 @@ const signFirst = async (signFirstRequestPayload) => {
 
 const signSecond = async (partialSigRequest) => {
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "sign/second";
     const url = statechain_entity_url + '/' + path;
 

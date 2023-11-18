@@ -4,7 +4,8 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address, network};
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme}, wallet::Coin, utils::{get_network, InfoConfig, get_blockheight}};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload}, wallet::Coin, utils::{get_network, InfoConfig, get_blockheight}};
+use serde_json::Value;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -164,6 +165,11 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
             println!("Signature scheme validation failed");
             continue;
         }
+
+        let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
+    
+        send_transfer_receiver_request_payload(&client_config.statechain_entity, &transfer_receiver_request_payload).await?;
+    
     }
 
     Ok(())
@@ -221,3 +227,21 @@ async fn verify_tx0_output_is_unspent(electrum_client: &electrum_client::Client,
     Ok(res.len() > 0)
 }
 
+async fn send_transfer_receiver_request_payload(statechain_entity_url: &str, transfer_receiver_request_payload: &TransferReceiverRequestPayload) -> Result<()>{
+
+    let endpoint = statechain_entity_url;
+    let path = "transfer/receiver";
+
+    let client = reqwest::Client::new();
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    let value = request.json(&transfer_receiver_request_payload).send().await?.text().await?;
+
+    let response: Value = serde_json::from_str(value.as_str())?;
+
+    let server_public_key_hex = response.get("server_pubkey").unwrap().as_str().unwrap();
+
+    println!("server_public_key_hex: {}", server_public_key_hex);
+
+    Ok(())    
+}

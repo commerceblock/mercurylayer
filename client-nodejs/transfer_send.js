@@ -3,6 +3,7 @@ const mercury_wasm = require('mercury-wasm');
 const transaction = require('./transaction');
 const axios = require('axios').default;
 const { CoinStatus } = require('./coin_status');
+const config = require('config');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress)  => {
 
@@ -66,7 +67,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     const transferUpdateMsgRequestPayload = mercury_wasm.createTransferUpdateMsg(new_x1, recipient_address, coin, transfer_signature, backupTxs);
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "transfer/update_msg";
     const url = statechain_entity_url + '/' + path;
 
@@ -97,7 +98,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
 const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) => {
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "transfer/sender";
     const url = statechain_entity_url + '/' + path;
 

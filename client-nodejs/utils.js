@@ -1,9 +1,10 @@
 const axios = require('axios').default;
 const bitcoinjs_lib = require("bitcoinjs-lib");
+const config = require('config');
 
 const infoConfig = async (ecl) => {
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "info/config";
 
     let fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)

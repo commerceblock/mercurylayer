@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo}, TransferMsg}, decode_transfer_address};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo, StatechainInfoResponsePayload, create_transfer_receiver_request_payload}, TransferMsg}, decode_transfer_address};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -378,6 +378,18 @@ pub fn getBlockheight(backup_tx: JsValue) -> u32 {
     let blockheight = mercury_lib::utils::get_blockheight(&backup_tx).unwrap();
     blockheight
 }
+
+#[wasm_bindgen]
+pub fn createTransferReceiverRequestPayload(statechain_info: JsValue, transfer_msg: JsValue, coin: JsValue) -> JsValue {
+    let statechain_info: StatechainInfoResponsePayload = serde_wasm_bindgen::from_value(statechain_info).unwrap();
+    let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin).unwrap();
+
+    serde_wasm_bindgen::to_value(&transfer_receiver_request_payload).unwrap()
+}
+
 
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 

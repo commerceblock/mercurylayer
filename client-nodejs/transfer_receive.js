@@ -46,7 +46,7 @@ const execute = async (electrumClient, db, wallet_name) => {
 
 const get_msg_addr = async (auth_pubkey) => {
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "transfer/get_msg_addr/";
     const url = statechain_entity_url + '/' + path + auth_pubkey;
 
@@ -146,6 +146,12 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
             continue;
         }
 
+        const transferReceiverRequestPayload = mercury_wasm.createTransferReceiverRequestPayload(statechainInfo, transferMsg, coin);
+
+        console.log("transferReceiverRequestPayload", transferReceiverRequestPayload);
+
+        await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+
     }
 }
 
@@ -179,6 +185,18 @@ const verifyTx0OutputIsUnspent = async (electrumClient, tx0Outpoint, tx0Hex, wal
     let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
 
     return utxo_list.length > 0;
+}
+
+const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload) => {
+
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "transfer/receiver";
+    const url = statechain_entity_url + '/' + path;
+
+    const response = await axios.post(url, transferReceiverRequestPayload);
+
+
+    console.log("response.data", response.data); 
 }
 
 module.exports = { newTransferAddress, execute };

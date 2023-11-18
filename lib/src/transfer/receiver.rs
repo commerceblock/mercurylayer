@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut, taproot::TapTweakHash};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
 
-use crate::{wallet::BackupTx, utils::get_network};
+use crate::{wallet::{BackupTx, Coin}, utils::get_network};
 
 use super::TransferMsg;
 
@@ -327,4 +327,59 @@ pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statecha
 
     Ok(())
 }
- 
+
+fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicKey) -> Result<bool> {
+
+    let secret_t1 = SecretKey::from_slice(t1)?;
+    let public_t1 = secret_t1.public_key(&Secp256k1::new());
+
+    let result_pubkey = sender_public_key.combine(&x1_pub)?;
+
+    Ok(result_pubkey == public_t1)
+}
+
+fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) -> Result<SecretKey> {
+
+    let t1 = Scalar::from_be_bytes(transfer_msg.t1)?;
+
+    let negated_seckey = client_seckey_share.negate();
+
+    let t2 = negated_seckey.add_tweak(&t1)?;
+
+    Ok(t2)
+}
+
+pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload> {
+
+    let x1_pub = PublicKey::from_str(&statechain_info.x1_pub)?;
+
+    let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key)?;
+
+    let client_seckey_share = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+
+    if !validate_t1pub(&transfer_msg.t1, &x1_pub, &sender_public_key)? {
+        return Err(anyhow!("Invalid t1"));
+    }
+
+    let t2 = calculate_t2(&transfer_msg, &client_seckey_share)?;
+
+    let t2_hex = hex::encode(t2.secret_bytes());
+
+    let secp = Secp256k1::new();
+
+    let client_auth_keypair = KeyPair::from_seckey_slice(&secp, client_auth_key.as_ref())?;
+    let msg = Message::from_hashed_data::<sha256::Hash>(t2_hex.as_bytes());
+    let auth_sig = secp.sign_schnorr(&msg, &client_auth_keypair);
+
+    let transfer_receiver_request_payload = TransferReceiverRequestPayload {
+        statechain_id: transfer_msg.statechain_id.clone(),
+        batch_data: None,
+        t2: t2_hex,
+        auth_sig: auth_sig.to_string(),
+    };
+
+    Ok(transfer_receiver_request_payload)
+
+}

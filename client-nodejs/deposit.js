@@ -3,6 +3,7 @@ const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
 const transaction = require('./transaction');
+const config = require('config');
 
 // used only for random token. Can be removed later
 const crypto = require('crypto');
@@ -135,7 +136,7 @@ const init = async (db, wallet, token_id, amount) => {
 
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id, parseInt(amount, 10));
 
-    const statechain_entity_url = 'http://127.0.0.1:8000';
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "deposit/init/pod";
     const url = statechain_entity_url + '/' + path;
 
