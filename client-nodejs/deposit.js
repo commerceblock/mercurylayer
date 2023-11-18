@@ -100,7 +100,10 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
         tx_n: 1,
         tx: signed_tx,
         client_public_nonce: coin.public_nonce,
-        blinding_factor: coin.blinding_factor,
+        server_public_nonce: coin.server_public_nonce,
+        client_public_key: coin.user_pubkey,
+        server_public_key: coin.server_pubkey,
+        blinding_factor: coin.blinding_factor
     };
 
     await sqlite_manager.insertTransaction(db, coin.statechain_id, [backup_tx]);

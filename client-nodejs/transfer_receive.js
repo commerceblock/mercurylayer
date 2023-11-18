@@ -107,15 +107,33 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         let previousLockTime = null;
 
-        for (let [index, backupTx] of transferMsg.backup_transactions.entries()) {
+        let sigSchemeValidation = true;
+
+        for (const [index, backupTx] of transferMsg.backup_transactions.entries()) {
 
             const isSignatureValid = mercury_wasm.verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte);
 
             if (!isSignatureValid.result) {
-                console.error("Invalid signature");
-                continue;
+                console.error(`Invalid signature, ${isSignatureValid.result.msg}`);
+                sigSchemeValidation = false;
+                break;
             }
 
+            const currentStatechainInfo = statechainInfo.statechain_info[index];
+
+            const isBlindedMusigSchemeValid = mercury_wasm.verifyBlindedMusigScheme(backupTx, tx0Hex, currentStatechainInfo);
+
+            if (!isBlindedMusigSchemeValid.result) {
+                console.error(`Invalid musig scheme, ${isBlindedMusigSchemeValid.result.msg}`);
+                sigSchemeValidation = false;
+                break;
+            }
+
+        }
+
+        if (!sigSchemeValidation) {
+            console.error("Signature scheme validation failed");
+            continue;
         }
 
     }

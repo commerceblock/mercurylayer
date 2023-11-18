@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use bitcoin::{PrivateKey, Transaction, hashes::sha256, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey};
+use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut, taproot::TapTweakHash};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey};
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
 
-use crate::{wallet::BackupTx, utils::get_network};
+use crate::{wallet::{BackupTx, Coin}, utils::get_network};
 
 use super::TransferMsg;
 
@@ -47,6 +47,12 @@ pub struct StatechainInfoResponsePayload {
     pub x1_pub: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TxOutpoint {
+    pub txid: String,
+    pub vout: u32,
+
+}
 
 pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg> {
 
@@ -61,13 +67,6 @@ pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> R
     let transfer_msg: TransferMsg = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
     Ok(transfer_msg)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TxOutpoint {
-    pub txid: String,
-    pub vout: u32,
-
 }
 
 pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoint> {
@@ -226,6 +225,104 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
 
     if !Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok() {
         return Err(anyhow!("Invalid signature".to_string()));
+    }
+
+    Ok(())
+
+}
+
+fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message> {
+
+    let witness = tx_n.input[0].witness.clone();
+
+    if witness.nth(0).is_none() {
+        return Err(anyhow!("Empty witness"));
+    }
+
+    let witness_data = witness.nth(0).unwrap();
+
+    let vout = tx_n.input[0].previous_output.vout as usize;
+
+    let tx_0_output = tx_0.output[vout].clone();
+
+    if witness_data.last().is_none() {
+        return Err(anyhow!("Empty witness data"));
+    }
+
+    let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned())?;
+
+    let hash = SighashCache::new(tx_n).taproot_key_spend_signature_hash(
+        0,
+        &sighash::Prevouts::All(&[TxOut {
+            value: tx_0_output.value,
+            script_pubkey: tx_0_output.script_pubkey.clone(),
+        }]),
+        sighash_type,
+    )?;
+
+    let msg: Message = hash.into();
+
+    Ok(msg)
+}
+
+pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statechain_info: &StatechainInfo) -> Result<()> {
+
+    let client_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.client_public_nonce)?.as_slice())?;
+
+    let server_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.server_public_nonce)?.as_slice())?;
+
+    let client_public_key = PublicKey::from_str(&backup_tx.client_public_key)?;
+
+    let server_public_key = PublicKey::from_str(&backup_tx.server_public_key)?;
+
+    let blinding_factor = BlindingFactor::from_slice(hex::decode(&backup_tx.blinding_factor)?.as_slice())?;
+
+    let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
+    let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
+
+    if statechain_info.blind_commitment != blind_commitment.to_string() {
+        return Err(anyhow!("blind_commitment is not correct".to_string()));
+    }
+
+    if statechain_info.r2_commitment != r2_commitment.to_string() {
+        return Err(anyhow!("r2_commitment is not correct".to_string()));
+    }
+
+    let secp = Secp256k1::new();
+
+    let aggregate_pubkey = client_public_key.combine(&server_public_key)?;
+
+    let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
+    let tap_tweak_bytes = tap_tweak.as_byte_array();
+
+    let tweak = SecretKey::from_slice(tap_tweak_bytes)?;
+
+    let (_, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
+    
+    let aggnonce = MusigAggNonce::new(&secp, &[client_public_nonce, server_public_nonce]);
+
+    let tx_0: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx0_hex)?)?;
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&backup_tx.tx)?)?;
+
+    let msg = get_tx_hash(&tx_0, &tx_n)?;
+
+    let session = MusigSession::new_blinded_without_key_agg_cache(
+        &secp,
+        &output_pubkey,
+        aggnonce,
+        msg,
+        None,
+        &blinding_factor,
+        out_tweak32
+    );
+    // END repeated code
+
+    let challenge = session.get_challenge_from_session();
+    let challenge = hex::encode(challenge);
+
+    if statechain_info.challenge != challenge {
+        return Err(anyhow!("challenge is not correct".to_string()));
     }
 
     Ok(())

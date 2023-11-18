@@ -4,7 +4,7 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address, network};
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature}, wallet::Coin, utils::{get_network, InfoConfig}};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme}, wallet::Coin, utils::{get_network, InfoConfig}};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -127,15 +127,31 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
 
         let mut previous_lock_time: Option<u32> = None;
 
+        let mut sig_scheme_validation = true;
+
         for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
 
             let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
             let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
             if is_signature_valid.is_err() {
-                return Err(is_signature_valid.err().unwrap());
+                println!("{}", is_signature_valid.err().unwrap().to_string());
+                sig_scheme_validation = false;
+                break;
             }
-            
+
+            let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
+            if is_blinded_musig_scheme_valid.is_err() {
+                println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
+                sig_scheme_validation = false;
+                break;
+            }
+
+        }
+
+        if !sig_scheme_validation {
+            println!("Signature scheme validation failed");
+            continue;
         }
     }
 

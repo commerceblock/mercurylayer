@@ -47,6 +47,9 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
         tx_n: new_tx_n,
         tx: signed_tx.clone(),
         client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+        server_public_nonce: coin.server_public_nonce.as_ref().unwrap().to_string(),
+        client_public_key: coin.user_pubkey.clone(),
+        server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
 

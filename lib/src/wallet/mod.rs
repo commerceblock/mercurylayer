@@ -143,7 +143,10 @@ pub struct BackupTx {
     pub tx_n: u32,
     pub tx: String,
     pub client_public_nonce: String,
-    pub blinding_factor: String
+    pub server_public_nonce: String,
+    pub client_public_key: String,
+    pub server_public_key: String,
+    pub blinding_factor: String,
 } 
 
 pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {

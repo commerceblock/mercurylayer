@@ -43,7 +43,10 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
         tx_n: new_tx_n,
         tx: signed_tx,
         client_public_nonce: coin.public_nonce,
-        blinding_factor: coin.blinding_factor,
+        server_public_nonce: coin.server_public_nonce,
+        client_public_key: coin.user_pubkey,
+        server_public_key: coin.server_pubkey,
+        blinding_factor: coin.blinding_factor
     };
 
     backupTxs.push(backup_tx);

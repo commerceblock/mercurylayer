@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint}, TransferMsg}, decode_transfer_address};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo}, TransferMsg}, decode_transfer_address};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -347,6 +347,32 @@ pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_to
     serde_wasm_bindgen::to_value(&validation_result).unwrap()
     
 }
+
+#[wasm_bindgen]
+pub fn verifyBlindedMusigScheme(backup_tx: JsValue, tx0_hex: String, statechain_info: JsValue) -> JsValue {
+    let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx).unwrap();
+    let statechain_info: StatechainInfo = serde_wasm_bindgen::from_value(statechain_info).unwrap();
+
+    let result = mercury_lib::transfer::receiver::verify_blinded_musig_scheme(&backup_tx, &tx0_hex, &statechain_info);
+    #[derive(Serialize, Deserialize)]
+    struct ValidationResult {
+        result: bool,
+        msg: Option<String>,
+    }
+
+    let mut validation_result = ValidationResult {
+        result: result.is_ok(),
+        msg: None
+    };
+
+    if result.is_err() {
+        validation_result.msg = Some(result.err().unwrap().to_string());
+    }
+
+    serde_wasm_bindgen::to_value(&validation_result).unwrap()
+}
+
+
 
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 

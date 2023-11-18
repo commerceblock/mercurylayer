@@ -121,6 +121,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
         tx_n: 1,
         tx: signed_tx,
         client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+        server_public_nonce: coin.server_public_nonce.as_ref().unwrap().to_string(),
+        client_public_key: coin.user_pubkey.clone(),
+        server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
 
