@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientConfig};
+use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientConfig, utils};
 use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address, network};
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint}, wallet::Coin, utils::get_network};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature}, wallet::Coin, utils::{get_network, InfoConfig}};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -24,6 +24,8 @@ pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &st
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<()>{
 
     let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let info_config = utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
     
     for coin in wallet.coins.iter() {
 
@@ -41,7 +43,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
         println!("enc_messages: {:?}", enc_messages);
 
-        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network).await?;
+        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config).await?;
     }
 
     Ok(())
@@ -61,7 +63,7 @@ async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>, network: &str) -> Result<()> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig) -> Result<()> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -119,13 +121,21 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
             continue;
         }
 
+        let current_fee_rate_sats_per_byte = info_config.fee_rate_sats_per_byte as u32;
+
+        let fee_rate_tolerance = client_config.fee_rate_tolerance;
+
         let mut previous_lock_time: Option<u32> = None;
 
         for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
 
             let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
-
+            let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+            if is_signature_valid.is_err() {
+                return Err(is_signature_valid.err().unwrap());
+            }
+            
         }
     }
 

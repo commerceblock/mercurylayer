@@ -4,6 +4,7 @@ const axios = require('axios').default;
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
+const config = require('config');
 
 const newTransferAddress = async (db, wallet_name) => {
 
@@ -22,13 +23,15 @@ const execute = async (electrumClient, db, wallet_name) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
+    const serverInfo = await utils.infoConfig(electrumClient);
+
     for (let coin of wallet.coins) {
 
-        console.log("----\nuser_pubkey", coin.user_pubkey);
-        console.log("auth_pubkey", coin.auth_pubkey);
-        console.log("statechain_id", coin.statechain_id);
-        console.log("coin.amount", coin.amount);
-        console.log("coin.status", coin.status);
+        // console.log("----\nuser_pubkey", coin.user_pubkey);
+        // console.log("auth_pubkey", coin.auth_pubkey);
+        // console.log("statechain_id", coin.statechain_id);
+        // console.log("coin.amount", coin.amount);
+        // console.log("coin.status", coin.status);
 
         let encMessages = await get_msg_addr(coin.auth_pubkey);
 
@@ -37,9 +40,7 @@ const execute = async (electrumClient, db, wallet_name) => {
             continue;
         }
 
-        console.log("encMessages", encMessages);
-
-        await process_encrypted_message(electrumClient, coin, encMessages, wallet.network);
+        await process_encrypted_message(electrumClient, coin, encMessages, wallet.network, serverInfo);
     }
 }
 
@@ -54,7 +55,7 @@ const get_msg_addr = async (auth_pubkey) => {
     return response.data.list_enc_transfer_msg;
 }
 
-const process_encrypted_message = async (electrumClient, coin, encMessages, network) => {
+const process_encrypted_message = async (electrumClient, coin, encMessages, network, serverInfo) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
 
@@ -62,20 +63,14 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         let transferMsg = mercury_wasm.decryptTransferMsg(encMessage, clientAuthKey);
 
-        console.log("transferMsg", transferMsg);
-
         let tx0Outpoint = mercury_wasm.getTx0Outpoint(transferMsg.backup_transactions);
 
-        console.log("tx0_outpoint", tx0Outpoint);
-        
         const tx0Hex = await getTx0(electrumClient, tx0Outpoint.txid);
-
-        console.log("tx0_hex", tx0Hex);
 
         const isTransferSignatureValid = mercury_wasm.verifyTransferSignature(newUserPubkey, tx0Outpoint, transferMsg);
 
         if (!isTransferSignatureValid) {
-            console.log("Invalid transfer signature");
+            console.error("Invalid transfer signature");
             continue;
         }
         
@@ -84,29 +79,45 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
         const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechainInfo.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
 
         if (!isTx0OutputPubkeyValid) {
-            console.log("Invalid tx0 output pubkey");
+            console.error("Invalid tx0 output pubkey");
             continue;
         }
 
         let latestBackupTxPaysToUserPubkey = mercury_wasm.verifyLatestBackupTxPaysToUserPubkey(transferMsg, newUserPubkey, network);
 
-        console.log("latestBackupTxPaysToUserPubkey", latestBackupTxPaysToUserPubkey);
-
         if (!latestBackupTxPaysToUserPubkey) {
-            console.log("Latest Backup Tx does not pay to the expected public key");
+            console.error("Latest Backup Tx does not pay to the expected public key");
             continue;
         }
 
         if (statechainInfo.num_sigs != transferMsg.backup_transactions.length) {
-            console.log("num_sigs is not correct");
+            console.error("num_sigs is not correct");
             continue;
         }
         
         let isTx0OutputUnspent = await verifyTx0OutputIsUnspent(electrumClient, tx0Outpoint, tx0Hex, network);
         if (!isTx0OutputUnspent) {
-            console.log("tx0 output is spent");
+            console.error("tx0 output is spent");
             continue;
         }
+
+        let currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+
+        let feeRateTolerance = config.get('feeRateTolerance');
+
+        let previousLockTime = null;
+
+        for (let [index, backupTx] of transferMsg.backup_transactions.entries()) {
+
+            const isSignatureValid = mercury_wasm.verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte);
+
+            if (!isSignatureValid.result) {
+                console.error("Invalid signature");
+                continue;
+            }
+
+        }
+
     }
 }
 

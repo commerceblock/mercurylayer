@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bitcoin::{PrivateKey, Transaction, hashes::sha256, Txid, Address};
+use bitcoin::{PrivateKey, Transaction, hashes::sha256, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey};
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
@@ -179,8 +179,9 @@ pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, net
     Ok(address.to_string())
 }
 
-/*
-async fn verify_transaction_signature(tx_n: &Transaction, fee_rate_sats_per_byte: u64, client_config: &ClientConfig) -> Result<(), CError> {
+pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> Result<()> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
 
     let witness = tx_n.input[0].witness.clone();
 
@@ -191,55 +192,43 @@ async fn verify_transaction_signature(tx_n: &Transaction, fee_rate_sats_per_byte
 
     let signature = Signature::from_slice(signature_data).unwrap();
 
-    let txid = tx_n.input[0].previous_output.txid.to_string();
-
-    let res = electrum::batch_transaction_get_raw(&client_config.electrum_client, &[Txid::from_str(&txid).unwrap()]);
-
-    let funding_tx_bytes = res[0].clone();
-
-    let funding_tx: Transaction = bitcoin::consensus::encode::deserialize(&funding_tx_bytes).unwrap();
+    let tx0: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx0_hex)?)?;
 
     let vout = tx_n.input[0].previous_output.vout as usize;
 
-    let funding_tx_output = funding_tx.output[vout].clone();
+    let tx0_output = tx0.output[vout].clone();
 
-    let res = electrum::get_script_pubkey_list_unspent(&client_config.electrum_client, &funding_tx_output.script_pubkey.as_script());
-
-    if res.len() == 0 {
-        return Err(CError::Generic("The funding UTXO is spent".to_string()));
-    } 
-
-    let xonly_pubkey = XOnlyPublicKey::from_slice(funding_tx_output.script_pubkey[2..].as_bytes()).unwrap();
+    let xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
 
     let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
 
-    let hash = SighashCache::new(transaction).taproot_key_spend_signature_hash(
+    let hash = SighashCache::new(tx_n.clone()).taproot_key_spend_signature_hash(
         0,
         &sighash::Prevouts::All(&[TxOut {
-            value: funding_tx_output.value,
-            script_pubkey: funding_tx_output.script_pubkey.clone(),
+            value: tx0_output.value,
+            script_pubkey: tx0_output.script_pubkey.clone(),
         }]),
         sighash_type,
     ).unwrap();
 
     let msg: Message = hash.into();
 
-    let fee = funding_tx_output.value - transaction.output[0].value;
-    let fee_rate = fee / transaction.vsize() as u64;
+    let fee = tx0_output.value - tx_n.output[0].value;
+    let fee_rate = fee / tx_n.vsize() as u64;
 
-    if (fee_rate as i64 + client_config.fee_rate_tolerance as i64) < fee_rate_sats_per_byte as i64 {
-        return Err(CError::Generic("Fee rate too low".to_string()));
+    if (fee_rate as i64 + fee_rate_tolerance as i64) < current_fee_rate_sats_per_byte as i64 {
+        return Err(anyhow!("Fee rate too low".to_string()));
     }
 
-    if (fee_rate as i64 - client_config.fee_rate_tolerance as i64) > fee_rate_sats_per_byte as i64 {
-        return Err(CError::Generic("Fee rate too high".to_string()));
+    if (fee_rate as i64 - fee_rate_tolerance as i64) > current_fee_rate_sats_per_byte as i64 {
+        return Err(anyhow!("Fee rate too high".to_string()));
     }
 
     if !Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok() {
-        return Err(CError::Generic("Invalid signature".to_string()));
+        return Err(anyhow!("Invalid signature".to_string()));
     }
 
     Ok(())
 
 }
- */
+ 

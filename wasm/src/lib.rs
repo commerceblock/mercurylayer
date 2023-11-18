@@ -325,6 +325,29 @@ pub fn getOutputAddressFromTx0(tx0_outpoint: JsValue, tx0_hex: String, network: 
     output_address
 }
 
+#[wasm_bindgen]
+pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> JsValue {
+    let result = mercury_lib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+
+    #[derive(Serialize, Deserialize)]
+    struct ValidationResult {
+        result: bool,
+        msg: Option<String>,
+    }
+
+    let mut validation_result = ValidationResult {
+        result: result.is_ok(),
+        msg: None
+    };
+
+    if result.is_err() {
+        validation_result.msg = Some(result.err().unwrap().to_string());
+    }
+
+    serde_wasm_bindgen::to_value(&validation_result).unwrap()
+    
+}
+
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*

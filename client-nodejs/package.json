@@ -13,6 +13,7 @@
     "axios": "^1.5.1",
     "bitcoinjs-lib": "^6.1.5",
     "commander": "^11.1.0",
+    "config": "^3.3.9",
     "mercury-wasm": "file:../wasm/pkg",
     "sqlite3": "^5.1.6",
     "tiny-secp256k1": "^2.2.3"
