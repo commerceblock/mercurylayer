@@ -372,7 +372,12 @@ pub fn verifyBlindedMusigScheme(backup_tx: JsValue, tx0_hex: String, statechain_
     serde_wasm_bindgen::to_value(&validation_result).unwrap()
 }
 
-
+#[wasm_bindgen]
+pub fn getBlockheight(backup_tx: JsValue) -> u32 {
+    let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx).unwrap();
+    let blockheight = mercury_lib::utils::get_blockheight(&backup_tx).unwrap();
+    blockheight
+}
 
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 

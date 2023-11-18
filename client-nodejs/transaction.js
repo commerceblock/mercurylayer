@@ -2,7 +2,7 @@ const axios = require('axios').default;
 const mercury_wasm = require('mercury-wasm');
 const utils = require('./utils');
 
-const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, network) => {
+const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
     let server_pubnonce = await signFirst(coin_nonce.sign_first_request_payload);
@@ -14,8 +14,13 @@ const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtB
 
     const serverInfo = await utils.infoConfig(electrumClient);
 
-    const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
-    const blockheight = block_header.height;
+    let new_block_height = 0;
+    if (block_height == null) {
+        const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+        new_block_height = block_header.height;
+    } else {
+        new_block_height = block_height;
+    }
 
     const initlock = serverInfo.initlock;
     const interval = serverInfo.interval;
@@ -23,7 +28,7 @@ const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtB
 
     let partialSigRequest = mercury_wasm.getPartialSigRequest(
         coin,
-        blockheight,
+        new_block_height,
         initlock, 
         interval,
         feeRateSatsPerByte,

@@ -26,10 +26,16 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     coin = coin[0];
 
-    const isWithdrawal = true;
+    const isWithdrawal = false;
     const qtBackupTx = backupTxs.length;
 
-    const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, wallet.network);
+    backupTxs.sort((a, b) => a.tx_n - b.tx_n);
+
+    const bkp_tx1 = backupTxs[0];
+
+    const block_height = mercury_wasm.getBlockheight(bkp_tx1);
+
+    const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
 
     const statechain_id = coin.statechain_id;
     const signed_statechain_id = coin.signed_statechain_id;

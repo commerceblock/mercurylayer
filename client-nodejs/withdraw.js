@@ -36,7 +36,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;
 
-    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, wallet.network);
+    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
 
     let backup_tx = {
         tx_n: new_tx_n,

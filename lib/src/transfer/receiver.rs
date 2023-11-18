@@ -5,7 +5,7 @@ use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPubl
 use serde::{Serialize, Deserialize};
 use anyhow::{Result, anyhow};
 
-use crate::{wallet::{BackupTx, Coin}, utils::get_network};
+use crate::{wallet::BackupTx, utils::get_network};
 
 use super::TransferMsg;
 
@@ -326,6 +326,5 @@ pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statecha
     }
 
     Ok(())
-
 }
  

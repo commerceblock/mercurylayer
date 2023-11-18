@@ -4,7 +4,7 @@ use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientCo
 use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address, network};
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme}, wallet::Coin, utils::{get_network, InfoConfig}};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme}, wallet::Coin, utils::{get_network, InfoConfig, get_blockheight}};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -147,6 +147,17 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
                 break;
             }
 
+            if previous_lock_time.is_some() {
+                let prev_lock_time = previous_lock_time.unwrap();
+                let current_lock_time = get_blockheight(&backup_tx)?;
+                if (prev_lock_time - current_lock_time) as i32 != info_config.interval as i32 {
+                    println!("interval is not correct");
+                    sig_scheme_validation = false;
+                    break;
+                }
+            }
+
+            previous_lock_time = Some(get_blockheight(&backup_tx)?);
         }
 
         if !sig_scheme_validation {

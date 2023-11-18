@@ -101,9 +101,9 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
             continue;
         }
 
-        let currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+        const currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
 
-        let feeRateTolerance = config.get('feeRateTolerance');
+        const feeRateTolerance = config.get('feeRateTolerance');
 
         let previousLockTime = null;
 
@@ -129,6 +129,16 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
                 break;
             }
 
+            if (previousLockTime != null) {
+                let currentLockTime = mercury_wasm.getBlockheight(backupTx);
+                if ((previousLockTime - currentLockTime) != serverInfo.interval) {
+                    console.error("interval is not correct");
+                    sigSchemeValidation = false;
+                    break;
+                }
+            }
+
+            previousLockTime = mercury_wasm.getBlockheight(backupTx);
         }
 
         if (!sigSchemeValidation) {
