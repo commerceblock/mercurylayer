@@ -150,7 +150,11 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         console.log("transferReceiverRequestPayload", transferReceiverRequestPayload);
 
-        await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+        let server_public_key_hex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+
+        let newKeyInfo = mercury_wasm.getNewKeyInfo(server_public_key_hex, coin, transferMsg.statechain_id, tx0Outpoint, tx0Hex, network);
+
+        console.log("new_key_info: ", newKeyInfo);
 
     }
 }
@@ -195,8 +199,7 @@ const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload
 
     const response = await axios.post(url, transferReceiverRequestPayload);
 
-
-    console.log("response.data", response.data); 
+    return response.data.server_pubkey;
 }
 
 module.exports = { newTransferAddress, execute };

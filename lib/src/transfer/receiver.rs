@@ -51,7 +51,13 @@ pub struct StatechainInfoResponsePayload {
 pub struct TxOutpoint {
     pub txid: String,
     pub vout: u32,
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewKeyInfo {
+    pub aggregate_pubkey: String,
+    pub aggregate_address: String,
+    pub signed_statechain_id: String,
 }
 
 pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg> {
@@ -382,4 +388,47 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 
     Ok(transfer_receiver_request_payload)
 
+}
+
+pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id: &str, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<NewKeyInfo> {
+    
+    let network = get_network(&network)?;
+
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+
+    let client_pubkey_share = PublicKey::from_str(&coin.user_pubkey)?;
+
+    let server_pubkey_share = PublicKey::from_str(server_public_key_hex)?;
+
+    let aggregate_pubkey = client_pubkey_share.combine(&server_pubkey_share)?;
+
+    let aggregated_xonly_pubkey = aggregate_pubkey.x_only_public_key().0;
+
+    let secp = Secp256k1::new();
+
+    let aggregate_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+
+    let xonly_pubkey = XOnlyPublicKey::from_slice(aggregate_address.script_pubkey()[2..].as_bytes()).unwrap();
+
+    let tx0: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx0_hex)?)?;
+
+    let tx0_output = tx0.output[tx0_outpoint.vout as usize].clone();
+
+    let tx0_output_xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
+
+    if tx0_output_xonly_pubkey != xonly_pubkey {
+        return Err(anyhow!("Aggregated public key is not correct".to_string()));
+    }
+
+    let p2tr_agg_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);
+
+    let client_auth_keypair = KeyPair::from_seckey_slice(&secp, client_auth_key.as_ref())?;
+    let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
+    let signed_statechain_id = secp.sign_schnorr(&msg, &client_auth_keypair);
+
+    Ok(NewKeyInfo {
+        aggregate_pubkey: aggregate_pubkey.to_string(),
+        aggregate_address: p2tr_agg_address.to_string(),
+        signed_statechain_id: signed_statechain_id.to_string(),
+    })
 }

@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo, StatechainInfoResponsePayload, create_transfer_receiver_request_payload}, TransferMsg}, decode_transfer_address};
+use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo, StatechainInfoResponsePayload, create_transfer_receiver_request_payload, get_new_key_info}, TransferMsg}, decode_transfer_address};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -390,7 +390,16 @@ pub fn createTransferReceiverRequestPayload(statechain_info: JsValue, transfer_m
     serde_wasm_bindgen::to_value(&transfer_receiver_request_payload).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn getNewKeyInfo(server_public_key_hex: String, coin: JsValue, statechain_id: String, tx0_outpoint: JsValue, tx0_hex: String, network: String) -> JsValue {
 
+    let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+    let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &statechain_id, &tx0_outpoint, &tx0_hex, &network).unwrap();
+
+    serde_wasm_bindgen::to_value(&new_key_info).unwrap()
+}
+        
 // pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
 /*
