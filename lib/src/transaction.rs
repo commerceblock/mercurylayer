@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 
 use crate::{wallet::Coin, utils::{self, get_network}, decode_transfer_address};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SignFirstRequestPayload {
     pub statechain_id: String,
     pub r2_commitment: String,

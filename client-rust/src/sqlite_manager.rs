@@ -102,3 +102,29 @@ pub async fn get_backup_txs(pool: &Pool<Sqlite>, statechain_id: &str,) -> Result
 
     Ok(backup_txs)
 }
+
+pub async fn insert_or_update_backup_txs(pool: &Pool<Sqlite>, statechain_id: &str, backup_txs: &Vec<BackupTx>) -> Result<()> {
+
+    let mut transaction = pool.begin().await?;
+
+    let backup_txs_json = json!(backup_txs).to_string();
+
+    let query = "DELETE FROM backup_txs WHERE statechain_id = $1";
+
+    let _ = sqlx::query(query)
+            .bind(statechain_id)
+            .execute(&mut *transaction)
+            .await?;
+
+    let query = "INSERT INTO backup_txs (statechain_id, txs) VALUES ($1, $2)";
+
+    let _ = sqlx::query(query)
+            .bind(statechain_id)
+            .bind(backup_txs_json)
+            .execute(&mut *transaction)
+            .await?;
+
+    transaction.commit().await?;
+    
+    Ok(())
+}

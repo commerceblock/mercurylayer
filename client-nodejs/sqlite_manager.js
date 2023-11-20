@@ -58,4 +58,9 @@ const getBackupTxs  = async (db, statechainId) => {
     });
 }
 
-module.exports = { createTables, insertWallet, updateWallet, getWallet, insertTransaction, updateTransaction, getBackupTxs };
+const insertOrUpdateBackupTxs = async (db, statechain_id, txs) => {
+    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ?", [ statechain_id]); 
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
+}
+
+module.exports = { createTables, insertWallet, updateWallet, getWallet, insertTransaction, updateTransaction, getBackupTxs, insertOrUpdateBackupTxs };

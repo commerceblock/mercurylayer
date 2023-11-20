@@ -1,10 +1,11 @@
 use std::str::FromStr;
 
-use crate::{sqlite_manager::{get_wallet, update_wallet}, client_config::ClientConfig, utils, wallet};
+use crate::{sqlite_manager::{get_wallet, update_wallet, insert_or_update_backup_txs}, client_config::ClientConfig, utils};
 use anyhow::{anyhow, Result};
-use bitcoin::{Txid, Address, network};
+use bitcoin::{Txid, Address};
+use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::Coin, utils::{get_network, InfoConfig, get_blockheight}};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Wallet, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
 use serde_json::Value;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -24,11 +25,13 @@ pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &st
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<()>{
 
-    let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let info_config = utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
     
-    for coin in wallet.coins.iter() {
+    let mut activities = wallet.activities.as_mut();
+
+    for coin in wallet.coins.iter_mut() {
 
         println!("----\nuser_pubkey: {}", coin.user_pubkey);
         println!("auth_pubkey: {}", coin.auth_pubkey);
@@ -44,8 +47,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
         println!("enc_messages: {:?}", enc_messages);
 
-        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config).await?;
+        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config, &mut activities).await?;
     }
+
+    update_wallet(&client_config.pool, &wallet).await?;
 
     Ok(())
 }
@@ -64,7 +69,7 @@ async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig) -> Result<()> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<()> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -172,7 +177,35 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &Coin, en
     
         let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
 
-        println!("new_key_info: {:?}", new_key_info);
+        if previous_lock_time.is_none() {
+            println!("previous_lock_time is None");
+            continue;
+        }
+
+        coin.server_pubkey = Some(server_public_key_hex);
+        coin.aggregated_pubkey = Some(new_key_info.aggregate_pubkey);
+        coin.aggregated_address = Some(new_key_info.aggregate_address);
+        coin.statechain_id = Some(transfer_msg.statechain_id.clone());
+        coin.signed_statechain_id = Some(new_key_info.signed_statechain_id.clone());
+        coin.amount = Some(new_key_info.amount);
+        coin.utxo_txid = Some(tx0_outpoint.txid.clone());
+        coin.utxo_vout = Some(tx0_outpoint.vout);
+        coin.status = CoinStatus::CONFIRMED;
+        coin.locktime = Some(previous_lock_time.unwrap());
+
+        let date = Utc::now(); // This will get the current date and time in UTC
+        let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
+
+        let activity = Activity {
+            utxo: tx0_outpoint.txid.clone(),
+            amount: new_key_info.amount,
+            action: "Receive".to_string(),
+            date: iso_string
+        };
+
+        activities.push(activity);
+
+        insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
     }
 
     Ok(())

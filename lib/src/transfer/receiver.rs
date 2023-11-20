@@ -58,6 +58,7 @@ pub struct NewKeyInfo {
     pub aggregate_pubkey: String,
     pub aggregate_address: String,
     pub signed_statechain_id: String,
+    pub amount: u32,
 }
 
 pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg> {
@@ -430,5 +431,6 @@ pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id:
         aggregate_pubkey: aggregate_pubkey.to_string(),
         aggregate_address: p2tr_agg_address.to_string(),
         signed_statechain_id: signed_statechain_id.to_string(),
+        amount: tx0_output.value as u32,
     })
 }

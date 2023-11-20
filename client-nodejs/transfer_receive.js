@@ -5,6 +5,7 @@ const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
 const config = require('config');
+const { CoinStatus } = require('./coin_status');
 
 const newTransferAddress = async (db, wallet_name) => {
 
@@ -40,8 +41,10 @@ const execute = async (electrumClient, db, wallet_name) => {
             continue;
         }
 
-        await process_encrypted_message(electrumClient, coin, encMessages, wallet.network, serverInfo);
+        await process_encrypted_message(electrumClient, db, coin, encMessages, wallet.network, serverInfo, wallet.activities);
     }
+
+    await sqlite_manager.updateWallet(db, wallet);
 }
 
 const get_msg_addr = async (auth_pubkey) => {
@@ -55,7 +58,7 @@ const get_msg_addr = async (auth_pubkey) => {
     return response.data.list_enc_transfer_msg;
 }
 
-const process_encrypted_message = async (electrumClient, coin, encMessages, network, serverInfo) => {
+const process_encrypted_message = async (electrumClient, db, coin, encMessages, network, serverInfo, activities) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
 
@@ -148,14 +151,33 @@ const process_encrypted_message = async (electrumClient, coin, encMessages, netw
 
         const transferReceiverRequestPayload = mercury_wasm.createTransferReceiverRequestPayload(statechainInfo, transferMsg, coin);
 
-        console.log("transferReceiverRequestPayload", transferReceiverRequestPayload);
+        let serverPublicKeyHex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
 
-        let server_public_key_hex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+        let newKeyInfo = mercury_wasm.getNewKeyInfo(serverPublicKeyHex, coin, transferMsg.statechain_id, tx0Outpoint, tx0Hex, network);
 
-        let newKeyInfo = mercury_wasm.getNewKeyInfo(server_public_key_hex, coin, transferMsg.statechain_id, tx0Outpoint, tx0Hex, network);
+        coin.server_pubkey = serverPublicKeyHex;
+        coin.aggregated_pubkey = newKeyInfo.aggregate_pubkey;
+        coin.aggregated_address = newKeyInfo.aggregate_address;
+        coin.statechain_id = transferMsg.statechain_id;
+        coin.signed_statechain_id = newKeyInfo.signed_statechain_id;
+        coin.amount = newKeyInfo.amount;
+        coin.utxo_txid = tx0Outpoint.txid;
+        coin.utxo_vout = tx0Outpoint.vout;
+        coin.status = CoinStatus.CONFIRMED;
+        coin.locktime = previousLockTime;
 
-        console.log("new_key_info: ", newKeyInfo);
+        let utxo = `${tx0Outpoint.txid}:${tx0Outpoint.vout}`;
 
+        let activity = {
+            utxo: utxo,
+            amount: newKeyInfo.amount,
+            action: "Receive",
+            date: new Date().toISOString()
+        };
+
+        activities.push(activity);
+
+        await sqlite_manager.insertOrUpdateBackupTxs(db, transferMsg.statechain_id, transferMsg.backup_transactions);
     }
 }
 

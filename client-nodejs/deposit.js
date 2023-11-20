@@ -107,6 +107,8 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
         blinding_factor: coin.blinding_factor
     };
 
+    coin.locktime = mercury_wasm.getBlockheight(backup_tx);
+
     await sqlite_manager.insertTransaction(db, coin.statechain_id, [backup_tx]);
    
     // let res = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);

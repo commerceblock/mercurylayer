@@ -4,7 +4,7 @@ use anyhow::Result;
 use bitcoin::Address;
 use chrono::Utc;
 use electrum_client::{ListUnspentRes, ElectrumApi};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx, CoinStatus}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}};
+use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, Activity, BackupTx, CoinStatus}, transaction::{get_partial_sig_request, get_user_backup_address, create_signature, new_backup_transaction}, utils::get_blockheight};
 
 use crate::{sqlite_manager::{update_wallet, get_wallet, insert_backup_txs}, client_config::ClientConfig, transaction::{sign_first, sign_second, new_transaction}, utils::info_config};
 
@@ -126,6 +126,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
         server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
+
+    let block_height = Some(get_blockheight(&backup_tx)?);
+    coin.locktime = block_height;
 
     // let wallet_backup_txs = WalletBackupTxs {
     //     statechain_id: coin.statechain_id.as_ref().unwrap().to_string(),
