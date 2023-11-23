@@ -1,5 +1,10 @@
 enclave {
 
+    from "sgx_tkey_exchange.edl" import *;
+
+    include "sgx_key_exchange.h"
+    include "sgx_trts.h"
+
     include "sgx_tcrypto.h"
     include "sgx_tseal.h"
 
@@ -35,6 +40,9 @@ enclave {
             [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, size_t compressed_server_pubkey_size, 
             [out, size=sealedkeypair_size] char* sealedkeypair, size_t sealedkeypair_size
         );
+
+        public sgx_status_t enclave_init_ra(int b_pse, [out] sgx_ra_context_t *p_context);
+
     };
 
     untrusted {

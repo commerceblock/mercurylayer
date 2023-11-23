@@ -6,9 +6,26 @@
 
 #include "../utils/include_secp256k1_zkp_lib.h"
 
+#include "sgx_tkey_exchange.h"
 #include "sgx_tcrypto.h"
 #include "sgx_trts.h"
 #include "sgx_tseal.h"
+
+static const sgx_ec256_public_t g_sp_pub_key = {
+    {
+        0xcb, 0xfc, 0x2d, 0x35, 0x79, 0x77, 0xf8, 0xfc,
+        0x87, 0x38, 0x6e, 0xaf, 0x97, 0xbd, 0xe7, 0x06,
+        0xde, 0xfd, 0x7a, 0x1b, 0xd6, 0x25, 0x46, 0xcb,
+        0x34, 0xda, 0x66, 0x79, 0x82, 0xd0, 0x53, 0xda
+    },
+    {
+        0xae, 0xaf, 0xb0, 0xa1, 0x44, 0xdf, 0x67, 0xa7,
+        0xf7, 0xf7, 0x9e, 0xdc, 0x4d, 0x86, 0x43, 0xb5,
+        0xbe, 0x8c, 0x05, 0x2a, 0x3e, 0xe7, 0x58, 0x36,
+        0xc3, 0xba, 0x6f, 0x93, 0xfd, 0x8b, 0x7c, 0x61
+    }
+
+};
 
 sgx_status_t generate_new_keypair(
     unsigned char *compressed_server_pubkey, 
@@ -363,5 +380,28 @@ sgx_status_t key_update(
         sgx_ecc256_close_context(p_ecc_handle);
     }
 
+    return ret;
+}
+
+// This ecall is a wrapper of sgx_ra_init to create the trusted
+// KE exchange key context needed for the remote attestation
+// SIGMA API's. Input pointers aren't checked since the trusted stubs
+// copy them into EPC memory.
+//
+// @param b_pse Indicates whether the ISV app is using the
+//              platform services.
+// @param p_context Pointer to the location where the returned
+//                  key context is to be copied.
+//
+// @return Any error returned from the trusted key exchange API
+//         for creating a key context.
+
+sgx_status_t enclave_init_ra(
+    int b_pse,
+    sgx_ra_context_t *p_context)
+{
+    // isv enclave call to trusted key exchange library.
+    sgx_status_t ret;
+    ret = sgx_ra_init(&g_sp_pub_key, b_pse, p_context);
     return ret;
 }
