@@ -18,6 +18,7 @@
 
 #include "../utils/include_secp256k1_zkp_lib.h"
 #include "../utils/strencodings.h"
+#include "remote-attestation.h"
 
 #include "App.h"
 #include "Enclave_u.h"
@@ -673,6 +674,17 @@ int SGX_CDECL main(int argc, char *argv[])
         } else {
             return crow::response(500, "Failed to connect to the database!");
         }
+    });
+
+    CROW_ROUTE(app,"/test_key")
+        ([&enclave_id, &mutex_enclave_id](){
+
+        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+
+        ExecuteRemoteAttestation();
+
+        crow::json::wvalue result({{"message", "Tested."}});
+        return crow::response{result};
     });
 
     app.port(18080).multithreaded().run();

@@ -405,3 +405,18 @@ sgx_status_t enclave_init_ra(
     ret = sgx_ra_init(&g_sp_pub_key, b_pse, p_context);
     return ret;
 }
+
+// Closes the tKE key context used during the SIGMA key
+// exchange.
+//
+// @param context The trusted KE library key context.
+//
+// @return Return value from the key context close API
+
+sgx_status_t SGXAPI enclave_ra_close(
+    sgx_ra_context_t context)
+{
+    sgx_status_t ret;
+    ret = sgx_ra_close(context);
+    return ret;
+}

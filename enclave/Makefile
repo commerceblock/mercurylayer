@@ -62,7 +62,7 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := App/App.cpp utils/strencodings.cpp
+App_Cpp_Files := App/App.cpp utils/strencodings.cpp App/remote-attestation.cpp
 App_Include_Paths := -IApp -I$(SGX_SDK)/include -I./secp256k1-zkp/include
 
 App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)

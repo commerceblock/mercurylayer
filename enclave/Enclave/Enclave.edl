@@ -42,6 +42,7 @@ enclave {
         );
 
         public sgx_status_t enclave_init_ra(int b_pse, [out] sgx_ra_context_t *p_context);
+        public sgx_status_t enclave_ra_close(sgx_ra_context_t context);
 
     };
 
