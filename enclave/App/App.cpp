@@ -676,7 +676,7 @@ int SGX_CDECL main(int argc, char *argv[])
         }
     });
 
-    CROW_ROUTE(app,"/test_key")
+    CROW_ROUTE(app,"/test_ra")
         ([&enclave_id, &mutex_enclave_id](){
 
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);

@@ -27,6 +27,20 @@ $ cd cmake && cmake .. && cmake --build .
 # Install it
 $ sudo cmake --install .
 
+# Install CPR 1.10.5
+# libcurl4-openssl-dev is a dependency
+$ sudo apt install -y libcurl4-openssl-dev
+$ git clone https://github.com/libcpr/cpr.git
+# Change to 1.10.5 version
+$ cd cpr && git checkout 1.10.5
+$ mkdir build && cd build
+$ cmake .. -DCPR_USE_SYSTEM_CURL=ON
+$ cmake --build .
+$ sudo cmake --install .
+# creates the necessary links and cache to the most recent shared libraries 
+# found in the directories specified on the command line
+$ sudo ldconfig 
+
 # clone this repo
 $ git clone https://github.com/commerceblock/mercurylayer
 $ git checkout -b dev origin/dev
