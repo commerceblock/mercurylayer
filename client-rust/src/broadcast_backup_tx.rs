@@ -17,7 +17,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let backup_tx = backup_tx.unwrap();
 
-    let coin = wallet.coins.iter_mut().find(|tx| tx.statechain_id == Some(statechain_id.to_string()));
+    // If the user sends to himself, he will have two coins with same statechain_id
+    // In this case, we need to find the one with the lowest locktime
+    let coin = wallet.coins
+        .iter_mut()
+        .filter(|tx| tx.statechain_id == Some(statechain_id.to_string())) // Filter coins with the specified statechain_id
+        .min_by_key(|tx| tx.locktime); // Find the one with the lowest locktime
 
     if coin.is_none() {
         return Err(anyhow!("No coins associated with this statechain ID were found"));
@@ -28,7 +33,13 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     let fee_rate = match fee_rate {
         Some(fee_rate) => fee_rate,
         None => {
-            let fee_rate_btc_per_kb = client_config.electrum_client.estimate_fee(1)?;
+            let mut fee_rate_btc_per_kb = client_config.electrum_client.estimate_fee(1)?;
+
+            // Why does it happen?
+            if fee_rate_btc_per_kb <= 0.0 {
+                fee_rate_btc_per_kb = 0.00001;
+            }
+
             let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
             fee_rate_sats_per_byte
         },

@@ -1,4 +1,4 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, insert_backup_txs, update_wallet, get_backup_txs, update_backup_txs}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet, get_backup_txs, update_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
@@ -18,7 +18,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let new_tx_n = qt_backup_tx + 1;
 
-    let coin = wallet.coins.iter_mut().find(|tx| tx.statechain_id == Some(statechain_id.to_string()));
+     // If the user sends to himself, he will have two coins with same statechain_id
+    // In this case, we need to find the one with the lowest locktime
+    let coin = wallet.coins
+        .iter_mut()
+        .filter(|tx| tx.statechain_id == Some(statechain_id.to_string())) // Filter coins with the specified statechain_id
+        .min_by_key(|tx| tx.locktime); // Find the one with the lowest locktime
 
     if coin.is_none() {
         return Err(anyhow!("No coins associated with this statechain ID were found"));

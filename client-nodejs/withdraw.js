@@ -23,15 +23,18 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
         feeRate = parseInt(feeRate, 10);
     }
 
-    let coin = wallet.coins.filter(c => {
+    let coinsWithStatechainId = wallet.coins.filter(c => {
         return c.statechain_id === statechainId
     });
 
-    if (!coin) {
+    if (!coinsWithStatechainId) {
         throw new Error(`There is no coin for the statechain id ${statechainId}`);
     }
 
-    coin = coin[0];
+    // If the user sends to himself, he will have two coins with same statechain_id
+    // In this case, we need to find the one with the lowest locktime
+    // Sort the coins by locktime in ascending order and pick the first one
+    let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;

@@ -12,7 +12,7 @@ const infoConfig = async (ecl) => {
     console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
 
     // Why does it happen?
-    if (fee_rate_btc_per_kb < 0) {
+    if (fee_rate_btc_per_kb <= 0) {
         fee_rate_btc_per_kb = 0.00001;
     }
     const fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0);

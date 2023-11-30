@@ -5,6 +5,7 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <lib/crow_all.h>
+#include <lib/toml.hpp>
 #pragma GCC diagnostic pop
 
 #include <algorithm>
@@ -41,6 +42,7 @@ uint32_t sgx_calc_sealed_data_size(const uint32_t add_mac_txt_size, const uint32
 
 
 bool save_generated_public_key(
+    std::string& database_connection_string,
     char* sealed, size_t sealed_size, 
     unsigned char* server_public_key, size_t server_public_key_size,
     std::string& statechain_id,
@@ -48,7 +50,7 @@ bool save_generated_public_key(
 {
     try
     {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string create_table_query =
@@ -90,6 +92,7 @@ bool save_generated_public_key(
 }
 
 bool update_sealed_keypair(
+    std::string& database_connection_string,
     char* sealed, size_t sealed_size, 
     unsigned char* server_public_key, size_t server_public_key_size,
     std::string& statechain_id,
@@ -97,7 +100,7 @@ bool update_sealed_keypair(
 {
     try
     {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string insert_query =
@@ -128,6 +131,7 @@ bool update_sealed_keypair(
 }
 
 bool load_generated_key_data(
+    std::string& database_connection_string,
     std::string& statechain_id, 
     char* sealed_keypair, size_t sealed_keypair_size,
     char* sealed_secnonce, size_t sealed_secnonce_size,
@@ -136,7 +140,7 @@ bool load_generated_key_data(
 {
     try
     {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string sealed_keypair_query =
@@ -206,6 +210,7 @@ bool load_generated_key_data(
 }
 
 bool update_sealed_secnonce(
+    std::string& database_connection_string,
     std::string& statechain_id, 
     unsigned char* serialized_server_pubnonce, const size_t serialized_server_pubnonce_size, 
     char* sealed_secnonce, size_t sealed_secnonce_size,
@@ -213,7 +218,7 @@ bool update_sealed_secnonce(
 {
     try
     {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::basic_string_view<std::byte> sealed_secnonce_data_view(reinterpret_cast<std::byte*>(sealed_secnonce), sealed_secnonce_size);
@@ -240,10 +245,10 @@ bool update_sealed_secnonce(
     }
 }
 
-bool update_sig_count(std::string& statechain_id) {
+bool update_sig_count(std::string& database_connection_string, std::string& statechain_id) {
     try
     {
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string update_query =
@@ -291,6 +296,11 @@ int SGX_CDECL main(int argc, char *argv[])
     sgx_enclave_id_t enclave_id = 0;
     std::mutex mutex_enclave_id; // protects map_aggregate_key_data
 
+    auto config = toml::parse_file("Settings.toml");
+    auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+    std::cout << "Database connection string: " << database_connection_string << std::endl;
+
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
 
@@ -303,7 +313,7 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     CROW_ROUTE(app, "/get_public_key")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -340,7 +350,7 @@ int SGX_CDECL main(int argc, char *argv[])
             std::string error_message;
             bool data_saved = save_generated_public_key(
                 // sealedprivkey.data(), sealedprivkey.size(), server_pubkey, server_pubkey_size, error_message);
-                sealedprivkey, sealedprivkey_size, server_pubkey, server_pubkey_size, statechain_id, error_message);
+                database_connection_string, sealedprivkey, sealedprivkey_size, server_pubkey, server_pubkey_size, statechain_id, error_message);
 
             if (!data_saved) {
                 error_message = "Failed to save aggregated key data: " + error_message;
@@ -353,7 +363,7 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app, "/get_public_nonce")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -376,11 +386,9 @@ int SGX_CDECL main(int argc, char *argv[])
             memset(sealed_keypair.data(), 0, sealed_keypair_size);
             memset(sealed_secnonce.data(), 0, sealed_secnonce_size);
 
-            // std::cout << "sealed_keypair.data 1:  " << key_to_string(reinterpret_cast<unsigned char*>(sealed_keypair.data()), sealed_keypair_size) << std::endl;
-            // std::cout << "sealed_secnonce.data 1: " << key_to_string(reinterpret_cast<unsigned char*>(sealed_secnonce.data()), sealed_secnonce_size) << std::endl;
-
             std::string error_message;
             bool data_loaded = load_generated_key_data(
+                database_connection_string,
                 statechain_id,
                 sealed_keypair.data(), sealed_keypair_size,
                 sealed_secnonce.data(), sealed_secnonce_size,
@@ -409,6 +417,7 @@ int SGX_CDECL main(int argc, char *argv[])
             }
 
             bool data_saved = update_sealed_secnonce(
+                database_connection_string,
                 statechain_id,
                 serialized_server_pubnonce, sizeof(serialized_server_pubnonce),
                 sealed_secnonce.data(), sealed_secnonce_size,
@@ -427,7 +436,7 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app, "/get_partial_signature")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -469,6 +478,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
             std::string error_message;
             bool data_loaded = load_generated_key_data(
+                database_connection_string,
                 statechain_id, 
                 sealed_keypair.data(), sealed_keypair_size,
                 sealed_secnonce.data(), sealed_secnonce_size,
@@ -505,7 +515,7 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(500, "Generate Signature failed ");
             }
 
-            bool sig_count_updated = update_sig_count(statechain_id);
+            bool sig_count_updated = update_sig_count(database_connection_string, statechain_id);
             if (!sig_count_updated) {
                 return crow::response(500, "Failed to update signature count!");
             }
@@ -517,10 +527,10 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app,"/signature_count/<string>")
-    ([](std::string statechain_id){
+    ([&database_connection_string](std::string statechain_id){
 
         std::string error_message;
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string sig_count_query =
@@ -549,7 +559,7 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app, "/keyupdate")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -598,6 +608,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
             std::string error_message;
             bool data_loaded = load_generated_key_data(
+                database_connection_string,
                 statechain_id,
                 sealed_keypair.data(), sealed_keypair_size,
                 sealed_secnonce.data(), sealed_secnonce_size,
@@ -640,7 +651,7 @@ int SGX_CDECL main(int argc, char *argv[])
             }
 
             bool data_saved = update_sealed_keypair(
-                new_sealedkeypair, new_sealedkeypair_size, new_server_pubkey, new_server_pubkey_size, statechain_id, error_message);
+                database_connection_string, new_sealedkeypair, new_sealedkeypair_size, new_server_pubkey, new_server_pubkey_size, statechain_id, error_message);
 
             if (!data_saved) {
                 error_message = "Failed to update aggregated key data: " + error_message;
@@ -654,10 +665,10 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app,"/delete_statechain/<string>")
-        .methods("DELETE"_method)([](std::string statechain_id){
+        .methods("DELETE"_method)([&database_connection_string](std::string statechain_id){
 
         std::string error_message;
-        pqxx::connection conn("postgresql://postgres:postgres@localhost/sgx");
+        pqxx::connection conn(database_connection_string);
         if (conn.is_open()) {
 
             std::string delete_comm =

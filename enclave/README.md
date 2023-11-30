@@ -18,6 +18,8 @@ Build and run this application as follows.
 # Install libpqxx-dev 7.8.1 (C++ client API for PostgreSQ)
 # Remove any other version of libpqxx-dev from the operating system if necessary
 $ sudo apt remove libpqxx-dev
+# It may be necessary to install `libpq-dev` first.
+$ sudo apt-get install libpq-dev
 # Clone libpqxx project
 $ git clone https://github.com/jtv/libpqxx.git
 # Change to 7.8.1 version
@@ -50,10 +52,6 @@ $ make SGX_MODE=SIM INCLUDE_SECP256K1_ZKP=1
 # run application
 $ ./app
 ```
-
-On Ubuntu 23.10, it is necessary to install `libpq-dev` first.
-
-`sudo apt-get install libpq-dev`
 
 ## More MAKE commands
 
