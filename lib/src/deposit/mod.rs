@@ -8,7 +8,6 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DepositMsg1 {
-    pub amount: u32,
     pub auth_key: String,
     pub token_id: String,
     pub signed_token_id: String,
@@ -33,7 +32,7 @@ pub struct AggregatedPublicKey {
     pub aggregate_address: String,
 }
 
-pub fn create_deposit_msg1(coin: &Coin, token_id: &str, amount: u32) -> Result<DepositMsg1>{
+pub fn create_deposit_msg1(coin: &Coin, token_id: &str) -> Result<DepositMsg1>{
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 
     let secp = Secp256k1::new();
@@ -44,7 +43,6 @@ pub fn create_deposit_msg1(coin: &Coin, token_id: &str, amount: u32) -> Result<D
     let auth_xonly_pubkey = PublicKey::from_str(&coin.auth_pubkey)?.x_only_public_key().0;
 
     let deposit_msg_1 = DepositMsg1 {
-        amount: amount as u32,
         auth_key: auth_xonly_pubkey.to_string(),
         token_id: token_id.to_string(),
         signed_token_id: signed_token_id.to_string(),
