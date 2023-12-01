@@ -46,8 +46,8 @@ $ sudo ldconfig
 # clone this repo
 $ git clone https://github.com/commerceblock/mercurylayer
 $ git checkout -b dev origin/dev
-$ cd mercurylayer
-# build application (simulator mode)
+$ cd mercurylayer/enclave
+# build application (SIM for simulator mode or HW for hardware mode)
 $ make SGX_MODE=SIM INCLUDE_SECP256K1_ZKP=1
 # run application
 $ ./app
