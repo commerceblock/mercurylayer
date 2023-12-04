@@ -26,4 +26,4 @@ anyhow = "1.0"
 chrono = "0.4.31"
 
 [dependencies.mercury-lib]
-path = "../lib"
+path = "../../lib"

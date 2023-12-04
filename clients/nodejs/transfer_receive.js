@@ -26,6 +26,8 @@ const execute = async (electrumClient, db, wallet_name) => {
 
     const serverInfo = await utils.infoConfig(electrumClient);
 
+    let received_statechain_ids = [];
+
     for (let coin of wallet.coins) {
 
         // console.log("----\nuser_pubkey", coin.user_pubkey);
@@ -37,14 +39,16 @@ const execute = async (electrumClient, db, wallet_name) => {
         let encMessages = await get_msg_addr(coin.auth_pubkey);
 
         if (encMessages.length == 0) {
-            console.log("No messages for this coin");
             continue;
         }
 
-        await process_encrypted_message(electrumClient, db, coin, encMessages, wallet.network, serverInfo, wallet.activities);
+        const statechain_ids_added = await process_encrypted_message(electrumClient, db, coin, encMessages, wallet.network, serverInfo, wallet.activities);
+        received_statechain_ids = [...received_statechain_ids, ...statechain_ids_added];
     }
 
     await sqlite_manager.updateWallet(db, wallet);
+
+    return received_statechain_ids;
 }
 
 const get_msg_addr = async (auth_pubkey) => {
@@ -61,6 +65,8 @@ const get_msg_addr = async (auth_pubkey) => {
 const process_encrypted_message = async (electrumClient, db, coin, encMessages, network, serverInfo, activities) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
+
+    let statechain_ids_added = [];
 
     for (let encMessage of encMessages) {
 
@@ -177,7 +183,11 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
 
         activities.push(activity);
 
+        statechain_ids_added.push(transferMsg.statechain_id);
+
         await sqlite_manager.insertOrUpdateBackupTxs(db, transferMsg.statechain_id, transferMsg.backup_transactions);
+
+        return statechain_ids_added;
     }
 }
 
@@ -187,7 +197,7 @@ const getTx0 = async (electrumClient, tx0_txid) => {
 
 const getStatechainInfo = async (statechain_id) => {
 
-    const statechainEntityUrl = 'http://127.0.0.1:8000';
+    const statechainEntityUrl = config.get('statechainEntity'); // 'http://127.0.0.1:8000';
     const path = `info/statechain/${statechain_id}`;
 
     let response = await axios.get(statechainEntityUrl + '/' + path);

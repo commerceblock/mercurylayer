@@ -96,7 +96,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    console.log("Transfer completed");
+    return coin;
 }
 
 const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) => {

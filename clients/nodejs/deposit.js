@@ -125,6 +125,8 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     wallet.activities.push(activity);
 
     await sqlite_manager.updateWallet(db, wallet);
+
+    return coin;
 }
 
 const init = async (db, wallet, token_id, amount) => {
@@ -146,7 +148,7 @@ const init = async (db, wallet, token_id, amount) => {
     let depositMsg1Response = response.data;
 
     let depositInitResult = mercury_wasm.handleDepositMsg1Response(coin, depositMsg1Response);
-    console.log("depositInitResult:", depositInitResult);
+    // console.log("depositInitResult:", depositInitResult);
 
     coin.statechain_id = depositInitResult.statechain_id;
     coin.signed_statechain_id = depositInitResult.signed_statechain_id;
@@ -181,8 +183,8 @@ const waitForDeposit = async (electrumClient, coin, amount, wallet_network) => {
 
             for (let utxo of utxo_list) {
                 if (utxo.value === parseInt(amount, 10)) {
-                    console.log("utxo found");
-                    console.log(utxo);
+                    // console.log("utxo found");
+                    // console.log(utxo);
 
                     // coin.utxo = `${utxo.tx_hash}:${utxo.tx_pos}`;
                     coin.utxo_txid = utxo.tx_hash;

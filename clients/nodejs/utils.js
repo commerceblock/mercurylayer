@@ -9,7 +9,7 @@ const infoConfig = async (ecl) => {
 
     let fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
 
-    console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
+    // console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
 
     // Why does it happen?
     if (fee_rate_btc_per_kb <= 0) {
@@ -17,7 +17,7 @@ const infoConfig = async (ecl) => {
     }
     const fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0);
 
-    console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
+    // console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
 
     let response = await axios.get(statechain_entity_url + '/' + path);
     return {    

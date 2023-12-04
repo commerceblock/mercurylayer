@@ -17,11 +17,27 @@ const sqlite_manager = require('./sqlite_manager');
 
 const wallet_manager = require('./wallet');
 
+const config = require('config');
+
 async function main() {
 
   const db = new sqlite3.Database('wallet.db');
 
   await sqlite_manager.createTables(db);
+
+  // connect to Electrum
+
+  // const urlElectrum = new URL("tcp://signet-electrumx.wakiyamap.dev:50001");
+  const urlElectrum = config.get('electrumServer');
+  const urlElectrumObject = new URL(urlElectrum);
+
+  const electrumPort = parseInt(urlElectrumObject.port, 10);
+  const electrumHostname = urlElectrumObject.hostname;  
+  const electrumProtocol = urlElectrumObject.protocol.slice(0, -1); // remove trailing ':'
+
+  // const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
+  const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol); // tcp or tls
+  await electrumClient.connect(); // connect(promise)
   
   program
     .name('Statechain nodejs CLI client')
@@ -32,18 +48,17 @@ async function main() {
     .description('Create a new wallet')
     .argument('<name>', 'name of the wallet')
     .action(async (name) => {
-      console.log("The name of the wallet is: " + name);
-  
-      const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-      await electrumClient.connect(); // connect(promise)
 
-      const electrumEndpoint = "tcp://127.0.0.1:50001";
-      const statechainEntityEndpoint = "http://127.0.0.1:8000";
-      const network = "signet";
+      // const electrumEndpoint = "tcp://127.0.0.1:50001";
+      const electrumEndpoint = urlElectrum; //"tcp://signet-electrumx.wakiyamap.dev:50001";
+      const statechainEntityEndpoint = config.get('statechainEntity'); // "http://127.0.0.1:8000";
+      const network = config.get('network'); // "signet";
 
       let wallet = await wallet_manager.createWallet(name, electrumClient, electrumEndpoint, statechainEntityEndpoint, network);
  
       await sqlite_manager.insertWallet(db, wallet);
+
+      console.log(wallet);
   
       electrumClient.close();
       db.close();
@@ -56,10 +71,9 @@ async function main() {
     .argument('<amount>', 'amount to deposit')
     .action(async (wallet_name, token_id, amount) => {
 
-      const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-      await electrumClient.connect(); // connect(promise)
+      const coin = await deposit.execute(electrumClient, db, wallet_name, token_id, amount);
 
-      await deposit.execute(electrumClient, db, wallet_name, token_id, amount);
+      console.log(coin);
 
       electrumClient.close();
       db.close();
@@ -73,10 +87,9 @@ async function main() {
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-       const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-       await electrumClient.connect(); // connect(promise)
+       let tx_ids = await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
-       await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
+       console.log(tx_ids);
 
        electrumClient.close();
        db.close();
@@ -86,16 +99,17 @@ async function main() {
       .description("List wallet's statecoins") 
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
-        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-        await electrumClient.connect(); // connect(promise)
 
         let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
-        for (let coin of wallet.coins) {
-          console.log("statechain_id: ", coin.statechain_id);
-          console.log("coin.amount: {}", coin.amount);
-          console.log("coin.status: {}", coin.status);
-        }
+        let coins = wallet.coins.map(coin => ({
+          statechain_id: coin.statechain_id,
+          amount: coin.amount,
+          status: coin.status,
+          adress: coin.address
+        }));
+        
+        console.log(coins);
 
         electrumClient.close();
         db.close();
@@ -110,10 +124,11 @@ async function main() {
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-        await electrumClient.connect(); // connect(promise)
+        const txid = await withdraw.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
-        await withdraw.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
+        console.log({
+          txid
+        });
 
         electrumClient.close();
         db.close();
@@ -127,6 +142,7 @@ async function main() {
         const addr = await transfer_receive.newTransferAddress(db, wallet_name)
         console.log({transfer_receive: addr});
 
+        electrumClient.close();
         db.close();
     });
 
@@ -137,10 +153,9 @@ async function main() {
       .argument('<to_address>', 'recipient bitcoin address')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-        await electrumClient.connect(); // connect(promise)
+        let coin = await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
 
-        await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
+        console.log(coin);
 
         electrumClient.close();
         db.close();
@@ -151,10 +166,9 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
-        const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
-        await electrumClient.connect(); // connect(promise)
+        let received_statechain_ids = await transfer_receive.execute(electrumClient, db, wallet_name);
 
-        await transfer_receive.execute(electrumClient, db, wallet_name)
+        console.log(received_statechain_ids);
 
         electrumClient.close();
         db.close();

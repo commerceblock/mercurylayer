@@ -1,14 +1,19 @@
 const mercury_wasm = require('mercury-wasm');
-
 const sqlite_manager = require('./sqlite_manager');
-
 const utils = require('./utils');
-
+const transaction = require('./transaction');
 const { CoinStatus } = require('./coin_status');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
-
     let wallet = await sqlite_manager.getWallet(db, walletName);
+
+    const backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
+
+    if (backupTxs.length === 0) {
+        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
+    }
+
+    const new_tx_n = backupTxs.length + 1;
 
     if (!feeRate) {
         const serverInfo = await utils.infoConfig(electrumClient);
@@ -17,18 +22,6 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     } else {
         feeRate = parseInt(feeRate, 10);
     }
-
-    console.log("feeRate: ", feeRate);
-
-    let backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
-    
-    const backupTx = backupTxs.length === 0 ? null : backupTxs.reduce((prev, current) => (prev.tx_n > current.tx_n) ? prev : current);
-
-    if (!backupTx) {
-        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
-    }
-
-    console.log("backupTx", backupTx);
 
     let coinsWithStatechainId = wallet.coins.filter(c => {
         return c.statechain_id === statechainId
@@ -43,20 +36,42 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
-    console.log("coin", coin);
+    const isWithdrawal = true;
+    const qtBackupTx = backupTxs.length;
 
-    const cpfp_tx = mercury_wasm.createCpfpTx(backupTx, coin, toAddress, feeRate, wallet.network);
+    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
 
-    let txid = await electrumClient.request('blockchain.transaction.broadcast', [backupTx.tx]);
-    console.log(`Broadcasting backup transaction: ${txid}`);
+    let backup_tx = {
+        tx_n: new_tx_n,
+        tx: signed_tx,
+        client_public_nonce: coin.public_nonce,
+        server_public_nonce: coin.server_public_nonce,
+        client_public_key: coin.user_pubkey,
+        server_public_key: coin.server_pubkey,
+        blinding_factor: coin.blinding_factor
+    };
 
-    txid = await electrumClient.request('blockchain.transaction.broadcast', [cpfp_tx]);
-    console.log(`Broadcasting CPFP transaction: ${txid}`);
+    backupTxs.push(backup_tx);
 
-    coin.tx_cpfp = txid;
+    await sqlite_manager.updateTransaction(db, coin.statechain_id, backupTxs);
+
+    const txid = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
+
+    coin.tx_withdraw = txid;
     coin.status = CoinStatus.WITHDRAWING;
 
+    let activity = {
+        utxo: txid,
+        amount: coin.amount,
+        action: "Withdraw",
+        date: new Date().toISOString()
+    };
+
+    wallet.activities.push(activity);
+
     await sqlite_manager.updateWallet(db, wallet);
+
+    return txid;
 }
 
 module.exports = { execute };
