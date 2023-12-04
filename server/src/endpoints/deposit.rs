@@ -92,7 +92,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
 pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &String)  {
 
-    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id) VALUES ($1, $2, $3, $4, $5)";
+    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id) VALUES ($1, $2, $3, $4)";
 
     let _ = sqlx::query(query)
         .bind(token_id)
