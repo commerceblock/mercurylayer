@@ -14,7 +14,6 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     let statechain_entity = statechain_entity.inner();
 
     let auth_key = XOnlyPublicKey::from_str(&deposit_msg1.auth_key).unwrap();
-    let amount = deposit_msg1.amount as u64;
     let token_id = deposit_msg1.token_id.clone();
     let signed_token_id = Signature::from_str(&deposit_msg1.signed_token_id.to_string()).unwrap();
 
@@ -79,7 +78,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
-    insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, amount, &statechain_id).await;
+    insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, &statechain_id).await;
 
     let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
@@ -91,15 +90,14 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     status::Custom(Status::Ok, Json(response_body))
 }
 
-pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, amount: u64, statechain_id: &String)  {
+pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &String)  {
 
-    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, amount, statechain_id) VALUES ($1, $2, $3, $4, $5)";
+    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id) VALUES ($1, $2, $3, $4)";
 
     let _ = sqlx::query(query)
         .bind(token_id)
         .bind(&auth_key.serialize())
         .bind(&server_public_key.serialize())
-        .bind(amount as i64)
         .bind(statechain_id)
         .execute(pool)
         .await

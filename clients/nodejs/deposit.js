@@ -138,7 +138,7 @@ const init = async (db, wallet, token_id, amount) => {
 
     token_id = crypto.randomUUID().replace('-','');
 
-    let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id, parseInt(amount, 10));
+    let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
     const statechain_entity_url = config.get('statechainEntity');
     const path = "deposit/init/pod";

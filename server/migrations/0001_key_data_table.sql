@@ -3,7 +3,6 @@ CREATE TABLE public.statechain_data (
 	token_id varchar NULL UNIQUE,
     auth_xonly_public_key bytea NULL UNIQUE,
 	server_public_key bytea NULL UNIQUE,
-    amount bigint NULL,
     statechain_id varchar NULL UNIQUE,
 	CONSTRAINT statechain_data_pkey PRIMARY KEY (id),
 	CONSTRAINT statechain_data_server_public_key_ukey UNIQUE (server_public_key)

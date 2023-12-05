@@ -153,9 +153,9 @@ pub fn getNewCoin(wallet_json: JsValue) -> JsValue {
 }
 
 #[wasm_bindgen]
-pub fn createDepositMsg1(coin_json: JsValue, token_id: String, amount: u32) -> JsValue {
+pub fn createDepositMsg1(coin_json: JsValue, token_id: String) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
-    let deposit_msg_1 = mercury_lib::deposit::create_deposit_msg1(&coin, &token_id, amount).unwrap();
+    let deposit_msg_1 = mercury_lib::deposit::create_deposit_msg1(&coin, &token_id).unwrap();
     serde_wasm_bindgen::to_value(&deposit_msg_1).unwrap()
 }
 
