@@ -31,3 +31,13 @@ CREATE TABLE public.statechain_signature_data (
 	statechain_id varchar NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE public.tokens (
+	id serial4 NOT NULL,
+	token_id varchar NULL UNIQUE,
+	invoice varchar NULL,
+	onchain_address varchar NULL,
+	processor_id varchar NULL,
+	confirmed boolean DEFAULT false,
+	spent boolean DEFAULT false
+);
