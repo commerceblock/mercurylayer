@@ -8,6 +8,55 @@ use serde_json::{Value, json};
 
 use crate::server::StateChainEntity;
 
+
+
+
+pub async fn get_token_status(pool: &sqlx::PgPool, token_id: &str) -> Result<bool,sqlx::Error> {
+
+    let valid = false;
+
+        let row = sqlx::query(
+            "SELECT confirmed, spent \
+            FROM public.tokens \
+            WHERE token_id = $1")
+            .bind(&token_id)
+            .fetch_one(pool)
+            .await;
+    
+        match row {
+            Ok(row) => {
+                let confirmed: bool = row.get(0);
+                let spent: bool = row.get(1);
+                if confirmed && !spent {
+                    return Ok(true);
+                } else {
+                    return Ok(false);
+                }
+            },
+            Err(err) => {
+                return Err(err);
+            }
+        };
+    }
+
+
+pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
+
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query = "UPDATE tokens \
+        SET spent = true \
+        WHERE token_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(token_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
+}
+
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
 pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
@@ -30,6 +79,27 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     
         return status::Custom(Status::InternalServerError, Json(response_body));
 
+    }
+
+    match get_token_status(&statechain_entity.pool, &token_id).await {
+        Ok(valid) => {
+            if !valid {
+                let response_body = json!({
+                    "error": "Deposit Error",
+                    "message": "Token already spent."
+                });
+            
+                return status::Custom(Status::InternalServerError, Json(response_body));
+            }
+        },
+        Err(err) => {
+            let response_body = json!({
+                "error": "Internal Server Error",
+                "message": "Token ID not found."
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
     }
 
     let statechain_id = uuid::Uuid::new_v4().as_simple().to_string(); 
@@ -80,6 +150,8 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
     insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, amount, &statechain_id).await;
+
+    set_token_spent(&statechain_entity.pool, &token_id).await;
 
     let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
