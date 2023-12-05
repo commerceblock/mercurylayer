@@ -5,40 +5,35 @@ use rocket::{serde::json::Json, response::status, State, http::Status};
 use secp256k1_zkp::{XOnlyPublicKey, schnorr::Signature, Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
+use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
 
+pub async fn get_token_status(pool: &sqlx::PgPool, token_id: &str) -> Option<bool> {
 
+    let row = sqlx::query(
+        "SELECT confirmed, spent \
+        FROM public.tokens \
+        WHERE token_id = $1")
+        .bind(&token_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
 
-pub async fn get_token_status(pool: &sqlx::PgPool, token_id: &str) -> Result<bool,sqlx::Error> {
-
-    let valid = false;
-
-        let row = sqlx::query(
-            "SELECT confirmed, spent \
-            FROM public.tokens \
-            WHERE token_id = $1")
-            .bind(&token_id)
-            .fetch_one(pool)
-            .await;
-    
-        match row {
-            Ok(row) => {
-                let confirmed: bool = row.get(0);
-                let spent: bool = row.get(1);
-                if confirmed && !spent {
-                    return Ok(true);
-                } else {
-                    return Ok(false);
-                }
-            },
-            Err(err) => {
-                return Err(err);
-            }
-        };
+    if row.is_empty() {
+        return None;
     }
 
+    let confirmed: bool = row.get(0);
+    let spent: bool = row.get(1);
+    if confirmed && !spent {
+        return Some(true);
+    } else {
+        return Some(false);
+    }
+
+}
 
 pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
 
@@ -81,25 +76,24 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     }
 
-    match get_token_status(&statechain_entity.pool, &token_id).await {
-        Ok(valid) => {
-            if !valid {
-                let response_body = json!({
-                    "error": "Deposit Error",
-                    "message": "Token already spent."
-                });
-            
-                return status::Custom(Status::InternalServerError, Json(response_body));
-            }
-        },
-        Err(err) => {
-            let response_body = json!({
-                "error": "Internal Server Error",
-                "message": "Token ID not found."
-            });
-        
-            return status::Custom(Status::InternalServerError, Json(response_body));
-        }
+    let valid_token =  Option::from(get_token_status(&statechain_entity.pool, &token_id).await.unwrap());
+
+    if valid_token.is_none() {
+        let response_body = json!({
+            "error": "Internal Server Error",
+            "message": "Token ID not found."
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    }
+
+    if !valid_token.unwrap() {
+        let response_body = json!({
+            "error": "Deposit Error",
+            "message": "Token already spent."
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
     let statechain_id = uuid::Uuid::new_v4().as_simple().to_string(); 
