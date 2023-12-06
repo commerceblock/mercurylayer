@@ -30,6 +30,10 @@ const execute = async (electrumClient, db, wallet_name) => {
 
     for (let coin of wallet.coins) {
 
+        if (coin.status != CoinStatus.INITIALISED) {
+            continue;
+        }
+
         // console.log("----\nuser_pubkey", coin.user_pubkey);
         // console.log("auth_pubkey", coin.auth_pubkey);
         // console.log("statechain_id", coin.statechain_id);

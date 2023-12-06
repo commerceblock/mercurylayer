@@ -18,7 +18,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
-    await init(db, wallet, token_id, amount);
+    await init(db, wallet, token_id);
 
     let coin = wallet.coins[wallet.coins.length - 1];
 
@@ -129,7 +129,7 @@ const execute = async (electrumClient, db, wallet_name, token_id, amount) => {
     return coin;
 }
 
-const init = async (db, wallet, token_id, amount) => {
+const init = async (db, wallet, token_id) => {
     let coin = mercury_wasm.getNewCoin(wallet);
 
     wallet.coins.push(coin);

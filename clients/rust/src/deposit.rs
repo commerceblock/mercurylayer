@@ -13,7 +13,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
     println!("Deposit: {} {} {}", wallet_name, token_id, amount);
     let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
-    let mut wallet = init(&client_config, &wallet, token_id, amount).await?;
+    let mut wallet = init(&client_config, &wallet, token_id).await?;
 
     let coin = wallet.coins.last_mut().unwrap();
 
@@ -159,7 +159,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, token_id: 
     Ok(())
 }
 
-pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid::Uuid, amount: u32) -> Result<Wallet> {
+pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid::Uuid) -> Result<Wallet> {
 
     let mut wallet = wallet.clone();
 
@@ -169,7 +169,7 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    let deposit_msg_1 = create_deposit_msg1(&coin, &token_id.to_string(), amount)?;
+    let deposit_msg_1 = create_deposit_msg1(&coin, &token_id.to_string())?;
 
     println!("deposit_msg_1: {:?}", deposit_msg_1);
 

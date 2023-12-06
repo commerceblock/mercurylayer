@@ -33,6 +33,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
     for coin in wallet.coins.iter_mut() {
 
+        if coin.status != CoinStatus::INITIALISED {
+            continue;
+        }
+
         println!("----\nuser_pubkey: {}", coin.user_pubkey);
         println!("auth_pubkey: {}", coin.auth_pubkey);
         println!("statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));

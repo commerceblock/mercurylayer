@@ -79,7 +79,7 @@ pub struct Coin {
     pub status: CoinStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum CoinStatus {
     INITIALISED, //  address generated but no Tx0 yet
     IN_MEMPOOL, // Tx0 in mempool
