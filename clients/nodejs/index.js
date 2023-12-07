@@ -64,6 +64,7 @@ async function main() {
       db.close();
     });
 
+  /*
   program.command('deposit')
     .description('Deposit funds into a statecoin')
     .argument('<wallet_name>', 'name of the wallet')
@@ -72,6 +73,38 @@ async function main() {
     .action(async (wallet_name, token_id, amount) => {
 
       const coin = await deposit.execute(electrumClient, db, wallet_name, token_id, amount);
+
+      console.log(coin);
+
+      electrumClient.close();
+      db.close();
+    });
+    */
+
+    program.command('get-new-deposit-address')
+    .description('Get new deposit address. Used to fund a new statecoin.')
+    .argument('<wallet_name>', 'name of the wallet')
+    .argument('<token_id>', 'token id of the deposit')
+    .argument('<amount>', 'amount to deposit')
+    .action(async (wallet_name, token_id, amount) => {
+
+      const aggregated_address = await deposit.getDepositBitcoinAddress(db, wallet_name, token_id, amount);
+
+      console.log({
+        "deposit_address": aggregated_address
+      });
+
+      electrumClient.close();
+      db.close();
+    });
+
+    program.command('create-statecoin')
+    .description('Create a new statecoin from a deposit address.')
+    .argument('<wallet_name>', 'name of the wallet')
+    .argument('<deposit_address>', 'the deposit address')
+    .action(async (wallet_name, deposit_address) => {
+
+      const coin = await deposit.createStatecoin(electrumClient, db, wallet_name, deposit_address);
 
       console.log(coin);
 
