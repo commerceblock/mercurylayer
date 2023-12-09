@@ -27,8 +27,14 @@ struct Cli {
 enum Commands {
     /// Create a wallet
     CreateWallet { name: String },
+    /*
     /// Create Aggregated Public Key
     Deposit { wallet_name: String, token_id: String, amount: u32 },
+    */
+    /// Get new deposit address. Used to fund a new statecoin.
+    GetNewDepositAddress { wallet_name: String, token_id: String, amount: u32 },
+    /// Create a new statecoin from a deposit address
+    CreateStatecoin { wallet_name: String, deposit_address: String },
     /// Broadcast the backup transaction to the network
     BroadcastBackupTransaction { wallet_name: String, statechain_id: String, to_address: String, fee_rate: Option<u64> },
     /// Broadcast the backup transaction to the network
@@ -62,8 +68,16 @@ async fn main() -> Result<()> {
             sqlite_manager::insert_wallet(&client_config.pool, &wallet).await?;
             println!("Wallet created: {:?}", wallet);
         },
-        Commands::Deposit { wallet_name, token_id, amount } => {
+        /*Commands::Deposit { wallet_name, token_id, amount } => {
             deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
+        },*/
+        Commands::GetNewDepositAddress { wallet_name, token_id, amount } => {
+            let address = deposit::get_deposit_bitcoin_address(&client_config, &wallet_name, &token_id, amount).await?;
+            println!("{}", address);
+        },
+        Commands::CreateStatecoin { wallet_name, deposit_address } => {
+            let statecoin = deposit::create_statecoin(&client_config, &wallet_name, &deposit_address).await?;
+            println!("Statecoin created: {:?}", statecoin);
         },
         Commands::BroadcastBackupTransaction { wallet_name, statechain_id, to_address, fee_rate } => {
             broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
@@ -72,6 +86,7 @@ async fn main() -> Result<()> {
             let wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
             for coin in wallet.coins.iter() {
                 println!("----\ncoin.user_pubkey: {}", coin.user_pubkey);
+                println!("coin.aggregated_address: {}", coin.aggregated_address.as_ref().unwrap_or(&"".to_string()));
                 println!("coin.address: {}", coin.address);
                 println!("coin.statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));
                 println!("coin.amount: {}", coin.amount.unwrap_or(0));
