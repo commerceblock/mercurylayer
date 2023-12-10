@@ -57,8 +57,6 @@ const createStatecoin = async (electrumClient, db, wallet_name, aggregated_addre
 
     let deposited = await checkDeposit(electrumClient, coin, wallet.network);
 
-    console.log("deposited", deposited);
-
     if (!deposited) {
         throw new Error(`The coin with the aggregated address ${aggregated_address} has not been deposited yet`);
     }

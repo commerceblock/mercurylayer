@@ -58,7 +58,7 @@ async function main() {
  
       await sqlite_manager.insertWallet(db, wallet);
 
-      console.log(wallet);
+      console.log(JSON.stringify(wallet));
   
       electrumClient.close();
       db.close();
@@ -90,9 +90,9 @@ async function main() {
 
       const aggregated_address = await deposit.getDepositBitcoinAddress(db, wallet_name, token_id, amount);
 
-      console.log({
+      console.log(JSON.stringify({
         "deposit_address": aggregated_address
-      });
+      }));
 
       electrumClient.close();
       db.close();
@@ -106,7 +106,7 @@ async function main() {
 
       const coin = await deposit.createStatecoin(electrumClient, db, wallet_name, deposit_address);
 
-      console.log(coin);
+      console.log(JSON.stringify(coin));
 
       electrumClient.close();
       db.close();
@@ -122,7 +122,7 @@ async function main() {
 
        let tx_ids = await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
-       console.log(tx_ids);
+       console.log(JSON.stringify(tx_ids));
 
        electrumClient.close();
        db.close();
@@ -159,9 +159,9 @@ async function main() {
 
         const txid = await withdraw.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
-        console.log({
+        console.log(JSON.stringify({
           txid
-        });
+        }));
 
         electrumClient.close();
         db.close();
@@ -173,7 +173,7 @@ async function main() {
       .action(async (wallet_name) => {
 
         const addr = await transfer_receive.newTransferAddress(db, wallet_name)
-        console.log({transfer_receive: addr});
+        console.log(JSON.stringify({transfer_receive: addr}));
 
         electrumClient.close();
         db.close();
@@ -188,7 +188,7 @@ async function main() {
 
         let coin = await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
 
-        console.log(coin);
+        console.log(JSON.stringify(coin));
 
         electrumClient.close();
         db.close();
@@ -201,7 +201,7 @@ async function main() {
 
         let received_statechain_ids = await transfer_receive.execute(electrumClient, db, wallet_name);
 
-        console.log(received_statechain_ids);
+        console.log(JSON.stringify(received_statechain_ids));
 
         electrumClient.close();
         db.close();
