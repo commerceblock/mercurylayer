@@ -66,7 +66,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 
     let token_id = uuid::Uuid::new_v4().as_simple().to_string();   
 
-    insert_new_token(&statechain_entity.pool, &token_id).await();
+    insert_new_token(&statechain_entity.pool, &token_id).await;
 
     let token = mercury_lib::deposit::TokenID {
         token_id
