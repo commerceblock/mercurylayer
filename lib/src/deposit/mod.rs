@@ -7,6 +7,11 @@ use secp256k1_zkp::{Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TokenID {
+    pub token_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DepositMsg1 {
     pub amount: u32,
     pub auth_key: String,
