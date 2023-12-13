@@ -55,41 +55,24 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
 #[get("/deposit/get_token")]
 pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
 
-    let token_id = uuid::Uuid::new_v4().as_simple().to_string();   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    let new_user_auth_public_key = PublicKey::from_str(new_auth_key);
-
-    if new_user_auth_public_key.is_err() {
+    if statechain_entity.config.network == "mainnet" {
         let response_body = json!({
             "error": "Internal Server Error",
-            "message": "Invalid authentication public key"
+            "message": "Token generation not supported on mainnet."
         });
     
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
-    let new_user_auth_public_key = new_user_auth_public_key.unwrap();
-    
-    let result = get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
+    let token_id = uuid::Uuid::new_v4().as_simple().to_string();   
 
-    let get_msg_addr_response_payload = GetMsgAddrResponsePayload {
-        list_enc_transfer_msg:result
+    insert_new_token(&statechain_entity.pool, &token_id).await();
+
+    let token = mercury_lib::deposit::TokenID {
+        token_id
     };
 
-    let response_body = json!(get_msg_addr_response_payload);
+    let response_body = json!(token);
 
     return status::Custom(Status::Ok, Json(response_body));
 }
