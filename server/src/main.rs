@@ -47,6 +47,9 @@ async fn main() {
             endpoints::transfer_receiver::transfer_receiver,
             endpoints::withdraw::delete_statechain,
             utils::info_config,
+            if statechain_entity.config.network != "mainnet" {
+                endpoints::deposit::get_token,
+            },
         ])
         .register("/", catchers![
             not_found,

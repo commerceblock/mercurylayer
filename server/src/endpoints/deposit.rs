@@ -52,6 +52,48 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
     transaction.commit().await.unwrap();
 }
 
+#[get("/deposit/get_token")]
+pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
+
+    let token_id = uuid::Uuid::new_v4().as_simple().to_string();   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let new_user_auth_public_key = PublicKey::from_str(new_auth_key);
+
+    if new_user_auth_public_key.is_err() {
+        let response_body = json!({
+            "error": "Internal Server Error",
+            "message": "Invalid authentication public key"
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    }
+
+    let new_user_auth_public_key = new_user_auth_public_key.unwrap();
+    
+    let result = get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
+
+    let get_msg_addr_response_payload = GetMsgAddrResponsePayload {
+        list_enc_transfer_msg:result
+    };
+
+    let response_body = json!(get_msg_addr_response_payload);
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
 pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
@@ -167,6 +209,19 @@ pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &
         .bind(&server_public_key.serialize())
         .bind(amount as i64)
         .bind(statechain_id)
+        .execute(pool)
+        .await
+        .unwrap();
+}
+
+pub async fn insert_new_token(pool: &sqlx::PgPool, token_id: &str)  {
+
+    let query = "INSERT INTO tokens (token_id, confirmed, spent) VALUES ($1, $2, $3)";
+
+    let _ = sqlx::query(query)
+        .bind(token_id)
+        .bind(true)
+        .bind(false)
         .execute(pool)
         .await
         .unwrap();
