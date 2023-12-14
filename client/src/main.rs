@@ -67,8 +67,8 @@ async fn main() {
             })).unwrap());
         },
         Commands::Deposit { token_id, amount } => {
-            let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
-            let statechain_id = deposit::execute(&client_config, token_id, amount).await.unwrap();
+            let token_id_uuid = uuid::Uuid::parse_str(&token_id).unwrap();
+            let statechain_id = deposit::execute(&client_config, token_id_uuid, amount).await.unwrap();
             println!("{}", serde_json::to_string_pretty(&json!({
                 "statechain_id": statechain_id,
             })).unwrap());
