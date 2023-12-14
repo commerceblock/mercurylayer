@@ -64,7 +64,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
-    let token_id = uuid::Uuid::new_v4().as_simple().to_string();   
+    let token_id = uuid::Uuid::new_v4().to_string();   
 
     insert_new_token(&statechain_entity.pool, &token_id).await;
 
