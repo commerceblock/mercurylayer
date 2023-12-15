@@ -30,6 +30,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let coin = coin.unwrap();
 
+    if coin.status != CoinStatus::CONFIRMED {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to broadcast the backup transaction. The current status is {}", coin.status));
+    }
+
     let fee_rate = match fee_rate {
         Some(fee_rate) => fee_rate,
         None => {
@@ -56,6 +60,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     println!("Broadcasting CPFP transaction: {}", txid);
 
     coin.tx_cpfp = Some(txid.to_string());
+    coin.withdrawal_address = Some(to_address.to_string());
     coin.status = CoinStatus::WITHDRAWING;
 
     update_wallet(&client_config.pool, &wallet).await?;

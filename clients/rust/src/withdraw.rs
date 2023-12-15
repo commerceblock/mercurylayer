@@ -35,6 +35,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
+    if coin.status != CoinStatus::CONFIRMED {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to withdraw it. The current status is {}", coin.status));
+    }
+
     let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network).await?;
 
     if coin.public_nonce.is_none() {
@@ -68,6 +72,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     println!("Broadcasting withdrawal transaction: {}", txid);
 
     coin.tx_withdraw = Some(txid.to_string());
+    coin.withdrawal_address = Some(to_address.to_string());
     coin.status = CoinStatus::WITHDRAWING;
 
     let date = Utc::now(); // This will get the current date and time in UTC

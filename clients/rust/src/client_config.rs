@@ -12,8 +12,10 @@ pub struct ClientConfig {
     pub electrum_server_url: String,
     /// Bitcoin network name (testnet, regtest, mainnet)
     pub network: Network,
-    /// Initial deposit backup nlocktime
+    /// Fee rate tolerance
     pub fee_rate_tolerance: u32,
+    /// Confirmation target
+    pub confirmation_target: u32,
     /// Database connection pool
     pub pool: sqlx::Pool<Sqlite>,
 }
@@ -30,6 +32,7 @@ impl ClientConfig {
         let network = settings.get_string("network").unwrap();
         let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as u32;
         let database_file = settings.get_string("database_file").unwrap();
+        let confirmation_target = settings.get_int("confirmation_target").unwrap() as u32;
 
         // Open database connection pool
 
@@ -67,6 +70,7 @@ impl ClientConfig {
             electrum_server_url: electrum_server,
             network,
             fee_rate_tolerance,
+            confirmation_target,
             pool,
         }
     }

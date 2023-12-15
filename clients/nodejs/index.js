@@ -10,6 +10,7 @@ const broadcast_backup_tx = require('./broadcast_backup_tx');
 const withdraw = require('./withdraw');
 const transfer_receive = require('./transfer_receive');
 const transfer_send = require('./transfer_send');
+const coin_status = require('./coin_status');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -81,7 +82,7 @@ async function main() {
     });
     */
 
-    program.command('get-new-deposit-address')
+    program.command('new-deposit-address')
     .description('Get new deposit address. Used to fund a new statecoin.')
     .argument('<wallet_name>', 'name of the wallet')
     .argument('<token_id>', 'token id of the deposit')
@@ -98,6 +99,7 @@ async function main() {
       db.close();
     });
 
+    /*
     program.command('create-statecoin')
     .description('Create a new statecoin from a deposit address.')
     .argument('<wallet_name>', 'name of the wallet')
@@ -111,6 +113,7 @@ async function main() {
       electrumClient.close();
       db.close();
     });
+    */
 
     program.command('broadcast-backup-transaction')
       .description('Broadcast a backup transaction via CPFP') 
@@ -119,6 +122,8 @@ async function main() {
       .argument('<to_address>', 'recipient bitcoin address')
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
+
+       await coin_status.updateCoins(electrumClient, db, wallet_name);
 
        let tx_ids = await broadcast_backup_tx.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
@@ -132,6 +137,8 @@ async function main() {
       .description("List wallet's statecoins") 
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
+
+        await coin_status.updateCoins(electrumClient, db, wallet_name);
 
         let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
@@ -156,6 +163,8 @@ async function main() {
       .argument('<to_address>', 'recipient bitcoin address')
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
+
+        await coin_status.updateCoins(electrumClient, db, wallet_name);
 
         const txid = await withdraw.execute(electrumClient, db, wallet_name, statechain_id, to_address, options.fee_rate);
 
@@ -186,6 +195,8 @@ async function main() {
       .argument('<to_address>', 'recipient bitcoin address')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
+        await coin_status.updateCoins(electrumClient, db, wallet_name);
+
         let coin = await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
 
         console.log(JSON.stringify(coin));
@@ -199,6 +210,8 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
+        await coin_status.updateCoins(electrumClient, db, wallet_name);
+
         let received_statechain_ids = await transfer_receive.execute(electrumClient, db, wallet_name);
 
         console.log(JSON.stringify(received_statechain_ids));
@@ -206,6 +219,19 @@ async function main() {
         electrumClient.close();
         db.close();
     });
+
+    /*
+    program.command('update-coins')
+      .description("Update Coins") 
+      .argument('<wallet_name>', 'name of the wallet')
+      .action(async (wallet_name) => {
+
+        await coin_status.updateCoins(electrumClient, db, wallet_name);
+
+        electrumClient.close();
+        db.close();
+    });
+    */
   
   
   program.parse();

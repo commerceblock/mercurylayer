@@ -3,11 +3,10 @@ pub mod cpfp_tx;
 
 use std::{fmt, str::FromStr};
 
-use bech32::{Variant, FromBase32};
 use bip39::{Mnemonic, Language};
-use secp256k1_zkp::{rand::{self, Rng}, PublicKey};
+use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 
 use crate::utils::ServerConfig;
 
@@ -76,6 +75,7 @@ pub struct Coin {
     pub server_public_nonce: Option<String>,
     pub tx_cpfp: Option<String>,
     pub tx_withdraw: Option<String>,
+    pub withdrawal_address: Option<String>,
     pub status: CoinStatus,
 }
 
@@ -83,6 +83,7 @@ pub struct Coin {
 pub enum CoinStatus {
     INITIALISED, //  address generated but no Tx0 yet
     IN_MEMPOOL, // Tx0 in mempool
+    UNCONFIRMED, // Tx0 is awaiting more confirmations before coin is available to be sent
     CONFIRMED, // Tx0 confirmed and coin available to be sent
     IN_TRANSFER, // transfer-sender performed, but receiver hasn't completed transfer-receiver
     WITHDRAWING, // withdrawal tx signed and broadcast but not yet confirmed
@@ -96,6 +97,7 @@ impl fmt::Display for CoinStatus {
         write!(f, "{}", match self {
             Self::INITIALISED => "INITIALISED",
             Self::IN_MEMPOOL => "IN_MEMPOOL",
+            Self::UNCONFIRMED => "UNCONFIRMED",
             Self::CONFIRMED => "CONFIRMED",
             Self::IN_TRANSFER => "IN_TRANSFER",
             Self::WITHDRAWING => "WITHDRAWING",
@@ -123,6 +125,7 @@ impl FromStr for CoinStatus {
         match s {
             "INITIALISED" => Ok(CoinStatus::INITIALISED),
             "IN_MEMPOOL" => Ok(CoinStatus::IN_MEMPOOL),
+            "UNCONFIRMED" => Ok(CoinStatus::UNCONFIRMED),
             "CONFIRMED" => Ok(CoinStatus::CONFIRMED),
             "IN_TRANSFER" => Ok(CoinStatus::IN_TRANSFER),
             "WITHDRAWING" => Ok(CoinStatus::WITHDRAWING),
@@ -160,22 +163,3 @@ pub fn generate_mnemonic() -> Result<String> {
     let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)?;
     Ok(mnemonic.to_string())
 }
-/* 
-pub fn verify_backup_tx(backup_tx: &BackupTx, coin: &Coin, network: &str) -> Result<bool> {
-
-    let network = get_network(network)?;
-
-    let tx_bytes = hex::decode(&backup_tx.tx)?;
-    let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes)?;
-
-    if tx.output.len() != 1 {
-        return Err(anyhow!("Unkown network"));
-    }
-
-    let output = tx.output.get(0).unwrap();
-
-    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
-
-    Ok(backup_address.script_pubkey() == output.script_pubkey)
-}
- */

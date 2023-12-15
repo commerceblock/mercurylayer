@@ -8,6 +8,7 @@ mod broadcast_backup_tx;
 mod withdraw;
 mod transfer_sender;
 mod transfer_receiver;
+mod coin_status;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -32,9 +33,9 @@ enum Commands {
     Deposit { wallet_name: String, token_id: String, amount: u32 },
     */
     /// Get new deposit address. Used to fund a new statecoin.
-    GetNewDepositAddress { wallet_name: String, token_id: String, amount: u32 },
-    /// Create a new statecoin from a deposit address
-    CreateStatecoin { wallet_name: String, deposit_address: String },
+    NewDepositAddress { wallet_name: String, token_id: String, amount: u32 },
+    /* /// Create a new statecoin from a deposit address
+    CreateStatecoin { wallet_name: String, deposit_address: String }, */
     /// Broadcast the backup transaction to the network
     BroadcastBackupTransaction { wallet_name: String, statechain_id: String, to_address: String, fee_rate: Option<u64> },
     /// Broadcast the backup transaction to the network
@@ -47,6 +48,10 @@ enum Commands {
     TransferSend { wallet_name: String, statechain_id: String, to_address: String,  },
     /// Send a statechain coin to a transfer address
     TransferReceive { wallet_name: String },
+    /*
+    /// Update Coins]
+    UpdateCoins { wallet_name: String },
+    */
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -71,18 +76,20 @@ async fn main() -> Result<()> {
         /*Commands::Deposit { wallet_name, token_id, amount } => {
             deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
         },*/
-        Commands::GetNewDepositAddress { wallet_name, token_id, amount } => {
+        Commands::NewDepositAddress { wallet_name, token_id, amount } => {
             let address = deposit::get_deposit_bitcoin_address(&client_config, &wallet_name, &token_id, amount).await?;
             println!("{}", address);
         },
-        Commands::CreateStatecoin { wallet_name, deposit_address } => {
+        /* Commands::CreateStatecoin { wallet_name, deposit_address } => {
             let statecoin = deposit::create_statecoin(&client_config, &wallet_name, &deposit_address).await?;
             println!("Statecoin created: {:?}", statecoin);
-        },
+        }, */
         Commands::BroadcastBackupTransaction { wallet_name, statechain_id, to_address, fee_rate } => {
+            coin_status::update_coins(&client_config, &wallet_name).await?;
             broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
         },
         Commands::ListStatecoins { wallet_name } => {
+            coin_status::update_coins(&client_config, &wallet_name).await?;
             let wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
             for coin in wallet.coins.iter() {
                 println!("----\ncoin.user_pubkey: {}", coin.user_pubkey);
@@ -94,6 +101,7 @@ async fn main() -> Result<()> {
             }
         },
         Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
+            coin_status::update_coins(&client_config, &wallet_name).await?;
             withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
         },
         Commands::NewTransferAddress { wallet_name } => {
@@ -101,12 +109,17 @@ async fn main() -> Result<()> {
             println!("{}", address);
         },
         Commands::TransferSend { wallet_name, statechain_id, to_address } => {
+            coin_status::update_coins(&client_config, &wallet_name).await?;
             transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id).await?;
             println!("Transfer sent");
         },
         Commands::TransferReceive { wallet_name } => {
+            coin_status::update_coins(&client_config, &wallet_name).await?;
             transfer_receiver::execute(&client_config, &wallet_name).await?;
         },
+        /*Commands::UpdateCoins { wallet_name }  => {
+            utils::update_coins(&client_config, &wallet_name).await?;
+        }*/
     }
 
     client_config.pool.close().await;

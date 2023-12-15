@@ -321,6 +321,18 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
     status::Custom(Status::Ok, Json(response_body))
 }
 
+#[get("/transfer/receiver/<statechain_id>")]
+pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
+
+    let transfer_complete = is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
+
+    let response_body = json!({
+        "transfer_complete": transfer_complete,
+    });
+
+    status::Custom(Status::Ok, Json(response_body))
+}
+
 pub async fn is_key_already_updated(pool: &sqlx::PgPool, statechain_id: &str) -> bool {
 
     let query = "\

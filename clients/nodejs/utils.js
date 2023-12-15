@@ -42,5 +42,17 @@ const getNetwork = (wallet_network) => {
     }
 }
 
+const createActivity = (utxo, amount, action) => {
 
-module.exports = { infoConfig, getNetwork };
+    const activity = {
+        utxo,
+        amount,
+        action,
+        date: new Date().toISOString()
+    };
+
+    return activity;
+
+}
+
+module.exports = { infoConfig, getNetwork, createActivity };

@@ -3,5 +3,7 @@
     "electrumServer": "tcp://signet-electrumx.wakiyamap.dev:50001",
     "network": "signet",
     "feeRateTolerance": 5,
-    "databaseFile": "wallet.db"
+    "databaseFile": "wallet.db",
+    "confirmationTarget": 2
+
 }

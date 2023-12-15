@@ -45,6 +45,7 @@ async fn main() {
             endpoints::transfer_receiver::get_msg_addr,
             endpoints::transfer_receiver::statechain_info,
             endpoints::transfer_receiver::transfer_receiver,
+            endpoints::transfer_receiver::get_transfer_receive,
             endpoints::withdraw::delete_statechain,
             utils::info_config,
         ])

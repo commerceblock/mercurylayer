@@ -4,3 +4,4 @@ electrum_server = "tcp://signet-electrumx.wakiyamap.dev:50001"
 network = "signet"
 fee_rate_tolerance = 5
 database_file="wallet.db"
+confirmation_target = 2

@@ -130,6 +130,7 @@ impl Wallet {
             server_public_nonce: None,
             tx_cpfp: None,
             tx_withdraw: None,
+            withdrawal_address: None,
             status: CoinStatus::INITIALISED,
         };
 

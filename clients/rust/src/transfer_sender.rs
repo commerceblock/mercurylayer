@@ -36,6 +36,10 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
+    if coin.status != CoinStatus::CONFIRMED {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to transfer it. The current status is {}", coin.status));
+    }
+
     let bkp_tx1 = &backup_transactions[0];
 
     let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;

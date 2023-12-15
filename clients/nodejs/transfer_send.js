@@ -2,7 +2,7 @@ const sqlite_manager = require('./sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const transaction = require('./transaction');
 const axios = require('axios').default;
-const { CoinStatus } = require('./coin_status');
+const { CoinStatus } = require('./coin_enum');
 const config = require('config');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress)  => {
@@ -21,7 +21,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
         return c.statechain_id === statechainId
     });
 
-    if (!coinsWithStatechainId) {
+    if (!coinsWithStatechainId || coinsWithStatechainId.length === 0) {
         throw new Error(`There is no coin for the statechain id ${statechainId}`);
     }
 
@@ -29,6 +29,10 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     // In this case, we need to find the one with the lowest locktime
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
+
+    if (coin.status != CoinStatus.CONFIRMED) {
+        throw new Error(`Coin status must be CONFIRMED to transfer it. The current status is ${coin.status}`);
+    }
 
     const isWithdrawal = false;
     const qtBackupTx = backupTxs.length;

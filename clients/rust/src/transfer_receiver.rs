@@ -124,10 +124,10 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
             continue;
         }
 
-        let is_tx0_output_unspent = verify_tx0_output_is_unspent(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network).await?;
+        let is_tx0_output_unspent = verify_tx0_output_is_unspent_and_confirmed(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, coin, &network, client_config.confirmation_target).await?;
 
         if !is_tx0_output_unspent {
-            println!("tx0 output is spent");
+            println!("tx0 output is spent or not confirmed.");
             continue;
         }
 
@@ -194,7 +194,6 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         coin.amount = Some(new_key_info.amount);
         coin.utxo_txid = Some(tx0_outpoint.txid.clone());
         coin.utxo_vout = Some(tx0_outpoint.vout);
-        coin.status = CoinStatus::CONFIRMED;
         coin.locktime = Some(previous_lock_time.unwrap());
 
         let date = Utc::now(); // This will get the current date and time in UTC
@@ -254,7 +253,7 @@ async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -
     Ok(response)
 }
 
-async fn verify_tx0_output_is_unspent(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<bool> {
+async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, coin: &mut Coin, network: &str, confirmation_target: u32) -> Result<bool> {
     let output_address = mercury_lib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network)?;
 
     let network = get_network(&network)?;
@@ -264,7 +263,24 @@ async fn verify_tx0_output_is_unspent(electrum_client: &electrum_client::Client,
 
     let res = electrum_client.script_list_unspent(script)?;
 
-    Ok(res.len() > 0)
+    let block_header = electrum_client.block_headers_subscribe_raw()?;
+    let blockheight = block_header.height;
+
+    for unspent in res {
+        if (unspent.tx_hash.to_string() == tx0_outpoint.txid) && (unspent.tx_pos as u32 == tx0_outpoint.vout) {
+            let confirmations = blockheight - unspent.height + 1;
+
+            coin.status = CoinStatus::UNCONFIRMED;
+
+            if confirmations as u32 >= confirmation_target {
+                coin.status = CoinStatus::CONFIRMED;
+            }
+
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 async fn send_transfer_receiver_request_payload(statechain_entity_url: &str, transfer_receiver_request_payload: &TransferReceiverRequestPayload) -> Result<String>{

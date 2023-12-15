@@ -2,7 +2,7 @@ const mercury_wasm = require('mercury-wasm');
 const sqlite_manager = require('./sqlite_manager');
 const utils = require('./utils');
 const transaction = require('./transaction');
-const { CoinStatus } = require('./coin_status');
+const { CoinStatus } = require('./coin_enum');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
     let wallet = await sqlite_manager.getWallet(db, walletName);
@@ -36,6 +36,10 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
+    if (coin.status != CoinStatus.CONFIRMED) {
+        throw new Error(`Coin status must be CONFIRMED to withdraw it. The current status is ${coin.status}`);
+    }
+
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;
 
@@ -58,6 +62,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     const txid = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
     coin.tx_withdraw = txid;
+    coin.withdrawal_address = toAddress;
     coin.status = CoinStatus.WITHDRAWING;
 
     let activity = {

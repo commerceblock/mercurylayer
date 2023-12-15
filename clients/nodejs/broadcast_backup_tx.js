@@ -4,7 +4,7 @@ const sqlite_manager = require('./sqlite_manager');
 
 const utils = require('./utils');
 
-const { CoinStatus } = require('./coin_status');
+const { CoinStatus } = require('./coin_enum');
 
 const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
 
@@ -43,6 +43,10 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
+    if (coin.status != CoinStatus.CONFIRMED) {
+        throw new Error(`Coin status must be CONFIRMED to broadcast the backup transaction. The current status is ${coin.status}`);
+    }
+
     const CpfpTx = mercury_wasm.createCpfpTx(backupTx, coin, toAddress, feeRate, wallet.network);
 
     let backupTxTxid = await electrumClient.request('blockchain.transaction.broadcast', [backupTx.tx]);
@@ -52,6 +56,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // console.log(`Broadcasting CPFP transaction: ${cpfpTxTxid}`);
 
     coin.tx_cpfp = cpfpTxTxid;
+    coin.withdrawal_address = toAddress;
     coin.status = CoinStatus.WITHDRAWING;
 
     await sqlite_manager.updateWallet(db, wallet);

@@ -5,7 +5,7 @@ const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
 const config = require('config');
-const { CoinStatus } = require('./coin_status');
+const { CoinStatus } = require('./coin_enum');
 
 const newTransferAddress = async (db, wallet_name) => {
 
@@ -108,9 +108,9 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
             continue;
         }
         
-        let isTx0OutputUnspent = await verifyTx0OutputIsUnspent(electrumClient, tx0Outpoint, tx0Hex, network);
+        let isTx0OutputUnspent = await verifyTx0OutputIsUnspentAndConfirmed(electrumClient, coin, tx0Outpoint, tx0Hex, network);
         if (!isTx0OutputUnspent) {
-            console.error("tx0 output is spent");
+            console.error("tx0 output is spent or not confirmed");
             continue;
         }
 
@@ -173,7 +173,6 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
         coin.amount = newKeyInfo.amount;
         coin.utxo_txid = tx0Outpoint.txid;
         coin.utxo_vout = tx0Outpoint.vout;
-        coin.status = CoinStatus.CONFIRMED;
         coin.locktime = previousLockTime;
 
         let utxo = `${tx0Outpoint.txid}:${tx0Outpoint.vout}`;
@@ -209,7 +208,7 @@ const getStatechainInfo = async (statechain_id) => {
     return response.data;
 }
 
-const verifyTx0OutputIsUnspent = async (electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {
+const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, coin, tx0Outpoint, tx0Hex, wallet_network) => {
 
     let tx0outputAddress = mercury_wasm.getOutputAddressFromTx0(tx0Outpoint, tx0Hex, wallet_network);
 
@@ -224,7 +223,27 @@ const verifyTx0OutputIsUnspent = async (electrumClient, tx0Outpoint, tx0Hex, wal
 
     let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
 
-    return utxo_list.length > 0;
+    for (let unspent of utxo_list) {
+        if (unspent.tx_hash === tx0Outpoint.txid && unspent.tx_pos === tx0Outpoint.vout) {
+
+            const block_header = await electrumClient.request('blockchain.headers.subscribe');
+            const blockheight = block_header.height;
+
+            const confirmations = blockheight - unspent.height + 1;
+
+            const confirmationTarget = config.get('confirmationTarget');
+
+            coin.status = CoinStatus.UNCONFIRMED;
+
+            if (confirmations >= confirmationTarget) {
+                coin.status = CoinStatus.CONFIRMED;
+            }
+            
+            return true;
+        }
+    }
+
+    return false;
 }
 
 const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload) => {
