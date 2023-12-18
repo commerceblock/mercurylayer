@@ -149,7 +149,9 @@ async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Resu
     }
 
     if utxo.is_none() {
-        return Err(anyhow!("There is no UTXO with the address {} and the txid {}", coin.withdrawal_address.as_ref().unwrap(), txid));
+        // sometimes the transaction has not yet been transmitted to the specified Electrum server
+        // return Err(anyhow!("There is no UTXO with the address {} and the txid {}", coin.withdrawal_address.as_ref().unwrap(), txid));
+        return Ok(());
     }
 
     let utxo = utxo.unwrap();

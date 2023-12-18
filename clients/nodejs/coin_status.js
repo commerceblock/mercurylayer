@@ -147,7 +147,9 @@ const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
     }
 
     if (!utxo) {
-        throw new Error(`There is no UTXO with the address ${coin.withdrawal_address} and the txid ${txid}`);
+        // sometimes the transaction has not yet been transmitted to the specified Electrum server
+        // throw new Error(`There is no UTXO with the address ${coin.withdrawal_address} and the txid ${txid}`);
+        return false;
     }
 
     if (utxo.height > 0) {

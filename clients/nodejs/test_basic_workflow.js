@@ -1,6 +1,8 @@
 const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
 const assert = require('node:assert/strict');
+const { CoinStatus } = require('./coin_enum');
+const c = require('config');
 
 async function lsExample() {
     const { stdout, stderr } = await exec('ls');
@@ -26,12 +28,12 @@ async function createWallet(wallet_name) {
 }
 
 async function getDepositBitcoinAddress(wallet_name, token_id, amount) {
-    const { stdout, stderr } = await exec(`node index.js get-new-deposit-address ${wallet_name} ${token_id} ${amount}`);
+    const { stdout, stderr } = await exec(`node index.js new-deposit-address ${wallet_name} ${token_id} ${amount}`);
     let json = JSON.parse(stdout);
-    return json.deposit_address;
+    return json;
 }
 
-async function createStatecoin(wallet_name, deposit_address, amount) {
+/* async function createStatecoin(wallet_name, deposit_address, amount) {
     try {
         const { stdout, stderr } = await exec(`node index.js create-statecoin ${wallet_name} ${deposit_address}`);
         let json = JSON.parse(stdout);
@@ -46,6 +48,17 @@ async function createStatecoin(wallet_name, deposit_address, amount) {
         return undefined;
     }
     
+} */
+
+async function listStatecoins(wallet_name) {
+    try {
+        const { stdout, stderr } = await exec(`node index.js list-statecoins ${wallet_name}`);
+        let json = JSON.parse(stdout);
+        return json;
+    } catch (e) {
+        console.log('e:', e);
+        return undefined;
+    }
 }
 
 async function newTransferAddress(wallet_name) {
@@ -87,18 +100,34 @@ async function walletTransfersToItselfAndWithdraw(wallet_name) {
     let token_id = "00000";
     let amount = 10000;
 
-    let deposit_address = await getDepositBitcoinAddress(wallet_name,token_id,amount);
+    let deposit_info = await getDepositBitcoinAddress(wallet_name,token_id,amount);
 
     // await createStatecoin(wallet_name,deposit_address);
 
-    console.log("deposit_address: ", deposit_address);
+    console.log("deposit_coin: ", deposit_info);
 
     let coin = undefined;
 
     while (!coin) {
-        coin = await createStatecoin(wallet_name,deposit_address, amount);
-        await sleep(5000);
+        const list_coins = await listStatecoins(wallet_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+
+        break;
     }
+
+    console.log("coin: ", coin);
 
     for (let i = 0; i < 10; i++) {
 
@@ -107,6 +136,8 @@ async function walletTransfersToItselfAndWithdraw(wallet_name) {
         console.log("transfer_address: ", transfer_address);
 
         coin = await transferSend(wallet_name, coin.statechain_id, transfer_address);
+
+        console.log("coin transferSend: ", coin);
 
         let received_statechain_ids = await transferReceive(wallet_name);
 
@@ -135,15 +166,29 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wall
     let token_id = "00000";
     let amount = 10000;
 
-    let deposit_address = await getDepositBitcoinAddress(wallet_1_name, token_id, amount);
+    let deposit_info = await getDepositBitcoinAddress(wallet_1_name, token_id, amount);
 
-    console.log("deposit_address w1: ", deposit_address);
+    console.log("deposit_info w1: ", deposit_info);
 
     let coin = undefined;
 
     while (!coin) {
-        coin = await createStatecoin(wallet_1_name,deposit_address, amount);
-        await sleep(5000);
+        const list_coins = await listStatecoins(wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+
+        break;
     }
 
     let transfer_address = await newTransferAddress(wallet_2_name);

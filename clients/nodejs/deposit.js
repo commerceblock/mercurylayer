@@ -30,7 +30,7 @@ const getDepositBitcoinAddress = async (db, wallet_name, token_id, amount) => {
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    return coin.aggregated_address;
+    return { "deposit_address":  coin.aggregated_address, "statechain_id": coin.statechain_id };
 }
 
 const createTx1 = async (electrumClient, coin, wallet_network, tx0_hash, tx0_vout) => {

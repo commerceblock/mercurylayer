@@ -89,11 +89,9 @@ async function main() {
     .argument('<amount>', 'amount to deposit')
     .action(async (wallet_name, token_id, amount) => {
 
-      const aggregated_address = await deposit.getDepositBitcoinAddress(db, wallet_name, token_id, amount);
+      const address_info = await deposit.getDepositBitcoinAddress(db, wallet_name, token_id, amount);
 
-      console.log(JSON.stringify({
-        "deposit_address": aggregated_address
-      }));
+      console.log(JSON.stringify(address_info));
 
       electrumClient.close();
       db.close();
@@ -149,7 +147,7 @@ async function main() {
           adress: coin.address
         }));
         
-        console.log(coins);
+        console.log(JSON.stringify(coins));
 
         electrumClient.close();
         db.close();
