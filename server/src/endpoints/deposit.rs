@@ -18,12 +18,16 @@ pub async fn get_token_status(pool: &sqlx::PgPool, token_id: &str) -> Option<boo
         WHERE token_id = $1")
         .bind(&token_id)
         .fetch_one(pool)
-        .await
-        .unwrap();
+        .await;
 
-    if row.is_empty() {
-        return None;
+    if row.is_err() {
+        match row.err().unwrap() {
+            sqlx::Error::RowNotFound => return None,
+            _ => return None, // this case should be treated as unexpected error
+        }
     }
+
+    let row = row.unwrap();
 
     let confirmed: bool = row.get(0);
     let spent: bool = row.get(1);
@@ -100,15 +104,15 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     }
 
-    let valid_token =  Option::from(get_token_status(&statechain_entity.pool, &token_id).await.unwrap());
+    let valid_token =  get_token_status(&statechain_entity.pool, &token_id).await;
 
     if valid_token.is_none() {
         let response_body = json!({
-            "error": "Internal Server Error",
+            "error": "Deposit Error",
             "message": "Token ID not found."
         });
     
-        return status::Custom(Status::InternalServerError, Json(response_body));
+        return status::Custom(Status::NotFound, Json(response_body));
     }
 
     if !valid_token.unwrap() {
@@ -117,7 +121,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
             "message": "Token already spent."
         });
     
-        return status::Custom(Status::InternalServerError, Json(response_body));
+        return status::Custom(Status::Gone, Json(response_body));
     }
 
     let statechain_id = uuid::Uuid::new_v4().as_simple().to_string(); 

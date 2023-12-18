@@ -6,7 +6,7 @@ const transaction = require('./transaction');
 const config = require('config');
 
 // used only for random token. Can be removed later
-const crypto = require('crypto');
+// const crypto = require('crypto');
 
 const mercury_wasm = require('mercury-wasm');
 
@@ -175,7 +175,7 @@ const init = async (db, wallet, token_id) => {
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    token_id = crypto.randomUUID().replace('-','');
+    // token_id = crypto.randomUUID().replace('-','');
 
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
@@ -184,6 +184,11 @@ const init = async (db, wallet, token_id) => {
     const url = statechain_entity_url + '/' + path;
 
     const response = await axios.post(url, depositMsg1);
+
+    if (response.status != 200) {
+        throw new Error(`Deposit error: ${response.data}`);
+    }
+
     let depositMsg1Response = response.data;
 
     let depositInitResult = mercury_wasm.handleDepositMsg1Response(coin, depositMsg1Response);
@@ -196,4 +201,21 @@ const init = async (db, wallet, token_id) => {
     await sqlite_manager.updateWallet(db, wallet);
 }
 
-module.exports = { /*execute, createStatecoin,*/ getDepositBitcoinAddress, createTx1 };
+const getToken = async () => {
+
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "deposit/get_token";
+    const url = statechain_entity_url + '/' + path;
+
+    const response = await axios.get(url);
+
+    if (response.status != 200) {
+        throw new Error(`Token error: ${response.data}`);
+    }
+
+    let token = response.data;
+
+    return token.token_id;
+}
+
+module.exports = { /*execute, createStatecoin,*/ getDepositBitcoinAddress, createTx1, getToken };

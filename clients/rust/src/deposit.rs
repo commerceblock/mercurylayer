@@ -5,8 +5,8 @@ use crate::{sqlite_manager::update_wallet, get_wallet, client_config::ClientConf
 
 pub async fn get_deposit_bitcoin_address(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<String> {
 
-    let token_id = uuid::Uuid::new_v4() ; // uuid::Uuid::parse_str(&token_id).unwrap();
-    println!("Deposit: {} {} {}", wallet_name, token_id, amount);
+    let token_id = uuid::Uuid::parse_str(&token_id)?;
+    // println!("Deposit: {} {} {}", wallet_name, token_id, amount);
     let wallet = get_wallet(&client_config.pool, &wallet_name).await?;
     let mut wallet = init(&client_config, &wallet, token_id).await?;
 
@@ -81,7 +81,7 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
 
     let deposit_msg_1 = create_deposit_msg1(&coin, &token_id.to_string())?;
 
-    println!("deposit_msg_1: {:?}", deposit_msg_1);
+    // println!("deposit_msg_1: {:?}", deposit_msg_1);
 
     let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/init/pod";
@@ -89,13 +89,20 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     let client: reqwest::Client = reqwest::Client::new();
     let request = client.post(&format!("{}/{}", endpoint, path));
 
-    let value = request.json(&deposit_msg_1).send().await?.text().await?;
+    let response = request.json(&deposit_msg_1).send().await?;
+
+    if response.status() != 200 {
+        let response_body = response.text().await?;
+        return Err(anyhow!(response_body));
+    }
+
+    let value = response.text().await?;
 
     let deposit_msg_1_response: mercury_lib::deposit::DepositMsg1Response = serde_json::from_str(value.as_str())?;
 
-    println!("value: {:?}", value);
+    // println!("value: {:?}", value);
 
-    println!("response: {:?}", deposit_msg_1_response);
+    // println!("response: {:?}", deposit_msg_1_response);
 
     let deposit_init_result = mercury_lib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response)?;
 
@@ -108,4 +115,26 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     update_wallet(&client_config.pool, &wallet).await?;
 
     Ok(wallet)
+}
+
+pub async fn get_token(client_config: &ClientConfig) -> Result<String> {
+
+    let endpoint = client_config.statechain_entity.clone();
+    let path = "deposit/get_token";
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.get(&format!("{}/{}", endpoint, path));
+
+    let response = request.send().await?;
+
+    if response.status() != 200 {
+        let response_body = response.text().await?;
+        return Err(anyhow!(response_body));
+    }
+
+    let value = response.text().await?;
+
+    let token: mercury_lib::deposit::TokenID = serde_json::from_str(value.as_str())?;
+
+    return Ok(token.token_id);
 }

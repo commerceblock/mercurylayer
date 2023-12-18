@@ -27,6 +27,12 @@ async function createWallet(wallet_name) {
     // console.log('wallet:', wallet);
 }
 
+async function newToken() {
+    const { stdout, stderr } = await exec(`node index.js new-token`);
+    let json = JSON.parse(stdout);
+    return json.token_id;
+}
+
 async function getDepositBitcoinAddress(wallet_name, token_id, amount) {
     const { stdout, stderr } = await exec(`node index.js new-deposit-address ${wallet_name} ${token_id} ${amount}`);
     let json = JSON.parse(stdout);
@@ -97,10 +103,11 @@ const sleep = (ms) => {
 
 async function walletTransfersToItselfAndWithdraw(wallet_name) {
     
-    let token_id = "00000";
-    let amount = 10000;
+    const amount = 10000;
 
-    let deposit_info = await getDepositBitcoinAddress(wallet_name,token_id,amount);
+    const token_id = await newToken();
+
+    const deposit_info = await getDepositBitcoinAddress(wallet_name,token_id,amount);
 
     // await createStatecoin(wallet_name,deposit_address);
 
@@ -163,10 +170,11 @@ async function walletTransfersMultipleTimesToItselfAndBroadcastsBackup(wallet_na
 
 async function walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wallet_2_name) {
 
-    let token_id = "00000";
-    let amount = 10000;
+    const amount = 10000;
 
-    let deposit_info = await getDepositBitcoinAddress(wallet_1_name, token_id, amount);
+    const token_id = await newToken();
+
+    const deposit_info = await getDepositBitcoinAddress(wallet_1_name, token_id, amount);
 
     console.log("deposit_info w1: ", deposit_info);
 

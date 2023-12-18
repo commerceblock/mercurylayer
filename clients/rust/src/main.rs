@@ -32,6 +32,8 @@ enum Commands {
     /// Create Aggregated Public Key
     Deposit { wallet_name: String, token_id: String, amount: u32 },
     */
+    /// Get new token.
+    NewToken { },
     /// Get new deposit address. Used to fund a new statecoin.
     NewDepositAddress { wallet_name: String, token_id: String, amount: u32 },
     /* /// Create a new statecoin from a deposit address
@@ -76,6 +78,10 @@ async fn main() -> Result<()> {
         /*Commands::Deposit { wallet_name, token_id, amount } => {
             deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
         },*/
+        Commands::NewToken { } => {
+            let token_id = deposit::get_token(&client_config).await?;
+            println!("{}", token_id);
+        },
         Commands::NewDepositAddress { wallet_name, token_id, amount } => {
             let address = deposit::get_deposit_bitcoin_address(&client_config, &wallet_name, &token_id, amount).await?;
             println!("{}", address);

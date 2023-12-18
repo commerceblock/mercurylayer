@@ -82,6 +82,17 @@ async function main() {
     });
     */
 
+    program.command('new-token')
+    .description('Get new token.')
+    .action(async () => {
+
+      const token_id = await deposit.getToken();
+      console.log(JSON.stringify({token_id}));
+
+      electrumClient.close();
+      db.close();
+    });
+
     program.command('new-deposit-address')
     .description('Get new deposit address. Used to fund a new statecoin.')
     .argument('<wallet_name>', 'name of the wallet')
