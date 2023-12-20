@@ -49,6 +49,7 @@ async fn main() {
             endpoints::transfer_receiver::get_transfer_receive,
             endpoints::withdraw::delete_statechain,
             utils::info_config,
+            utils::info_keylist,
         ])
         .register("/", catchers![
             not_found,

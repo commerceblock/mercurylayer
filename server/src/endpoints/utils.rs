@@ -5,6 +5,7 @@ use rocket::{State, response::status, http::Status, serde::json::Json};
 use secp256k1_zkp::{schnorr::Signature, Message, Secp256k1, XOnlyPublicKey};
 use serde_json::{json, Value};
 use sqlx::Row;
+use secp256k1_zkp::PublicKey;
 
 use crate::server::StateChainEntity;
 
@@ -54,4 +55,62 @@ pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status:
     let response_body = json!(server_config);
 
     return status::Custom(Status::Ok, Json(response_body));
+}
+
+#[get("/info/keylist", format = "json")]
+pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
+
+    let query = "\
+    SELECT server_public_key, statechain_id \
+    FROM statechain_data";  
+
+    let rows = sqlx::query(query)
+    .fetch_all(&statechain_entity.pool)
+    .await
+    .unwrap();
+
+    let query_sigs = "\
+    SELECT tx_n, statechain_id, created_at::TEXT \
+    FROM statechain_signature_data";  
+
+    let rows_sigs = sqlx::query(query_sigs)
+    .fetch_all(&statechain_entity.pool)
+    .await
+    .unwrap();
+
+    let mut result = Vec::<mercury_lib::utils::PubKeyInfo>::new();
+
+    for row in rows {
+
+        let server_public_key_bytes = row.get::<Vec<u8>, _>(0);
+        let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
+        let statechain_id: String = row.get(1);
+
+        let mut keyinfo: mercury_lib::utils::PubKeyInfo = mercury_lib::utils::PubKeyInfo {
+            server_pubkey: server_pubkey.to_string(),
+            tx_n: 0,
+            updated_at: "".to_string(),
+        };
+
+        for row_sig in &rows_sigs {
+            let tx_n_i: i32 = row_sig.get(0);
+            let statechain_id_sig: String = row_sig.get(1);
+            let updated_at: String = row_sig.get(2);
+
+            if statechain_id == statechain_id_sig {
+                keyinfo.tx_n = tx_n_i as u32;
+                keyinfo.updated_at = updated_at;
+            }
+        }
+        result.push(keyinfo);
+    }
+
+    let key_list_response_payload = mercury_lib::utils::KeyListResponsePayload {
+        list_keyinfo:result
+    };
+
+    let response_body = json!(key_list_response_payload);
+
+    return status::Custom(Status::Ok, Json(response_body));
+
 }

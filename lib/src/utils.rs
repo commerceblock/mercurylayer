@@ -16,6 +16,18 @@ pub struct InfoConfig {
     pub fee_rate_sats_per_byte: u64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PubKeyInfo {
+    pub server_pubkey: String,
+    pub tx_n: u32,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct KeyListResponsePayload {
+    pub list_keyinfo: Vec<PubKeyInfo>,
+}
+
 pub fn get_network(network: &str) -> Result<bitcoin::Network> {
     match network {
         "signet" => Ok(bitcoin::Network::Signet),
