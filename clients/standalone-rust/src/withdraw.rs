@@ -52,7 +52,13 @@ pub async fn execute(client_config: &ClientConfig, statechain_id: &str, to_addre
     let endpoint = client_config.statechain_entity.clone();
     let path = "delete_statechain";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.delete(&format!("{}/{}", endpoint, path));
 
     let _ = match request.json(&delete_statechain_payload).send().await {

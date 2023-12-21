@@ -10,7 +10,13 @@ pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum
 
     let path = "info/config";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.get(&format!("{}/{}", statechain_entity_url, path));
 
     let value = match request.send().await {

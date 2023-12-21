@@ -8,6 +8,8 @@ use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
 pub struct ClientConfig {
     /// Active lockbox server addresses
     pub statechain_entity: String,
+    /// Tor SOCKS5 proxy address
+    pub tor_proxy: String,
     /// Electrum client
     pub electrum_client: electrum_client::Client,
     /// Electrum server url
@@ -28,6 +30,7 @@ impl ClientConfig {
             .unwrap();
 
         let statechain_entity = settings.get_string("statechain_entity").unwrap();
+        let tor_proxy = settings.get_string("tor_proxy").unwrap();
         let electrum_server = settings.get_string("electrum_server").unwrap();
         let network = settings.get_string("network").unwrap();
         let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as u32;
@@ -66,6 +69,7 @@ impl ClientConfig {
 
         ClientConfig {
             statechain_entity,
+            tor_proxy,
             electrum_client,
             electrum_server_url: electrum_server,
             network,

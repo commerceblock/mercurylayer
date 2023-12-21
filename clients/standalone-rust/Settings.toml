@@ -1,4 +1,5 @@
-statechain_entity = "http://127.0.0.1:8000"
+statechain_entity = "caqa7fv4wmmhj7owhmkdq23nfejxoibsi74qos2ggldbtg75u45g4uid.onion"
+tor_proxy = ""socks5://127.0.0.1:9150"
 electrum_server = "tcp://127.0.0.1:50001"
 network = "signet"
 fee_rate_tolerance = 5
