@@ -4,12 +4,14 @@ use electrum_client::ElectrumApi;
 use mercury_lib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
 use anyhow::{Result, Ok};
 
-pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum_client::Client) -> Result<InfoConfig>{
+use crate::client_config::ClientConfig;
+
+pub async fn info_config(client_config: &ClientConfig) -> Result<InfoConfig>{
 
     let path = "info/config";
 
-    let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}/{}", statechain_entity_url, path));
+    let client = client_config.get_reqwest_client()?;
+    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
 
     let value = request.send().await?.text().await?;
 
@@ -19,7 +21,7 @@ pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum
     let interval = server_config.interval;
 
     let number_blocks = 3;
-    let mut fee_rate_btc_per_kb = electrum_client.estimate_fee(number_blocks)?;
+    let mut fee_rate_btc_per_kb = client_config.electrum_client.estimate_fee(number_blocks)?;
 
     // Why does it happen?
     if fee_rate_btc_per_kb <= 0.0 {

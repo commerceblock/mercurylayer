@@ -15,7 +15,7 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_a
 
     coin.server_public_nonce = Some(server_public_nonce);
 
-    let server_info = info_config(&client_config.statechain_entity, &client_config.electrum_client).await?;
+    let server_info = info_config(&client_config).await?;
 
     let block_height = match block_height {
         Some(block_height) => block_height,
@@ -65,7 +65,7 @@ pub async fn sign_first(client_config: &ClientConfig, sign_first_request_payload
     let endpoint = client_config.statechain_entity.clone();
     let path = "sign/first";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let value = request.json(&sign_first_request_payload).send().await?.text().await?;
@@ -85,7 +85,7 @@ pub async fn sign_second(client_config: &ClientConfig, partial_sig_request: &Par
     let endpoint = client_config.statechain_entity.clone();
     let path = "sign/second";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let value = request.json(&partial_sig_request).send().await?.text().await?;

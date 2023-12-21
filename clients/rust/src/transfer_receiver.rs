@@ -27,7 +27,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
     let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
-    let info_config = utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
+    let info_config = utils::info_config(&client_config).await.unwrap();
     
     let mut activities = wallet.activities.as_mut();
 
@@ -43,7 +43,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
         println!("coin.amount: {}", coin.amount.unwrap_or(0));
         println!("coin.status: {}", coin.status);
 
-        let enc_messages = get_msg_addr(&coin.auth_pubkey, &client_config.statechain_entity).await?;
+        let enc_messages = get_msg_addr(&coin.auth_pubkey, &client_config).await?;
         if enc_messages.len() == 0 {
             println!("No messages");
             continue;
@@ -59,12 +59,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
     Ok(())
 }
 
-async fn get_msg_addr(auth_pubkey: &str, statechain_entity_url: &str) -> Result<Vec<String>> {
-    let endpoint = statechain_entity_url;
+async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result<Vec<String>> {
+
     let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
 
-    let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}/{}", endpoint, path));
+    let client = client_config.get_reqwest_client()?;
+    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
 
     let value = request.send().await?.text().await?;
 
@@ -101,7 +101,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
             continue;
         }
 
-        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity).await?;
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
 
         let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
 
@@ -177,7 +177,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
         let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
     
-        let server_public_key_hex = send_transfer_receiver_request_payload(&client_config.statechain_entity, &transfer_receiver_request_payload).await?;
+        let server_public_key_hex = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await?;
     
         let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
 
@@ -230,13 +230,12 @@ async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> R
     Ok(tx0_hex)
 }
 
-async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -> Result<StatechainInfoResponsePayload> {
+async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<StatechainInfoResponsePayload> {
 
-    let endpoint = statechain_entity_url;
     let path = format!("info/statechain/{}", statechain_id.to_string());
 
-    let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}/{}", endpoint, path));
+    let client = client_config.get_reqwest_client()?;
+    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
 
     let value = match request.send().await {
         Ok(response) => {
@@ -283,13 +282,12 @@ async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_c
     Ok(false)
 }
 
-async fn send_transfer_receiver_request_payload(statechain_entity_url: &str, transfer_receiver_request_payload: &TransferReceiverRequestPayload) -> Result<String>{
+async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, transfer_receiver_request_payload: &TransferReceiverRequestPayload) -> Result<String>{
 
-    let endpoint = statechain_entity_url;
     let path = "transfer/receiver";
 
-    let client = reqwest::Client::new();
-    let request = client.post(&format!("{}/{}", endpoint, path));
+    let client = client_config.get_reqwest_client()?;
+    let request = client.post(&format!("{}/{}", client_config.statechain_entity, path));
 
     let value = request.json(&transfer_receiver_request_payload).send().await?.text().await?;
 

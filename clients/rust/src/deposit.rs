@@ -86,7 +86,7 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/init/pod";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let response = request.json(&deposit_msg_1).send().await?;
@@ -122,7 +122,7 @@ pub async fn get_token(client_config: &ClientConfig) -> Result<String> {
     let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/get_token";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let client = client_config.get_reqwest_client()?;
     let request = client.get(&format!("{}/{}", endpoint, path));
 
     let response = request.send().await?;

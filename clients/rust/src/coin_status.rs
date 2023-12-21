@@ -98,7 +98,7 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
     let endpoint = client_config.statechain_entity.clone();
     let path = format!("transfer/receiver/{}", statechain_id);
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let client = client_config.get_reqwest_client()?;
     let request = client.get(&format!("{}/{}", endpoint, path));
 
     let value = request.send().await?.text().await?;

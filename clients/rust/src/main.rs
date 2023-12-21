@@ -67,10 +67,7 @@ async fn main() -> Result<()> {
         Commands::CreateWallet { name } => {
             let wallet = create_wallet(
                 &name, 
-                &client_config.electrum_client, 
-                &client_config.electrum_server_url,
-                &client_config.statechain_entity, 
-                client_config.network).await?;
+                &client_config).await?;
 
             sqlite_manager::insert_wallet(&client_config.pool, &wallet).await?;
             println!("Wallet created: {:?}", wallet);

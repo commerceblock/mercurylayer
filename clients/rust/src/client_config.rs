@@ -1,6 +1,7 @@
 use bitcoin::Network;
 use config::Config;
 use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
+use anyhow::Result;
 
 /// Config struct storing all StataChain Entity config
 pub struct ClientConfig {
@@ -18,6 +19,8 @@ pub struct ClientConfig {
     pub confirmation_target: u32,
     /// Database connection pool
     pub pool: sqlx::Pool<Sqlite>,
+    /// Tor SOCKS5 proxy address
+    pub tor_proxy: Option<String>,
 }
 
 impl ClientConfig {
@@ -34,6 +37,10 @@ impl ClientConfig {
         let database_file = settings.get_string("database_file").unwrap();
         let confirmation_target = settings.get_int("confirmation_target").unwrap() as u32;
 
+        let tor_proxy = match settings.get_string("tor_proxy") {
+            Ok(proxy) => Some(proxy.to_string()),
+            Err(_) => None,
+        };
         // Open database connection pool
 
         if !Sqlite::database_exists(&database_file).await.unwrap_or(false) {
@@ -72,6 +79,21 @@ impl ClientConfig {
             fee_rate_tolerance,
             confirmation_target,
             pool,
+            tor_proxy
+        }
+    }
+
+    pub fn get_reqwest_client(&self) -> Result<reqwest::Client> {
+
+        match self.tor_proxy {
+            Some(ref proxy) => {
+                let proxy = reqwest::Proxy::all(proxy)?;
+                Ok(reqwest::Client::builder()
+                    .proxy(proxy)
+                    .build()?)
+            },
+            None => Ok(reqwest::Client::new()),
+            
         }
     }
 }
