@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::{error::CError, electrum, utils::InfoConfig, client_config::ClientConfig};
 
-async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey, statechain_entity_url: &str) -> Result<Vec<String>, CError> {
+async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey, statechain_entity_url: &str, client_config: &ClientConfig) -> Result<Vec<String>, CError> {
     let endpoint = statechain_entity_url;
     let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
 
@@ -245,7 +245,7 @@ async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::Receiver
 
 }
 
-async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -> Result<StatechainInfoResponsePayload, CError> {
+async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str, client_config: &ClientConfig) -> Result<StatechainInfoResponsePayload, CError> {
 
     let endpoint = statechain_entity_url;
     let path = format!("info/statechain/{}", statechain_id.to_string());
@@ -309,7 +309,7 @@ async fn process_encrypted_message(
 
         let transfer_msg: mercury_lib::transfer::TransferMsg1 = serde_json::from_str(decrypted_msg_str.as_str()).unwrap();
 
-        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity).await.unwrap();
+        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config.statechain_entity, client_config).await.unwrap();
 
         let backup_transaction = transfer_msg.backup_transactions.first().unwrap();
 
@@ -479,12 +479,12 @@ async fn process_encrypted_message(
 
 pub async fn receive(client_config: &ClientConfig) {
 
-    let info_config = crate::utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
+    let info_config = crate::utils::info_config(&client_config.statechain_entity, &client_config.electrum_client, &client_config.tor_proxy).await.unwrap();
 
     let client_keys = client_config.get_all_auth_pubkey().await;
 
     for client_key in client_keys {
-        let enc_messages = get_msg_addr(&client_key.1, &client_config.statechain_entity).await.unwrap();
+        let enc_messages = get_msg_addr(&client_key.1, &client_config.statechain_entity, client_config).await.unwrap();
         if enc_messages.len() == 0 {
             continue;
         }

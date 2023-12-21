@@ -1,4 +1,5 @@
 use crate::{error::CError, electrum};
+use crate::client_config::ClientConfig;
 
 pub struct InfoConfig {
     pub initlock: u32,
@@ -6,11 +7,9 @@ pub struct InfoConfig {
     pub fee_rate_sats_per_byte: u64,
 }
 
-pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum_client::Client) -> Result<InfoConfig, CError>{
+pub async fn info_config(statechain_entity_url: &str, electrum_client: &electrum_client::Client, tor_proxy: &str) -> Result<InfoConfig, CError>{
 
     let path = "info/config";
-
-    let tor_proxy = client_config.tor_proxy.clone();
 
     let mut client: reqwest::Client = reqwest::Client::new();
     if tor_proxy != "".to_string() {

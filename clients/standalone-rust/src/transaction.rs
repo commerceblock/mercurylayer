@@ -46,7 +46,7 @@ pub async fn new_backup_transaction(
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
     // 163 is the real size one input P2TR and one output P2TR
 
-    let info_config_data = crate::utils::info_config(&client_config.statechain_entity, &client_config.electrum_client).await.unwrap();
+    let info_config_data = crate::utils::info_config(&client_config.statechain_entity, &client_config.electrum_client, &client_config.tor_proxy).await.unwrap();
 
     let initlock = info_config_data.initlock;
     let interval = info_config_data.interval;
