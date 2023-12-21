@@ -12,7 +12,13 @@ async fn get_msg_addr(auth_pubkey: &secp256k1_zkp::PublicKey, statechain_entity_
     let endpoint = statechain_entity_url;
     let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.get(&format!("{}/{}", endpoint, path));
 
     let value = match request.send().await {
@@ -247,7 +253,13 @@ async fn get_statechain_info(statechain_id: &str, statechain_entity_url: &str) -
     println!("statechain_id: {}", statechain_id.to_string());
     println!("path: {}", path);
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.get(&format!("{}/{}", endpoint, path));
 
     let value = match request.send().await {
@@ -400,7 +412,13 @@ async fn process_encrypted_message(
         let endpoint = client_config.statechain_entity.clone();
         let path = "transfer/receiver";
 
-        let client = reqwest::Client::new();
+        let tor_proxy = client_config.tor_proxy.clone();
+
+        let mut client: reqwest::Client = reqwest::Client::new();
+        if tor_proxy != "".to_string() {
+            let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+            client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+        }
         let request = client.post(&format!("{}/{}", endpoint, path));
 
         let value = match request.json(&transfer_receiver_request_payload).send().await {

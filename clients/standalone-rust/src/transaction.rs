@@ -235,7 +235,13 @@ async fn musig_sign_psbt_taproot(
     let endpoint = client_config.statechain_entity.clone();
     let path = "sign/first";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let sign_first_request_payload = SignFirstRequestPayload {
@@ -324,7 +330,13 @@ async fn musig_sign_psbt_taproot(
 
     let path = "sign/second";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let value = match request.json(&payload).send().await {

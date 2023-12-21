@@ -131,7 +131,14 @@ pub async fn init(client_config: &ClientConfig, address_data: &key_derivation::A
     let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/init/pod";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
+
     let request = client.post(&format!("{}/{}", endpoint, path));
 
     let value = match request.json(&deposit_request_payload).send().await {
