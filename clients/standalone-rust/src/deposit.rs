@@ -178,7 +178,13 @@ pub async fn get_token(client_config: &ClientConfig) -> String {
     let endpoint = client_config.statechain_entity.clone();
     let path = "deposit/get_token";
 
-    let client: reqwest::Client = reqwest::Client::new();
+    let tor_proxy = client_config.tor_proxy.clone();
+
+    let mut client: reqwest::Client = reqwest::Client::new();
+    if tor_proxy != "".to_string() {
+        let tor_proxy = reqwest::Proxy::all(tor_proxy).unwrap();
+        client = reqwest::Client::builder().proxy(tor_proxy).build().unwrap();
+    }
     let request = client.get(&format!("{}/{}", endpoint, path));
 
     let response = request.send().await.unwrap();
