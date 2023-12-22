@@ -1,4 +1,5 @@
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const mercury_wasm = require('mercury-wasm');
 const utils = require('./utils');
 const config = require('config');
@@ -61,8 +62,16 @@ const signFirst = async (signFirstRequestPayload) => {
     const statechain_entity_url = config.get('statechainEntity');
     const path = "sign/first";
     const url = statechain_entity_url + '/' + path;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
     
-    let response = await axios.post(url, signFirstRequestPayload);
+    let response = await axios.post(url, signFirstRequestPayload, socksAgent);
 
     let server_pubnonce_hex = response.data.server_pubnonce;
 
@@ -79,7 +88,15 @@ const signSecond = async (partialSigRequest) => {
     const path = "sign/second";
     const url = statechain_entity_url + '/' + path;
 
-    let response = await axios.post(url, partialSigRequest);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let response = await axios.post(url, partialSigRequest, socksAgent);
 
     let server_partial_sig_hex = response.data.partial_sig;
 

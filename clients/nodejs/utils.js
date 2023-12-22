@@ -1,4 +1,5 @@
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const bitcoinjs_lib = require("bitcoinjs-lib");
 const config = require('config');
 
@@ -19,7 +20,15 @@ const infoConfig = async (ecl) => {
 
     // console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
 
-    let response = await axios.get(statechain_entity_url + '/' + path);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let response = await axios.get(statechain_entity_url + '/' + path, socksAgent);
     return {    
         initlock: response.data.initlock,
         interval: response.data.interval,

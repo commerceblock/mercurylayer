@@ -2,6 +2,7 @@
 const config = require('config');
 const sqlite_manager = require('./sqlite_manager');
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const utils = require('./utils');
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
@@ -93,7 +94,15 @@ const checkTransfer = async (coin) => {
     const statechainEntityUrl = config.get('statechainEntity'); // 'http://127.0.0.1:8000';
     const path = `transfer/receiver/${coin.statechain_id}`;
 
-    let response = await axios.get(statechainEntityUrl + '/' + path);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
 
     if (response.status != 200) {
         // TODO: return false so the process can continue to other coins

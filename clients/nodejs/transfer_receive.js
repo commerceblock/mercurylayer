@@ -1,6 +1,7 @@
 const sqlite_manager = require('./sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
@@ -61,7 +62,15 @@ const get_msg_addr = async (auth_pubkey) => {
     const path = "transfer/get_msg_addr/";
     const url = statechain_entity_url + '/' + path + auth_pubkey;
 
-    const response = await axios.get(url);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.get(url, socksAgent);
 
     return response.data.list_enc_transfer_msg;
 }
@@ -203,7 +212,15 @@ const getStatechainInfo = async (statechain_id) => {
     const statechainEntityUrl = config.get('statechainEntity'); // 'http://127.0.0.1:8000';
     const path = `info/statechain/${statechain_id}`;
 
-    let response = await axios.get(statechainEntityUrl + '/' + path);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
 
     return response.data;
 }
@@ -252,7 +269,15 @@ const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload
     const path = "transfer/receiver";
     const url = statechain_entity_url + '/' + path;
 
-    const response = await axios.post(url, transferReceiverRequestPayload);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.post(url, transferReceiverRequestPayload, socksAgent);
 
     return response.data.server_pubkey;
 }

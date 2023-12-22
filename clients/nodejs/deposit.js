@@ -1,4 +1,5 @@
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
@@ -183,7 +184,15 @@ const init = async (db, wallet, token_id) => {
     const path = "deposit/init/pod";
     const url = statechain_entity_url + '/' + path;
 
-    const response = await axios.post(url, depositMsg1);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.post(url, depositMsg1, socksAgent);
 
     if (response.status != 200) {
         throw new Error(`Deposit error: ${response.data}`);
@@ -207,7 +216,15 @@ const getToken = async () => {
     const path = "deposit/get_token";
     const url = statechain_entity_url + '/' + path;
 
-    const response = await axios.get(url);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.get(url, socksAgent);
 
     if (response.status != 200) {
         throw new Error(`Token error: ${response.data}`);

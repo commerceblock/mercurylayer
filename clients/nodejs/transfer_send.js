@@ -2,6 +2,7 @@ const sqlite_manager = require('./sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const transaction = require('./transaction');
 const axios = require('axios').default;
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const { CoinStatus } = require('./coin_enum');
 const config = require('config');
 
@@ -78,7 +79,15 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     const path = "transfer/update_msg";
     const url = statechain_entity_url + '/' + path;
 
-    const response = await axios.post(url, transferUpdateMsgRequestPayload);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.post(url, transferUpdateMsgRequestPayload, socksAgent);
 
     if (!response.data.updated) {
         throw new Error(`Transfer update failed`);
@@ -116,7 +125,15 @@ const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) 
         batch_id: null,
     };
 
-    const response = await axios.post(url, transferSenderRequestPayload);
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.post(url, transferSenderRequestPayload, socksAgent);
 
     return response.data.x1;
 }
