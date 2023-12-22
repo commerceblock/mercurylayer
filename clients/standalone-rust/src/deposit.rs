@@ -165,3 +165,25 @@ pub async fn broadcast_backup_tx(client_config: &ClientConfig, statechain_id: &s
 
     txid
 }
+
+pub async fn get_token(client_config: &ClientConfig) -> String {
+
+    let endpoint = client_config.statechain_entity.clone();
+    let path = "deposit/get_token";
+
+    let client: reqwest::Client = reqwest::Client::new();
+    let request = client.get(&format!("{}/{}", endpoint, path));
+
+    let response = request.send().await.unwrap();
+
+    if response.status() != 200 {
+        let response_body = response.text().await.unwrap();
+        panic!("error: {}", response_body);
+    }
+
+    let value = response.text().await.unwrap();
+
+    let token: mercury_lib::deposit::TokenID = serde_json::from_str(value.as_str()).unwrap();
+
+    return token.token_id;
+}

@@ -32,6 +32,8 @@ struct Cli {
 enum Commands {
     /// Show mnemonic
     ShowMnemonic { },
+    /// Get new token
+    NewToken { },
     /// Create Aggregated Public Key
     Deposit { token_id: String, amount: u64 },
     /// Get a wallet balance
@@ -65,6 +67,10 @@ async fn main() {
             println!("{}", serde_json::to_string_pretty(&json!({
                 "mnemonic": mnemonic,
             })).unwrap());
+        },
+        Commands::NewToken { } => {
+            let token_id = deposit::get_token(&client_config).await;
+            println!("{}", token_id);
         },
         Commands::Deposit { token_id, amount } => {
             let token_id = uuid::Uuid::parse_str(&token_id).unwrap();
