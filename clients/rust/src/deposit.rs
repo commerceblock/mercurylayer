@@ -84,7 +84,7 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     // println!("deposit_msg_1: {:?}", deposit_msg_1);
 
     let endpoint = client_config.statechain_entity.clone();
-    let path = "deposit/init/pod";
+    let path = "init/pod";
 
     let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", endpoint, path));

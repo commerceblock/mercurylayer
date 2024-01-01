@@ -129,7 +129,7 @@ pub async fn init(client_config: &ClientConfig, address_data: &key_derivation::A
     };
 
     let endpoint = client_config.statechain_entity.clone();
-    let path = "deposit/init/pod";
+    let path = "init/pod";
 
     let tor_proxy = client_config.tor_proxy.clone();
 

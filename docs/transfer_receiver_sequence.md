@@ -1,4 +1,4 @@
-# Transfer Receiver sequence diagram
+# Reassign Receiver sequence diagram
 
 ```mermaid
 sequenceDiagram
@@ -11,8 +11,8 @@ sequenceDiagram
     Client->>Server: /info/fee
     Server-->>Client: {backup_fee_rate,initlock,interval}
     note over Client: batch_data is null
-    note over Client: Query server to check for transfers
-    Client->>Server: /transfer/get_msg_addr/{new_auth_key}
+    note over Client: Query server to check for reassign messages
+    Client->>Server: /reassign/get_msg_addr/{new_auth_key}
     Server-->>Client: {EncTransferMsg}
     note over Client: Decrypt EncTransferMsg with privkey_auth
     note over Client: Get statechain_id and query for info
@@ -33,7 +33,7 @@ sequenceDiagram
     note over Client: Verify that c = b + SHA256(P||R||m) (where m is the sighash of Tx).
     note over Client: b from blind_challenges and R = R1 + R2
     note over Client: Computes: t2 = t1 - privkey
-    Client->>Server: /transfer/receiver {statechain_id,batch_data,t2,auth_sig}
+    Client->>Server: /reassign/receiver {statechain_id,batch_data,t2,auth_sig}
     Server->>Enclave: /keyupdate {statechain_id, t2, x1}
     note over Enclave: Private key update for statechain_id: enclave_privkey = enclave_privkey + t2 - x1
     note over Enclave: Compute new enclave_pubkey

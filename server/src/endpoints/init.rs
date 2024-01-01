@@ -56,7 +56,7 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
     transaction.commit().await.unwrap();
 }
 
-#[get("/deposit/get_token")]
+#[get("/init/get_token")]
 pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
 
     if statechain_entity.config.network == "mainnet" {
@@ -81,7 +81,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
     return status::Custom(Status::Ok, Json(response_body));
 }
 
-#[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
+#[post("/init/pod", format = "json", data = "<deposit_msg1>")]
 pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
     let statechain_entity = statechain_entity.inner();

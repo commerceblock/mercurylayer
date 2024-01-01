@@ -301,7 +301,7 @@ Deposit a statecoin - part 1
 
 Derives new key shares
 
-deposit_msg_1 sent to `/deposit/init/pod`
+deposit_msg_1 sent to `/init/pod`
 
 **input:** 
 ```

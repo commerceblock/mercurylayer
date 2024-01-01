@@ -1,4 +1,4 @@
-# Transfer sender sequence diagram
+# Reassign sender sequence diagram
 
 ```mermaid
 sequenceDiagram
@@ -10,7 +10,7 @@ sequenceDiagram
     Server-->>Client: {backup_fee_rate,initlock,interval}
     note over Client: Sign new_auth_key with auth_key
     note over Client: batch_id is null
-    Client->>Server: /transfer/sender {statechain_id, batch_id, auth_sig, new_user_auth_key}
+    Client->>Server: /reassign/sender {statechain_id, batch_id, auth_sig, new_user_auth_key}
     note over Server: Generate random x1
     note over Server: Save new_user_auth_key and x1 with statechain_id
     Server-->>Client: {x1}
@@ -47,6 +47,6 @@ sequenceDiagram
     note over Client: t1
     note over Client: statechain_id
     note over Client: Encrypt TransferMsg with new_auth_key: EncTransferMsg
-    Client->>Server: /transfer/update_msg {new_auth_key,EncTransferMsg,statechain_id}
+    Client->>Server: /reassign/update_msg {new_auth_key,EncTransferMsg,statechain_id}
     note over Server: Save EncTransferMsg with new_auth_key
 ```

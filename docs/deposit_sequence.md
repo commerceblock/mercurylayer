@@ -1,4 +1,4 @@
-# Deposit sequence diagram
+# Initialise sequence diagram
 
 ```mermaid
 sequenceDiagram
@@ -9,7 +9,7 @@ sequenceDiagram
     Server-->>Client: {backup_fee_rate,initlock,interval}
     note over Client: Derive privkey, privkey_auth
     note over Client: Compute user_pubkey, auth_key
-    Client->>Server: /deposit/init/pod {amount, token_id, auth_key}
+    Client->>Server: /init/pod {amount, token_id, auth_key}
     note over Server: Verify mark token_id as spent
     Server->>Enclave: /get_public_key
     note over Enclave: Generate statechain_id    

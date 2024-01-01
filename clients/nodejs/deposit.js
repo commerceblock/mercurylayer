@@ -181,7 +181,7 @@ const init = async (db, wallet, token_id) => {
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
     const statechain_entity_url = config.get('statechainEntity');
-    const path = "deposit/init/pod";
+    const path = "init/pod";
     const url = statechain_entity_url + '/' + path;
 
     const torProxy = config.get('torProxy');

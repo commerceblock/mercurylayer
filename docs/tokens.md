@@ -1,10 +1,10 @@
 # Token payment system
 
-To enable many ways to give permission to deposit coins, the deposit permission system will utilize tokens that can be issued separately to the deposit process and then redeemed on deposit. This will enable fees to be paid via any mechanism and also managed separately. 
+To enable many ways to give permission to initialise keys, the permission system will utilize tokens that can be issued separately to the initialisation process and then redeemed on initialisation. This will enable fees to be paid via any mechanism and also managed separately. 
 
 ## Tokens
 
-**Deposit tokens** will be managed via a new table `tokens` (which is a separate DB to the main `mercury` DB so separate permissions can be applied). This table will have 4 columns: `token_id` (Uuid), `processor_id` (string), `confirmed` (boolean) and `spent` (boolean). 
+**Initialisation tokens** will be managed via a new table `tokens` (which is a separate DB to the main `mercury` DB so separate permissions can be applied). This table will have 4 columns: `token_id` (Uuid), `processor_id` (string), `confirmed` (boolean) and `spent` (boolean). 
 
 The `tokens` table will be interacted with via two new mercury server functions: `token_init` and `token_verify`. 
 
@@ -15,10 +15,10 @@ The client/wallet then retrieves/displays the payment information (Lightning inv
 
 The `token_verify` function will take one argument (`token_id`) and return a boolean (`valid`). This function will first query the `tokens` table with the `token_id`. If no entry found, it will return an error. If a row is found, it will return false if `spent = true`. If `spent = false` and `confirmed = true` it will return `true`. If `spent = false` and `confirmed = false` it will then query the payment processor API with the `processor_id` to verify payment: if confirmed it will update `confirmed = true` and return `true`. 
 
-### Deposit process
+### Initialisation process
 
-The new deposit process will verify that a valid (i.e. confirmed and unspent) token is in the `tokens` table before creating a `statechain_id`. 
-When `deposit_init` is called, a `token_id` must now be supplied as an argument. This function will then query the `tokens` table with the `token_id`. 
+The new initialisation process will verify that a valid (i.e. confirmed and unspent) token is in the `tokens` table before creating a `statechain_id`. 
+When `init` is called, a `token_id` must now be supplied as an argument. This function will then query the `tokens` table with the `token_id`. 
 
 ## Sequence
 
@@ -40,6 +40,6 @@ sequenceDiagram
     note over Server: Verify payment via processor API with processor_id
     note over Server: Update DB with confirmation
     Server-->>Client: {true/false}
-    note over Client: If true, continue with /deposit/init/pod with token_id
+    note over Client: If true, continue with /init/pod with token_id
     note over Client: If false, 'Payment not verified' message
 ```
