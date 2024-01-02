@@ -1,8 +1,12 @@
 import axios from 'axios';
+import config from 'config';
+import SocksProxyAgentLib from 'socks-proxy-agent';
+
+const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 const infoConfig = async (ecl) => {
 
-    const statechain_entity_url = "http://127.0.0.1:8000"; // config.get('statechainEntity');
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "info/config";
 
     let fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
@@ -15,7 +19,7 @@ const infoConfig = async (ecl) => {
     }
     const fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0);
 
-    /*const torProxy = config.get('torProxy');
+    const torProxy = config.get('torProxy');
 
     let socksAgent = undefined;
 
@@ -23,8 +27,7 @@ const infoConfig = async (ecl) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    let response = await axios.get(statechain_entity_url + '/' + path, socksAgent);*/
-    let response = await axios.get(statechain_entity_url + '/' + path);
+    let response = await axios.get(statechain_entity_url + '/' + path, socksAgent);
     return {    
         initlock: response.data.initlock,
         interval: response.data.interval,

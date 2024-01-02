@@ -22,8 +22,10 @@
     "@mempool/electrum-client": "^1.1.9",
     "@reduxjs/toolkit": "^2.0.1",
     "axios": "^1.6.2",
+    "config": "^3.3.9",
     "mercury-wasm": "file:../../wasm/pkg",
     "react-redux": "^9.0.4",
+    "socks-proxy-agent": "^8.0.2",
     "sqlite3": "^5.1.7-rc.0"
   },
   "devDependencies": {

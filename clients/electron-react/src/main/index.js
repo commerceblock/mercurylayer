@@ -6,6 +6,7 @@ import { getToken, getDepositAddressInfo } from './deposit.js'
 import sqlite3 from 'sqlite3';
 import { createTables, insertWallet, getWallets } from './sqlite_manager';
 import { createWallet } from './wallet';
+import config from 'config';
 
 function createWindow() {
   // Create the browser window.
@@ -49,7 +50,8 @@ app.whenReady().then(async () => {
 
   try {
   // where to put that code?
-  db = new sqlite3.Database('wallet.db');
+  const databaseFile = config.get('databaseFile');
+  db = new sqlite3.Database(databaseFile);
   await createTables(db);
 } catch (error) {
   console.log("Error:", error);

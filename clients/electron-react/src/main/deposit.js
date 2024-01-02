@@ -1,14 +1,18 @@
 import axios from 'axios';
 import { updateWallet, getWallet } from './sqlite_manager';
 import mercury_wasm from 'mercury-wasm';
+import config from 'config';
+import SocksProxyAgentLib from 'socks-proxy-agent';
+
+const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 const getToken = async () => {
 
-    const statechain_entity_url = "http://127.0.0.1:8000"; // config.get('statechainEntity');
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "deposit/get_token";
     const url = statechain_entity_url + '/' + path;
 
-    /*const torProxy = config.get('torProxy');
+    const torProxy = config.get('torProxy');
 
     let socksAgent = undefined;
 
@@ -16,9 +20,7 @@ const getToken = async () => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    const response = await axios.get(url, socksAgent);*/
-
-    const response = await axios.get(url);
+    const response = await axios.get(url, socksAgent);
 
     if (response.status != 200) {
         throw new Error(`Token error: ${response.data}`);
@@ -40,11 +42,11 @@ const init = async (db, wallet, token_id) => {
 
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
-    const statechain_entity_url = "http://127.0.0.1:8000"; // config.get('statechainEntity');
+    const statechain_entity_url = config.get('statechainEntity');
     const path = "deposit/init/pod";
     const url = statechain_entity_url + '/' + path;
 
-    /*const torProxy = config.get('torProxy');
+    const torProxy = config.get('torProxy');
 
     let socksAgent = undefined;
 
@@ -52,9 +54,7 @@ const init = async (db, wallet, token_id) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    const response = await axios.post(url, depositMsg1, socksAgent);*/
-
-    const response = await axios.post(url, depositMsg1);
+    const response = await axios.post(url, depositMsg1, socksAgent);
 
     if (response.status != 200) {
         throw new Error(`Deposit error: ${response.data}`);

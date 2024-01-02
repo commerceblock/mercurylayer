@@ -1,17 +1,17 @@
 import { infoConfig } from './utils';
 import ElectrumCli from '@mempool/electrum-client';
 import mercury_wasm from 'mercury-wasm';
+import config from 'config';
 
 const createWallet = async (name) => {
 
-    const urlElectrum = "tcp://signet-electrumx.wakiyamap.dev:50001";
+    const urlElectrum = config.get('electrumServer');
     const urlElectrumObject = new URL(urlElectrum);
 
     const electrumPort = parseInt(urlElectrumObject.port, 10);
     const electrumHostname = urlElectrumObject.hostname;  
     const electrumProtocol = urlElectrumObject.protocol.slice(0, -1); // remove trailing ':'
 
-    // const electrumClient = new ElectrumCli(50001, '127.0.0.1', 'tcp'); // tcp or tls
     const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol); // tcp or tls
     await electrumClient.connect(); // connect(promise)
 
@@ -29,8 +29,8 @@ const createWallet = async (name) => {
     console.log("mnemonic:", mnemonic);
 
     let electrumEndpoint = urlElectrum; // remove it later
-    let statechainEntityEndpoint = "http://127.0.0.1:8000"; // remove it later
-    let network = "signet"; // remove it later
+    let statechainEntityEndpoint = config.get('statechainEntity');
+    let network = config.get('network');
 
     let wallet = {
         name,
