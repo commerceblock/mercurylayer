@@ -5,7 +5,7 @@ import config from 'config';
 import utils from './utils';
 import CoinStatus from './coin_enum';
 
-import ElectrumCli from '@mempool/electrum-client';
+import { getElectrumClient } from './electrumClient';
 
 import bitcoinjs from "bitcoinjs-lib";
 import ecc from "tiny-secp256k1";
@@ -184,15 +184,7 @@ const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
 
 const updateWallet  = async (db, wallet) => {
 
-    const urlElectrum = config.get('electrumServer');
-    const urlElectrumObject = new URL(urlElectrum);
-
-    const electrumPort = parseInt(urlElectrumObject.port, 10);
-    const electrumHostname = urlElectrumObject.hostname;  
-    const electrumProtocol = urlElectrumObject.protocol.slice(0, -1); // remove trailing ':'
-
-    const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol); // tcp or tls
-    await electrumClient.connect(); // connect(promise)
+    const electrumClient = await getElectrumClient();// connect(promise)
 
     const network = wallet.network;
 
@@ -221,8 +213,6 @@ const updateWallet  = async (db, wallet) => {
             }
         }*/
     }
-
-    electrumClient.close();
 
     await sqlite_manager.updateWallet(db, wallet);
 }

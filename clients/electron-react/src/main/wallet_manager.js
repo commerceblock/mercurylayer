@@ -1,26 +1,16 @@
 import utils from './utils';
-import ElectrumCli from '@mempool/electrum-client';
+import { getElectrumClient } from './electrumClient';
 import mercury_wasm from 'mercury-wasm';
 import config from 'config';
 
 const createWallet = async (name) => {
 
-    const urlElectrum = config.get('electrumServer');
-    const urlElectrumObject = new URL(urlElectrum);
-
-    const electrumPort = parseInt(urlElectrumObject.port, 10);
-    const electrumHostname = urlElectrumObject.hostname;  
-    const electrumProtocol = urlElectrumObject.protocol.slice(0, -1); // remove trailing ':'
-
-    const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol); // tcp or tls
-    await electrumClient.connect(); // connect(promise)
+    const electrumClient = await getElectrumClient();
 
     let block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     let blockheight = block_header.height;
 
     let serverInfo = await utils.infoConfig(electrumClient);
-
-    electrumClient.close();
 
     console.log("serverInfo:", serverInfo);
 
@@ -28,7 +18,7 @@ const createWallet = async (name) => {
 
     console.log("mnemonic:", mnemonic);
 
-    let electrumEndpoint = urlElectrum; // remove it later
+    let electrumEndpoint = config.get('electrumServer');
     let statechainEntityEndpoint = config.get('statechainEntity');
     let network = config.get('network');
 

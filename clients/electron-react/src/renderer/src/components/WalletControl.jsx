@@ -15,6 +15,13 @@ export default function WalletControl({wallet}) {
         dispatch(walletActions.addOrUpdateWallet(depositAddressInfo.wallet));
       };
 
+      const broadcastBackupTransaction = async (coin) => {
+        if (coin.status != "CONFIRMED") {
+            alert("Coin is not confirmed yet.");
+            // broadcast-backup-transaction
+        }
+      };
+
     let newDepositButton = <button onClick={getDepositAddressInfo}>Get Deposit Address</button>;
 
     let coinList = wallet.coins.map((coin, index) => 
@@ -23,7 +30,7 @@ export default function WalletControl({wallet}) {
                 <li>Statechain_id: {coin.statechain_id}</li>
                 <li>Amount: {coin.amount}</li>
                 <li>Status: {coin.status}</li>
-                <li><br /></li>
+                <li style={{ marginTop: '10px', marginBottom: '10px' }}><button onClick={() => broadcastBackupTransaction(coin)}>Broadcast Backup Transaction</button></li>
             </ul>
         );
 

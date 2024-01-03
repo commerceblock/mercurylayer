@@ -9,6 +9,8 @@ import wallet_manager from './wallet_manager';
 import config from 'config';
 
 import coin_status from './coin_status';
+import { connectElectrumClient, disconnectElectrumClient } from './electrumClient';
+
 
 function createWindow() {
   // Create the browser window.
@@ -47,6 +49,9 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+
+  // this takes time. Move it.
+  await connectElectrumClient();
 
   let db;
 
@@ -127,6 +132,12 @@ app.whenReady().then(async () => {
 
   })
 
+  ipcMain.handle('broadcast-backup-transaction', async (event) => {
+    const webContents = event.sender
+
+
+  })
+
   createWindow()
 
   app.on('activate', function () {
@@ -140,6 +151,7 @@ app.whenReady().then(async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  disconnectElectrumClient();
   if (process.platform !== 'darwin') {
     app.quit()
   }
