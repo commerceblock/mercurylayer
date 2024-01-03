@@ -7,6 +7,7 @@ const api = {
   getDepositAddressInfo: (payout) => ipcRenderer.invoke('get-deposit-address-info', payout),
   createWallet: (walletName) => ipcRenderer.invoke('create-wallet', walletName),
   getWallets: () => ipcRenderer.invoke('get-wallets'),
+  updateCoinStatus: () => ipcRenderer.invoke('update-coin-status'),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

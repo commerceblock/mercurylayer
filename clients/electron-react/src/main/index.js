@@ -2,11 +2,13 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { getToken, getDepositAddressInfo } from './deposit.js'
+import deposit from './deposit.js'
 import sqlite3 from 'sqlite3';
-import { createTables, insertWallet, getWallets } from './sqlite_manager';
-import { createWallet } from './wallet';
+import sqlite_manager from './sqlite_manager';
+import wallet_manager from './wallet_manager';
 import config from 'config';
+
+import coin_status from './coin_status';
 
 function createWindow() {
   // Create the browser window.
@@ -52,7 +54,7 @@ app.whenReady().then(async () => {
   // where to put that code?
   const databaseFile = config.get('databaseFile');
   db = new sqlite3.Database(databaseFile);
-  await createTables(db);
+  await sqlite_manager.createTables(db);
 } catch (error) {
   console.log("Error:", error);
 }
@@ -73,8 +75,8 @@ app.whenReady().then(async () => {
     // win.setTitle(title)
     console.log('Creating wallet with name:', walletName);
 
-    let wallet = await createWallet(walletName);
-    await insertWallet(db, wallet);
+    let wallet = await wallet_manager.createWallet(walletName);
+    await sqlite_manager.insertWallet(db, wallet);
     return wallet;
   })
 
@@ -82,7 +84,7 @@ app.whenReady().then(async () => {
     const webContents = event.sender
     // const win = BrowserWindow.fromWebContents(webContents)
     // win.setTitle(title)
-    let token = await getToken();
+    let token = await deposit.getToken();
     return token;
   })
 
@@ -90,7 +92,7 @@ app.whenReady().then(async () => {
     const webContents = event.sender
     // const win = BrowserWindow.fromWebContents(webContents)
     // win.setTitle(title)
-    let wallets = await getWallets(db);
+    let wallets = await sqlite_manager.getWallets(db);
     return wallets;
   })
 
@@ -98,8 +100,31 @@ app.whenReady().then(async () => {
     const webContents = event.sender
     // const win = BrowserWindow.fromWebContents(webContents)
     // win.setTitle(title)
-    let depositAddressInfo = await getDepositAddressInfo(db, payout.walletName, payout.amount);
+    let depositAddressInfo = await deposit.getDepositAddressInfo(db, payout.walletName, payout.amount);
     return depositAddressInfo;
+  })
+
+  ipcMain.handle('update-coin-status', async (event) => {
+    const webContents = event.sender
+    // const win = BrowserWindow.fromWebContents(webContents)
+    // win.setTitle(title)
+    // let wallets = await sqlite_manager.getWallets(db);
+/*     for (let wallet of wallets) {
+      for (let coin of wallet.coins) {
+        
+      }
+    }
+    return depositAddressInfo; 
+    let wallet = wallets[0];
+
+    const network = utils.getNetwork(wallet.network);
+
+    console.log("network:", network);*/
+
+    await coin_status.updateCoins(db);
+    let wallets = await sqlite_manager.getWallets(db);
+    return wallets;
+
   })
 
   createWindow()

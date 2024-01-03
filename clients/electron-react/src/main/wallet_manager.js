@@ -1,4 +1,4 @@
-import { infoConfig } from './utils';
+import utils from './utils';
 import ElectrumCli from '@mempool/electrum-client';
 import mercury_wasm from 'mercury-wasm';
 import config from 'config';
@@ -18,7 +18,7 @@ const createWallet = async (name) => {
     let block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     let blockheight = block_header.height;
 
-    let serverInfo = await infoConfig(electrumClient);
+    let serverInfo = await utils.infoConfig(electrumClient);
 
     electrumClient.close();
 
@@ -50,4 +50,4 @@ const createWallet = async (name) => {
     return wallet;
 }
 
-export { createWallet };
+export default { createWallet };

@@ -1,8 +1,11 @@
 import axios from 'axios';
 import config from 'config';
+const bitcoinjs = require("bitcoinjs-lib");
 import SocksProxyAgentLib from 'socks-proxy-agent';
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
+
+import bitcoinjs_lib from "bitcoinjs-lib";
 
 const infoConfig = async (ecl) => {
 
@@ -35,4 +38,32 @@ const infoConfig = async (ecl) => {
     };
 }
 
-export { infoConfig };
+const getNetwork = (wallet_network) => {
+    switch(wallet_network) {
+        case "signet":
+            return bitcoinjs_lib.networks.testnet;
+        case "testnet":
+            return bitcoinjs_lib.networks.testnet;
+        case "regtest":
+            return bitcoinjs_lib.networks.regtest;
+        case "mainnet":
+            return bitcoinjs_lib.networks.bitcoin;
+        default:
+            throw new Error("Unknown network");
+    }
+}
+
+const createActivity = (utxo, amount, action) => {
+
+    const activity = {
+        utxo,
+        amount,
+        action,
+        date: new Date().toISOString()
+    };
+
+    return activity;
+
+}
+
+export default { infoConfig, getNetwork, createActivity  };

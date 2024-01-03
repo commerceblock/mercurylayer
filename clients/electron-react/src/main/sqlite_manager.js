@@ -36,7 +36,6 @@ const getWallet  = async (db, walletName) => {
     });
 }
 
-
 const getWallets  = async (db) => {
     return new Promise((resolve, reject) => {
         db.all("SELECT wallet_json FROM wallet", [], (err, rows) => {
@@ -56,4 +55,30 @@ const getWallets  = async (db) => {
     });
 }
 
-export { createTables, insertWallet, updateWallet, getWallet, getWallets };
+const insertTransaction = async (db, statechain_id, txs) => {
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
+}
+
+const updateTransaction = async (db, statechain_id, txs) => {
+    await run(db, "UPDATE backup_txs SET txs = ? WHERE statechain_id = ?", [ JSON.stringify(txs), statechain_id ]); 
+}
+
+const getBackupTxs  = async (db, statechainId) => {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
+            if (err) {
+                reject(err);
+            } else {
+                let backupTxs = JSON.parse(row.txs);
+                resolve(backupTxs);
+            }
+        });
+    });
+}
+
+const insertOrUpdateBackupTxs = async (db, statechain_id, txs) => {
+    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ?", [ statechain_id]); 
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
+}
+
+export default { createTables, insertWallet, updateWallet, getWallet, getWallets, insertTransaction, updateTransaction, getBackupTxs, insertOrUpdateBackupTxs };

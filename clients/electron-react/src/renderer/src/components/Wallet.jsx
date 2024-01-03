@@ -6,15 +6,18 @@ export default function Wallet() {
     
 
     let walletList = wallets.map((wallet) => 
-        <>
-        <li key={wallet.name}>{wallet.name}</li>
+        <Fragment key={wallet.name}>
+        <li>{wallet.name}</li>
         {wallet.coins.map((coin, index) => 
             <ul key={index}>
-            <li >Deposit address: {coin.aggregated_address}</li>
-            <li>Statechain_id: {coin.statechain_id}</li>
+                <li>Deposit address: {coin.aggregated_address}</li>
+                <li>Statechain_id: {coin.statechain_id}</li>
+                <li>Amount: {coin.amount}</li>
+                <li>Status: {coin.status}</li>
+                <li><br /></li>
             </ul>
         )}
-        </>
+        </Fragment>
     );
 
     return (

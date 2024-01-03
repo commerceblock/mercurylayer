@@ -1,7 +1,7 @@
 {
     "_statechainEntity": "http://127.0.0.1:8000",
-    "_statechainEntity": "http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion",
-    "statechainEntity": "http://caqa7fv4wmmhj7owhmkdq23nfejxoibsi74qos2ggldbtg75u45g4uid.onion",
+    "statechainEntity": "http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion",
+    "_statechainEntity": "http://caqa7fv4wmmhj7owhmkdq23nfejxoibsi74qos2ggldbtg75u45g4uid.onion",
     "electrumServer": "tcp://signet-electrumx.wakiyamap.dev:50001",
     "network": "signet",
     "feeRateTolerance": 5,
