@@ -18,7 +18,7 @@ export default function WalletControl({wallet}) {
         dispatch(walletActions.addOrUpdateWallet(result.wallet));
       };
 
-      const broadcastBackupTransaction = async (coin) => {
+      const withdrawOrbroadcastBackupTransaction = async (coin, fn) => {
         if (coin.status != "CONFIRMED") {
             alert("Coin is not confirmed yet.");
             return;
@@ -29,7 +29,9 @@ export default function WalletControl({wallet}) {
           statechainId: coin.statechain_id,
           toAddress
         };
-        let result = await window.api.broadcastBackupTransaction(payout);
+
+        // let result = await window.api.broadcastBackupTransaction(payout);
+        let result = await fn(payout);
         dispatch(walletActions.addOrUpdateWallet(result.wallet));
       };
 
@@ -40,9 +42,9 @@ export default function WalletControl({wallet}) {
             return (
               <>
                 <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
-                <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
-                <button onClick={() => broadcastBackupTransaction(coin)}>Withdraw</button>
-                </>);
+                <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.broadcastBackupTransaction)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
+                <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.withdraw)}>Withdraw</button>
+              </>);
         } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
             let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
             return (<>Withdrawal Txid: {txid}</>);

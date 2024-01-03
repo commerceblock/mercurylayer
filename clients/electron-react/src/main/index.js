@@ -7,6 +7,7 @@ import sqlite3 from 'sqlite3';
 import sqlite_manager from './sqlite_manager';
 import wallet_manager from './wallet_manager';
 import broadcast_backup_tx from './broadcast_backup_tx';
+import withdraw from './withdraw';
 import config from 'config';
 
 import coin_status from './coin_status';
@@ -136,9 +137,13 @@ app.whenReady().then(async () => {
   ipcMain.handle('broadcast-backup-transaction', async (event, payout) => {
     const webContents = event.sender
 
-    let tx_ids = await broadcast_backup_tx.execute(db, payout.walletName, payout.statechainId, payout.toAddress, payout.feeRate);
+    return await broadcast_backup_tx.execute(db, payout.walletName, payout.statechainId, payout.toAddress, payout.feeRate);
+  })
 
-    return tx_ids;
+  ipcMain.handle('withdraw', async (event, payout) => {
+    const webContents = event.sender
+
+    return await withdraw.execute(db, payout.walletName, payout.statechainId, payout.toAddress, payout.feeRate);
   })
 
   createWindow()
