@@ -4,6 +4,8 @@ The Mercury layer client is implemented as both Rust and Nodejs libraries, but a
 
 The client accesses the mercury key server via Tor. In order connect to the server, the client app requires access to a Tor server via a SOCKS proxy. To use the standalone client you will therefore need to be running a local Tor instance - this can be done via installing and runnning a Tor server, or more simply by just downloading and running the Tor browser: https://www.torproject.org/download/
 
+For instructions on installing and running a standalone Tor daemon, see: https://community.torproject.org/onion-services/setup/install/
+
 In addition, Rust must be installed. To do this on a Linux or MacOS system, simply run:
 
 ```
