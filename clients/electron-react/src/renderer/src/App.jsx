@@ -18,9 +18,6 @@ function App() {
       const wallets = await window.api.getWallets();
 
       dispatch(walletActions.loadWallets(wallets));
-      if (wallets.length > 0) {
-        setIsWalletCreated(true);
-      }
     }
     fetchWallets();
   }, []);
