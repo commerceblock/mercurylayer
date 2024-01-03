@@ -9,33 +9,40 @@ export default function WalletControl({wallet}) {
     let [toAddress, setToAddress] = useState("");
 
     const getDepositAddressInfo = async () => {
-        let payout = {
-          walletName: wallet.name,
-          amount: 10000
-        };
-        let result = await window.api.getDepositAddressInfo(payout);
-        console.log(result);
-        dispatch(walletActions.addOrUpdateWallet(result.wallet));
+      let payout = {
+        walletName: wallet.name,
+        amount: 10000
+      };
+      let result = await window.api.getDepositAddressInfo(payout);
+      console.log(result);
+      dispatch(walletActions.addOrUpdateWallet(result.wallet));
+    };
+
+    const getNewTransferAddress = async () => {
+      let result = await window.api.newTransferAddress(wallet.name);
+      console.log(result);
+      dispatch(walletActions.addOrUpdateWallet(result.wallet));
+    };
+
+    const withdrawOrbroadcastBackupTransaction = async (coin, fn) => {
+      if (coin.status != "CONFIRMED") {
+          alert("Coin is not confirmed yet.");
+          return;
+      }
+
+      let payout = {
+        walletName: wallet.name,
+        statechainId: coin.statechain_id,
+        toAddress
       };
 
-      const withdrawOrbroadcastBackupTransaction = async (coin, fn) => {
-        if (coin.status != "CONFIRMED") {
-            alert("Coin is not confirmed yet.");
-            return;
-        }
+      // let result = await window.api.broadcastBackupTransaction(payout);
+      let result = await fn(payout);
+      dispatch(walletActions.addOrUpdateWallet(result.wallet));
+    };
 
-        let payout = {
-          walletName: wallet.name,
-          statechainId: coin.statechain_id,
-          toAddress
-        };
-
-        // let result = await window.api.broadcastBackupTransaction(payout);
-        let result = await fn(payout);
-        dispatch(walletActions.addOrUpdateWallet(result.wallet));
-      };
-
-    let newDepositButton = <button onClick={getDepositAddressInfo}>Get Deposit Address</button>;
+    let newDepositAddrButton = <button onClick={getDepositAddressInfo} style={{ marginRight: '10px' }}>New Deposit Address</button>;
+    let newTransferAddrButton = <button onClick={getNewTransferAddress}>New Transfer Address</button>;
 
     let actionButton = (coin) => {
         if (coin.status == "CONFIRMED") {
@@ -43,7 +50,8 @@ export default function WalletControl({wallet}) {
               <>
                 <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
                 <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.broadcastBackupTransaction)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
-                <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.withdraw)}>Withdraw</button>
+                <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.withdraw)} style={{ marginRight: '10px' }}>Withdraw</button>
+                <button onClick={() => withdrawOrbroadcastBackupTransaction(coin, window.api.transferSend)}>Transfer</button>
               </>);
         } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
             let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
@@ -59,12 +67,13 @@ export default function WalletControl({wallet}) {
                 <li>Statechain_id: {coin.statechain_id}</li>
                 <li>Amount: {coin.amount}</li>
                 <li>Status: {coin.status}</li>
+                <li>SE Address: {coin.address}</li>
                 <li style={{marginTop: 5}}>{actionButton(coin)}</li>
             </ul>
         );
 
     return (<>
-        <div>{newDepositButton}</div>
+        <div>{newDepositAddrButton} {newTransferAddrButton}</div>
         <div>{coinList}</div>
     </>);
 }

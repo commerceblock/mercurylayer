@@ -1,4 +1,3 @@
-import mercury_wasm from 'mercury-wasm';
 import sqlite_manager from './sqlite_manager';
 import utils from './utils';
 import CoinStatus from './coin_enum';

@@ -91,7 +91,7 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
 
     return depositResult;
 }
-/*
+
 const checkTransfer = async (coin) => {
     if (!coin.statechain_id) {
         throw new Error(`The coin with the aggregated address ${aggregated_address} does not have a statechain ID`);
@@ -180,7 +180,6 @@ const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
 
     return false;
 }
-*/
 
 const updateWallet  = async (db, wallet) => {
 
@@ -199,7 +198,7 @@ const updateWallet  = async (db, wallet) => {
                 wallet.activities.push(depositResult.activity);
                 await sqlite_manager.insertTransaction(db, coin.statechain_id, [depositResult.backup_tx]);
             }
-        } /* else if (coin.status === CoinStatus.IN_TRANSFER) {
+        } else if (coin.status === CoinStatus.IN_TRANSFER) {
             let is_transferred = await checkTransfer(coin);
 
             if (is_transferred) {
@@ -211,7 +210,7 @@ const updateWallet  = async (db, wallet) => {
             if (is_withdrawn) {
                 coin.status = CoinStatus.WITHDRAWN;
             }
-        }*/
+        }
     }
 
     await sqlite_manager.updateWallet(db, wallet);

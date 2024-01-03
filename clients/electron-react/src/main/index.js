@@ -8,6 +8,8 @@ import sqlite_manager from './sqlite_manager';
 import wallet_manager from './wallet_manager';
 import broadcast_backup_tx from './broadcast_backup_tx';
 import withdraw from './withdraw';
+import transfer_send from './transfer_send';
+import transfer_receive from './transfer_receive';
 import config from 'config';
 
 import coin_status from './coin_status';
@@ -144,6 +146,18 @@ app.whenReady().then(async () => {
     const webContents = event.sender
 
     return await withdraw.execute(db, payout.walletName, payout.statechainId, payout.toAddress, payout.feeRate);
+  })
+
+  ipcMain.handle('new-transfer-address', async (event, wallet_name) => {
+    const webContents = event.sender
+
+    return await transfer_receive.newTransferAddress(db, wallet_name);
+  })
+
+  ipcMain.handle('transfer-send', async (event, payout) => {
+    const webContents = event.sender
+
+    return await transfer_send.execute(db, payout.walletName, payout.statechainId, payout.toAddress);
   })
 
   createWindow()
