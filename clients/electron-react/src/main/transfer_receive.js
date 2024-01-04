@@ -24,11 +24,9 @@ const newTransferAddress = async (db, wallet_name) => {
     return { "new_address": coin.address, wallet };
 }
 
-const execute = async (db, wallet_name) => {
+const execute = async (db, wallet) => {
 
     const electrumClient = await getElectrumClient();
-
-    let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
     const serverInfo = await utils.infoConfig(electrumClient);
 
@@ -37,6 +35,10 @@ const execute = async (db, wallet_name) => {
     for (let coin of wallet.coins) {
 
         if (coin.status != CoinStatus.INITIALISED) {
+            continue;
+        }
+
+        if (coin.statechain_id) {
             continue;
         }
 

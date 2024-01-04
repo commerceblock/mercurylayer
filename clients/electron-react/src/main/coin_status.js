@@ -13,6 +13,8 @@ import deposit from './deposit.js'
 
 import SocksProxyAgentLib from 'socks-proxy-agent';
 
+import transfer_receive from './transfer_receive';
+
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 const checkDeposit = async (electrumClient, coin, wallet_network) => {
@@ -220,6 +222,7 @@ const updateCoins  = async (db) => {
     let wallets = await sqlite_manager.getWallets(db);
     for (let wallet of wallets) {
         await updateWallet(db, wallet);
+        await transfer_receive.execute(db, wallet);
     }
 }
 
