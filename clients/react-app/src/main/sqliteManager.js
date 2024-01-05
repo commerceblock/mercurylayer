@@ -23,6 +23,10 @@ const updateWallet = async (db, wallet) => {
     await run(db, "UPDATE wallet SET wallet_json = ? WHERE wallet_name = ?", [ JSON.stringify(wallet), wallet.name ]);
 }
 
+const upsertWallet = async (db, wallet) => {
+    await run(db, "INSERT INTO wallet (wallet_name, wallet_json) VALUES (?, ?) ON CONFLICT(wallet_name) DO UPDATE SET wallet_json = ?", [ wallet.name, JSON.stringify(wallet), JSON.stringify(wallet) ]);
+}
+
 const getWallet  = async (db, walletName) => {
     return new Promise((resolve, reject) => {
         db.get("SELECT wallet_json FROM wallet WHERE wallet_name = ?", [ walletName ], (err, row) => {
@@ -81,4 +85,4 @@ const insertOrUpdateBackupTxs = async (db, statechain_id, txs) => {
     await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
 }
 
-export default { createTables, insertWallet, updateWallet, getWallet, getWallets, insertTransaction, updateTransaction, getBackupTxs, insertOrUpdateBackupTxs };
+export default { createTables, insertWallet, updateWallet, upsertWallet, getWallet, getWallets, insertTransaction, updateTransaction, getBackupTxs, insertOrUpdateBackupTxs };

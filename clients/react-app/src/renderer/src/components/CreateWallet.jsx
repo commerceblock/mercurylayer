@@ -1,4 +1,4 @@
-import { useDispatch } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { walletActions } from '../store/wallet'
 
 import { useState } from 'react'
@@ -13,6 +13,7 @@ export default function CreateWallet() {
 
     const [walletName, setWalletName] = useState('');
 
+
     const dispatch = useDispatch();
 
     const walletNameChangeHandler = (event) => {
@@ -20,16 +21,22 @@ export default function CreateWallet() {
     }
 
     const createWallet = async () => {
+
+        if (walletName === '') {
+          alert('Please enter a wallet name');
+          return;
+        }
+
         setIsCreatingWallet(true);
-        // let wallet = await window.api.createWallet(walletName);
-        // let wallet = await wallet_manager.createWallet(walletName);
+
         await dispatch(thunks.createWallet(walletName));
-        console.log("HERE");
-        // add wallet to redux store
-        // dispatch(walletActions.addWallet(wallet));
+
         setIsCreatingWallet(false);
         setWalletName('');
       };
+      
+
+    
 
     return (
         <div className="feature-item">

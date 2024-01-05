@@ -9,8 +9,7 @@ const createWallet = createAsyncThunk(
         console.log('2');
         return wallet; */
 
-        let wallet = await wallet_manager.createWallet(name);
-        return window.api.insertWallet(wallet);
+        return wallet_manager.createWallet(name);
 
     }
 );

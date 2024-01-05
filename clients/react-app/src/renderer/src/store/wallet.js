@@ -9,10 +9,6 @@ const walletSlice = createSlice({
     name: 'wallet',
     initialState,
     reducers: {
-        addWallet(state, action) {
-            state.wallets.push(action.payload);
-        },
-
         loadWallets(state, action) {
             state.wallets = action.payload;
         }

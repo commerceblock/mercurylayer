@@ -6,7 +6,8 @@ const api = {
   electrumRequest: (payout) => ipcRenderer.invoke('electrum-request', payout),
   infoConfig: () => ipcRenderer.invoke('info-config'),
   getConfigFile: () => ipcRenderer.invoke('get-config-file'),
-  insertWallet: async (payout) => await ipcRenderer.invoke('insert-wallet', payout)
+  syncWallets: async (payout) => await ipcRenderer.invoke('sync-wallets', payout),
+  getWallets: () => ipcRenderer.invoke('get-wallets')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

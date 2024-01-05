@@ -81,9 +81,15 @@ app.whenReady().then(async () => {
     return getConfigFile();
   })
 
-  ipcMain.handle('insert-wallet' , async (event, wallet) => {
-    await sqliteManager.insertWallet(db, wallet);
-    return wallet;
+  ipcMain.handle('sync-wallets' , async (event, wallets) => {
+    for (let i = 0; i < wallets.length; i++) {
+      await sqliteManager.upsertWallet(db, wallets[i]);
+    }
+  })
+
+  ipcMain.handle('get-wallets', async (event) => {
+    let wallets = await sqliteManager.getWallets(db);
+    return wallets;
   })
 
   createWindow()
