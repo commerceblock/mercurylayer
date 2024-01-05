@@ -8,6 +8,8 @@ import sqlite3 from 'sqlite3';
 import { electrumRequest, disconnectElectrumClient } from './electrumClient';
 import { infoConfig, getConfigFile } from './utils';
 import sqliteManager from './sqliteManager';
+import deposit from './deposit';
+import transaction from './transaction';
 
 function createWindow() {
   // Create the browser window.
@@ -90,6 +92,26 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-wallets', async (event) => {
     let wallets = await sqliteManager.getWallets(db);
     return wallets;
+  })
+
+  ipcMain.handle('get-token', async (event) => {
+    let token = await deposit.getToken();
+    return token;
+  })
+
+  ipcMain.handle('init-pod', async (event, depositMsg1) => {
+    let depositMsg1Response = await deposit.initPod(depositMsg1);
+    return depositMsg1Response;
+  })
+  
+  ipcMain.handle('sign-first', async (event, payout) => {
+    let res = await transaction.signFirst(payout);
+    return res;
+  })
+
+  ipcMain.handle('sign-second', async (event, payout) => {
+    let res = await transaction.signSecond(payout);
+    return res;
   })
 
   createWindow()

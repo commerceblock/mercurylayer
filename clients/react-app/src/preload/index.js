@@ -7,7 +7,11 @@ const api = {
   infoConfig: () => ipcRenderer.invoke('info-config'),
   getConfigFile: () => ipcRenderer.invoke('get-config-file'),
   syncWallets: async (payout) => await ipcRenderer.invoke('sync-wallets', payout),
-  getWallets: () => ipcRenderer.invoke('get-wallets')
+  getWallets: () => ipcRenderer.invoke('get-wallets'),
+  getToken: () => ipcRenderer.invoke('get-token'),
+  initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
+  signFirst: (payout) => ipcRenderer.invoke('sign-first', payout),
+  signSecond: (payout) => ipcRenderer.invoke('sign-second', payout)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

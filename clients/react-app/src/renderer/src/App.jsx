@@ -9,7 +9,7 @@ import WalletList from './components/WalletList'
 import { useEffect, useState } from 'react'
 
 
-import init  from 'mercury-wasm';
+import init from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 
 function App() {

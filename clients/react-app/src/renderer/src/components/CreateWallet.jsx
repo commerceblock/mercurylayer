@@ -13,7 +13,6 @@ export default function CreateWallet() {
 
     const [walletName, setWalletName] = useState('');
 
-
     const dispatch = useDispatch();
 
     const walletNameChangeHandler = (event) => {

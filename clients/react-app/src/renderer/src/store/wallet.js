@@ -15,13 +15,13 @@ const walletSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(thunks.createWallet.fulfilled, (state, action) => {
-            // const wallet = action.payload;
-            console.log('action.payload', action.payload);
-            // Add user to the state array
             state.wallets.push(action.payload);
-            // console.log('action', action);
-            // return window.api.insertWallet(action.payload);
+        })
 
+        builder.addCase(thunks.newDepositAddress.fulfilled, (state, action) => {
+            console.log('newDepositAddress action.payload', action.payload);
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+            wallet.coins.push(action.payload.coin);
         })
     }
 });
