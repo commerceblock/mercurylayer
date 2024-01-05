@@ -1,11 +1,15 @@
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useState } from 'react'
 
 import WalletControl from './WalletControl';
 
 import coinStatus from '../logic/coinStatus';
 
+import thunks from '../store/thunks';
+
 export default function WalletList({ ...props }) {
+
+    const dispatch = useDispatch();
 
     const wallets = useSelector(state => state.wallet.wallets);
 
@@ -19,9 +23,8 @@ export default function WalletList({ ...props }) {
 
     const updateCoins = async () => {
         setIsUpdatingCoins(true);
-        // const wallets = await window.api.updateCoinStatus();
-        // dispatch(walletActions.loadWallets(wallets));
         // await coinStatus.updateCoins(wallets);
+        dispatch(thunks.updateCoins(wallets));
         setIsUpdatingCoins(false);
     };
 

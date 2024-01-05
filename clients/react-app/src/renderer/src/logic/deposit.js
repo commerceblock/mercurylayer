@@ -1,6 +1,7 @@
 
-import { getNewCoin, createDepositMsg1, handleDepositMsg1Response, createAggregatedAddress }  from 'mercury-wasm';
+import { getNewCoin, createDepositMsg1, handleDepositMsg1Response, createAggregatedAddress, getUserBackupAddress, getBlockheight }  from 'mercury-wasm';
 import transaction from './transaction';
+import CoinStatus from './coinEnum.js';
 
 const newAddress = async (wallet, amount) => {
 
@@ -41,7 +42,7 @@ const createTx1 = async (coin, wallet_network, tx0_hash, tx0_vout) => {
     coin.utxo_vout = tx0_vout;
     coin.status = CoinStatus.IN_MEMPOOL;
 
-    const toAddress = mercury_wasm.getUserBackupAddress(coin, wallet_network);
+    const toAddress = getUserBackupAddress(coin, wallet_network);
     const isWithdrawal = false;
     const qtBackupTx = 0;
 
@@ -57,7 +58,7 @@ const createTx1 = async (coin, wallet_network, tx0_hash, tx0_vout) => {
         blinding_factor: coin.blinding_factor
     };
 
-    coin.locktime = mercury_wasm.getBlockheight(backup_tx);
+    coin.locktime = getBlockheight(backup_tx);
 
     return backup_tx;
 }

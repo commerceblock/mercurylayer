@@ -6,6 +6,11 @@ import { electrumRequest } from './electrumClient';
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
+import bitcoinjs from "bitcoinjs-lib";
+import ecc from "tiny-secp256k1";
+
+bitcoinjs.initEccLib(ecc);
+
 const infoConfig = async () => {
 
     const statechain_entity_url = config.get('statechainEntity');
@@ -47,4 +52,31 @@ const getConfigFile = () => {
     }
 }
 
-export { infoConfig, getConfigFile };
+const getNetwork = (wallet_network) => {
+    switch(wallet_network) {
+        case "signet":
+            return bitcoinjs.networks.testnet;
+        case "testnet":
+            return bitcoinjs.networks.testnet;
+        case "regtest":
+            return bitcoinjs.networks.regtest;
+        case "mainnet":
+            return bitcoinjs.networks.bitcoin;
+        default:
+            throw new Error("Unknown network");
+    }
+}
+
+const convertAddressToReversedHash = (address, _network) => {
+    
+    const network = getNetwork(_network);
+
+    let script = bitcoinjs.address.toOutputScript(address, network);
+    let hash = bitcoinjs.crypto.sha256(script);
+    let reversedHash = Buffer.from(hash.reverse());
+    reversedHash = reversedHash.toString('hex');
+
+    return reversedHash;
+}
+
+export { infoConfig, getConfigFile, convertAddressToReversedHash };

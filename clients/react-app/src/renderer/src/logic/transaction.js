@@ -1,9 +1,17 @@
-import mercury_wasm from 'mercury-wasm';
+import * as mercury_wasm from 'mercury-wasm';
 
 const newTransaction = async(coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
+    console.log("newTransaction 1");
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
+    console.log("newTransaction 2");
 
     let server_pubnonce = await window.api.signFirst(coin_nonce.sign_first_request_payload);
+
+    if (server_pubnonce.startsWith("0x")) {
+        server_pubnonce = server_pubnonce.substring(2);
+    }
+
+    console.log(server_pubnonce);
 
     coin.secret_nonce = coin_nonce.secret_nonce;
     coin.public_nonce = coin_nonce.public_nonce;
@@ -25,7 +33,7 @@ const newTransaction = async(coin, toAddress, isWithdrawal, qtBackupTx, block_he
 
     const initlock = serverInfo.initlock;
     const interval = serverInfo.interval;
-    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;   
 
     let partialSigRequest = mercury_wasm.getPartialSigRequest(
         coin,
@@ -40,7 +48,11 @@ const newTransaction = async(coin, toAddress, isWithdrawal, qtBackupTx, block_he
 
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
-    const serverPartialSig = await signSecond(serverPartialSigRequest);
+    let serverPartialSig = await window.api.signSecond(serverPartialSigRequest);
+
+    if (serverPartialSig.startsWith("0x")) {
+        serverPartialSig = serverPartialSig.substring(2);
+    }
 
     const clientPartialSig = partialSigRequest.client_partial_sig;
     const msg = partialSigRequest.msg;

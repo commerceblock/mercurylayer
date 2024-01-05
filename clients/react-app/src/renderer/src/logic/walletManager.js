@@ -11,9 +11,6 @@ const createWallet = async (name) => {
 
     let serverInfo = await window.api.infoConfig();
 
-    console.log('blockheight', blockheight);
-    console.log('serverInfo', serverInfo);
-
     let configFile = await window.api.getConfigFile();
 
     let mnemonic = generateMnemonic();
@@ -36,8 +33,6 @@ const createWallet = async (name) => {
         activities: [],
         coins: []
     };
-
-    console.log('wallet', wallet);
 
     return wallet;
 };

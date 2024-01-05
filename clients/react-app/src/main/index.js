@@ -6,7 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import config from 'config';
 import sqlite3 from 'sqlite3';
 import { electrumRequest, disconnectElectrumClient } from './electrumClient';
-import { infoConfig, getConfigFile } from './utils';
+import { infoConfig, getConfigFile, convertAddressToReversedHash } from './utils';
 import sqliteManager from './sqliteManager';
 import deposit from './deposit';
 import transaction from './transaction';
@@ -112,6 +112,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('sign-second', async (event, payout) => {
     let res = await transaction.signSecond(payout);
     return res;
+  })
+
+  ipcMain.handle('convert-address-to-reversed-hash', async (event, payout) => {
+    return convertAddressToReversedHash(payout.address, payout.network);
   })
 
   createWindow()

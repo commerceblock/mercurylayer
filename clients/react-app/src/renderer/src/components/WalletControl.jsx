@@ -1,8 +1,10 @@
-
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useState } from 'react'
 
 import thunks from '../store/thunks';
+
+import WalletActivity from './WalletActivity';
+import CoinBackupTxs from './CoinBackupTxs';
 
 export default function WalletControl({wallet}) {
 
@@ -24,22 +26,35 @@ export default function WalletControl({wallet}) {
     let newDepositAddrButton = <button disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px' }}>New Deposit Address</button>;
       
     let coinList = wallet.coins.map((coin, index) => 
-      <ul style={{marginTop: 20}} key={index}>
-        <li>Deposit address: {coin.aggregated_address}</li>
-        <li>Statechain_id: {coin.statechain_id}</li>
-        <li>Amount: {coin.amount}</li>
-        <li>Status: {coin.status}</li>
-        <li>SE Address: {coin.address}</li>
-      </ul>
+      <div key={index}>
+        <ul style={{marginTop: 10}} >
+          <li>Deposit address: {coin.aggregated_address}</li>
+          <li>Statechain_id: {coin.statechain_id}</li>
+          <li>Amount: {coin.amount}</li>
+          <li>Status: {coin.status}</li>
+          <li>SE Address: {coin.address}</li>
+        </ul>
+        <CoinBackupTxs coin={coin} />
+      </div>
     );
 
+    let walletActivityList = 
+      <ul style={{marginTop: 10}} >
+        {wallet.activities.map((activity, index) => 
+          <li key={index}><WalletActivity activity={activity}/></li>
+        )}
+      </ul>;
+
     return (
-        <div>
+        <div style={{marginTop: 15}}>
             <div key={wallet.name}>
                 <span>Name: {wallet.name}</span> -  <span>blockheight: {wallet.blockheight}</span>
             </div>
             <div>{newDepositAddrButton}</div>
+            <h3 style={{marginTop: 20}}>Coins</h3>
             <div>{coinList}</div>
+            <h3 style={{marginTop: 20}}>Activities</h3>
+            <div>{walletActivityList}</div>
         </div>
     );
 };

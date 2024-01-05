@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import wallet_manager from './../logic/walletManager';
 import deposit from './../logic/deposit';
+import coinStatus from './../logic/coinStatus';
 
 const createWallet = createAsyncThunk(
     'wallet/create',
@@ -16,4 +17,11 @@ const newDepositAddress = createAsyncThunk(
     }
 );
 
-export default { createWallet, newDepositAddress };
+const updateCoins = createAsyncThunk(
+    'wallet/update_coins',
+    async (wallets, thunkAPI) => {
+        return coinStatus.updateCoins(wallets);
+    }
+);
+
+export default { createWallet, newDepositAddress, updateCoins };

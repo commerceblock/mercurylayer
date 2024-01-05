@@ -11,7 +11,9 @@ const api = {
   getToken: () => ipcRenderer.invoke('get-token'),
   initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
   signFirst: (payout) => ipcRenderer.invoke('sign-first', payout),
-  signSecond: (payout) => ipcRenderer.invoke('sign-second', payout)
+  signSecond: (payout) => ipcRenderer.invoke('sign-second', payout),
+  convertAddressToReversedHash: (payout) => ipcRenderer.invoke('convert-address-to-reversed-hash', payout),
+  syncBackupTxs: async (payout) => await ipcRenderer.invoke('sync-backup-txs', payout)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

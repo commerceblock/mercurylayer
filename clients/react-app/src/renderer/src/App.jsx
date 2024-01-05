@@ -19,6 +19,8 @@ function App() {
 
   const wallets = useSelector(state => state.wallet.wallets);
 
+  const backupTxs = useSelector(state => state.wallet.backupTxs);
+
   useEffect(() => {
 
     const loadWasm = async () => {

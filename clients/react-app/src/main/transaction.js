@@ -23,10 +23,6 @@ const signFirst = async (signFirstRequestPayload) => {
 
     let server_pubnonce_hex = response.data.server_pubnonce;
 
-    /* if (server_pubnonce_hex.startsWith("0x")) {
-        server_pubnonce_hex = server_pubnonce_hex.substring(2);
-    } */
-
     return server_pubnonce_hex;
 }
 
@@ -47,10 +43,6 @@ const signSecond = async (partialSigRequest) => {
     let response = await axios.post(url, partialSigRequest, socksAgent);
 
     let server_partial_sig_hex = response.data.partial_sig;
-
-    /* if (server_partial_sig_hex.startsWith("0x")) {
-        server_partial_sig_hex = server_partial_sig_hex.substring(2);
-    } */
 
     return server_partial_sig_hex;
 }

@@ -67,6 +67,7 @@ const updateTransaction = async (db, statechain_id, txs) => {
     await run(db, "UPDATE backup_txs SET txs = ? WHERE statechain_id = ?", [ JSON.stringify(txs), statechain_id ]); 
 }
 
+
 const getBackupTxs  = async (db, statechainId) => {
     return new Promise((resolve, reject) => {
         db.get("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {

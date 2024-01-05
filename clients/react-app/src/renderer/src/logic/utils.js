@@ -16,3 +16,18 @@ const getNetwork = (wallet_network) => {
 }
 
 export default { getNetwork };*/
+
+const createActivity = (utxo, amount, action) => {
+
+    const activity = {
+        utxo,
+        amount,
+        action,
+        date: new Date().toISOString()
+    };
+
+    return activity;
+
+}
+
+export default { createActivity };
