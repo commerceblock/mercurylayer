@@ -12,7 +12,7 @@ const run = (db, sql, params) => {
 
 const createTables = async (db) => {
     await run(db, "CREATE TABLE IF NOT EXISTS wallet (wallet_name TEXT NOT NULL UNIQUE, wallet_json TEXT NOT NULL)", []);
-    await run(db, "CREATE TABLE IF NOT EXISTS backup_txs (statechain_id TEXT NOT NULL, txs TEXT NOT NULL)", []);
+    await run(db, "CREATE TABLE IF NOT EXISTS backup_txs (statechain_id TEXT NOT NULL UNIQUE, txs TEXT NOT NULL)", []);
 }
 
 const insertWallet = async (db, wallet) => {
@@ -67,6 +67,9 @@ const updateTransaction = async (db, statechain_id, txs) => {
     await run(db, "UPDATE backup_txs SET txs = ? WHERE statechain_id = ?", [ JSON.stringify(txs), statechain_id ]); 
 }
 
+const upsertTransaction = async (db, statechain_id, txs) => {
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?) ON CONFLICT(statechain_id) DO UPDATE SET txs = ?", [ statechain_id, JSON.stringify(txs), JSON.stringify(txs) ]);
+}
 
 const getBackupTxs  = async (db, statechainId) => {
     return new Promise((resolve, reject) => {

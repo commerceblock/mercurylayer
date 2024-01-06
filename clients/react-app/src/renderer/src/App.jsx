@@ -47,6 +47,12 @@ function App() {
     }
   }, [wallets]);
 
+  // useEffect(() => {
+  //   if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
+  //     window.api.syncWallets(wallets);
+  //   }
+  // }, [backupTxs]);
+
   return (
     <div className="container">
 

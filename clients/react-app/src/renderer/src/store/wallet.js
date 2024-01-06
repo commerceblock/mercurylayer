@@ -65,11 +65,18 @@ const walletSlice = createSlice({
 
 
                         if (depositResult.backupTx) {
-                            let backup_tx = depositResult.backupTx;
-                            state.backupTxs.push({
-                                statechain_id: newCoin.statechain_id,
-                                backupTx: depositResult.backupTx
-                            });
+
+                            let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === newCoin.statechain_id);
+
+                            if (existingBackupTxItems.length > 0) {
+                                let existingBackupTx = existingBackupTxItems[0];
+                                existingBackupTx.backupTxs.push(depositResult.backupTx);
+                            } else {
+                                state.backupTxs.push({
+                                    statechain_id: newCoin.statechain_id,
+                                    backupTxs: [depositResult.backupTx]
+                                });
+                            }
                         }
 
                     }
