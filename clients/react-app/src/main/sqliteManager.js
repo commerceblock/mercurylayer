@@ -46,6 +46,7 @@ const getWallets  = async (db) => {
             if (err) {
                 reject(err);
             } else {
+
                 let wallets = [];
                 
                 for (let i = 0; i < rows.length; i++) {
@@ -73,11 +74,33 @@ const upsertTransaction = async (db, statechain_id, txs) => {
 
 const getBackupTxs  = async (db, statechainId) => {
     return new Promise((resolve, reject) => {
-        db.get("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
+        db.all("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
             if (err) {
                 reject(err);
             } else {
                 let backupTxs = JSON.parse(row.txs);
+                resolve(backupTxs);
+            }
+        });
+    });
+}
+
+const getAllBackupTxs  = async (db) => {
+    return new Promise((resolve, reject) => {
+        db.all("SELECT statechain_id, txs FROM backup_txs", [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+
+                let backupTxs = [];
+
+                for (let i = 0; i < rows.length; i++) {
+                    backupTxs.push({
+                        statechain_id: rows[i].statechain_id,
+                        backupTxs: JSON.parse(rows[i].txs)
+                    });
+                }
+
                 resolve(backupTxs);
             }
         });
@@ -89,4 +112,17 @@ const insertOrUpdateBackupTxs = async (db, statechain_id, txs) => {
     await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
 }
 
-export default { createTables, insertWallet, updateWallet, upsertWallet, getWallet, getWallets, insertTransaction, updateTransaction, getBackupTxs, insertOrUpdateBackupTxs };
+export default { 
+    createTables, 
+    insertWallet, 
+    updateWallet, 
+    upsertWallet, 
+    getWallet, 
+    getWallets, 
+    insertTransaction, 
+    updateTransaction, 
+    upsertTransaction, 
+    getBackupTxs, 
+    insertOrUpdateBackupTxs,
+    getAllBackupTxs 
+};

@@ -31,6 +31,12 @@ function App() {
       const wallets = await window.api.getWallets();
 
       await dispatch(walletActions.loadWallets(wallets));
+      
+      const backupTxs = await window.api.getAllBackupTxs();
+
+      console.log('backupTxs', backupTxs);
+
+      await dispatch(walletActions.loadBackupTxs(backupTxs));
 
       setAreWalletLoaded(true);
       console.log("Wallets loaded...");
@@ -47,11 +53,11 @@ function App() {
     }
   }, [wallets]);
 
-  // useEffect(() => {
-  //   if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
-  //     window.api.syncWallets(wallets);
-  //   }
-  // }, [backupTxs]);
+  useEffect(() => {
+    if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
+      window.api.syncBackupTxs(backupTxs);
+    }
+  }, [backupTxs]);
 
   return (
     <div className="container">

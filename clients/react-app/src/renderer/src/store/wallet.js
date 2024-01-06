@@ -12,6 +12,9 @@ const walletSlice = createSlice({
     reducers: {
         loadWallets(state, action) {
             state.wallets = action.payload;
+        },
+        loadBackupTxs(state, action) {
+            state.backupTxs = action.payload;
         }
     },
     extraReducers: (builder) => {

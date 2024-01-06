@@ -118,6 +118,18 @@ app.whenReady().then(async () => {
     return convertAddressToReversedHash(payout.address, payout.network);
   })
 
+  ipcMain.handle('sync-backup-txs', async (event, backupTxs) => {
+    console.log('sync-backup-txs', backupTxs);
+    for (let i = 0; i < backupTxs.length; i++) {
+      await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+    }
+  })
+
+  ipcMain.handle('get-all-backup-txs', async (event) => {
+    let backupTxs = await sqliteManager.getAllBackupTxs(db);
+    return backupTxs;
+  })
+
   createWindow()
 
   app.on('activate', function () {
