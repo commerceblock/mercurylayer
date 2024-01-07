@@ -17,6 +17,10 @@ const walletSlice = createSlice({
         },
         loadBackupTxs(state, action) {
             state.backupTxs = action.payload;
+        },
+        insertNewTransferCoin(state, action) {
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+            wallet.coins.push(action.payload.newCoin);
         }
     },
     extraReducers: (builder) => {
@@ -43,6 +47,20 @@ const walletSlice = createSlice({
             if (action.payload.activity) {
                 wallet.activities.push(action.payload.activity);
             }
+        })
+
+        builder.addCase(thunks.executeTransferSend.fulfilled, (state, action) => {
+            console.log('executeTransferSend action.payload', action.payload);
+
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+
+            let updatedCoin = action.payload.updatedCoin;
+                        
+            utils.updateCoin(updatedCoin, wallet);
+
+            wallet.activities.push(action.payload.activity);
+
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
         })
     }
 });

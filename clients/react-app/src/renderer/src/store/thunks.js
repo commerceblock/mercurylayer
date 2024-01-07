@@ -3,6 +3,7 @@ import wallet_manager from './../logic/walletManager';
 import deposit from './../logic/deposit';
 import coinStatus from './../logic/coinStatus';
 import broadcastBackupTx from '../logic/broadcastBackupTx';
+import transferSend from '../logic/transferSend';
 
 const createWallet = createAsyncThunk(
     'wallet/create',
@@ -32,4 +33,11 @@ const broadcastBackupTransaction = createAsyncThunk(
     }
 );
 
-export default { createWallet, newDepositAddress, updateCoins, broadcastBackupTransaction };
+const executeTransferSend = createAsyncThunk(
+    'wallet/transfer_send',
+    async (payout, thunkAPI) => {
+        return transferSend.execute(payout.wallet, payout.coin, payout.backupTxs, payout.toAddress);
+    }
+);
+
+export default { createWallet, newDepositAddress, updateCoins, broadcastBackupTransaction, executeTransferSend };

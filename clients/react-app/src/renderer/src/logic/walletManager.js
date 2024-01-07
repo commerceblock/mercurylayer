@@ -1,5 +1,5 @@
 
-import { generateMnemonic }  from 'mercury-wasm';
+import * as mercury_wasm from 'mercury-wasm';
 
 const createWallet = async (name) => {
 
@@ -13,7 +13,7 @@ const createWallet = async (name) => {
 
     let configFile = await window.api.getConfigFile();
 
-    let mnemonic = generateMnemonic();
+    let mnemonic = mercury_wasm.generateMnemonic();
 
     let electrumEndpoint = configFile.electrumServer;
     let statechainEntityEndpoint = configFile.statechainEntity;

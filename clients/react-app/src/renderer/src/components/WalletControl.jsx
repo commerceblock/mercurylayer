@@ -8,6 +8,12 @@ import CoinBackupTxs from './CoinBackupTxs';
 
 import { useSelector } from 'react-redux'
 
+import transferReceive from '../logic/transferReceive'
+import transferSend from '../logic/transferSend'
+import { walletActions } from '../store/wallet'
+
+console.log("transferReceive", transferReceive);
+
 export default function WalletControl({wallet}) {
 
     const backupTxs = useSelector(state => state.wallet.backupTxs);
@@ -29,6 +35,12 @@ export default function WalletControl({wallet}) {
       setIsGeneratingNewDepositAddress(false);
     };
 
+    const getNewTransferAddress = async () => {
+      let newCoin = await transferReceive.newTransferAddress(wallet);
+      await dispatch(walletActions.insertNewTransferCoin(newCoin));
+      // dispatch(walletActions.addOrUpdateWallet(result.wallet));
+    };
+
     const broadcastBackupTransaction = async (coin, fn) => {
       if (coin.status != "CONFIRMED") {
           alert("Coin is not confirmed yet.");
@@ -43,7 +55,22 @@ export default function WalletControl({wallet}) {
       }));
     }
 
+    const transfer = async (coin) => {
+      if (coin.status != "CONFIRMED") {
+          alert("Coin is not confirmed yet."); 
+          return;
+      }
+
+      await dispatch(thunks.executeTransferSend({
+        wallet,
+        coin,
+        backupTxs,
+        toAddress 
+      }));
+    }
+
     let newDepositAddrButton = <button disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px' }}>New Deposit Address</button>;
+    let newTransferAddrButton = <button onClick={getNewTransferAddress}>New Transfer Address</button>;
       
     let actionButtons = (coin) => {
       if (coin.status == "CONFIRMED") {
@@ -51,6 +78,7 @@ export default function WalletControl({wallet}) {
           <>
             <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
             <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
+            <button onClick={() => transfer(coin)}>Transfer</button>
           </>);
       } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
         let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
@@ -90,7 +118,7 @@ export default function WalletControl({wallet}) {
             <div key={wallet.name}>
                 <span>Name: {wallet.name}</span> -  <span>blockheight: {wallet.blockheight}</span>
             </div>
-            <div>{newDepositAddrButton}</div>
+            <div>{newDepositAddrButton} {newTransferAddrButton}</div>
             <h3 style={{marginTop: 20}}>Coins</h3>
             <div>{coinList}</div>
             <h3 style={{marginTop: 20}}>Activities</h3>

@@ -10,6 +10,7 @@ import { infoConfig, getConfigFile, convertAddressToReversedHash } from './utils
 import sqliteManager from './sqliteManager';
 import deposit from './deposit';
 import transaction from './transaction';
+import transferSend from './transferSend';
 
 function createWindow() {
   // Create the browser window.
@@ -128,6 +129,14 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-all-backup-txs', async (event) => {
     let backupTxs = await sqliteManager.getAllBackupTxs(db);
     return backupTxs;
+  })
+
+  ipcMain.handle('get-new-x1', async (event, payout) => {
+    return await transferSend.getNewX1(payout.statechain_id, payout.signed_statechain_id, payout.new_auth_pubkey);
+  })
+
+  ipcMain.handle('update-msg', async (event, payout) => {
+    return await transferSend.updateMsg(payout);
   })
 
   createWindow()

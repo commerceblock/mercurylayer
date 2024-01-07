@@ -18,4 +18,18 @@ const updateCoin = (newCoin, wallet) => {
     wallet.coins = updatedCoins;
 };
 
-export default { updateCoin };
+const insertNewBackupTx = (state, coin, newBackupTx) => {
+    let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === coin.statechain_id);
+
+    if (existingBackupTxItems.length > 0) {
+        let existingBackupTx = existingBackupTxItems[0];
+        existingBackupTx.backupTxs.push(newBackupTx);
+    } else {
+        state.backupTxs.push({
+            statechain_id: coin.statechain_id,
+            backupTxs: [newBackupTx]
+        });
+    }
+};
+
+export default { updateCoin, insertNewBackupTx };

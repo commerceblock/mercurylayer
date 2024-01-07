@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 
 import WalletControl from './WalletControl';
 
@@ -17,7 +17,10 @@ export default function WalletList({ ...props }) {
 
     let walletList = wallets.map((wallet) => {
         return (
-            <WalletControl key={wallet.name} wallet={wallet} />
+            <Fragment key={wallet.name}>
+                <WalletControl  wallet={wallet} />
+                <hr />
+            </Fragment>
         )
     });
 

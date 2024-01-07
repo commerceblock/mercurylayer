@@ -14,7 +14,9 @@ const api = {
   signSecond: (payout) => ipcRenderer.invoke('sign-second', payout),
   convertAddressToReversedHash: (payout) => ipcRenderer.invoke('convert-address-to-reversed-hash', payout),
   syncBackupTxs: async (payout) => await ipcRenderer.invoke('sync-backup-txs', payout),
-  getAllBackupTxs: () => ipcRenderer.invoke('get-all-backup-txs')
+  getAllBackupTxs: () => ipcRenderer.invoke('get-all-backup-txs'),
+  getNewX1: (payout) => ipcRenderer.invoke('get-new-x1', payout),
+  updateMsg: (payout) => ipcRenderer.invoke('update-msg', payout)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

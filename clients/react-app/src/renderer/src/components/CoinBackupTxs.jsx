@@ -4,6 +4,8 @@ import { useState } from 'react'
 export default function CoinBackupTxs({coin}) {
     const backupTxs = useSelector(state => state.wallet.backupTxs);
 
+    if (!coin.statechain_id) return <div></div>;
+
     let backupTxList = backupTxs.
         filter((backupTx) => backupTx.statechain_id === coin.statechain_id);
 
