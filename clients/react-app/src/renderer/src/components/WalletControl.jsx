@@ -9,10 +9,7 @@ import CoinBackupTxs from './CoinBackupTxs';
 import { useSelector } from 'react-redux'
 
 import transferReceive from '../logic/transferReceive'
-import transferSend from '../logic/transferSend'
 import { walletActions } from '../store/wallet'
-
-console.log("transferReceive", transferReceive);
 
 export default function WalletControl({wallet}) {
 

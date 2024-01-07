@@ -16,7 +16,10 @@ const api = {
   syncBackupTxs: async (payout) => await ipcRenderer.invoke('sync-backup-txs', payout),
   getAllBackupTxs: () => ipcRenderer.invoke('get-all-backup-txs'),
   getNewX1: (payout) => ipcRenderer.invoke('get-new-x1', payout),
-  updateMsg: (payout) => ipcRenderer.invoke('update-msg', payout)
+  updateMsg: (payout) => ipcRenderer.invoke('update-msg', payout),
+  sendTransferReceiverRequestPayload: (payout) => ipcRenderer.invoke('send-transfer-receiver-request-payload', payout),
+  getStatechainInfo: (payout) => ipcRenderer.invoke('get-statechain-info', payout),
+  getMsgAddr: (payout) => ipcRenderer.invoke('get-msg-addr', payout),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

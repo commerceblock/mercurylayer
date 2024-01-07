@@ -11,6 +11,7 @@ import sqliteManager from './sqliteManager';
 import deposit from './deposit';
 import transaction from './transaction';
 import transferSend from './transferSend';
+import transferReceive from './transferReceive';
 
 function createWindow() {
   // Create the browser window.
@@ -137,6 +138,18 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('update-msg', async (event, payout) => {
     return await transferSend.updateMsg(payout);
+  })
+
+  ipcMain.handle('send-transfer-receiver-request-payload', async (event, payout) => {
+    return await transferReceive.sendTransferReceiverRequestPayload(payout);
+  })
+
+  ipcMain.handle('get-statechain-info', async (event, statechainId) => {
+    return await transferReceive.getStatechainInfo(statechainId);
+  })
+  
+  ipcMain.handle('get-msg-addr', async (event, authPubkey) => {
+    return await transferReceive.getMsgAddr(authPubkey);
   })
 
   createWindow()

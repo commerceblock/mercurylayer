@@ -3,9 +3,9 @@ import { Fragment, useState } from 'react'
 
 import WalletControl from './WalletControl';
 
-import coinStatus from '../logic/coinStatus';
-
 import thunks from '../store/thunks';
+
+import transferReceive from '../logic/transferReceive'
 
 export default function WalletList({ ...props }) {
 
@@ -28,6 +28,11 @@ export default function WalletList({ ...props }) {
         setIsUpdatingCoins(true);
         // await coinStatus.updateCoins(wallets);
         dispatch(thunks.updateCoins(wallets));
+
+        for (const wallet of wallets) {
+            await transferReceive.execute(wallet);
+        }
+
         setIsUpdatingCoins(false);
     };
 
