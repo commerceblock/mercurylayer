@@ -6,9 +6,15 @@ import thunks from '../store/thunks';
 import WalletActivity from './WalletActivity';
 import CoinBackupTxs from './CoinBackupTxs';
 
+import { useSelector } from 'react-redux'
+
 export default function WalletControl({wallet}) {
 
+    const backupTxs = useSelector(state => state.wallet.backupTxs);
+
     const [isGeneratingNewDepositAddress, setIsGeneratingNewDepositAddress] = useState(false);
+
+    let [toAddress, setToAddress] = useState("");
 
     const dispatch = useDispatch();
 
@@ -23,8 +29,37 @@ export default function WalletControl({wallet}) {
       setIsGeneratingNewDepositAddress(false);
     };
 
+    const broadcastBackupTransaction = async (coin, fn) => {
+      if (coin.status != "CONFIRMED") {
+          alert("Coin is not confirmed yet.");
+          return;
+      }
+
+      await dispatch(thunks.broadcastBackupTransaction({
+        wallet,
+        backupTxs,
+        coin,
+        toAddress 
+      }));
+    }
+
     let newDepositAddrButton = <button disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px' }}>New Deposit Address</button>;
       
+    let actionButtons = (coin) => {
+      if (coin.status == "CONFIRMED") {
+        return (
+          <>
+            <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
+            <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
+          </>);
+      } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
+        let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
+        return (<>Withdrawal Txid: {txid}</>);
+      } else {
+          return <></>;
+      }
+    };
+
     let coinList = wallet.coins.map((coin, index) => 
       <div key={index}>
         <ul style={{marginTop: 10}} >
@@ -33,14 +68,19 @@ export default function WalletControl({wallet}) {
           <li>Amount: {coin.amount}</li>
           <li>Status: {coin.status}</li>
           <li>SE Address: {coin.address}</li>
+          <li style={{marginTop: 5}}>{actionButtons(coin)}</li>
         </ul>
         <CoinBackupTxs coin={coin} />
-      </div>
+      </div>  
     );
+
+    let sortedActivities = wallet.activities.slice().sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
+    });
 
     let walletActivityList = 
       <ul style={{marginTop: 10}} >
-        {wallet.activities.map((activity, index) => 
+        {sortedActivities.map((activity, index) => 
           <li key={index}><WalletActivity activity={activity}/></li>
         )}
       </ul>;

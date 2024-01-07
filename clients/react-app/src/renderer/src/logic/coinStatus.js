@@ -4,6 +4,12 @@ import CoinStatus from './coinEnum.js';
 import utils from './utils.js'
 import deposit from './deposit.js'
 
+const Actions = {
+    DEPOSIT_CONFIMED: "DEPOSIT_CONFIMED",
+    WITHDRAWAL_CONFIMED: "WITHDRAWAL_CONFIMED",
+    TRANSFER_CONFIMED: "TRANSFER_CONFIMED"
+};
+
 const checkDeposit = async (coin, walletNetwork, walletName) => {
 
     if (!coin.statechain_id && !coin.utxo_txid && !coin.utxo_vout) {
@@ -60,6 +66,7 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
         const activity = utils.createActivity(activity_utxo, coin.amount, "Deposit");
 
         depositResult = {
+            action: Actions.DEPOSIT_CONFIMED,
             activity,
             backupTx,
             newCoin,
@@ -88,6 +95,7 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
         }
 
         depositResult = {
+            action: Actions.DEPOSIT_CONFIMED,
             activity: (depositResult == null) ? null : depositResult.activity,
             backupTx: (depositResult == null) ? null : depositResult.backupTx,
             newCoin,
@@ -96,6 +104,81 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
     }
 
     return depositResult;
+}
+
+const checkWithdrawal = async (coin, walletNetwork, walletName) => {
+
+    let txid = undefined;
+
+    if (coin.tx_withdraw) {
+        txid = coin.tx_withdraw;
+    }
+
+    if (coin.tx_cpfp) {
+        if (txid) {
+            console.error(`Coin ${coin.aggregated_address} has both tx_withdraw and tx_cpfp`);
+        }
+        txid = coin.tx_cpfp;
+    }
+
+    if (!txid) {
+        console.error(`Coin ${coin.aggregated_address} has neither tx_withdraw nor tx_cpfp`);
+    }
+
+    if (!coin.withdrawal_address) {
+        console.error(`Coin ${coin.aggregated_address} has no withdrawal_address`);
+    }
+
+    let reversedHash = await window.api.convertAddressToReversedHash({
+        address: coin.withdrawal_address, 
+        network: walletNetwork
+    });
+
+    let utxo = undefined;
+
+    let utxo_list = await window.api.electrumRequest({
+        method: 'blockchain.scripthash.listunspent',
+        params: [reversedHash]
+    });
+
+    for (let unspent of utxo_list) {
+        if (unspent.tx_hash === txid) {
+            utxo = unspent;
+            break;
+        }
+    }
+
+    if (!utxo) {
+        // sometimes the transaction has not yet been transmitted to the specified Electrum server
+        // throw new Error(`There is no UTXO with the address ${coin.withdrawal_address} and the txid ${txid}`);
+        return null;
+    }
+
+    if (utxo.height > 0) {
+        const block_header = await window.api.electrumRequest({
+            method: 'blockchain.headers.subscribe',
+            params: []
+        });
+        const blockheight = block_header.height;
+
+        const confirmations = blockheight - utxo.height + 1;
+
+        let configFile = await window.api.getConfigFile();
+
+        const confirmationTarget = configFile.confirmationTarget;
+
+        if (confirmations >= confirmationTarget) {
+            let newCoin = structuredClone(coin);
+            newCoin.status = CoinStatus.WITHDRAWN;
+            return {
+                action: Actions.WITHDRAWAL_CONFIMED,
+                newCoin,
+                walletName
+            }
+        }
+    }
+
+    return null;
 }
 
 const updateWallet  = async (wallet) => {
@@ -107,9 +190,14 @@ const updateWallet  = async (wallet) => {
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
             let depositResult = await checkDeposit(coin, wallet.network, wallet.name);
-            results.push(depositResult);
-
-            console.log("depositResult", depositResult);
+            if (depositResult) {
+                results.push(depositResult);
+            }
+        } else if (coin.status == CoinStatus.WITHDRAWING) {
+            let withdrawalResult = await checkWithdrawal(coin, wallet.network, wallet.name);
+            if (withdrawalResult) {
+                results.push(withdrawalResult);
+            }
         }
     }
 
@@ -123,8 +211,7 @@ const updateCoins  = async (wallets) => {
         results.push(...result);
         // await transfer_receive.execute(db, wallet);
     }
-    console.log("results", results);
     return results;
 }
 
-export default { updateCoins };
+export default { updateCoins, Actions };

@@ -34,12 +34,9 @@ function App() {
       
       const backupTxs = await window.api.getAllBackupTxs();
 
-      console.log('backupTxs', backupTxs);
-
       await dispatch(walletActions.loadBackupTxs(backupTxs));
 
       setAreWalletLoaded(true);
-      console.log("Wallets loaded...");
     }
 
     loadWasm();
