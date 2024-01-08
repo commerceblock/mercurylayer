@@ -1,6 +1,7 @@
 import thunks from '../thunks';
 import utils from '../utils';
 import coinStatus from '../../logic/coinStatus';
+import coinEnum from './../../logic/coinEnum.js';
 
 const handleDepositConfirmation = (state, depositResult) => {
 
@@ -43,7 +44,14 @@ const handleDepositConfirmation = (state, depositResult) => {
 const handleWithdrawalOrTransferConfirmation = (state, withdrawalResult) => {
     const wallet = state.wallets.find(w => w.name === withdrawalResult.walletName);
     const newCoin = withdrawalResult.newCoin;
-    utils.updateCoin(newCoin, wallet);
+    // utils.updateCoin(newCoin, wallet);
+
+    let matchingIndex = wallet.coins.findIndex(coin =>
+        coin.statechain_id === newCoin.statechain_id &&
+        (coin.status === coinEnum.WITHDRAWING || coin.status === coinEnum.IN_TRANSFER)
+    );
+
+    wallet.coins[matchingIndex] = newCoin;
 }
 
 const handleConfirmation = (builder) => {

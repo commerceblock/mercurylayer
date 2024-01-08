@@ -3,6 +3,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+import installExtension, { REDUX_DEVTOOLS } from 'electron-devtools-installer';
+
 import config from 'config';
 import sqlite3 from 'sqlite3';
 import { electrumRequest, disconnectElectrumClient } from './electrumClient';
@@ -50,6 +52,10 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+
+  installExtension(REDUX_DEVTOOLS)
+        .then((name) => console.log(`Added Extension:  ${name}`))
+        .catch((err) => console.log('An error occurred: ', err));
 
   let db;
 

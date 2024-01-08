@@ -32,11 +32,13 @@ export default function WalletList({ ...props }) {
         setIsUpdatingCoins(true);
         // let result = await coinStatus.updateCoins(wallets);
         // console.log("result", result);
-        dispatch(thunks.updateCoins(wallets));
+        
 
         let coinsUpdated = await transferReceive.execute(wallets);
         console.log("coinsUpdated", coinsUpdated);
         await dispatch(walletActions.transferReceive({coinsUpdated}));
+
+        await dispatch(thunks.updateCoins(wallets));
 
         setIsUpdatingCoins(false);
     };
