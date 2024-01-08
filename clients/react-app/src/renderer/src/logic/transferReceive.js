@@ -7,47 +7,48 @@ const newTransferAddress = (wallet) => {
     return { "newCoin": coin, "walletName": wallet.name };
 }
 
-const execute = async (wallet) => {
+const execute = async (wallets) => {
 
     const serverInfo = await window.api.infoConfig();
 
-    let received_statechain_ids = [];
+    let coins_updated = [];
 
     console.log("TransferReceive execute");
+    for (const wallet of wallets) {
+        for (let coin of wallet.coins) {
 
-    for (let coin of wallet.coins) {
+            if (coin.status != CoinStatus.INITIALISED) {
+                continue;
+            }
 
-        if (coin.status != CoinStatus.INITIALISED) {
-            continue;
+            if (coin.statechain_id) {
+                continue;
+            }
+
+            // console.log("----\nuser_pubkey", coin.user_pubkey);
+            // console.log("auth_pubkey", coin.auth_pubkey);
+            // console.log("statechain_id", coin.statechain_id);
+            // console.log("coin.amount", coin.amount);
+            // console.log("coin.status", coin.status);
+
+            let encMessages = await window.api.getMsgAddr(coin.auth_pubkey);
+
+            console.log("encMessages", encMessages);
+
+            if (encMessages.length == 0) {
+                continue;
+            }
+
+            
+
+            const new_coins_updated = await process_encrypted_message(coin, encMessages, wallet.network, serverInfo, wallet.name);
+            coins_updated = [...coins_updated, ...new_coins_updated];
         }
-
-        if (coin.statechain_id) {
-            continue;
-        }
-
-        // console.log("----\nuser_pubkey", coin.user_pubkey);
-        // console.log("auth_pubkey", coin.auth_pubkey);
-        // console.log("statechain_id", coin.statechain_id);
-        // console.log("coin.amount", coin.amount);
-        // console.log("coin.status", coin.status);
-
-        let encMessages = await window.api.getMsgAddr(coin.auth_pubkey);
-
-        console.log("encMessages", encMessages);
-
-        if (encMessages.length == 0) {
-            continue;
-        }
-
-        
-
-        const statechain_ids_added = await process_encrypted_message(coin, encMessages, wallet.network, serverInfo, wallet.name);
-        // received_statechain_ids = [...received_statechain_ids, ...statechain_ids_added];
     }
 
     // await sqlite_manager.updateWallet(db, wallet);
 
-    return { received_statechain_ids, wallet };
+    return coins_updated;
 }
 
 const process_encrypted_message = async (coin, encMessages, network, serverInfo, walletName) => {

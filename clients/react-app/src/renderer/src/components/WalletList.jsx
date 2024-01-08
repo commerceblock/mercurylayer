@@ -7,6 +7,8 @@ import thunks from '../store/thunks';
 
 import transferReceive from '../logic/transferReceive'
 
+import { walletActions } from '../store/wallet'
+
 export default function WalletList({ ...props }) {
 
     const dispatch = useDispatch();
@@ -29,9 +31,9 @@ export default function WalletList({ ...props }) {
         // await coinStatus.updateCoins(wallets);
         dispatch(thunks.updateCoins(wallets));
 
-        for (const wallet of wallets) {
-            await transferReceive.execute(wallet);
-        }
+        let coinsUpdated = await transferReceive.execute(wallets);
+        console.log("coinsUpdated", coinsUpdated);
+        await dispatch(walletActions.transferReceive({coinsUpdated}));
 
         setIsUpdatingCoins(false);
     };

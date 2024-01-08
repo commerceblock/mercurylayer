@@ -21,6 +21,19 @@ const walletSlice = createSlice({
         insertNewTransferCoin(state, action) {
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
             wallet.coins.push(action.payload.newCoin);
+        },
+        transferReceive(state, action) {
+
+            let coinsUpdated = action.payload.coinsUpdated;
+
+            console.log('transferReceive coinsUpdated', coinsUpdated);
+
+            for (let i = 0; i < coinsUpdated.length; i++) {
+                let coinInfo = coinsUpdated[i];
+                let wallet = state.wallets.find(w => w.name === coinInfo.walletName);
+                utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet);
+                utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions);
+            }
         }
     },
     extraReducers: (builder) => {
