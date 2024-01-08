@@ -34,7 +34,22 @@ const walletSlice = createSlice({
                 utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet);
                 utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions);
             }
-        }
+        },
+
+        /*broadcastBackupTransaction(state, action) {
+
+            console.log('broadcastBackupTransaction action.payload', action.payload);
+
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+
+            let newCoin = action.payload.newCoin;
+                        
+            utils.updateCoin(newCoin, wallet);
+
+            if (action.payload.activity) {
+                wallet.activities.push(action.payload.activity);
+            }
+        }*/
     },
     extraReducers: (builder) => {
         builder.addCase(thunks.createWallet.fulfilled, (state, action) => {
@@ -63,15 +78,23 @@ const walletSlice = createSlice({
         })
 
         builder.addCase(thunks.executeTransferSend.fulfilled, (state, action) => {
-            console.log('executeTransferSend action.payload', action.payload);
+            console.log('--> executeTransferSend action.payload', action.payload);
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
+            console.log('--> wallet', wallet);
+
             let updatedCoin = action.payload.updatedCoin;
+
+            console.log('--> updatedCoin', updatedCoin);
                         
             utils.updateCoin(updatedCoin, wallet);
+            
+            console.log('--> utils.updateCoin');
 
             wallet.activities.push(action.payload.activity);
+
+            console.log('--> wallet.activities');
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
         })

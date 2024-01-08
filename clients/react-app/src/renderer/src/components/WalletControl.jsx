@@ -11,11 +11,15 @@ import { useSelector } from 'react-redux'
 import transferReceive from '../logic/transferReceive'
 import { walletActions } from '../store/wallet'
 
+// import transferSend from '../logic/transferSend';
+
 export default function WalletControl({wallet}) {
 
     const backupTxs = useSelector(state => state.wallet.backupTxs);
 
     const [isGeneratingNewDepositAddress, setIsGeneratingNewDepositAddress] = useState(false);
+
+    const [isProcessingCoinRequest, setIsProcessingCoinRequest] = useState(false);
 
     let [toAddress, setToAddress] = useState("");
 
@@ -44,12 +48,18 @@ export default function WalletControl({wallet}) {
           return;
       }
 
+      setIsProcessingCoinRequest(true);
+
       await dispatch(thunks.broadcastBackupTransaction({
         wallet,
         backupTxs,
         coin,
         toAddress 
       }));
+
+      setToAddress("");
+
+      setIsProcessingCoinRequest(false);
     }
 
     const transfer = async (coin) => {
@@ -58,12 +68,21 @@ export default function WalletControl({wallet}) {
           return;
       }
 
+      // let result = await transferSend.execute(wallet, coin, backupTxs, toAddress);
+      // console.log("result", result);
+
+      setIsProcessingCoinRequest(true);
+
       await dispatch(thunks.executeTransferSend({
         wallet,
         coin,
         backupTxs,
         toAddress 
       }));
+
+      setToAddress("");
+
+      setIsProcessingCoinRequest(false);
     }
 
     let newDepositAddrButton = <button disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px' }}>New Deposit Address</button>;
@@ -71,12 +90,16 @@ export default function WalletControl({wallet}) {
       
     let actionButtons = (coin) => {
       if (coin.status == "CONFIRMED") {
-        return (
-          <>
-            <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
-            <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
-            <button onClick={() => transfer(coin)}>Transfer</button>
-          </>);
+        if (isProcessingCoinRequest) {
+          return <div><span>Processing...</span></div>;
+        } else {
+          return (
+            <div>
+              <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
+              <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
+              <button onClick={() => transfer(coin)}>Transfer</button>
+            </div>);
+        }
       } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
         let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
         return (<>Withdrawal Txid: {txid}</>);

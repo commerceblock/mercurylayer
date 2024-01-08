@@ -9,6 +9,8 @@ import transferReceive from '../logic/transferReceive'
 
 import { walletActions } from '../store/wallet'
 
+// import coinStatus from '../logic/coinStatus'
+
 export default function WalletList({ ...props }) {
 
     const dispatch = useDispatch();
@@ -28,7 +30,8 @@ export default function WalletList({ ...props }) {
 
     const updateCoins = async () => {
         setIsUpdatingCoins(true);
-        // await coinStatus.updateCoins(wallets);
+        // let result = await coinStatus.updateCoins(wallets);
+        // console.log("result", result);
         dispatch(thunks.updateCoins(wallets));
 
         let coinsUpdated = await transferReceive.execute(wallets);

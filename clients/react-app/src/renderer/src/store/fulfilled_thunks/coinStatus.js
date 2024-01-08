@@ -40,7 +40,7 @@ const handleDepositConfirmation = (state, depositResult) => {
     
 }
 
-const handleWithdrawalConfirmation = (state, withdrawalResult) => {
+const handleWithdrawalOrTransferConfirmation = (state, withdrawalResult) => {
     const wallet = state.wallets.find(w => w.name === withdrawalResult.walletName);
     const newCoin = withdrawalResult.newCoin;
     utils.updateCoin(newCoin, wallet);
@@ -54,8 +54,9 @@ const handleConfirmation = (builder) => {
         for (let i = 0; i < action.payload.length; i++) {
             if (action.payload[i].action == coinStatus.Actions.DEPOSIT_CONFIMED) {
                 handleDepositConfirmation(state, action.payload[i]);
-            } else if (action.payload[i].action == coinStatus.Actions.WITHDRAWAL_CONFIMED) {
-                handleWithdrawalConfirmation(state, action.payload[i]);
+            } else if (action.payload[i].action == coinStatus.Actions.WITHDRAWAL_CONFIMED || 
+                action.payload[i].action == coinStatus.Actions.TRANSFER_CONFIMED) {
+                handleWithdrawalOrTransferConfirmation(state, action.payload[i]);
             }
         }  
     })

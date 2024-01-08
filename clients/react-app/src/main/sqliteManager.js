@@ -72,6 +72,13 @@ const upsertTransaction = async (db, statechain_id, txs) => {
     await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?) ON CONFLICT(statechain_id) DO UPDATE SET txs = ?", [ statechain_id, JSON.stringify(txs), JSON.stringify(txs) ]);
 }
 
+const syncBackupTransactions = async (db, statechain_id, txs) => {
+    await run(db, "BEGIN TRANSACTION;");
+    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ?", [ statechain_id]); 
+    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]);
+    await run(db, "COMMIT;");
+}
+
 const getBackupTxs  = async (db, statechainId) => {
     return new Promise((resolve, reject) => {
         db.all("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
@@ -124,5 +131,6 @@ export default {
     upsertTransaction, 
     getBackupTxs, 
     insertOrUpdateBackupTxs,
-    getAllBackupTxs 
+    getAllBackupTxs ,
+    syncBackupTransactions
 };

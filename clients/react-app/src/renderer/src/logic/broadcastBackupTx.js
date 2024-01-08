@@ -7,7 +7,6 @@ const execute = async (wallet, backupTxs, coin, toAddress, feeRate) => {
         throw new Error(`Coin status must be CONFIRMED to broadcast the backup transaction. The current status is ${coin.status}`);
     }
 
-
     if (!feeRate) {
         const serverInfo = await window.api.infoConfig();
         const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;

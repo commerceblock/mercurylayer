@@ -12,6 +12,7 @@ import deposit from './deposit';
 import transaction from './transaction';
 import transferSend from './transferSend';
 import transferReceive from './transferReceive';
+import coinStatus from './coinStatus';
 
 function createWindow() {
   // Create the browser window.
@@ -123,7 +124,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('sync-backup-txs', async (event, backupTxs) => {
     console.log('sync-backup-txs', backupTxs);
     for (let i = 0; i < backupTxs.length; i++) {
-      await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+      // await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+      await sqliteManager.syncBackupTransactions(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
     }
   })
 
@@ -150,6 +152,10 @@ app.whenReady().then(async () => {
   
   ipcMain.handle('get-msg-addr', async (event, authPubkey) => {
     return await transferReceive.getMsgAddr(authPubkey);
+  })
+
+  ipcMain.handle('check-transfer', async (event, statechainId) => {
+    return await coinStatus.checkTransfer(statechainId);
   })
 
   createWindow()

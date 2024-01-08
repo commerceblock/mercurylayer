@@ -181,6 +181,29 @@ const checkWithdrawal = async (coin, walletNetwork, walletName) => {
     return null;
 }
 
+const checkTransfer = async (coin, walletName) => {
+    if (!coin.statechain_id) {
+        // console.error(`The coin with the aggregated address ${coin.aggregated_address} does not have a statechain ID`);
+        return null;
+    }
+
+    let isTransferred = await window.api.checkTransfer(coin.statechain_id);
+
+    console.log("isTransferred", isTransferred);
+
+    if (isTransferred) {
+        let newCoin = structuredClone(coin);
+        newCoin.status = CoinStatus.TRANSFERRED;
+        return {
+            action: Actions.TRANSFER_CONFIMED,
+            newCoin,
+            walletName
+        }
+    }
+
+    return null;
+}
+
 const updateWallet  = async (wallet) => {
 
     let results = [];
@@ -197,6 +220,11 @@ const updateWallet  = async (wallet) => {
             let withdrawalResult = await checkWithdrawal(coin, wallet.network, wallet.name);
             if (withdrawalResult) {
                 results.push(withdrawalResult);
+            }
+        } else if (coin.status === CoinStatus.IN_TRANSFER) {
+            let transferResult = await checkTransfer(coin, wallet.name);
+            if (transferResult) {
+                results.push(transferResult);
             }
         }
     }

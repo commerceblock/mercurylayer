@@ -1,3 +1,4 @@
+
 const updateCoin = (newCoin, wallet) => {
 
     // Step 1: Filter coins with the same statechain_id
@@ -5,17 +6,25 @@ const updateCoin = (newCoin, wallet) => {
         coin.statechain_id === newCoin.statechain_id
     );
 
+    console.log("filteredCoins", filteredCoins);
+
     // Step 2: Find the coin with the highest locktime
     const coinToUpdate = filteredCoins.reduce((max, coin) => 
         (max.locktime > coin.locktime) ? max : coin
     );
+
+    console.log("coinToUpdate", coinToUpdate);
 
     // Step 3: Update the coin
     const updatedCoins = wallet.coins.map(coin =>
         (coin === coinToUpdate) ? newCoin : coin
     );
 
+    console.log("updatedCoins", updatedCoins);
+
     wallet.coins = updatedCoins;
+
+    console.log("wallet.coins", wallet.coins);
 };
 
 const updateCoinByPublicKey= (newCoin, wallet) => {
