@@ -1,15 +1,13 @@
 use std::str::FromStr;
 
-use bitcoin::hashes::sha256;
 use rocket::{serde::json::Json, response::status, State, http::Status};
-use secp256k1_zkp::{XOnlyPublicKey, schnorr::Signature, Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
 
 use crate::server::TokenServer;
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Invoice{
     pub id: String,
     pub pr: String,
@@ -17,7 +15,7 @@ pub struct Invoice{
     pub onChainAddr: String,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ReqInvoice{
     pub title: String,
     pub description: String,
@@ -31,12 +29,12 @@ pub struct ReqInvoice{
     pub extra: Extra,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Extra{
     pub tag: String,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RTLInvoice{
     pub id: String,
     pub pr: String,
@@ -44,7 +42,7 @@ pub struct RTLInvoice{
     pub onChainAddr: String,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RTLData{
     pub label: String,
     pub bolt11: String,
@@ -56,7 +54,7 @@ pub struct RTLData{
     pub expires_at: u64
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RTLQuery{
     pub createdAt: String,
     pub delay: u64,
@@ -85,7 +83,7 @@ pub struct RTLQuery{
     pub extra: Extra,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct PODInfo {
     pub token_id: String,
     pub fee: String,
@@ -94,7 +92,7 @@ pub struct PODInfo {
     pub processor_id: String,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PODStatus {
     pub confirmed: bool,
 }
@@ -105,18 +103,16 @@ pub async fn token_init(token_server: &State<TokenServer>) -> status::Custom<Jso
 
     let token_id = uuid::Uuid::new_v4().to_string();   
 
-    let invoice: Invoice = self
-        .get_lightning_invoice(&token_id)?
-        .into();
+    let invoice: Invoice = get_lightning_invoice(token_server, token_id.clone()).await;
     let pod_info = PODInfo {
-        token_id,
+        token_id: token_id.clone(),
         fee: token_server.config.fee.clone(),
-        lightning_invoice: invoice.pr,
-        btc_payment_address: invoice.onChainAddr,
-        processor_id: invoice.id,
+        lightning_invoice: invoice.pr.clone(),
+        btc_payment_address: invoice.onChainAddr.clone(),
+        processor_id: invoice.id.clone(),
     };
 
-    insert_new_token(&statechain_entity.pool, &token_id, &lightning_invoice, &btc_payment_address, &processor_id).await;
+    insert_new_token(&token_server.pool, &token_id, &invoice.pr.clone(), &invoice.onChainAddr, &invoice.id).await;
 
     let response_body = json!(pod_info);
 
@@ -131,15 +127,8 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
         FROM public.tokens \
         WHERE token_id = $1")
         .bind(&token_id)
-        .fetch_one(pool)
+        .fetch_one(&token_server.pool)
         .await;
-
-    if row.is_err() {
-        match row.err().unwrap() {
-            sqlx::Error::RowNotFound => return None,
-            _ => return None, // this case should be treated as unexpected error
-        }
-    }
 
     let row = row.unwrap();
 
@@ -148,31 +137,31 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
     let spent: bool = row.get(2);
 
     if spent {
-        pod_status = PODStatus {
+        let pod_status = PODStatus {
             confirmed: false,
-        }
+        };
         let response_body = json!(pod_status);
         return status::Custom(Status::Ok, Json(response_body));            
     }
 
     if confirmed {
-        pod_status = PODStatus {
+        let pod_status = PODStatus {
             confirmed: true,
-        }
+        };
         let response_body = json!(pod_status);
         return status::Custom(Status::Ok, Json(response_body));            
     } else {
-        if self.query_lightning_payment(&token_id, &processor_id)? {
-            set_token_confirmed(&statechain_entity.pool, &token_id).await;
-            pod_status = PODStatus {
+        if query_lightning_payment(token_server, &processor_id).await {
+            set_token_confirmed(&token_server.pool, &token_id).await;
+            let pod_status = PODStatus {
                 confirmed: true,
-            }
+            };
             let response_body = json!(pod_status);
             return status::Custom(Status::Ok, Json(response_body));  
         } else {
-            pod_status = PODStatus {
+            let pod_status = PODStatus {
                 confirmed: false,
-            }
+            };
             let response_body = json!(pod_status);
             return status::Custom(Status::Ok, Json(response_body));
         }
@@ -196,7 +185,7 @@ pub async fn insert_new_token(pool: &sqlx::PgPool, token_id: &str, invoice: &str
 }
 
 
-fn get_lightning_invoice(token_id: String) -> Result<Invoice> {
+pub async fn get_lightning_invoice(token_server: &State<TokenServer>, token_id: String) -> Invoice {
 
     let processor_url = token_server.config.processor_url.clone();
     let api_key = token_server.config.api_key.clone();
@@ -220,20 +209,7 @@ fn get_lightning_invoice(token_id: String) -> Result<Invoice> {
     let client: reqwest::Client = reqwest::Client::new();
     let request = client.post(&format!("{}/{}", processor_url, path));
     
-    let value = match request.header("Api-Key", api_key).header("encodingtype","hex").json(&inv_request).send().await {
-        Ok(response) => {
-            let text = response.text().await.unwrap();
-            text
-        },
-        Err(err) => {
-            let response_body = json!({
-                "error": "Internal Server Error",
-                "message": err.to_string()
-            });
-        
-            return status::Custom(Status::InternalServerError, Json(response_body));
-        },
-    };
+    let value = request.header("Api-Key", api_key).header("encodingtype","hex").json(&inv_request).send().await.unwrap().text().await.unwrap(); 
 
     let ret_invoice: RTLInvoice = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
@@ -243,42 +219,26 @@ fn get_lightning_invoice(token_id: String) -> Result<Invoice> {
         checkoutUrl: ret_invoice.checkoutUrl,
         onChainAddr: ret_invoice.onChainAddr,
     };
-    return Ok(invoice);
+    return invoice;
 }
 
-fn query_lightning_payment(processor_id: &String,) -> Result<bool> {
-
-    let id_str = &id.to_string();
+pub async fn query_lightning_payment(token_server: &State<TokenServer>, processor_id: &String) -> bool {
 
     let processor_url = token_server.config.processor_url.clone();
     let api_key = token_server.config.api_key.clone();
     let path: String = "checkout/".to_string() + processor_id;
 
     let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}{}", url, path));
+    let request = client.get(&format!("{}{}", processor_url, path));
 
-    let value = match request.header("Api-Key", api_key).header("encodingtype","hex").json(&inv_request).send().await {
-        Ok(response) => {
-            let text = response.text().await.unwrap();
-            text
-        },
-        Err(err) => {
-            let response_body = json!({
-                "error": "Internal Server Error",
-                "message": err.to_string()
-            });
-        
-            return status::Custom(Status::InternalServerError, Json(response_body));
-        },
-    };
+    let value = request.header("Api-Key", api_key).header("encodingtype","hex").send().await.unwrap().text().await.unwrap();
 
     let ret_invoice: RTLQuery = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let invoice_list: RTLQuery = get_cln(&cln_url, &path, &macaroon)?;
-    if(invoice_list.isPaid) {
-        return Ok(true)
+    if ret_invoice.isPaid {
+        return true
     } else {
-        return Ok(false)
+        return false
     }
 }
 

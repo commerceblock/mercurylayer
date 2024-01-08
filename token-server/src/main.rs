@@ -46,7 +46,7 @@ async fn main() {
             internal_error, 
             bad_request,
         ])
-        .manage(statechain_entity)
+        .manage(token_server)
         .attach(Cors)
         // .attach(MercuryPgDatabase::fairing())
         .launch()
