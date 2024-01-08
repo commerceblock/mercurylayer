@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import thunks from './thunks';
 import coinStatus from './fulfilled_thunks/coinStatus';
 import utils from './utils';
+import withdraw from '../logic/withdraw';
 
 const initialState = {
     wallets: [],
@@ -35,6 +36,22 @@ const walletSlice = createSlice({
                 utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions);
             }
         },
+
+        withdraw(state, action) {
+
+            console.log('--> withdraw action.payload', action.payload);
+
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+
+            let updatedCoin = action.payload.updatedCoin;
+                        
+            utils.updateCoin(updatedCoin, wallet);
+            
+            wallet.activities.push(action.payload.activity);
+
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
+
+        }
 
         /*broadcastBackupTransaction(state, action) {
 
@@ -82,19 +99,11 @@ const walletSlice = createSlice({
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
-            console.log('--> wallet', wallet);
-
             let updatedCoin = action.payload.updatedCoin;
-
-            console.log('--> updatedCoin', updatedCoin);
                         
             utils.updateCoin(updatedCoin, wallet);
             
-            console.log('--> utils.updateCoin');
-
             wallet.activities.push(action.payload.activity);
-
-            console.log('--> wallet.activities');
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
         })

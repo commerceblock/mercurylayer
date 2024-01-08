@@ -11,6 +11,8 @@ import { useSelector } from 'react-redux'
 import transferReceive from '../logic/transferReceive'
 import { walletActions } from '../store/wallet'
 
+import withdraw from '../logic/withdraw';
+
 // import transferSend from '../logic/transferSend';
 
 export default function WalletControl({wallet}) {
@@ -42,7 +44,33 @@ export default function WalletControl({wallet}) {
       // dispatch(walletActions.addOrUpdateWallet(result.wallet));
     };
 
-    const broadcastBackupTransaction = async (coin, fn) => {
+    const withdrawTransaction = async (coin) => {
+      if (coin.status != "CONFIRMED") {
+          alert("Coin is not confirmed yet.");
+          return;
+      }
+
+      setIsProcessingCoinRequest(true);
+
+      let res = await withdraw.execute(wallet, backupTxs, coin, toAddress);
+
+      console.log("res", res);
+
+      dispatch(walletActions.withdraw(res));
+
+      // await dispatch(thunks.broadcastBackupTransaction({
+      //   wallet,
+      //   backupTxs,
+      //   coin,
+      //   toAddress 
+      // }));
+
+      setToAddress("");
+
+      setIsProcessingCoinRequest(false);
+    }
+
+    const broadcastBackupTransaction = async (coin) => {
       if (coin.status != "CONFIRMED") {
           alert("Coin is not confirmed yet.");
           return;
@@ -96,6 +124,7 @@ export default function WalletControl({wallet}) {
           return (
             <div>
               <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
+              <button onClick={() => withdrawTransaction(coin)} style={{ marginRight: '10px' }}>Withdraw</button>
               <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
               <button onClick={() => transfer(coin)}>Transfer</button>
             </div>);
