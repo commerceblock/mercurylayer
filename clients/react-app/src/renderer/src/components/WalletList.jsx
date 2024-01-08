@@ -3,21 +3,21 @@ import { Fragment, useState } from 'react'
 
 import WalletControl from './WalletControl';
 
-import thunks from '../store/thunks';
+/* import thunks from '../store/thunks';
 
 import transferReceive from '../logic/transferReceive'
 
-import { walletActions } from '../store/wallet'
+import { walletActions } from '../store/wallet' */
 
 // import coinStatus from '../logic/coinStatus'
 
 export default function WalletList({ ...props }) {
 
-    const dispatch = useDispatch();
+    // const dispatch = useDispatch();
 
     const wallets = useSelector(state => state.wallet.wallets);
 
-    const [isUpdatingCoins, setIsUpdatingCoins] = useState(false);
+    // const [isUpdatingCoins, setIsUpdatingCoins] = useState(false);
 
     let walletList = wallets.map((wallet) => {
         return (
@@ -28,7 +28,7 @@ export default function WalletList({ ...props }) {
         )
     });
 
-    const updateCoins = async () => {
+/*     const updateCoins = async () => {
         setIsUpdatingCoins(true);
         // let result = await coinStatus.updateCoins(wallets);
         // console.log("result", result);
@@ -41,12 +41,15 @@ export default function WalletList({ ...props }) {
         await dispatch(thunks.updateCoins(wallets));
 
         setIsUpdatingCoins(false);
-    };
+    }; 
+    
+    <div>{!isUpdatingCoins && <button onClick={updateCoins}>Update Coins</button>}</div>
+    */
 
     return (
         <div {...props}>
             <h2>Wallet List</h2>
-            <div>{!isUpdatingCoins && <button onClick={updateCoins}>Update Coins</button>}</div>
+            
             {walletList}
         </div>
     )

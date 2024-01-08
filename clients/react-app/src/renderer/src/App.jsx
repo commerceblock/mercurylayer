@@ -6,11 +6,15 @@ import { walletActions } from './store/wallet'
 
 import CreateWallet from './components/CreateWallet'
 import WalletList from './components/WalletList'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 
 import init from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
+
+import thunks from './store/thunks';
+
+import transferReceive from './logic/transferReceive'
 
 function App() {
   const dispatch = useDispatch();
@@ -20,6 +24,13 @@ function App() {
   const wallets = useSelector(state => state.wallet.wallets);
 
   const backupTxs = useSelector(state => state.wallet.backupTxs);
+
+  const walletsRef = useRef(wallets);
+
+  useEffect(() => {
+    // Update the ref to the current wallets on each render
+    walletsRef.current = wallets;
+  });
 
   useEffect(() => {
 
@@ -41,13 +52,31 @@ function App() {
 
     loadWasm();
     fetchWallets();
-    
+
   }, []);
 
   useEffect(() => {
     if (wallets && wallets.length > 0 && areWalletsLoaded) {
       window.api.syncWallets(wallets);
     }
+
+    const executeFunction = async () => {
+      // Here, wallets will always reflect the latest state
+      console.log(wallets);
+      let coinsUpdated = await transferReceive.execute(wallets);
+      // console.log("coinsUpdated", coinsUpdated);
+      await dispatch(walletActions.transferReceive({coinsUpdated}));
+
+      await dispatch(thunks.updateCoins(wallets));
+    };
+
+    // Set up the interval
+    const interval = setInterval(() => {
+      executeFunction();
+    }, 5000);
+
+    // Clean up the interval on component unmount or wallets change
+    return () => clearInterval(interval);
   }, [wallets]);
 
   useEffect(() => {
