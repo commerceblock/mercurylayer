@@ -171,7 +171,7 @@ export default function WalletControl({wallet}) {
     }
 
     let coinList = coinsClone.map((coin, index) => 
-      <div key={index}>
+      <div key={index} className="card">
         <ul style={{marginTop: 10}} >
           <li>Deposit address: {coin.aggregated_address}</li>
           <li>Statechain_id: {coin.statechain_id}</li>

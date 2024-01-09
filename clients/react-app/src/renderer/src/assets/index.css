@@ -272,3 +272,17 @@ a:hover {
 .fancy-label-orange {
   background-image: linear-gradient(to right, orange, orange); /* Gradient from red to yellow to green */
 }
+
+.card {
+  background-color: #3f4551; /* Slightly lighter than the app's background for contrast */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  padding: 20px; /* Padding inside the card */
+  margin: 20px; /* Space around the card */
+  color: #d4e8ef; /* A light color for text, assuming it matches your app's text color */
+  font-family: Arial, sans-serif; /* Optional: Font style */
+  box-sizing: border-box; /* Include padding and border in the width and height */
+  word-wrap: break-word; /* Older browsers */
+  overflow-wrap: break-word; /* Standard property for breaking long words */
+  word-break: break-all; /* Break at any character */
+}

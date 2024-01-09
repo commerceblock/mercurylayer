@@ -59,6 +59,7 @@ function App() {
 
   useEffect(() => {
     if (wallets && wallets.length > 0 && areWalletsLoaded) {
+      console.log("Syncing wallets");
       window.api.syncWallets(wallets);
     }
 
