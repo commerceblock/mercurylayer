@@ -43,7 +43,7 @@ const walletSlice = createSlice({
                 let coinInfo = coinsUpdated[i];
                 let wallet = state.wallets.find(w => w.name === coinInfo.walletName);
                 utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet);
-                utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions);
+                utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions, coinInfo.walletName);
             }
         },
 
@@ -57,7 +57,7 @@ const walletSlice = createSlice({
             
             wallet.activities.push(action.payload.activity);
 
-            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
 
         },
 
@@ -85,7 +85,7 @@ const walletSlice = createSlice({
             
             wallet.activities.push(action.payload.activity);
 
-            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
         }
     }
 });

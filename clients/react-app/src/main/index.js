@@ -131,7 +131,7 @@ app.whenReady().then(async () => {
     console.log('sync-backup-txs', backupTxs);
     for (let i = 0; i < backupTxs.length; i++) {
       // await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
-      await sqliteManager.syncBackupTransactions(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+      await sqliteManager.syncBackupTransactions(db, backupTxs[i].statechain_id, backupTxs[i].walletName, backupTxs[i].backupTxs);
     }
   })
 

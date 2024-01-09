@@ -12,15 +12,7 @@ const run = (db, sql, params) => {
 
 const createTables = async (db) => {
     await run(db, "CREATE TABLE IF NOT EXISTS wallet (wallet_name TEXT NOT NULL UNIQUE, wallet_json TEXT NOT NULL)", []);
-    await run(db, "CREATE TABLE IF NOT EXISTS backup_txs (statechain_id TEXT NOT NULL UNIQUE, txs TEXT NOT NULL)", []);
-}
-
-const insertWallet = async (db, wallet) => {
-    await run(db, "INSERT INTO wallet (wallet_name, wallet_json) VALUES (?, ?)", [ wallet.name, JSON.stringify(wallet) ]);
-}
-
-const updateWallet = async (db, wallet) => {
-    await run(db, "UPDATE wallet SET wallet_json = ? WHERE wallet_name = ?", [ JSON.stringify(wallet), wallet.name ]);
+    await run(db, "CREATE TABLE IF NOT EXISTS backup_txs (statechain_id TEXT NOT NULL, wallet_name TEXT NOT NULL, txs TEXT NOT NULL)", []);
 }
 
 const upsertWallet = async (db, wallet) => {
@@ -60,41 +52,16 @@ const getWallets  = async (db) => {
     });
 }
 
-const insertTransaction = async (db, statechain_id, txs) => {
-    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
-}
-
-const updateTransaction = async (db, statechain_id, txs) => {
-    await run(db, "UPDATE backup_txs SET txs = ? WHERE statechain_id = ?", [ JSON.stringify(txs), statechain_id ]); 
-}
-
-const upsertTransaction = async (db, statechain_id, txs) => {
-    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?) ON CONFLICT(statechain_id) DO UPDATE SET txs = ?", [ statechain_id, JSON.stringify(txs), JSON.stringify(txs) ]);
-}
-
-const syncBackupTransactions = async (db, statechain_id, txs) => {
+const syncBackupTransactions = async (db, statechain_id, walletName, txs) => {
     await run(db, "BEGIN TRANSACTION;");
-    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ?", [ statechain_id]); 
-    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]);
+    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ? AND wallet_name = ?", [ statechain_id, walletName]); 
+    await run(db, "INSERT INTO backup_txs (statechain_id, wallet_name, txs) VALUES (?, ?, ?)", [ statechain_id, walletName, JSON.stringify(txs) ]);
     await run(db, "COMMIT;");
-}
-
-const getBackupTxs  = async (db, statechainId) => {
-    return new Promise((resolve, reject) => {
-        db.all("SELECT txs FROM backup_txs WHERE statechain_id = ?", [ statechainId ], (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                let backupTxs = JSON.parse(row.txs);
-                resolve(backupTxs);
-            }
-        });
-    });
 }
 
 const getAllBackupTxs  = async (db) => {
     return new Promise((resolve, reject) => {
-        db.all("SELECT statechain_id, txs FROM backup_txs", [], (err, rows) => {
+        db.all("SELECT statechain_id, wallet_name, txs FROM backup_txs", [], (err, rows) => {
             if (err) {
                 reject(err);
             } else {
@@ -104,6 +71,7 @@ const getAllBackupTxs  = async (db) => {
                 for (let i = 0; i < rows.length; i++) {
                     backupTxs.push({
                         statechain_id: rows[i].statechain_id,
+                        walletName: rows[i].wallet_name,
                         backupTxs: JSON.parse(rows[i].txs)
                     });
                 }
@@ -114,23 +82,11 @@ const getAllBackupTxs  = async (db) => {
     });
 }
 
-const insertOrUpdateBackupTxs = async (db, statechain_id, txs) => {
-    await run(db, "DELETE FROM backup_txs WHERE statechain_id = ?", [ statechain_id]); 
-    await run(db, "INSERT INTO backup_txs (statechain_id, txs) VALUES (?, ?)", [ statechain_id, JSON.stringify(txs) ]); 
-}
-
 export default { 
     createTables, 
-    insertWallet, 
-    updateWallet, 
     upsertWallet, 
     getWallet, 
     getWallets, 
-    insertTransaction, 
-    updateTransaction, 
-    upsertTransaction, 
-    getBackupTxs, 
-    insertOrUpdateBackupTxs,
     getAllBackupTxs ,
     syncBackupTransactions
 };

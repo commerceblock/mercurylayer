@@ -138,7 +138,27 @@ export default function WalletControl({wallet}) {
       }
     };
 
-    let coinList = wallet.coins.map((coin, index) => 
+    let lowestLocktimes = {};
+
+    wallet.coins.forEach(coin => {
+        // Check if the statechain_id has been added to lowestLocktimes
+        if (lowestLocktimes[coin.statechain_id]) {
+            // Update if the current coin's locktime is lower than the stored one
+            if (coin.locktime < lowestLocktimes[coin.statechain_id]) {
+                lowestLocktimes[coin.statechain_id] = coin.locktime;
+            }
+        } else {
+            // If this statechain_id is not yet in lowestLocktimes, add it
+            lowestLocktimes[coin.statechain_id] = coin.locktime;
+        }
+    });
+
+    console.log("lowestLocktime", lowestLocktimes);
+
+    let coinsClone = structuredClone(wallet.coins);
+    coinsClone.reverse();
+
+    let coinList = coinsClone.map((coin, index) => 
       <div key={index}>
         <ul style={{marginTop: 10}} >
           <li>Deposit address: {coin.aggregated_address}</li>
@@ -146,9 +166,10 @@ export default function WalletControl({wallet}) {
           <li>Amount: {coin.amount}</li>
           <li>Status: {coin.status}</li>
           <li>SE Address: {coin.address}</li>
+          <li>Locktime: {coin.locktime}</li>
           <li style={{marginTop: 5}}>{actionButtons(coin)}</li>
         </ul>
-        <CoinBackupTxs coin={coin} />
+        { (lowestLocktimes[coin.statechain_id] == coin.locktime) ? <CoinBackupTxs coin={coin} walletName={wallet.name}/> : <span></span> }
       </div>  
     );
 

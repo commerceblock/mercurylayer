@@ -30,8 +30,8 @@ const updateCoinByPublicKey= (newCoin, wallet) => {
     wallet.coins = updatedCoins;
 };
 
-const insertNewBackupTx = (state, coin, newBackupTx) => {
-    let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === coin.statechain_id);
+const insertNewBackupTx = (state, coin, newBackupTx, walletName) => {
+    let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === coin.statechain_id && b.walletName === walletName);
 
     if (existingBackupTxItems.length > 0) {
         let existingBackupTx = existingBackupTxItems[0];
@@ -39,7 +39,8 @@ const insertNewBackupTx = (state, coin, newBackupTx) => {
     } else {
         state.backupTxs.push({
             statechain_id: coin.statechain_id,
-            backupTxs: [newBackupTx]
+            backupTxs: [newBackupTx],
+            walletName
         });
     }
 };
@@ -49,8 +50,8 @@ const insertNewBackupTx = (state, coin, newBackupTx) => {
  * are empty. This function replaces the empty backup transactions with the received backup transactions for the
  * case when the user uses a non-empty statecoin (something that should not be done).
  */
-const replaceBackupTxs = (state, coin, newBackupTxs) => {
-    let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === coin.statechain_id);
+const replaceBackupTxs = (state, coin, newBackupTxs, walletName) => {
+    let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === coin.statechain_id && b.walletName === walletName);
 
     if (existingBackupTxItems.length > 0) {
         let existingBackupTx = existingBackupTxItems[0];
@@ -58,7 +59,8 @@ const replaceBackupTxs = (state, coin, newBackupTxs) => {
     } else {
         state.backupTxs.push({
             statechain_id: coin.statechain_id,
-            backupTxs: newBackupTxs
+            backupTxs: newBackupTxs,
+            walletName
         });
     }
 };

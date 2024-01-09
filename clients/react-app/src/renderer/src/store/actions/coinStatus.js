@@ -22,18 +22,7 @@ const handleDepositConfirmation = (state, depositResult) => {
             utils.updateCoin(newCoin, wallet);
 
             if (depositResult.backupTx) {
-
-                let existingBackupTxItems = state.backupTxs.filter(b => b.statechain_id === newCoin.statechain_id);
-
-                if (existingBackupTxItems.length > 0) {
-                    let existingBackupTx = existingBackupTxItems[0];
-                    existingBackupTx.backupTxs.push(depositResult.backupTx);
-                } else {
-                    state.backupTxs.push({
-                        statechain_id: newCoin.statechain_id,
-                        backupTxs: [depositResult.backupTx]
-                    });
-                }
+                utils.insertNewBackupTx(state, newCoin, depositResult.backupTx, wallet.name);
             }
         }
     }

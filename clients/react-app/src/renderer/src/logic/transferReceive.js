@@ -46,8 +46,6 @@ const execute = async (wallets) => {
         }
     }
 
-    // await sqlite_manager.updateWallet(db, wallet);
-
     return coins_updated;
 }
 
@@ -185,8 +183,6 @@ const process_encrypted_message = async (coin, encMessages, network, serverInfo,
             backupTransactions: transferMsg.backup_transactions,
             walletName
         });
-
-        // await sqlite_manager.insertOrUpdateBackupTxs(db, transferMsg.statechain_id, transferMsg.backup_transactions);
     }
 
     console.log("coins_updated", coins_updated);
