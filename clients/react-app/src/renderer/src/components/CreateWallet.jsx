@@ -48,7 +48,7 @@ export default function CreateWallet() {
                     Statechain is a layer 2 solution for Bitcoin. 
                 </p>
                 <div style={{ marginTop: '10px' }}>
-                    <input type="text" placeholder="Wallet Name" onChange={walletNameChangeHandler} value={walletName} style={{ marginRight: '30px' }}  class="fancy-input"/>
+                    <input type="text" placeholder="Wallet Name" onChange={walletNameChangeHandler} value={walletName} style={{ marginRight: '30px' }}  className="fancy-input"/>
 
                     {!isCreatingWallet && <button onClick={createWallet} className="fancy-button">Create Wallet</button>}
                     {isCreatingWallet &&<span>Creating wallet ...</span>}

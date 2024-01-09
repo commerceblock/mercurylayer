@@ -5,7 +5,7 @@ import classes from './MainNavigation.module.css';
 
 import { NavLink } from 'react-router-dom';
 
-export default function WalletPanel() {
+export default function MainNavigation() {
     const wallets = useSelector(state => state.wallet.wallets);
 
     let walletList = wallets.map((wallet) => 

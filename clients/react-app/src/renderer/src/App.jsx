@@ -99,7 +99,7 @@ function App() {
       path: '/', 
       element: <RootLayout />,
       children: [
-        { path: '', element: () => <div></div> },
+        { path: '', element: <div></div> },
         { path: 'wallets/:walletName', element: <WalletPage /> }
       ]
     }
