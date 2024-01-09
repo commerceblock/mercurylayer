@@ -126,7 +126,7 @@ export default function WalletControl({wallet}) {
         } else {
           return (
             <div>
-              <input class="fancy-input" type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
+              <input className="fancy-input" type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
               <button className="fancy-button" onClick={() => withdrawTransaction(coin)} style={{ marginRight: '10px' }}>Withdraw</button>
               <button className="fancy-button" onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
               <button className="fancy-button" onClick={() => transfer(coin)}>Transfer</button>
@@ -176,7 +176,7 @@ export default function WalletControl({wallet}) {
           <li>Deposit address: {coin.aggregated_address}</li>
           <li>Statechain_id: {coin.statechain_id}</li>
           <li>Amount: {coin.amount}</li>
-          <li>Status: <span class={getLabel(coin)}>{coin.status}</span></li>
+          <li>Status: <span className={getLabel(coin)}>{coin.status}</span></li>
           <li>SE Address: {coin.address}</li>
           <li>Locktime: {coin.locktime}</li>
           <li style={{marginTop: 5}}>{actionButtons(coin)}</li>
