@@ -32,12 +32,7 @@ function App() {
 
   const backupTxs = useSelector(state => state.wallet.backupTxs);
 
-  const walletsRef = useRef(wallets);
-
-  useEffect(() => {
-    // Update the ref to the current wallets on each render
-    walletsRef.current = wallets;
-  });
+  const isUpdatingCoins = useRef(false);
 
   useEffect(() => {
 
@@ -68,8 +63,12 @@ function App() {
     }
 
     const executeFunction = async () => {
+
+      if (isUpdatingCoins.current) return;
+
+      isUpdatingCoins.current = true;
       // Here, wallets will always reflect the latest state
-      console.log(wallets);
+      console.log("UpdatingCoins");
       let coinsUpdated = await transferReceive.execute(wallets);
       // console.log("coinsUpdated", coinsUpdated);
       await dispatch(walletActions.transferReceive({coinsUpdated}));
@@ -77,6 +76,8 @@ function App() {
       let updatedStatus = await coinStatus.updateCoins(wallets);
 
       await dispatch(walletActions.coinStatus(updatedStatus));
+
+      isUpdatingCoins.current = false;
     };
 
     // Set up the interval
