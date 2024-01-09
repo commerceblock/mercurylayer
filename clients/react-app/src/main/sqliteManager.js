@@ -53,10 +53,10 @@ const getWallets  = async (db) => {
 }
 
 const syncBackupTransactions = async (db, statechain_id, walletName, txs) => {
-    await run(db, "BEGIN TRANSACTION;");
+    // await run(db, "BEGIN TRANSACTION;");
     await run(db, "DELETE FROM backup_txs WHERE statechain_id = ? AND wallet_name = ?", [ statechain_id, walletName]); 
     await run(db, "INSERT INTO backup_txs (statechain_id, wallet_name, txs) VALUES (?, ?, ?)", [ statechain_id, walletName, JSON.stringify(txs) ]);
-    await run(db, "COMMIT;");
+    // await run(db, "COMMIT;");
 }
 
 const getAllBackupTxs  = async (db) => {
