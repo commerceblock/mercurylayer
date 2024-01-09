@@ -17,6 +17,8 @@ import broadcastBackupTx from '../logic/broadcastBackupTx';
 
 import transferSend from '../logic/transferSend';
 
+import coinEnum from '../logic/coinEnum';
+
 export default function WalletControl({wallet}) {
 
     const backupTxs = useSelector(state => state.wallet.backupTxs);
@@ -114,8 +116,8 @@ export default function WalletControl({wallet}) {
       setIsProcessingCoinRequest(false);
     }
 
-    let newDepositAddrButton = <button disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px' }}>New Deposit Address</button>;
-    let newTransferAddrButton = <button onClick={getNewTransferAddress}>New Transfer Address</button>;
+    let newDepositAddrButton = <button className="fancy-button" disabled={isGeneratingNewDepositAddress} onClick={newDepositAddress} style={{ marginRight: '10px', marginTop: '20px' }}>New Deposit Address</button>;
+    let newTransferAddrButton = <button className="fancy-button" onClick={getNewTransferAddress}>New Transfer Address</button>;
       
     let actionButtons = (coin) => {
       if (coin.status == "CONFIRMED") {
@@ -124,10 +126,10 @@ export default function WalletControl({wallet}) {
         } else {
           return (
             <div>
-              <input type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
-              <button onClick={() => withdrawTransaction(coin)} style={{ marginRight: '10px' }}>Withdraw</button>
-              <button onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
-              <button onClick={() => transfer(coin)}>Transfer</button>
+              <input class="fancy-input" type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
+              <button className="fancy-button" onClick={() => withdrawTransaction(coin)} style={{ marginRight: '10px' }}>Withdraw</button>
+              <button className="fancy-button" onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
+              <button className="fancy-button" onClick={() => transfer(coin)}>Transfer</button>
             </div>);
         }
       } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
@@ -153,10 +155,20 @@ export default function WalletControl({wallet}) {
         }
     });
 
-    console.log("lowestLocktime", lowestLocktimes);
-
     let coinsClone = structuredClone(wallet.coins);
     coinsClone.reverse();
+
+    const getLabel = (coin) => {
+      if (coin.status == coinEnum.INITIALISED || coin.status == coinEnum.IN_MEMPOOL || coin.status == coinEnum.IN_TRANSFER || coin.status == coinEnum.UNCONFIRMED) {
+        return "fancy-label fancy-label-orange";
+      } else if (coin.status == coinEnum.TRANSFERRED || coin.status == coinEnum.WITHDRAWING || coin.status == coinEnum.WITHDRAWN) {
+        return "fancy-label fancy-label-red";
+      } else if (coin.status == coinEnum.CONFIRMED) {
+        return "fancy-label fancy-label-green";
+      }
+
+      return "fancy-label fancy-label-orange";
+    }
 
     let coinList = coinsClone.map((coin, index) => 
       <div key={index}>
@@ -164,7 +176,7 @@ export default function WalletControl({wallet}) {
           <li>Deposit address: {coin.aggregated_address}</li>
           <li>Statechain_id: {coin.statechain_id}</li>
           <li>Amount: {coin.amount}</li>
-          <li>Status: {coin.status}</li>
+          <li>Status: <span class={getLabel(coin)}>{coin.status}</span></li>
           <li>SE Address: {coin.address}</li>
           <li>Locktime: {coin.locktime}</li>
           <li style={{marginTop: 5}}>{actionButtons(coin)}</li>
@@ -185,9 +197,10 @@ export default function WalletControl({wallet}) {
       </ul>;
 
     return (
-        <div style={{marginTop: 15}}>
+        <div style={{marginTop: 15, padding: 15}}>
             <div key={wallet.name}>
-                <span>Name: {wallet.name}</span> -  <span>blockheight: {wallet.blockheight}</span>
+                <h3>Name: {wallet.name}</h3>
+                <div>blockheight: {wallet.blockheight}</div>
             </div>
             <div>{newDepositAddrButton} {newTransferAddrButton}</div>
             <h3 style={{marginTop: 20}}>Coins</h3>

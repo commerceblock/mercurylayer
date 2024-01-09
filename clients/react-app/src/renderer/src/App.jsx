@@ -5,6 +5,7 @@ import { walletActions } from './store/wallet'
 
 import CreateWallet from './components/CreateWallet'
 import WalletList from './components/WalletList'
+import WalletPage from './pages/WalletPage'
 import { useEffect, useState, useRef } from 'react'
 
 import init from 'mercury-wasm';
@@ -13,6 +14,14 @@ import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 import coinStatus from './logic/coinStatus';
 
 import transferReceive from './logic/transferReceive'
+
+import RootLayout from './pages/Root'
+
+import {
+  createBrowserRouter,
+  RouterProvider
+} from 'react-router-dom'
+
 
 function App() {
   const dispatch = useDispatch();
@@ -85,14 +94,24 @@ function App() {
     }
   }, [backupTxs]);
 
-  return (
-    <div className="container">
+  const router = createBrowserRouter([
+    { 
+      path: '/', 
+      element: <RootLayout />,
+      children: [
+        { path: '', element: () => <div></div> },
+        { path: 'wallets/:walletName', element: <WalletPage /> }
+      ]
+    }
+  ])
 
-      <CreateWallet />
-      <WalletList style={{marginTop: 10}} />
+  return <RouterProvider router={router} />;
+    {/*<div className="container">
 
-    </div>
-  )
+       <CreateWallet />
+      <WalletList style={{marginTop: 10}} /> 
+
+    </div>*/}
 }
 
 export default App
