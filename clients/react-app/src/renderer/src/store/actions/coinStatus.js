@@ -1,7 +1,6 @@
-import thunks from '../thunks';
-import utils from '../utils';
-import coinStatus from '../../logic/coinStatus';
-import coinEnum from './../../logic/coinEnum.js';
+import utils from '../utils.js';
+import coinStatus from '../../logic/coinStatus.js';
+import coinEnum from '../../logic/coinEnum.js';
 
 const handleDepositConfirmation = (state, depositResult) => {
 
@@ -54,20 +53,19 @@ const handleWithdrawalOrTransferConfirmation = (state, withdrawalResult) => {
     wallet.coins[matchingIndex] = newCoin;
 }
 
-const handleConfirmation = (builder) => {
+const handleConfirmation = (state, action) => {
 
-    builder.addCase(thunks.updateCoins.fulfilled, (state, action) => {
-        console.log('updateCoins action.payload', action.payload);
+    console.log('updateCoins action.payload', action.payload);
 
-        for (let i = 0; i < action.payload.length; i++) {
-            if (action.payload[i].action == coinStatus.Actions.DEPOSIT_CONFIMED) {
-                handleDepositConfirmation(state, action.payload[i]);
-            } else if (action.payload[i].action == coinStatus.Actions.WITHDRAWAL_CONFIMED || 
-                action.payload[i].action == coinStatus.Actions.TRANSFER_CONFIMED) {
-                handleWithdrawalOrTransferConfirmation(state, action.payload[i]);
-            }
-        }  
-    })
+    for (let i = 0; i < action.payload.length; i++) {
+        if (action.payload[i].action == coinStatus.Actions.DEPOSIT_CONFIMED) {
+            handleDepositConfirmation(state, action.payload[i]);
+        } else if (action.payload[i].action == coinStatus.Actions.WITHDRAWAL_CONFIMED || 
+            action.payload[i].action == coinStatus.Actions.TRANSFER_CONFIMED) {
+            handleWithdrawalOrTransferConfirmation(state, action.payload[i]);
+        }
+    }  
+
 }
 
 export default { handleConfirmation };

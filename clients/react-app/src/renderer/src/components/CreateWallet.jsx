@@ -3,9 +3,7 @@ import { walletActions } from '../store/wallet'
 
 import { useState } from 'react'
 
-// import wallet_manager from './../logic/walletManager';
-
-import thunks from '../store/thunks';
+import wallet_manager from './../logic/walletManager';
 
 export default function CreateWallet() {
 
@@ -28,7 +26,12 @@ export default function CreateWallet() {
 
         setIsCreatingWallet(true);
 
-        await dispatch(thunks.createWallet(walletName));
+        // await dispatch(thunks.createWallet(walletName));
+
+        let wallet = await wallet_manager.createWallet(walletName);
+
+        await dispatch(walletActions.createWallet(wallet));
+
 
         setIsCreatingWallet(false);
         setWalletName('');

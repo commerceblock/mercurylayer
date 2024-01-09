@@ -1,8 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import thunks from './thunks';
-import coinStatus from './fulfilled_thunks/coinStatus';
+import coinStatus from './actions/coinStatus';
 import utils from './utils';
-import withdraw from '../logic/withdraw';
 
 const initialState = {
     wallets: [],
@@ -23,11 +21,23 @@ const walletSlice = createSlice({
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
             wallet.coins.push(action.payload.newCoin);
         },
+
+        createWallet(state, action) {
+            state.wallets.push(action.payload);
+        },
+
+        newDepositAddress(state, action) {
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+            wallet.coins.push(action.payload.coin);
+        },
+
+        coinStatus(state, action) {
+            coinStatus.handleConfirmation(state, action);
+        },
+
         transferReceive(state, action) {
 
             let coinsUpdated = action.payload.coinsUpdated;
-
-            console.log('transferReceive coinsUpdated', coinsUpdated);
 
             for (let i = 0; i < coinsUpdated.length; i++) {
                 let coinInfo = coinsUpdated[i];
@@ -39,8 +49,6 @@ const walletSlice = createSlice({
 
         withdraw(state, action) {
 
-            console.log('--> withdraw action.payload', action.payload);
-
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
             let updatedCoin = action.payload.updatedCoin;
@@ -51,11 +59,9 @@ const walletSlice = createSlice({
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
 
-        }
+        },
 
-        /*broadcastBackupTransaction(state, action) {
-
-            console.log('broadcastBackupTransaction action.payload', action.payload);
+        broadcastBackupTransaction(state, action) {
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
@@ -66,35 +72,9 @@ const walletSlice = createSlice({
             if (action.payload.activity) {
                 wallet.activities.push(action.payload.activity);
             }
-        }*/
-    },
-    extraReducers: (builder) => {
-        builder.addCase(thunks.createWallet.fulfilled, (state, action) => {
-            state.wallets.push(action.payload);
-        })
+        },
 
-        builder.addCase(thunks.newDepositAddress.fulfilled, (state, action) => {
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
-            wallet.coins.push(action.payload.coin);
-        })
-
-        coinStatus.handleConfirmation(builder);
-
-        builder.addCase(thunks.broadcastBackupTransaction.fulfilled, (state, action) => {
-            console.log('updateCoins action.payload', action.payload);
-
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
-
-            let newCoin = action.payload.newCoin;
-                        
-            utils.updateCoin(newCoin, wallet);
-
-            if (action.payload.activity) {
-                wallet.activities.push(action.payload.activity);
-            }
-        })
-
-        builder.addCase(thunks.executeTransferSend.fulfilled, (state, action) => {
+        transfer(state, action) {
             console.log('--> executeTransferSend action.payload', action.payload);
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
@@ -106,7 +86,7 @@ const walletSlice = createSlice({
             wallet.activities.push(action.payload.activity);
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
-        })
+        }
     }
 });
 

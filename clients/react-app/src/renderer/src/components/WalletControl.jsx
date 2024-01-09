@@ -1,8 +1,6 @@
 import { useDispatch } from 'react-redux'
 import { useState } from 'react'
 
-import thunks from '../store/thunks';
-
 import WalletActivity from './WalletActivity';
 import CoinBackupTxs from './CoinBackupTxs';
 
@@ -13,7 +11,11 @@ import { walletActions } from '../store/wallet'
 
 import withdraw from '../logic/withdraw';
 
-// import transferSend from '../logic/transferSend';
+import deposit from './../logic/deposit';
+
+import broadcastBackupTx from '../logic/broadcastBackupTx';
+
+import transferSend from '../logic/transferSend';
 
 export default function WalletControl({wallet}) {
 
@@ -30,11 +32,11 @@ export default function WalletControl({wallet}) {
     const newDepositAddress = async () => {
 
       setIsGeneratingNewDepositAddress(true);
-      let payout = {
-        wallet,
-        amount: 10000
-      };
-      await dispatch(thunks.newDepositAddress(payout));
+
+      let amount = 10000;
+      let newAddress = await deposit.newAddress(wallet, amount);
+      await dispatch(walletActions.newDepositAddress(newAddress));
+
       setIsGeneratingNewDepositAddress(false);
     };
 
@@ -78,12 +80,15 @@ export default function WalletControl({wallet}) {
 
       setIsProcessingCoinRequest(true);
 
-      await dispatch(thunks.broadcastBackupTransaction({
+      let broadcastData = await broadcastBackupTx.execute(wallet, backupTxs, coin, toAddress);
+      await dispatch(walletActions.broadcastBackupTransaction(broadcastData));
+
+      /* await dispatch(thunks.broadcastBackupTransaction({
         wallet,
         backupTxs,
         coin,
         toAddress 
-      }));
+      })); */
 
       setToAddress("");
 
@@ -101,12 +106,8 @@ export default function WalletControl({wallet}) {
 
       setIsProcessingCoinRequest(true);
 
-      await dispatch(thunks.executeTransferSend({
-        wallet,
-        coin,
-        backupTxs,
-        toAddress 
-      }));
+      let transferData = await transferSend.execute(wallet, coin, backupTxs, toAddress);
+      await dispatch(walletActions.transfer(transferData));
 
       setToAddress("");
 

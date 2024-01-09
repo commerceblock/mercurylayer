@@ -3,16 +3,14 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { walletActions } from './store/wallet'
 
-
 import CreateWallet from './components/CreateWallet'
 import WalletList from './components/WalletList'
 import { useEffect, useState, useRef } from 'react'
 
-
 import init from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 
-import thunks from './store/thunks';
+import coinStatus from './logic/coinStatus';
 
 import transferReceive from './logic/transferReceive'
 
@@ -67,7 +65,9 @@ function App() {
       // console.log("coinsUpdated", coinsUpdated);
       await dispatch(walletActions.transferReceive({coinsUpdated}));
 
-      await dispatch(thunks.updateCoins(wallets));
+      let updatedStatus = await coinStatus.updateCoins(wallets);
+
+      await dispatch(walletActions.coinStatus(updatedStatus));
     };
 
     // Set up the interval
