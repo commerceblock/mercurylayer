@@ -31,11 +31,6 @@ async fn main() {
 
     let token_server = TokenServer::new().await;
 
-    sqlx::migrate!("./migrations")
-        .run(&token_server.pool)
-        .await
-        .unwrap();
-
     let _ = rocket::build()
         .mount("/", routes![
             endpoints::token::token_init,

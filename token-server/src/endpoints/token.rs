@@ -56,7 +56,7 @@ pub struct RTLData{
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RTLQuery{
-    pub createdAt: String,
+    pub createdAt: u64,
     pub delay: u64,
     pub pr: String,
     pub amount: u64,
@@ -69,8 +69,8 @@ pub struct RTLQuery{
     pub isFixedSatPrice: bool,
     pub deleteExpiredInvoice: bool,
     pub isExpired: bool,
-    pub paymentMethod: String,
-    pub paidAt: String,
+    pub paymentMethod: Option<String>,
+    pub paidAt: Option<String>,
     pub title: String,
     pub hash: String,
     pub fiatAmount: f64,
@@ -78,7 +78,7 @@ pub struct RTLQuery{
     pub onChainAddr: String,
     pub minConfirmations: u64,
     pub confirmations: u64,
-    pub txId: String,
+    pub txId: Option<String>,
     pub isPending: bool,
     pub extra: Extra,
 }
@@ -229,7 +229,7 @@ pub async fn query_lightning_payment(token_server: &State<TokenServer>, processo
     let path: String = "checkout/".to_string() + processor_id;
 
     let client: reqwest::Client = reqwest::Client::new();
-    let request = client.get(&format!("{}{}", processor_url, path));
+    let request = client.get(&format!("{}/{}", processor_url, path));
 
     let value = request.header("Api-Key", api_key).header("encodingtype","hex").send().await.unwrap().text().await.unwrap();
 
