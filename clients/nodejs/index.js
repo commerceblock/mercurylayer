@@ -84,23 +84,37 @@ async function main() {
 
     program.command('new-token')
     .description('Get new token.')
-    .action(async () => {
+    .argument('<wallet_name>', 'name of the wallet')
+    .action(async (wallet_name) => {
 
-      const token_id = await deposit.getToken();
-      console.log(JSON.stringify({token_id}));
+      const token = await deposit.getToken(db, wallet_name);
+      console.log(JSON.stringify(token));
 
       electrumClient.close();
       db.close();
     });
 
+    program.command('list-tokens')
+      .description("List wallet's tokens") 
+      .argument('<wallet_name>', 'name of the wallet')
+      .action(async (wallet_name) => {
+    
+        let wallet = await sqlite_manager.getWallet(db, wallet_name);
+
+        console.log(JSON.stringify(wallet.tokens));
+
+        electrumClient.close();
+        db.close();
+    
+    });
+
     program.command('new-deposit-address')
     .description('Get new deposit address. Used to fund a new statecoin.')
     .argument('<wallet_name>', 'name of the wallet')
-    .argument('<token_id>', 'token id of the deposit')
     .argument('<amount>', 'amount to deposit')
-    .action(async (wallet_name, token_id, amount) => {
+    .action(async (wallet_name, amount) => {
 
-      const address_info = await deposit.getDepositBitcoinAddress(db, wallet_name, token_id, amount);
+      const address_info = await deposit.getDepositBitcoinAddress(db, wallet_name, amount);
 
       console.log(JSON.stringify(address_info));
 

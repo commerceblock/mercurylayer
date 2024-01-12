@@ -23,15 +23,16 @@ pub struct Wallet {
     pub interval: u32,
     pub tokens: Vec<Token>,
     pub activities: Vec<Activity>,
-    pub coins: Vec<Coin>
+    pub coins: Vec<Coin>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Token {
     pub token_id: String,
-    pub value: u32,
     pub invoice: String,
-    pub confirmed: bool
+    pub processor_id: String,
+    pub confirmed: bool,
+    pub spent: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
