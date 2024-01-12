@@ -248,7 +248,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wall
     await createWallet(wallet_1_name);
     await createWallet(wallet_2_name);
 
-    // await walletTransfersMultipleTimesToItselfAndBroadcastsBackup(wallet_1_name);
+    await walletTransfersMultipleTimesToItselfAndBroadcastsBackup(wallet_1_name);
 
     await walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wallet_2_name)
 
