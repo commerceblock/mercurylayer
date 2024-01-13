@@ -15,10 +15,7 @@ export default function WalletList({ ...props }) {
 
     return (
         <div {...props}>
-            <Fragment key={wallet.name}>
-                <WalletControl  wallet={wallet} />
-                <hr />
-            </Fragment>
+            <WalletControl  wallet={wallet} />
         </div>
     )
 }

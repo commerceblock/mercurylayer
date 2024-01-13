@@ -15,7 +15,7 @@ export default function CoinBackupTxs({coin, walletName}) {
 
     let backupTxHTML = backupTxList.
         map((backupTx, index) => 
-            <div key={index}>
+            <div style={{marginTop: 10}} key={index}>
                 <span>Backup Tx {backupTx.tx_n}: {backupTx.tx.substring(0, 65)}...</span>
             </div>
         );
