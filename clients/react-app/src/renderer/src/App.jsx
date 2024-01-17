@@ -1,114 +1,157 @@
-
-
-import { useDispatch, useSelector } from 'react-redux'
-import { walletActions } from './store/wallet'
-
-import CreateWallet from './components/CreateWallet'
-import WalletPage from './pages/WalletPage'
-import  CoinPage from './pages/CoinPage'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect } from "react";
 
 import init from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 
-import coinStatus from './logic/coinStatus';
-
-import transferReceive from './logic/transferReceive'
-
-import RootLayout from './pages/Root'
-
 import {
-  createBrowserRouter,
-  RouterProvider
-} from 'react-router-dom'
-
+  Routes,
+  Route,
+  useNavigationType,
+  useLocation,
+} from "react-router-dom";
+import WelcomePage from "./pages/WelcomePage";
+import DepositPage from "./pages/DepositPage";
+import LoadWalletPage from "./pages/LoadWalletPage";
+import RecoverWalletFromSeedPage from "./pages/RecoverWalletFromSeedPage";
+import RecoverWalletFromBackupPage from "./pages/RecoverWalletFromBackupPage";
+import NewWalletPage from "./pages/NewWalletPage";
+import WalletDetailsPage from "./pages/WalletDetailsPage";
+import SeedPage from "./pages/SeedPage";
+import ConfirmSeedPage from "./pages/ConfirmSeedPage";
+import MainPage from "./pages/MainPage";
+import HelpAndSupportPage from "./pages/HelpAndSupportPage";
+import SettingsPage from "./pages/SettingsPage";
+import WithdrawPage from "./pages/WithdrawPage";
+import ReceivePage from "./pages/ReceivePage";
+import SendPage from "./pages/SendPage";
 
 function App() {
-  const dispatch = useDispatch();
-
-  const [areWalletsLoaded, setAreWalletLoaded] = useState(false)
-
-  const wallets = useSelector(state => state.wallet.wallets);
-
-  const backupTxs = useSelector(state => state.wallet.backupTxs);
-
-  const isUpdatingCoins = useRef(false);
+  const action = useNavigationType();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   useEffect(() => {
-
     const loadWasm = async () => {
       await init(wasmUrl);
     };
 
-    async function fetchWallets() {
-      const wallets = await window.api.getWallets();
-
-      await dispatch(walletActions.loadWallets(wallets));
-      
-      const backupTxs = await window.api.getAllBackupTxs();
-
-      await dispatch(walletActions.loadBackupTxs(backupTxs));
-
-      setAreWalletLoaded(true);
-    }
-
     loadWasm();
-    fetchWallets();
-
-  }, []);
+  }, [])
 
   useEffect(() => {
-    if (wallets && wallets.length > 0 && areWalletsLoaded) {
-      console.log("Syncing wallets");
-      window.api.syncWallets(wallets);
+    if (action !== "POP") {
+      window.scrollTo(0, 0);
     }
-
-    const executeFunction = async () => {
-
-      if (isUpdatingCoins.current) return;
-
-      isUpdatingCoins.current = true;
-      // Here, wallets will always reflect the latest state
-      console.log("UpdatingCoins");
-      let coinsUpdated = await transferReceive.execute(wallets);
-      // console.log("coinsUpdated", coinsUpdated);
-      await dispatch(walletActions.transferReceive({coinsUpdated}));
-
-      let updatedStatus = await coinStatus.updateCoins(wallets);
-
-      await dispatch(walletActions.coinStatus(updatedStatus));
-
-      isUpdatingCoins.current = false;
-    };
-
-    // Set up the interval
-    const interval = setInterval(() => {
-      executeFunction();
-    }, 5000);
-
-    // Clean up the interval on component unmount or wallets change
-    return () => clearInterval(interval);
-  }, [wallets]);
+  }, [action, pathname]);
 
   useEffect(() => {
-    if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
-      window.api.syncBackupTxs(backupTxs);
-    }
-  }, [backupTxs]);
+    let title = "";
+    let metaDescription = "";
 
-  const router = createBrowserRouter([
-    { 
-      path: '/', 
-      element: <RootLayout />,
-      children: [
-        { path: '', element: <div></div> },
-        { path: 'wallets/:walletName', element: <WalletPage /> },
-        { path: 'wallets/:walletName/:coinUserPubkey', element: <CoinPage /> }
-      ]
+    switch (pathname) {
+      case "/":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/depositpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/loadwalletpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/recoverwalletfromseedpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/recoverwalletfrombackuppage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/newwalletpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/new-wallet-2-create-password":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/new-wallet-3-wallet-seed":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/new-wallet-4-finalize-seed":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/mainpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/helpandsupportpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/settingspage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/withdrawpage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/receivepage":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/sendpage":
+        title = "";
+        metaDescription = "";
+        break;
     }
-  ])
 
-  return <RouterProvider router={router} />;
+    if (title) {
+      document.title = title;
+    }
+
+    if (metaDescription) {
+      const metaDescriptionTag = document.querySelector(
+        'head > meta[name="description"]'
+      );
+      if (metaDescriptionTag) {
+        metaDescriptionTag.content = metaDescription;
+      }
+    }
+  }, [pathname]);
+
+  return (
+    <Routes>
+      <Route path="/" element={<WelcomePage />} />
+      <Route path="/depositpage" element={<DepositPage />} />
+      <Route path="/loadwalletpage" element={<LoadWalletPage />} />
+      <Route
+        path="/recoverwalletfromseedpage"
+        element={<RecoverWalletFromSeedPage />}
+      />
+      <Route
+        path="/recoverwalletfrombackuppage"
+        element={<RecoverWalletFromBackupPage />}
+      />
+      <Route path="/newwalletpage" element={<NewWalletPage />} />
+      <Route
+        path="/new-wallet-2-create-password"
+        element={<WalletDetailsPage />}
+      />
+      <Route path="/new-wallet-3-wallet-seed" element={<SeedPage />} />
+      <Route path="/new-wallet-4-finalize-seed" element={<ConfirmSeedPage />} />
+      <Route path="/mainpage" element={<MainPage />} />
+      <Route path="/helpandsupportpage" element={<HelpAndSupportPage />} />
+      <Route path="/settingspage" element={<SettingsPage />} />
+      <Route path="/withdrawpage" element={<WithdrawPage />} />
+      <Route path="/receivepage" element={<ReceivePage />} />
+      <Route path="/sendpage" element={<SendPage />} />
+    </Routes>
+  );
 }
-
-export default App
+export default App;
