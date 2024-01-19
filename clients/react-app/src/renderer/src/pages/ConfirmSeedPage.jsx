@@ -32,17 +32,17 @@ const ConfirmSeedPage = () => {
     // get values from the wizard state
     console.log('wallet name being passed is:', wizardState.walletName);
     // call the create wallet method with the state values
-    let wallet = await wallet_manager.createWallet(wizardState.walletName);
+
+    let wallet = await wallet_manager.createWallet(wizardState.walletName, wizardState.mnemonic);
 
     await dispatch(walletActions.createWallet(wallet));
 
     // wipe the wizard state clean
-    /*
     await dispatch(wizardActions.setConfirmPassword(false));
     await dispatch(wizardActions.setTermsConfirmation(false));
     await dispatch(wizardActions.setPassword(''));
     await dispatch(wizardActions.setConfirmPassword(''));
-    await dispatch(wizardActions.setWalletName(''));*/
+    await dispatch(wizardActions.setWalletName(''));
 
 
     navigate("/mainpage");
@@ -93,6 +93,30 @@ const ConfirmSeedPage = () => {
           <div className="absolute top-[calc(50%_-_19.5px)] left-[calc(50%_-_36.5px)] font-extralight text-white">
             3
           </div>
+        </div>
+        <div className="w-[400px] flex flex-row items-center justify-center p-2.5 box-border">
+          <section className="relative text-sm text-black text-left inline-block w-[391px] shrink-0 font-body">
+            <p className="m-0">{`The list of 12 words below is the recovery seed key for the wallet you are creating. `}</p>
+            <p className="m-0">
+              <b>&nbsp;</b>
+            </p>
+            <p className="m-0">
+              <b>
+                Carefully write down and store your seed somewhere safe, as it
+                provides access to your wallet.
+              </b>
+            </p>
+            <p className="m-0">&nbsp;</p>
+            <p className="m-0">
+              For best practice, never store it online or on the same computer as
+              the wallet. The seed key is the only way to recover your wallet if
+              your computer is lost, stolen or stops working. There is no way to
+              recover the seed if lost.
+            </p>
+            <p>
+
+            </p>
+          </section>
         </div>
       </div>
       <NavBar

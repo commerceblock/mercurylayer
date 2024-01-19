@@ -1,7 +1,12 @@
 
 import * as mercury_wasm from 'mercury-wasm';
 
-const createWallet = async (name) => {
+const createMnemonic = async () => {
+    let mnemonic = mercury_wasm.generateMnemonic();
+    return mnemonic;
+}
+
+const createWallet = async (name, mnemonic) => {
 
     let block_header = await window.api.electrumRequest({
         method: 'blockchain.headers.subscribe',
@@ -12,8 +17,6 @@ const createWallet = async (name) => {
     let serverInfo = await window.api.infoConfig();
 
     let configFile = await window.api.getConfigFile();
-
-    let mnemonic = mercury_wasm.generateMnemonic();
 
     let electrumEndpoint = configFile.electrumServer;
     let statechainEntityEndpoint = configFile.statechainEntity;
@@ -37,4 +40,4 @@ const createWallet = async (name) => {
     return wallet;
 };
 
-export default { createWallet };
+export default { createWallet, createMnemonic };

@@ -20,38 +20,38 @@ export default function CreateWallet() {
     const createWallet = async () => {
 
         if (walletName === '') {
-          alert('Please enter a wallet name');
-          return;
+            alert('Please enter a wallet name');
+            return;
         }
 
         setIsCreatingWallet(true);
 
-        // await dispatch(thunks.createWallet(walletName));
+        let mnemonic = await wallet_manager.createMnemonic();
 
-        let wallet = await wallet_manager.createWallet(walletName);
+        let wallet = await wallet_manager.createWallet(walletName, mnemonic);
 
         await dispatch(walletActions.createWallet(wallet));
 
 
         setIsCreatingWallet(false);
         setWalletName('');
-      };
-      
+    };
 
-    
+
+
 
     return (
         <div className="feature-item custom-header">
             <article>
                 <h2 className="title">Mercury Layer</h2>
                 <p className="detail">
-                    Statechain is a layer 2 solution for Bitcoin. 
+                    Statechain is a layer 2 solution for Bitcoin.
                 </p>
                 <div style={{ marginTop: '10px' }}>
-                    <input type="text" placeholder="Wallet Name" onChange={walletNameChangeHandler} value={walletName} style={{ marginRight: '30px' }}  className="fancy-input"/>
+                    <input type="text" placeholder="Wallet Name" onChange={walletNameChangeHandler} value={walletName} style={{ marginRight: '30px' }} className="fancy-input" />
 
                     {!isCreatingWallet && <button onClick={createWallet} className="fancy-button">Create Wallet</button>}
-                    {isCreatingWallet &&<span>Creating wallet ...</span>}
+                    {isCreatingWallet && <span>Creating wallet ...</span>}
                 </div>
 
             </article>

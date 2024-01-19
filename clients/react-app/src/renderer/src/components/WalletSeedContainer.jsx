@@ -1,4 +1,30 @@
+import { useEffect } from "react";
+import wizard, { wizardActions } from "../store/wizard";
+import wallet_manager from './../logic/walletManager';
+import { useDispatch, useSelector } from "react-redux";
+import DisplaySeed from "./DisplaySeed";
+
 const WalletSeedContainer = () => {
+
+  const wizardState = useSelector((state) => state.wizard);
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        let mnemonic = await wallet_manager.createMnemonic();
+        await dispatch(wizardActions.setMnemonic(mnemonic));
+        console.log('created a key:', mnemonic);
+      } catch (error) {
+        // Handle any errors that might occur during the asynchronous operations
+        console.error('Error:', error);
+      }
+    };
+
+    fetchData();
+  }, [dispatch]);
+
   return (
     <div className="absolute w-[calc(100%_-_60px)] top-[110px] right-[23px] left-[37px] flex flex-col items-center justify-center gap-[14px] text-left text-sm text-gray-400 font-body">
       <div className="w-[368px] flex flex-row items-start justify-start gap-[48px]">
@@ -48,6 +74,9 @@ const WalletSeedContainer = () => {
             the wallet. The seed key is the only way to recover your wallet if
             your computer is lost, stolen or stops working. There is no way to
             recover the seed if lost.
+          </p>
+          <p>
+            {wizardState && wizardState.mnemonic && <DisplaySeed mnemonic={wizardState.mnemonic} />}
           </p>
         </section>
       </div>

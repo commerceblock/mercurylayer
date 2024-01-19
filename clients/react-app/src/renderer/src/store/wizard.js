@@ -6,7 +6,8 @@ const initialState = {
     walletName: '',
     password: '',
     confirmPassword: '',
-    termsConfirmation: false
+    termsConfirmation: false,
+    mnemonic: ''
 };
 
 const wizardSlice = createSlice({
@@ -31,6 +32,9 @@ const wizardSlice = createSlice({
         setTermsConfirmation(state, action) {
             state.termsConfirmation = action.payload;
         },
+        setMnemonic(state, action) {
+            state.mnemonic = action.payload;
+        }
     },
 });
 
