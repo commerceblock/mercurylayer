@@ -5,7 +5,7 @@ const MainDashHeaderContainer = () => {
   const navigate = useNavigate();
 
   const onDepositButtonContainerClick = useCallback(() => {
-    navigate("/depositpage");
+    navigate("/depositpage-step-1");
   }, [navigate]);
 
   const onWithdrawButtonContainerClick = useCallback(() => {

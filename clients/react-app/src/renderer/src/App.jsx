@@ -10,7 +10,11 @@ import {
   useLocation,
 } from "react-router-dom";
 import WelcomePage from "./pages/WelcomePage";
-import DepositPage from "./pages/DepositPage";
+
+import DepositPageStep1 from "./pages/DepositPageStep1";
+import DepositPageStep2 from "./pages/DepositPageStep2";
+import DepositPageStep3 from "./pages/DepositPageStep3";
+
 import LoadWalletPage from "./pages/LoadWalletPage";
 import RecoverWalletFromSeedPage from "./pages/RecoverWalletFromSeedPage";
 import RecoverWalletFromBackupPage from "./pages/RecoverWalletFromBackupPage";
@@ -53,7 +57,15 @@ function App() {
         title = "";
         metaDescription = "";
         break;
-      case "/depositpage":
+      case "/depositpage-step-2":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/depositpage-step-3":
+        title = "";
+        metaDescription = "";
+        break;
+      case "/depositpage-step-1":
         title = "";
         metaDescription = "";
         break;
@@ -128,7 +140,9 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<WelcomePage />} />
-      <Route path="/depositpage" element={<DepositPage />} />
+      <Route path="/depositpage-step-2" element={<DepositPageStep2 />} />
+      <Route path="/depositpage-step-3" element={<DepositPageStep3 />} />
+      <Route path="/depositpage-step-1" element={<DepositPageStep1 />} />
       <Route path="/loadwalletpage" element={<LoadWalletPage />} />
       <Route
         path="/recoverwalletfromseedpage"
