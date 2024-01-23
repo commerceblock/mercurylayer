@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import walletReducer from './wallet';
 import wizardReducer from './wizard';
+import depositReducer from './deposit';
 
 const store = configureStore({
     reducer: {
         wallet: walletReducer,
-        wizard: wizardReducer
+        wizard: wizardReducer,
+        deposit: depositReducer
     }
 });
 
