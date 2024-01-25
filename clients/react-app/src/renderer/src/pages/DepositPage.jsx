@@ -1,11 +1,36 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import TokenInfoCard from "../components/TokenInfoCard";
+import { useDispatch, useSelector } from 'react-redux';
+import { depositActions } from '../store/deposit';
 
 const DepositPage = () => {
+  const dispatch = useDispatch();
+  const pending_tokens = useSelector(state => state.deposit.pending_tokens);
+
   const navigate = useNavigate();
+  const [showNoTokenWindow, setShowNoTokenWindow] = useState(false);
+
+  const onCloseNoTokenWindow = useCallback(() => {
+    setShowNoTokenWindow(false);
+  }, []);
+
+  useEffect(() => {
+    if (pending_tokens.length === 0 || !pending_tokens.some(token => !token.paid)) {
+      const newToken = {
+        token_id: '999999-999999-999999',
+        fee: 0.005,
+        invoice: 'ln9999-9999-9999',
+        processor_id: '999999-999999-99999',
+        confirmed: false,
+        spent: false
+      };
+      // Dispatch the action to add the new token to the state
+      dispatch(depositActions.addPendingToken(newToken));
+    }
+  }, [dispatch, pending_tokens]);
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate("/helpandsupportpage");
@@ -24,8 +49,12 @@ const DepositPage = () => {
   }, [navigate]);
 
   const onContinueButtonClick = useCallback(() => {
-    navigate("/depositpage1");
-  }, [navigate]);
+    if (pending_tokens.some(token => !token.confirmed)) {
+      setShowNoTokenWindow(true);
+    } else {
+      navigate("/depositpage1");
+    }
+  }, [navigate, pending_tokens]);
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[33px] text-left text-sm text-white font-body-small">
@@ -81,19 +110,42 @@ const DepositPage = () => {
           </div>
         </div>
       </div>
-      <div className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
-        <TokenInfoCard />
-      </div>
+      {
+        pending_tokens.map((token, index) => (
+          <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+            <TokenInfoCard
+              key={index}
+              status={token.status}
+              fee={token.fee}
+              ln_invoice={token.ln_invoice}
+              token_id={token.token_id}
+              processor_id={token.processor_id}
+            />
+          </div>
+        ))
+      }
       <div className="self-stretch flex-1 overflow-hidden flex flex-col items-end justify-center p-2.5">
         <button
-          className="cursor-pointer [border:none] p-0 bg-mediumslateblue-200 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end"
+          className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end ${pending_tokens.some(token => !token.confirmed) ? 'bg-mediumslateblue-50' : 'bg-mediumslateblue-200'
+            }`}
           onClick={onContinueButtonClick}
         >
           <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
             CONTINUE
           </div>
         </button>
+
       </div>
+
+      {showNoTokenWindow && (
+        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded-md text-black">
+            <p>No token has been paid. Please pay at least one token before continuing.</p>
+            <button className='cursor-pointer shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] tracking-[-0.02em] leading-[22px] text-white bg-mediumslateblue-200' onClick={onCloseNoTokenWindow}>OK</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
