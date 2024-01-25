@@ -20,10 +20,11 @@ const DepositPage = () => {
   useEffect(() => {
     if (pending_tokens.length === 0 || !pending_tokens.some(token => !token.paid)) {
       const newToken = {
-        token_id: '999999-999999-999999',
-        fee: 0.005,
-        invoice: 'ln9999-9999-9999',
-        processor_id: '999999-999999-99999',
+        btc_payment_address: "bc1qlahxpat3c75w40xljut960j7wjjj6v3yrxf363",
+        token_id: "d6d439b1-26af-4998-9f88-7b1669c8c5c3",
+        fee: "0.001",
+        lightning_invoice: "lnbc1m1pjm9qf0pp57qj9rn5de39wvk6fee4jthmrn235448hf9ktg449dx80wr423saqdp6vsmxgdpn893rztfjxeskvtf58yunstfevcurstfhvgcnvd3evvuxxdtrxvcqzzsxqyz5vqsp5agkaun03wwqgdfh90v4yy5a4kmd7s765d03juxjp707slat69ecs9qyyssqqe92acfupthekjhudlc9ysqua9jlwd76ms689dv6ma9xtgg5aprzvn8w669qhcrshpn96zwah6wdkuafp0wxwdfxmq48hfecjvtwe3cq5345xy",
+        processor_id: "f02451ce8dcc4ae65b49ce6b25df639aa34ad4f7496cb456a5698ef70eaa8c3a",
         confirmed: false,
         spent: false
       };
@@ -117,9 +118,10 @@ const DepositPage = () => {
               key={index}
               status={token.status}
               fee={token.fee}
-              ln_invoice={token.ln_invoice}
+              invoice={token.invoice}
               token_id={token.token_id}
               processor_id={token.processor_id}
+              bitcoin_address={token.btc_payment_address}
             />
           </div>
         ))
