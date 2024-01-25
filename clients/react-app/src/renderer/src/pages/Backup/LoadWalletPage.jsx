@@ -1,11 +1,17 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadWalletContainer from "../components/LoadWalletContainer";
 import NavBar from "../components/NavBar";
-import SettingsHeaderPanel from "../components/SettingsHeaderPanel";
-import SettingsInfoPanel from "../components/SettingsInfoPanel";
+import { useSelector } from "react-redux";
 
-const SettingsPage = () => {
+const LoadWalletPage = () => {
+  const wallets = useSelector(state => state.wallet.wallets);
+
   const navigate = useNavigate();
+
+  const onNavNavMenuClick = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate("/helpandsupportpage");
@@ -19,24 +25,21 @@ const SettingsPage = () => {
     navigate("/");
   }, [navigate]);
 
+  const walletLoaded = wallets.length > 0; // Determine if wallets are present
+
   return (
-    <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[24px]">
+    <div className="relative bg-whitesmoke w-full h-[926px] overflow-hidden">
+      <LoadWalletContainer walletLoaded={walletLoaded} />
       <NavBar
+        propCursor="pointer"
+        onNavNavMenuClick={onNavNavMenuClick}
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        showLogoutButton
-        showSettingsButton
-        showHelpButton
+        loggedIn
       />
-      <div className="self-stretch flex flex-col items-start justify-start p-2.5">
-        <SettingsHeaderPanel />
-      </div>
-      <div className="self-stretch flex-1 flex flex-col items-center justify-start py-5 px-2.5">
-        <SettingsInfoPanel />
-      </div>
     </div>
   );
 };
 
-export default SettingsPage;
+export default LoadWalletPage;

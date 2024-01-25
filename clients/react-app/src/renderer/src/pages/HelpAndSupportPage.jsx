@@ -1,14 +1,11 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import HelpSupportHeaderContainer from "../components/HelpSupportHeaderContainer";
 import NavBar from "../components/NavBar";
+import HelpSupportHeaderPanel from "../components/HelpSupportHeaderPanel";
+import HelpInfoPanel from "../components/HelpInfoPanel";
 
 const HelpAndSupportPage = () => {
   const navigate = useNavigate();
-
-  const onSeed8ContainerClick = useCallback(() => {
-    navigate("/mainpage");
-  }, [navigate]);
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate("/helpandsupportpage");
@@ -23,28 +20,21 @@ const HelpAndSupportPage = () => {
   }, [navigate]);
 
   return (
-    <div className="relative bg-whitesmoke w-full h-[926px]">
-      <HelpSupportHeaderContainer
-        topContainerHelpSupportWidth="calc(100% - 48px)"
-        topContainerHelpSupportPosition="absolute"
-        topContainerHelpSupportTop="90px"
-        topContainerHelpSupportRight="24px"
-        topContainerHelpSupportLeft="24px"
-        topContainerHelpSupportHeight="117px"
-        topContainerTitleHeight="unset"
-        topContainerTitlePadding="10px"
-        topContainerTitleFlex="1"
-        topContainerTitleHeight1="unset"
-        topContainerTitleFlex1="1"
-        onSeed8ContainerClick={onSeed8ContainerClick}
-      />
+    <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[17px]">
       <NavBar
-        propCursor="unset"
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        loggedIn
+        showLogoutButton
+        showSettingsButton
+        showHelpButton
       />
+      <div className="self-stretch h-[137px] flex flex-col items-start justify-start p-2.5 box-border">
+        <HelpSupportHeaderPanel />
+      </div>
+      <div className="self-stretch flex-1 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-col items-center justify-start py-5 px-2.5">
+        <HelpInfoPanel />
+      </div>
     </div>
   );
 };

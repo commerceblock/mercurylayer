@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import MainDashHeaderContainer from "../components/MainDashHeaderContainer";
 import NavBar from "../components/NavBar";
+import MainHeaderPanel from "../components/MainHeaderPanel";
+import ConnectionsPanel from "../components/ConnectionsPanel";
+import MainInfoPanel from "../components/MainInfoPanel";
 
 const MainPage = () => {
   const navigate = useNavigate();
@@ -19,15 +21,24 @@ const MainPage = () => {
   }, [navigate]);
 
   return (
-    <div className="relative bg-whitesmoke w-full h-[926px]">
-      <MainDashHeaderContainer />
+    <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[5px]">
       <NavBar
-        propCursor="unset"
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        loggedIn
+        showLogoutButton
+        showSettingsButton
+        showHelpButton
       />
+      <div className="self-stretch overflow-hidden flex flex-row items-center justify-start p-2.5">
+        <MainHeaderPanel />
+      </div>
+      <div className="self-stretch overflow-hidden flex flex-row items-center justify-center p-2.5">
+        <ConnectionsPanel />
+      </div>
+      <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start p-2.5">
+        <MainInfoPanel />
+      </div>
     </div>
   );
 };

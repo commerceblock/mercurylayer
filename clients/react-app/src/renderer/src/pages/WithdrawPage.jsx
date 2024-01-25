@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import WithdrawHeaderContainer from "../components/WithdrawHeaderContainer";
 import NavBar from "../components/NavBar";
+import WithdrawBTCPanel from "../components/WithdrawBTCPanel";
+import WithdrawStatecoinsInfoPanel from "../components/WithdrawStatecoinsInfoPanel";
 
 const WithdrawPage = () => {
   const navigate = useNavigate();
@@ -19,15 +20,21 @@ const WithdrawPage = () => {
   }, [navigate]);
 
   return (
-    <div className="relative bg-whitesmoke w-full h-[926px]">
-      <WithdrawHeaderContainer />
+    <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[25px]">
       <NavBar
-        propCursor="unset"
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        loggedIn
+        showLogoutButton
+        showSettingsButton
+        showHelpButton
       />
+      <div className="self-stretch h-[125px] flex flex-col items-start justify-start py-0 px-5 box-border">
+        <WithdrawBTCPanel />
+      </div>
+      <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start p-5">
+        <WithdrawStatecoinsInfoPanel />
+      </div>
     </div>
   );
 };

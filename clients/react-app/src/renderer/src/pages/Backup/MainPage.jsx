@@ -1,10 +1,9 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import MainDashHeaderContainer from "../components/MainDashHeaderContainer";
 import NavBar from "../components/NavBar";
-import SettingsHeaderPanel from "../components/SettingsHeaderPanel";
-import SettingsInfoPanel from "../components/SettingsInfoPanel";
 
-const SettingsPage = () => {
+const MainPage = () => {
   const navigate = useNavigate();
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -20,23 +19,17 @@ const SettingsPage = () => {
   }, [navigate]);
 
   return (
-    <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[24px]">
+    <div className="relative bg-whitesmoke w-full h-[926px]">
+      <MainDashHeaderContainer />
       <NavBar
+        propCursor="unset"
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        showLogoutButton
-        showSettingsButton
-        showHelpButton
+        loggedIn
       />
-      <div className="self-stretch flex flex-col items-start justify-start p-2.5">
-        <SettingsHeaderPanel />
-      </div>
-      <div className="self-stretch flex-1 flex flex-col items-center justify-start py-5 px-2.5">
-        <SettingsInfoPanel />
-      </div>
     </div>
   );
 };
 
-export default SettingsPage;
+export default MainPage;

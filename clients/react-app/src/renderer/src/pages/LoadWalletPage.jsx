@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import LoadWalletContainer from "../components/LoadWalletContainer";
 import NavBar from "../components/NavBar";
+import WalletLoadContainer from "../components/WalletLoadContainer";
 import { useSelector } from "react-redux";
 
 const LoadWalletPage = () => {
@@ -28,16 +28,17 @@ const LoadWalletPage = () => {
   const walletLoaded = wallets.length > 0; // Determine if wallets are present
 
   return (
-    <div className="relative bg-whitesmoke w-full h-[926px] overflow-hidden">
-      <LoadWalletContainer walletLoaded={walletLoaded} />
+    <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[82px]">
       <NavBar
-        propCursor="pointer"
         onNavNavMenuClick={onNavNavMenuClick}
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
         onLogoutButtonIconClick={onLogoutButtonIconClick}
-        loggedIn
+        showLogoutButton={false}
+        showSettingsButton={false}
+        showHelpButton={false}
       />
+      <WalletLoadContainer walletLoaded={walletLoaded} />
     </div>
   );
 };
