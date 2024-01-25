@@ -26,7 +26,7 @@ const MainHeaderPanel = () => {
         <img
           className="w-[15px] relative h-[15px] object-cover"
           alt=""
-          src="/statecoinicon@2x.png"
+          src="/withdrawbtcicon@2x.png"
         />
         <div className="relative">0 BTC</div>
         <div className="relative text-3xs text-gray-100">
@@ -44,7 +44,7 @@ const MainHeaderPanel = () => {
             className="w-20 rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border cursor-pointer"
             onClick={onDepositButtonContainerClick}
           >
-            <img className="w-3 relative h-3" alt="" src="/icon1.svg" />
+            <img className="w-3 relative h-3" alt="" src="/pluscircle@2x.png" />
             <div className="self-stretch w-[49px] relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center shrink-0">
               Deposit
             </div>
@@ -53,7 +53,7 @@ const MainHeaderPanel = () => {
             className="w-20 rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border cursor-pointer"
             onClick={onWithdrawButtonContainerClick}
           >
-            <img className="w-3 relative h-3" alt="" src="/icon2.svg" />
+            <img className="w-3 relative h-3" alt="" src="/frame-11@2x.png" />
             <div className="self-stretch w-[59px] relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center shrink-0">
               Withdraw
             </div>
