@@ -42,7 +42,7 @@ const DepositPage = () => {
             spent: false
           },
           statecoin_amount: 0.001,
-          btc_address: 'bc0000000000000000000001',
+          btc_address: 'bc10000000000000000000000000000000000000000',
           description: 'Add a description'
         }
         dispatch(depositActions.addDeposit(newDeposit));

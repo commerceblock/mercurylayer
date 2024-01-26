@@ -4,9 +4,9 @@ import NavBar from "../components/NavBar";
 import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import ChooseAmountCard from "../components/ChooseAmountCard";
 import { useDispatch, useSelector } from 'react-redux';
-import deposit, { depositActions } from "../store/deposit";
+//import deposit, { depositActions } from "../store/deposit";
 import wallet, { walletActions } from '../store/wallet';
-import depositLogic from './../logic/deposit';
+import deposit from './../logic/deposit';
 
 const DepositPage1 = () => {
 
@@ -44,9 +44,13 @@ const DepositPage1 = () => {
     setSelectedStatecoin(amount);
   };
 
-  const handleConfirmation = useCallback(() => {
+  const handleConfirmation = useCallback(async () => {
     // Perform the action on confirmation
     console.log('Confirmed');
+
+    // For every pending_deposit and their selectedStatecoin, get their tokenId as well
+    // let depositAddress = await deposit.newAddress(wallet, selectedStatecoin, tokenId);
+
     // Add logic to create the statecoin and use up the token here
     navigate("/depositpage2");
   }, [navigate]);
