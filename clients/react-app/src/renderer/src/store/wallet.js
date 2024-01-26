@@ -3,6 +3,7 @@ import coinStatus from './actions/coinStatus';
 import utils from './utils';
 
 const initialState = {
+    selectedWallet: 'v123',
     wallets: [],
     backupTxs: []
 };
@@ -52,9 +53,9 @@ const walletSlice = createSlice({
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
             let updatedCoin = action.payload.updatedCoin;
-                        
+
             utils.updateCoin(updatedCoin, wallet);
-            
+
             wallet.activities.push(action.payload.activity);
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
@@ -66,7 +67,7 @@ const walletSlice = createSlice({
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
             let newCoin = action.payload.newCoin;
-                        
+
             utils.updateCoin(newCoin, wallet);
 
             if (action.payload.activity) {
@@ -80,9 +81,9 @@ const walletSlice = createSlice({
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
             let updatedCoin = action.payload.updatedCoin;
-                        
+
             utils.updateCoin(updatedCoin, wallet);
-            
+
             wallet.activities.push(action.payload.activity);
 
             utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);

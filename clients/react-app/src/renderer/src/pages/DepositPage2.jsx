@@ -3,8 +3,12 @@ import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import DepositBitcoinCard from "../components/DepositBitcoinCard";
+import { useDispatch, useSelector } from 'react-redux';
+import deposit from './../logic/deposit';
 
 const DepositPage2 = () => {
+  const dispatch = useDispatch();
+  const pending_deposits = useSelector((state) => state.deposit.pending_deposits);
   const navigate = useNavigate();
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -81,9 +85,16 @@ const DepositPage2 = () => {
           </div>
         </div>
       </div>
-      <div className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
-        <DepositBitcoinCard />
-      </div>
+
+      {
+        pending_deposits.map((deposit, index) => (
+          <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+            <DepositBitcoinCard key={index} address={deposit.btc_address} amount={deposit.statecoin_amount} description={deposit.description} />
+          </div>
+        ))
+      }
+
+
       <div className="self-stretch flex-1 overflow-hidden flex flex-col items-end justify-center p-2.5">
         <button
           className="cursor-pointer [border:none] p-0 bg-mediumslateblue-200 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end"

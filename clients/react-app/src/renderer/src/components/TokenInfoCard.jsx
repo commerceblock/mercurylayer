@@ -17,16 +17,16 @@ const TokenInfoCard = ({ confirmed, fee, invoice, token_id, processor_id, bitcoi
           <div className="self-stretch flex-1 overflow-hidden flex flex-col items-center justify-center p-2.5 gap-[10px]">
             <div className="relative">Pay by Lightning</div>
             <QRCodeSVG value={invoice} />
-            <div className="rounded-sm bg-darkgray-500 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center p-2.5">
+            <button className="cursor-pointer rounded-sm bg-darkgray-500 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center p-2.5">
               <div className="relative">Copy Invoice</div>
-            </div>
+            </button>
           </div>
           <div className="self-stretch flex-1 overflow-hidden flex flex-col items-center justify-center p-2.5 gap-[10px]">
             <div className="relative">Pay by Bitcoin</div>
             <QRCodeSVG value={bitcoin_address} />
-            <div className="rounded-sm bg-darkgray-500 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center p-2.5">
+            <button className="cursor-pointer rounded-sm bg-darkgray-500 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center p-2.5">
               <div className="relative">Copy Address</div>
-            </div>
+            </button>
           </div>
         </div>
         <div className="self-stretch flex-1 rounded-t-none rounded-b-sm bg-white overflow-hidden flex flex-col items-center justify-center py-[39px] px-[33px] gap-[9px]">

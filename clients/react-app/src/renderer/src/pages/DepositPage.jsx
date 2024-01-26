@@ -5,10 +5,12 @@ import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import TokenInfoCard from "../components/TokenInfoCard";
 import { useDispatch, useSelector } from 'react-redux';
 import { depositActions } from '../store/deposit';
+import deposit from "../logic/deposit";
 
 const DepositPage = () => {
   const dispatch = useDispatch();
-  const pending_tokens = useSelector(state => state.deposit.pending_tokens);
+  const pending_deposits = useSelector(state => state.deposit.pending_deposits);
+  const lastId = useSelector(state => state.deposit.lastId) + 1;
 
   const navigate = useNavigate();
   const [showNoTokenWindow, setShowNoTokenWindow] = useState(false);
@@ -18,20 +20,37 @@ const DepositPage = () => {
   }, []);
 
   useEffect(() => {
-    if (pending_tokens.length === 0 || !pending_tokens.some(token => !token.paid)) {
-      const newToken = {
-        btc_payment_address: "bc1qlahxpat3c75w40xljut960j7wjjj6v3yrxf363",
-        token_id: "d6d439b1-26af-4998-9f88-7b1669c8c5c3",
-        fee: "0.001",
-        lightning_invoice: "lnbc1m1pjm9qf0pp57qj9rn5de39wvk6fee4jthmrn235448hf9ktg449dx80wr423saqdp6vsmxgdpn893rztfjxeskvtf58yunstfevcurstfhvgcnvd3evvuxxdtrxvcqzzsxqyz5vqsp5agkaun03wwqgdfh90v4yy5a4kmd7s765d03juxjp707slat69ecs9qyyssqqe92acfupthekjhudlc9ysqua9jlwd76ms689dv6ma9xtgg5aprzvn8w669qhcrshpn96zwah6wdkuafp0wxwdfxmq48hfecjvtwe3cq5345xy",
-        processor_id: "f02451ce8dcc4ae65b49ce6b25df639aa34ad4f7496cb456a5698ef70eaa8c3a",
-        confirmed: false,
-        spent: false
-      };
-      // Dispatch the action to add the new token to the state
-      dispatch(depositActions.addPendingToken(newToken));
+
+    const generateToken = async () => {
+      let tokenId = await deposit.newTokenID()
+
+      console.log('tokenId is:', tokenId);
+
+      console.log('pending_deposits got updated, add a new token')
+      // If there a no deposits, or if there are no pending_deposits with the value of confirmed = false
+      if (pending_deposits.length === 0) {
+        // generate a token and push to pending_deposits array by dispatching it
+        let newDeposit = {
+          id: lastId,
+          token: {
+            btc_payment_address: "bc1qlahxpat3c75w40xljut960j7wjjj6v3yrxf363",
+            token_id: tokenId,
+            fee: 0.001,
+            lightning_invoice: "lnbc1m1pjm9qf0pp57qj9rn5de39wvk6fee4jthmrn235448hf9ktg449dx80wr423saqdp6vsmxgdpn893rztfjxeskvtf58yunstfevcurstfhvgcnvd3evvuxxdtrxvcqzzsxqyz5vqsp5agkaun03wwqgdfh90v4yy5a4kmd7s765d03juxjp707slat69ecs9qyyssqqe92acfupthekjhudlc9ysqua9jlwd76ms689dv6ma9xtgg5aprzvn8w669qhcrshpn96zwah6wdkuafp0wxwdfxmq48hfecjvtwe3cq5345xy",
+            processor_id: "f02451ce8dcc4ae65b49ce6b25df639aa34ad4f7496cb456a5698ef70eaa8c3a",
+            confirmed: false,
+            spent: false
+          },
+          statecoin_amount: 0.001,
+          btc_address: 'bc0000000000000000000001',
+          description: 'Add a description'
+        }
+        dispatch(depositActions.addDeposit(newDeposit));
+      }
     }
-  }, [dispatch, pending_tokens]);
+    generateToken();
+
+  }, [dispatch, pending_deposits]);
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate("/helpandsupportpage");
@@ -50,12 +69,18 @@ const DepositPage = () => {
   }, [navigate]);
 
   const onContinueButtonClick = useCallback(() => {
-    if (pending_tokens.some(token => !token.confirmed)) {
-      setShowNoTokenWindow(true);
-    } else {
+    if (pending_deposits.some(deposit => deposit.token.confirmed)) {
       navigate("/depositpage1");
+    } else {
+      setShowNoTokenWindow(true);
     }
-  }, [navigate, pending_tokens]);
+  }, [navigate, pending_deposits]);
+
+
+  const onPayButtonClick = useCallback((depositId) => {
+    // Dispatch the action to update the confirmed status
+    dispatch(depositActions.updateConfirmedStatus({ depositId, confirmedStatus: true }));
+  }, [dispatch]);
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[33px] text-left text-sm text-white font-body-small">
@@ -112,23 +137,32 @@ const DepositPage = () => {
         </div>
       </div>
       {
-        pending_tokens.map((token, index) => (
-          <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+        pending_deposits.map((deposit, index) => (
+          <div key={index} className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
             <TokenInfoCard
               key={index}
-              status={token.status}
-              fee={token.fee}
-              invoice={token.invoice}
-              token_id={token.token_id}
-              processor_id={token.processor_id}
-              bitcoin_address={token.btc_payment_address}
+              confirmed={deposit.token.confirmed}
+              fee={deposit.token.fee}
+              invoice={deposit.token.invoice}
+              token_id={deposit.token.token_id}
+              processor_id={deposit.token.processor_id}
+              bitcoin_address={deposit.token.btc_payment_address}
             />
+            <button
+              className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
+          }`}
+              onClick={() => onPayButtonClick(deposit.id)}
+            >
+              <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
+                PAY TOKEN
+              </div>
+            </button>
           </div>
         ))
       }
       <div className="self-stretch flex-1 overflow-hidden flex flex-col items-end justify-center p-2.5">
         <button
-          className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end ${pending_tokens.some(token => !token.confirmed) ? 'bg-mediumslateblue-50' : 'bg-mediumslateblue-200'
+          className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end ${pending_deposits.some(deposit => deposit.token.confirmed) ? 'bg-mediumslateblue-200' : 'bg-mediumslateblue-50'
             }`}
           onClick={onContinueButtonClick}
         >
@@ -136,6 +170,8 @@ const DepositPage = () => {
             CONTINUE
           </div>
         </button>
+
+
 
       </div>
 

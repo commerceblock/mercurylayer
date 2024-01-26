@@ -12,6 +12,7 @@ module.exports = {
           "500": "#827b7b",
         },
         white: "#fff",
+        aliceblue: "#ecf2ff",
         mediumslateblue: {
           "50": "#4b6cbf",
           "100": "#2260ff",
