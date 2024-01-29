@@ -155,7 +155,7 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
         return status::Custom(Status::Ok, Json(response_body));            
     } else {
         let expiry = query_lightning_payment(token_server, &processor_id).await;
-        if expiry > 0 {
+        if expiry == 0 {
             set_token_confirmed(&token_server.pool, &token_id).await;
             let pod_status = PODStatus {
                 confirmed: true,
