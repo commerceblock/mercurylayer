@@ -166,7 +166,7 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
         } else {
             let pod_status = PODStatus {
                 confirmed: false,
-                expiry: 0 as u64,
+                expiry: expiry,
             };
             let response_body = json!(pod_status);
             return status::Custom(Status::Ok, Json(response_body));
