@@ -61,7 +61,7 @@ pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) 
     let row = sqlx::query(
         "SELECT statechain_id, server_public_key \
         FROM statechain_data \
-        WHERE auth_key = $1")
+        WHERE auth_xonly_public_key = $1")
         .bind(&auth_key.serialize())
         .fetch_one(pool)
         .await;
@@ -73,11 +73,14 @@ pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) 
         }
     }
 
-    let row = row.unwrap();
+    let row_ur = row.unwrap();
+
+    let server_public_key_bytes = row_ur.get::<Vec<u8>, _>(1);
+    let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
 
     let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
-        server_pubkey: row.get(1),
-        statechain_id: row.get(0),
+        server_pubkey: server_pubkey.to_string(),
+        statechain_id: row_ur.get(0),
     };
 
     return Some(deposit_msg1_response);
