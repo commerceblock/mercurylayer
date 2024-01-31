@@ -54,8 +54,8 @@ function createWindow() {
 app.whenReady().then(async () => {
 
   installExtension(REDUX_DEVTOOLS)
-        .then((name) => console.log(`Added Extension:  ${name}`))
-        .catch((err) => console.log('An error occurred: ', err));
+    .then((name) => console.log(`Added Extension:  ${name}`))
+    .catch((err) => console.log('An error occurred: ', err));
 
   let db;
 
@@ -65,7 +65,7 @@ app.whenReady().then(async () => {
     db = new sqlite3.Database(databaseFile);
     await sqliteManager.createTables(db);
   } catch (error) {
-    console.log("Error:", error);
+    console.log("Database intialization Error:", error);
   }
 
   // Set app user model id for windows
@@ -84,15 +84,15 @@ app.whenReady().then(async () => {
     return await electrumRequest(payout.method, payout.params);
   })
 
-  ipcMain.handle('info-config' , async (event) => {
+  ipcMain.handle('info-config', async (event) => {
     return await infoConfig();
   })
 
-  ipcMain.handle('get-config-file' , async (event) => {
+  ipcMain.handle('get-config-file', async (event) => {
     return getConfigFile();
   })
 
-  ipcMain.handle('sync-wallets' , async (event, wallets) => {
+  ipcMain.handle('sync-wallets', async (event, wallets) => {
     for (let i = 0; i < wallets.length; i++) {
       await sqliteManager.upsertWallet(db, wallets[i]);
     }
@@ -112,7 +112,18 @@ app.whenReady().then(async () => {
     let depositMsg1Response = await deposit.initPod(depositMsg1);
     return depositMsg1Response;
   })
-  
+
+  ipcMain.handle('get-real-token', async (event) => {
+    let token = await deposit.getRealToken();
+    return token;
+  })
+
+  ipcMain.handle('confirm-debug-token', async (event, payout) => {
+    console.log('inside handler confirm-debug-token, payout is equal to:', payout);
+    let token = await deposit.confirmDebugToken(payout);
+    return token;
+  })
+
   ipcMain.handle('sign-first', async (event, payout) => {
     let res = await transaction.signFirst(payout);
     return res;
@@ -155,7 +166,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-statechain-info', async (event, statechainId) => {
     return await transferReceive.getStatechainInfo(statechainId);
   })
-  
+
   ipcMain.handle('get-msg-addr', async (event, authPubkey) => {
     return await transferReceive.getMsgAddr(authPubkey);
   })

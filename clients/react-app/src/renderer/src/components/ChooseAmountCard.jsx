@@ -5,14 +5,19 @@ import { useDispatch } from 'react-redux';
 import { depositActions } from "../store/deposit";
 
 
-const ChooseAmountCard = ({ id, onStatecoinSelect }) => {
+const ChooseAmountCard = ({ id, onStatecoinSelect, token }) => {
   const dispatch = useDispatch();
   const [selectedButton, setSelectedButton] = useState(null);
 
   const handleButtonClick = (amount) => {
-    console.log('selected statecoin with amount', amount);
+    //console.log('selected statecoin with amount', amount);
+    //console.log('token value is:', token);
+
     setSelectedButton(amount);
-    onStatecoinSelect(amount);
+
+    let StatecoinObject = { amount: amount, token_id: token.token_id };
+    //console.log('statecoinObject:', StatecoinObject);
+    onStatecoinSelect(StatecoinObject);
 
     // Dispatch the action to update the statecoin amount
     dispatch(depositActions.updateStatecoinAmount({
@@ -21,7 +26,7 @@ const ChooseAmountCard = ({ id, onStatecoinSelect }) => {
     }));
   };
 
-  const statecoins = [0.001, 0.01, 0.1, 0.005, 0.05, 0.5, 1];
+  const statecoins = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1];
 
   return (
     <div className="self-stretch rounded-sm bg-white shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden shrink-0 flex flex-row items-start justify-center p-2.5 gap-[10px] mix-blend-normal text-center text-3xs text-black font-body-small">

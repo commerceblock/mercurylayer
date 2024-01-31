@@ -1,8 +1,10 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-const MainHeaderPanel = () => {
+const MainHeaderPanel = ({ wallet }) => {
   const navigate = useNavigate();
+
+  const coinAmount = wallet.coins.length;
 
   const onDepositButtonContainerClick = useCallback(() => {
     navigate("/depositpage0");
@@ -30,7 +32,7 @@ const MainHeaderPanel = () => {
         />
         <div className="relative">0 BTC</div>
         <div className="relative text-3xs text-gray-100">
-          0 Statecoins in wallet
+          {coinAmount} Statecoins in wallet
         </div>
       </div>
       <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start py-[5px] px-3 text-gray-400">

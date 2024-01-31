@@ -4,6 +4,85 @@ import SocksProxyAgentLib from 'socks-proxy-agent';
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
+const verifyTokenPaid = async (token_id) => {
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "token/token_verify/" + token_id;
+    const url = statechain_entity_url + '/' + path;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.get(url, socksAgent);
+
+    if (response.status != 200) {
+        throw new Error(`Token error: ${response.data}`);
+    }
+
+    let token = response.data;
+
+    return token;
+}
+
+const confirmDebugToken = async (token_id) => {
+    console.log('[deposit.js][confirmDebugToken]: token_id is equal to:', token_id);
+    if (token_id == null) return;
+
+    console.log('trying to confirm the token_id of', token_id);
+
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "token/token_confirm/" + token_id;
+    const url = statechain_entity_url + '/' + path;
+
+    console.log('[deposit.js][confirmDebugToken]: final url is:', url);
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.get(url, socksAgent);
+
+    if (response.status != 200) {
+        throw new Error(`Token error: ${response.data}`);
+    }
+
+    let token = response.data;
+
+    return token;
+}
+
+const getRealToken = async () => {
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "token/token_init";
+    const url = statechain_entity_url + '/' + path;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    const response = await axios.get(url, socksAgent);
+
+    if (response.status != 200) {
+        throw new Error(`Token error: ${response.data}`);
+    }
+
+    let token = response.data;
+
+    return token;
+}
+
 const getToken = async () => {
 
     const statechain_entity_url = config.get('statechainEntity');
@@ -54,4 +133,4 @@ const initPod = async (depositMsg1) => {
     return depositMsg1Response;
 };
 
-export default { getToken, initPod };
+export default { getToken, initPod, getRealToken, verifyTokenPaid, confirmDebugToken };

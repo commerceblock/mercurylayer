@@ -4,8 +4,14 @@ import NavBar from "../components/NavBar";
 import MainHeaderPanel from "../components/MainHeaderPanel";
 import ConnectionsPanel from "../components/ConnectionsPanel";
 import MainInfoPanel from "../components/MainInfoPanel";
+import { useSelector } from "react-redux";
 
 const MainPage = () => {
+
+  const walletName = useSelector(state => state.wallet.selectedWallet);
+  const wallets = useSelector(state => state.wallet.wallets);
+  const wallet = wallets.find(w => w.name === walletName);
+
   const navigate = useNavigate();
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -20,8 +26,9 @@ const MainPage = () => {
     navigate("/");
   }, [navigate]);
 
+
   return (
-    <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[5px]">
+    <div className="w-full relative bg-whitesmoke overflow-hidden flex flex-col items-center justify-start gap-[5px]">
       <NavBar
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
@@ -31,13 +38,19 @@ const MainPage = () => {
         showHelpButton
       />
       <div className="self-stretch overflow-hidden flex flex-row items-center justify-start p-2.5">
-        <MainHeaderPanel />
+        <MainHeaderPanel wallet={wallet} />
       </div>
-      <div className="self-stretch overflow-hidden flex flex-row items-center justify-center p-2.5">
-        <ConnectionsPanel />
-      </div>
+
+      {
+        /*
+        <div className="self-stretch overflow-hidden flex flex-row items-center justify-center p-2.5">
+          <ConnectionsPanel />
+        </div>
+        */
+      }
+
       <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start p-2.5">
-        <MainInfoPanel />
+        <MainInfoPanel coins={wallet.coins} activities={wallet.activities} />
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ const SettingsPage = () => {
         showSettingsButton
         showHelpButton
       />
-      <div className="self-stretch flex flex-col items-start justify-start p-2.5">
+      <div className="self-stretch h-[137px] flex flex-col items-start justify-start p-2.5 box-border">
         <SettingsHeaderPanel />
       </div>
       <div className="self-stretch flex-1 flex flex-col items-center justify-start py-5 px-2.5">

@@ -36,24 +36,59 @@ const DepositPage1 = () => {
     navigate("/depositpage0");
   }, [navigate]);
 
-  const onContinueButtonClick = useCallback(async () => {
+  const onContinueButtonClick = () => {
+    console.log('this token value is: ', selectedStatecoin);
     setConfirmationOpen(true);
-  }, [navigate]);
-
-  const handleStatecoinSelection = (amount) => {
-    setSelectedStatecoin(amount);
   };
 
-  const handleConfirmation = useCallback(async () => {
+  const handleStatecoinSelection = (statecoin) => {
+    setSelectedStatecoin(statecoin);
+  };
+
+  const handleConfirmation = async () => {
     // Perform the action on confirmation
-    console.log('Confirmed');
+    console.log('Confirmed has been clicked...');
 
-    // For every pending_deposit and their selectedStatecoin, get their tokenId as well
-    // let depositAddress = await deposit.newAddress(wallet, selectedStatecoin, tokenId);
+    if (selectedStatecoin == null) {
+      console.log('selectedStatecoin is null');
+      return;
+    }
 
-    // Add logic to create the statecoin and use up the token here
-    navigate("/depositpage2");
-  }, [navigate]);
+
+    if (selectedStatecoin.amount == null) {
+      console.log('selectedStatecoin amount is null');
+      return;
+    }
+
+
+    if (selectedStatecoin.token_id == null) {
+      console.log('selectedStatecoin token_id is null');
+      return;
+    }
+
+
+    if (wallet == null) {
+      console.log('the wallet is null')
+      return;
+    }
+
+    try {
+      // For every pending_deposit and their selectedStatecoin, get their tokenId as well
+      let depositAddress = await deposit.newAddress(wallet, selectedStatecoin.amount, selectedStatecoin.token_id);
+
+      console.log('created a depositAddress:', depositAddress);
+
+      await dispatch(walletActions.newDepositAddress(depositAddress));
+
+      // If the above is successfull then only go to the next page
+      navigate("/depositpage2");
+    } catch (e) {
+      console.log('Error occured in Deposit page 2:', e);
+    }
+
+
+
+  };
 
   const handleCancelConfirmation = useCallback(() => {
     setConfirmationOpen(false);
@@ -118,6 +153,7 @@ const DepositPage1 = () => {
           <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
             <ChooseAmountCard
               key={index}
+              token={deposit.token}
               id={deposit.id}
               onStatecoinSelect={handleStatecoinSelection}
             />
@@ -142,7 +178,7 @@ const DepositPage1 = () => {
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded-md text-black">
             <p>Are you sure to create this statecoin?</p>
-            <p>This will use up your token. Check the statecoin amount {selectedStatecoin} carefully.</p>
+            <p>This will use up your token. Check the statecoin amount {selectedStatecoin.amount} carefully.</p>
             <button className='cursor-pointer shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] tracking-[-0.02em] leading-[22px] mb-2 text-white bg-mediumslateblue-200' onClick={handleConfirmation}>Confirm</button>
             {" "}
             <button className='cursor-pointer shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] tracking-[-0.02em] leading-[22px] text-white bg-red' onClick={handleCancelConfirmation}>Cancel</button>

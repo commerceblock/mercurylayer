@@ -14,6 +14,9 @@ const DepositPage = () => {
 
   const navigate = useNavigate();
   const [showNoTokenWindow, setShowNoTokenWindow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
 
   const onCloseNoTokenWindow = useCallback(() => {
     setShowNoTokenWindow(false);
@@ -22,34 +25,55 @@ const DepositPage = () => {
   useEffect(() => {
 
     const generateToken = async () => {
-      let tokenId = await deposit.newTokenID()
+      try {
 
-      console.log('tokenId is:', tokenId);
 
-      console.log('pending_deposits got updated, add a new token')
-      // If there a no deposits, or if there are no pending_deposits with the value of confirmed = false
-      if (pending_deposits.length === 0) {
-        // generate a token and push to pending_deposits array by dispatching it
-        let newDeposit = {
-          id: lastId,
-          token: {
-            btc_payment_address: "bc1qlahxpat3c75w40xljut960j7wjjj6v3yrxf363",
-            token_id: tokenId,
-            fee: 0.001,
-            lightning_invoice: "lnbc1m1pjm9qf0pp57qj9rn5de39wvk6fee4jthmrn235448hf9ktg449dx80wr423saqdp6vsmxgdpn893rztfjxeskvtf58yunstfevcurstfhvgcnvd3evvuxxdtrxvcqzzsxqyz5vqsp5agkaun03wwqgdfh90v4yy5a4kmd7s765d03juxjp707slat69ecs9qyyssqqe92acfupthekjhudlc9ysqua9jlwd76ms689dv6ma9xtgg5aprzvn8w669qhcrshpn96zwah6wdkuafp0wxwdfxmq48hfecjvtwe3cq5345xy",
-            processor_id: "f02451ce8dcc4ae65b49ce6b25df639aa34ad4f7496cb456a5698ef70eaa8c3a",
-            confirmed: false,
-            spent: false
-          },
-          statecoin_amount: 0.001,
-          btc_address: 'bc10000000000000000000000000000000000000000',
-          description: 'Add a description'
+        // If there are no deposits or no pending_deposits with confirmed = false
+        if (pending_deposits.length === 0) {
+          setLoading(true);
+
+          let token = await deposit.newRealToken();
+
+          // Extract relevant data from the real token response
+          const { btc_payment_address, fee, lightning_invoice, processor_id, token_id } = token;
+          console.log('fee is equal to:', fee);
+          // Create a new deposit object with the extracted data and additional variables
+          let newDeposit = {
+            id: lastId,
+            token: {
+              btc_payment_address,
+              fee,
+              lightning_invoice,
+              processor_id,
+              token_id,
+              confirmed: false,
+              spent: false
+            },
+            statecoin_amount: 0.001, // modified in deposit 2
+            btc_address: 'bc10000000000000000000000000000000000000000', // modified in deposit 3
+            description: 'Add a description' // modified in deposit 3
+          };
+
+          // Dispatch the new deposit
+          dispatch(depositActions.addDeposit(newDeposit));
+
         }
-        dispatch(depositActions.addDeposit(newDeposit));
+      } catch (error) {
+        const errorMessage = error.toString();
+        // Check if the error message contains information about a 500 status code
+        if (errorMessage.includes("500")) {
+          setError("Error occured with the server, please reload or try again later.");
+        } else {
+          setError("An error occurred. Please contact support.");
+        }
       }
-    }
-    generateToken();
 
+
+      setLoading(false);
+    };
+
+
+    generateToken();
   }, [dispatch, pending_deposits]);
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -77,9 +101,21 @@ const DepositPage = () => {
   }, [navigate, pending_deposits]);
 
 
-  const onPayButtonClick = useCallback((depositId) => {
+  const onPayButtonClick = async (dep) => {
+    console.log('trying to confirm the payment.. dep is equal to:', dep);
+
+    console.log('passing token ->', dep.token.token_id);
+    // Confirm the token payment
+    await deposit.confirmDebugToken(dep.token.token_id);
+
     // Dispatch the action to update the confirmed status
-    dispatch(depositActions.updateConfirmedStatus({ depositId, confirmedStatus: true }));
+    dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
+  };
+
+
+  const onDeleteButtonClick = useCallback((depositId) => {
+    // remove the entire deposit from redux
+    dispatch(depositActions.deletePendingToken({ depositId }));
   }, [dispatch]);
 
   return (
@@ -99,6 +135,7 @@ const DepositPage = () => {
           onBackButtonContainerClick={onBackButtonContainerClick}
         />
       </div>
+
       <div className="self-stretch flex-1 flex flex-row items-center justify-between p-2.5">
         <div className="self-stretch flex-1 relative">
           <div className="absolute h-full w-[27.55%] top-[0%] right-[0%] bottom-[0%] left-[72.45%] flex flex-row items-center justify-center gap-[7px]">
@@ -136,43 +173,70 @@ const DepositPage = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+          {/* Use a simple div to create a loading spinner */}
+          <div className="border-t-4 border-red border-solid h-12 w-12 rounded-full animate-spin"></div>
+          <p className="mt-4 text-sm text-red">{error}</p>
+        </div>
+      )}
+
       {
-        pending_deposits.map((deposit, index) => (
-          <div key={index} className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
-            <TokenInfoCard
-              key={index}
-              confirmed={deposit.token.confirmed}
-              fee={deposit.token.fee}
-              invoice={deposit.token.invoice}
-              token_id={deposit.token.token_id}
-              processor_id={deposit.token.processor_id}
-              bitcoin_address={deposit.token.btc_payment_address}
-            />
-            <button
-              className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
-          }`}
-              onClick={() => onPayButtonClick(deposit.id)}
-            >
-              <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
-                PAY TOKEN
-              </div>
-            </button>
-          </div>
-        ))
+        // modify this so that if we are in an error state then display the error, otherwise continue as normal with loading and tokeninfocard
+        loading ?
+          (
+            <div className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+              {/* Use a simple div to create a loading spinner */}
+              <div className="border-t-4 border-blue-500 border-solid h-12 w-12 rounded-full animate-spin"></div>
+              <p className="mt-4 text-sm text-gray-500">Loading...</p>
+            </div>
+          ) :
+          (pending_deposits.map((deposit, index) => (
+            <div key={index} className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
+              <TokenInfoCard
+                key={index}
+                confirmed={deposit.token.confirmed}
+                fee={deposit.token.fee}
+                invoice={deposit.token.invoice}
+                token_id={deposit.token.token_id}
+                processor_id={deposit.token.processor_id}
+                bitcoin_address={deposit.token.btc_payment_address}
+              />
+              <button
+                className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
+                }`}
+                onClick={() => onPayButtonClick(deposit)}
+              >
+                <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
+                  PAY TOKEN
+                </div>
+              </button>
+
+              <button
+                className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
+                }`}
+                onClick={() => onDeleteButtonClick(deposit.id)}
+              >
+                <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
+                  DELETE TOKEN
+                </div>
+              </button>
+            </div>
+          )))
       }
+
       <div className="self-stretch flex-1 overflow-hidden flex flex-col items-end justify-center p-2.5">
         <button
           className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end ${pending_deposits.some(deposit => deposit.token.confirmed) ? 'bg-mediumslateblue-200' : 'bg-mediumslateblue-50'
             }`}
           onClick={onContinueButtonClick}
+          disabled={error}
         >
           <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
             CONTINUE
           </div>
         </button>
-
-
-
       </div>
 
       {showNoTokenWindow && (

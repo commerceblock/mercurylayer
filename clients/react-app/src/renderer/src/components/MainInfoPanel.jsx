@@ -1,14 +1,18 @@
 import { useState } from 'react';
+import CoinItem from './CoinItem';
 
-const MainInfoPanel = () => {
+const MainInfoPanel = ({ coins, activities }) => {
   const [activeTab, setActiveTab] = useState('Statecoins');
+
+  console.log('Received coins:', coins);
+  console.log('Received activities:', activities);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
   };
 
   return (
-    <div className="self-stretch flex-1 rounded-sm bg-white shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-col items-center justify-start p-2.5 text-center text-base text-primary font-body-small">
+    <div className="self-stretch flex-1 rounded-sm bg-white shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-col items-center justify-start p-2.5 gap-[10px] text-center text-base text-primary font-body-small">
       <div className="self-stretch flex flex-row items-start justify-center gap-[10px]">
         <div
           className={`flex-1 relative bg-white box-border h-12 overflow-hidden border-b-[2px] border-solid cursor-pointer ${activeTab === 'Statecoins' ? 'border-primary' : 'border-tertiary'
@@ -30,18 +34,26 @@ const MainInfoPanel = () => {
         </div>
       </div>
 
-      <div className="tab-content mt-4">
+      <div className="self-stretch flex-1 overflow-y-auto flex flex-col items-center justify-start gap-[10px]">
+
         {activeTab === 'Statecoins' && (
-          <div>
-            <h2>Statecoins</h2>
-            <p>Demo text showing Statecoins part.</p>
-          </div>
+          <>
+            {coins && coins.length > 0 ? (
+              coins.map((coin, index) => {
+                console.log("Coin:", coin); // Log each coin for debugging
+                return <CoinItem key={index} coin={coin} />;
+              })
+            ) : (
+              <p>No coins found.</p>
+            )}
+          </>
+
+
         )}
 
         {activeTab === 'Activity Log' && (
           <div>
-            <h2>Activity Log</h2>
-            <p>Demo text containing activity logs.</p>
+            <p>No activity found.</p>
           </div>
         )}
       </div>

@@ -14,6 +14,12 @@ const depositSlice = createSlice({
             state.pending_deposits.push(action.payload);
         },
 
+        // Add a way to delete an entire pending_token by deposit id
+        deletePendingToken: (state, action) => {
+            const { depositId } = action.payload;
+            state.pending_deposits = state.pending_deposits.filter(dep => dep.id !== depositId);
+        },
+
         // Add a way to update a deposit object with new token data
         updateTokenData: (state, action) => {
             const { depositId, tokenId } = action.payload;
@@ -68,7 +74,8 @@ export const {
     updateStatecoinAmount,
     updateBitcoinAddress,
     updateDescription,
-    updateConfirmedStatus
+    updateConfirmedStatus,
+    deletePendingToken
 } = depositSlice.actions;
 
 export default depositSlice.reducer;
