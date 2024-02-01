@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const MainHeaderPanel = ({ wallet }) => {
   const navigate = useNavigate();
-
   const coinAmount = wallet.coins.length;
-
   const onDepositButtonContainerClick = useCallback(() => {
     navigate("/depositpage0");
   }, [navigate]);
@@ -28,7 +26,7 @@ const MainHeaderPanel = ({ wallet }) => {
         <img
           className="w-[15px] relative h-[15px] object-cover"
           alt=""
-          src="/withdrawbtcicon@2x.png"
+          src="/statecoinicon@2x.png"
         />
         <div className="relative">0 BTC</div>
         <div className="relative text-3xs text-gray-100">
@@ -43,21 +41,21 @@ const MainHeaderPanel = ({ wallet }) => {
       <div className="self-stretch flex-1 rounded-t-none rounded-b-sm flex flex-row items-center justify-center text-white">
         <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start py-0 px-[13px] gap-[10px]">
           <div
-            className="w-20 rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border cursor-pointer"
+            className="w-[82px] rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border gap-[5px] cursor-pointer"
             onClick={onDepositButtonContainerClick}
           >
-            <img className="w-3 relative h-3" alt="" src="/pluscircle@2x.png" />
-            <div className="self-stretch w-[49px] relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center shrink-0">
-              Deposit
+            <img className="w-3 relative h-3" alt="" src="/icon.svg" />
+            <div className="self-stretch flex-1 relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center">
+              DEPOSIT
             </div>
           </div>
           <div
-            className="w-20 rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border cursor-pointer"
+            className="w-24 rounded-sm bg-darkorange shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center p-[5px] box-border gap-[5px] cursor-pointer"
             onClick={onWithdrawButtonContainerClick}
           >
-            <img className="w-3 relative h-3" alt="" src="/frame-11@2x.png" />
-            <div className="self-stretch w-[59px] relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center shrink-0">
-              Withdraw
+            <img className="w-3 relative h-3" alt="" src="/icon.svg" />
+            <div className="self-stretch w-[69px] relative tracking-[-0.02em] leading-[22px] font-semibold flex items-center justify-center shrink-0">
+              WITHDRAW
             </div>
           </div>
         </div>

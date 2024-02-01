@@ -1,41 +1,69 @@
-import { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
-import wizard, { wizardActions } from "../store/wizard";
-import wallet_manager from './../logic/walletManager';
+import { wizardActions } from "../store/wizard";
 import { useDispatch, useSelector } from "react-redux";
+
+const Popup = ({ message, onClose }) => (
+  <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 bg-opacity-50">
+    <div className="bg-white p-4 rounded shadow-md">
+      <p className="text-red-500">{message}</p>
+      <button className="mt-2 px-4 py-2 bg-blue-500 text-white rounded" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  </div>
+);
 
 const WalletWizardPage1 = () => {
   const dispatch = useDispatch();
   const wizardState = useSelector((state) => state.wizard);
-
+  const wallets = useSelector((state) => state.wallet.wallets);
   const navigate = useNavigate();
 
+  const [passwordError, setPasswordError] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
 
-  const onHelpButtonContainerClick = useCallback(() => {
-    navigate("/helpandsupportpage");
-  }, [navigate]);
+  const validateConfirmPassword = () => wizardState.password === wizardState.confirmPassword;
 
-  const onCogIconClick = useCallback(() => {
-    navigate("/settingspage");
-  }, [navigate]);
+  const onPasswordChange = (e) => {
+    const newPassword = e.target.value;
+    dispatch(wizardActions.setPassword(newPassword));
+    setShowPopup(false);
+  };
 
-  const onLogoutButtonIconClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+  const onConfirmPasswordChange = (e) => {
+    const newConfirmPassword = e.target.value;
+    dispatch(wizardActions.setConfirmPassword(newConfirmPassword));
+    setConfirmPasswordError(!validateConfirmPassword());
+    setShowPopup(false);
+  };
 
-  const onGoBackButtonClick = useCallback(() => {
-    navigate("/new-wallet-0");
-  }, [navigate]);
+  const onHelpButtonContainerClick = useCallback(() => navigate("/helpandsupportpage"), [navigate]);
+  const onCogIconClick = useCallback(() => navigate("/settingspage"), [navigate]);
+  const onLogoutButtonIconClick = useCallback(() => navigate("/"), [navigate]);
+  const onGoBackButtonClick = useCallback(() => navigate("/new-wallet-0"), [navigate]);
 
   const onNextButtonClick = useCallback(() => {
-    if (wizardState.termsConfirmation) {
-      navigate("/new-wallet-2");
-    } else {
-      console.warn("Please confirm before proceeding.");
+    let errorMessage = '';
+
+    if (!wizardState.termsConfirmation) {
+      errorMessage = "Please confirm before proceeding.";
+    } else if (wizardState.password !== wizardState.confirmPassword) {
+      errorMessage = "Passwords do not match.";
+    } else if (wallets.some(wallet => wallet.name === wizardState.walletName)) {
+      errorMessage = "A wallet with the same name already exists. Please choose a different name.";
     }
 
-  }, [dispatch, navigate, wizardState]);
+    if (errorMessage) {
+      setPopupMessage(errorMessage);
+      setShowPopup(true);
+    } else {
+      navigate("/new-wallet-2");
+    }
+  }, [dispatch, navigate, wizardState, wallets]);
 
   const onTermsConfirmationChange = useCallback(() => {
     dispatch(wizardActions.setTermsConfirmation(!wizardState.termsConfirmation));
@@ -99,19 +127,23 @@ const WalletWizardPage1 = () => {
           </div>
         </div>
         <input
-          className="[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200"
-          placeholder="Password (min 8 characters)"
-          type="text"
-          multiple
+          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${passwordError ? "border-red-500" : ""
+            }`}
+          placeholder="Password"
+          type="password"
           value={wizardState.password}
-          onChange={(e) => dispatch(wizardActions.setPassword(e.target.value))}
+          onChange={onPasswordChange}
         />
+        {showPopup && (
+          <Popup message={popupMessage} onClose={() => setShowPopup(false)} />
+        )}
         <input
-          className="[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200"
+          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${confirmPasswordError ? "border-red-500" : ""
+            }`}
           placeholder="Confirm Password"
-          type="text"
+          type="password"
           value={wizardState.confirmPassword}
-          onChange={(e) => dispatch(wizardActions.setConfirmPassword(e.target.value))}
+          onChange={onConfirmPasswordChange}
         />
         <div className="w-[332px] relative h-[94px] overflow-hidden shrink-0 text-xs">
           <div className="absolute top-[36px] left-[80px]">
