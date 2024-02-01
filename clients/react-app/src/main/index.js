@@ -118,6 +118,11 @@ app.whenReady().then(async () => {
     return token;
   })
 
+  ipcMain.handle('check-token', async (event, token_id) => {
+    let res = await deposit.checkToken(token_id);
+    return res;
+  })
+
   ipcMain.handle('confirm-debug-token', async (event, payout) => {
     console.log('inside handler confirm-debug-token, payout is equal to:', payout);
     let token = await deposit.confirmDebugToken(payout);

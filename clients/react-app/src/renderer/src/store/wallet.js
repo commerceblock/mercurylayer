@@ -15,6 +15,20 @@ const walletSlice = createSlice({
         loadWallets(state, action) {
             state.wallets = action.payload;
         },
+        insertToken(state, action) {
+            // find wallet
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+
+            // check if the token_id already exists in any wallet
+            const isDuplicate = state.wallets.some(w =>
+                w.tokens.some(t => t.token_id === action.payload.token.token_id)
+            );
+
+            // if it's not a duplicate, push to this wallet
+            if (!isDuplicate) {
+                wallet.tokens.push(action.payload.token);
+            }
+        },
         loadBackupTxs(state, action) {
             state.backupTxs = action.payload;
         },

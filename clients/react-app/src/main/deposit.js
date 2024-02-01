@@ -4,7 +4,7 @@ import SocksProxyAgentLib from 'socks-proxy-agent';
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
-const verifyTokenPaid = async (token_id) => {
+const checkToken = async (token_id) => {
     const statechain_entity_url = config.get('statechainEntity');
     const path = "token/token_verify/" + token_id;
     const url = statechain_entity_url + '/' + path;
@@ -133,4 +133,4 @@ const initPod = async (depositMsg1) => {
     return depositMsg1Response;
 };
 
-export default { getToken, initPod, getRealToken, verifyTokenPaid, confirmDebugToken };
+export default { getToken, initPod, getRealToken, checkToken, confirmDebugToken };

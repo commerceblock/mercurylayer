@@ -11,6 +11,7 @@ const api = {
   getToken: () => ipcRenderer.invoke('get-token'),
   initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
   getRealToken: () => ipcRenderer.invoke('get-real-token'),
+  checkToken: async (payout) => await ipcRenderer.invoke('check-token', payout),
   confirmDebugToken: async (payout) => await ipcRenderer.invoke('confirm-debug-token', payout),
   signFirst: (payout) => ipcRenderer.invoke('sign-first', payout),
   signSecond: (payout) => ipcRenderer.invoke('sign-second', payout),

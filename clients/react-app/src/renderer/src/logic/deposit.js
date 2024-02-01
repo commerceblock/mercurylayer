@@ -25,6 +25,7 @@ const newTokenID = async () => {
 }
 
 const newAddress = async (wallet, amount, token_id) => {
+    console.log('[newAddress]: wallet, amount, token_Id', wallet, amount, token_id);
 
     const coin = mercury_wasm.getNewCoin(wallet);
 

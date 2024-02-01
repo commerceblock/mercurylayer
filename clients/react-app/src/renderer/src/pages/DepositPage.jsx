@@ -6,10 +6,16 @@ import TokenInfoCard from "../components/TokenInfoCard";
 import { useDispatch, useSelector } from 'react-redux';
 import { depositActions } from '../store/deposit';
 import deposit from "../logic/deposit";
+import { walletActions } from "../store/wallet";
 
 const DepositPage = () => {
   const dispatch = useDispatch();
   const pending_deposits = useSelector(state => state.deposit.pending_deposits);
+  const walletName = useSelector(state => state.wallet.selectedWallet);
+  const selectedWallet = useSelector(state => {
+    const selectedWalletName = state.wallet.selectedWallet;
+    return state.wallet.wallets.find(wallet => wallet.name === selectedWalletName);
+  });
   const lastId = useSelector(state => state.deposit.lastId) + 1;
 
   const navigate = useNavigate();
@@ -26,8 +32,6 @@ const DepositPage = () => {
 
     const generateToken = async () => {
       try {
-
-
         // If there are no deposits or no pending_deposits with confirmed = false
         if (pending_deposits.length === 0) {
           setLoading(true);
@@ -47,7 +51,8 @@ const DepositPage = () => {
               processor_id,
               token_id,
               confirmed: false,
-              spent: false
+              spent: false,
+              expiry: -50
             },
             statecoin_amount: 0.001, // modified in deposit 2
             btc_address: 'bc10000000000000000000000000000000000000000', // modified in deposit 3
@@ -67,7 +72,6 @@ const DepositPage = () => {
           setError("An error occurred. Please contact support.");
         }
       }
-
 
       setLoading(false);
     };
@@ -100,16 +104,64 @@ const DepositPage = () => {
     }
   }, [navigate, pending_deposits]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('Checking pending_deposits for tokens that are uncofirmed');
+      // Loop through pending_deposits
+      pending_deposits.forEach(async (dep) => {
+        const { token } = dep;
+
+        // Check if the token is not confirmed
+        if (!token.confirmed) {
+          console.log('found a token that isnt confirmed, checking the status of it.');
+          try {
+            // Call deposit.checkToken(token_id)
+            const response = await deposit.checkToken(token.token_id);
+
+            console.log('response back from server was:', response);
+
+            // Update redux state based on the network response
+            if (response.confirmed) {
+              console.log('updating the confirmed status of the token.');
+              dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
+
+              // Now also save it into the wallet of the user.
+              let payload = { walletName, token: dep.token }
+              dispatch(walletActions.insertToken(payload));
+            } else if (token.expiry != response.expiry) {
+              console.log('updating the expiry time of the token.');
+              dispatch(depositActions.updateTimeExpiry({ depositId: dep.id, expiryTime: response.expiry }));
+            }
+          } catch (error) {
+            console.error("Error checking token:", error);
+          }
+        }
+      });
+    }, 3000); // Set interval to 3000 milliseconds (3 seconds)
+
+    // Cleanup the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [dispatch, pending_deposits]);
+
 
   const onPayButtonClick = async (dep) => {
     console.log('trying to confirm the payment.. dep is equal to:', dep);
+    if (!dep.token.confirmed) {
+      console.log('passing token ->', dep.token.token_id);
+      // Confirm the token payment
+      await deposit.confirmDebugToken(dep.token.token_id);
 
-    console.log('passing token ->', dep.token.token_id);
-    // Confirm the token payment
-    await deposit.confirmDebugToken(dep.token.token_id);
 
-    // Dispatch the action to update the confirmed status
-    dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
+
+      // Dispatch the action to update the confirmed status
+      dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
+
+      // Now also save it into the wallet of the user.
+      let payload = { walletName, token: dep.token }
+      dispatch(walletActions.insertToken(payload));
+    } else {
+      console.log('token already confirmed...');
+    }
   };
 
 
@@ -192,36 +244,23 @@ const DepositPage = () => {
               <p className="mt-4 text-sm text-gray-500">Loading...</p>
             </div>
           ) :
+
           (pending_deposits.map((deposit, index) => (
             <div key={index} className="self-stretch h-[480px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
               <TokenInfoCard
                 key={index}
+                deposit={deposit}
+                id={deposit.id}
                 confirmed={deposit.token.confirmed}
                 fee={deposit.token.fee}
                 invoice={deposit.token.invoice}
                 token_id={deposit.token.token_id}
                 processor_id={deposit.token.processor_id}
                 bitcoin_address={deposit.token.btc_payment_address}
+                expiry={deposit.token.expiry}
+                onPayButtonClick={onPayButtonClick}
+                onDeleteButtonClick={onDeleteButtonClick}
               />
-              <button
-                className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
-                }`}
-                onClick={() => onPayButtonClick(deposit)}
-              >
-                <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
-                  PAY TOKEN
-                </div>
-              </button>
-
-              <button
-                className={`cursor-pointer [border:none] p-0 w-[90px] rounded-sm shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-end justify-end bg-mediumslateblue-200
-                }`}
-                onClick={() => onDeleteButtonClick(deposit.id)}
-              >
-                <div className="self-stretch flex-1 relative text-3xs tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-center flex items-center justify-center">
-                  DELETE TOKEN
-                </div>
-              </button>
             </div>
           )))
       }

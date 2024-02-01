@@ -38,6 +38,15 @@ const depositSlice = createSlice({
             }
         },
 
+        // Add a way to update the time expiry of a deposit
+        updateTimeExpiry: (state, action) => {
+            const { depositId, expiryTime } = action.payload;
+            const deposit = state.pending_deposits.find((dep) => dep.id === depositId);
+            if (deposit) {
+                deposit.token.expiry = expiryTime;
+            }
+        },
+
         // Add a way to update a deposit object with new statecoin amount
         updateStatecoinAmount: (state, action) => {
             const { depositId, statecoinAmount } = action.payload;

@@ -73,8 +73,17 @@ const DepositPage1 = () => {
     }
 
     try {
+      console.log('create a new address with wallet', wallet);
+      console.log('amount: ', selectedStatecoin.amount);
+      console.log('token_id', selectedStatecoin.token_id)
+
+      // convert 0.001 to sats ->
+      // Convert the amount to satoshis
+      const amountInSatoshis = Math.round(selectedStatecoin.amount * 100000000);
+
+
       // For every pending_deposit and their selectedStatecoin, get their tokenId as well
-      let depositAddress = await deposit.newAddress(wallet, selectedStatecoin.amount, selectedStatecoin.token_id);
+      let depositAddress = await deposit.newAddress(wallet, amountInSatoshis, selectedStatecoin.token_id);
 
       console.log('created a depositAddress:', depositAddress);
 
