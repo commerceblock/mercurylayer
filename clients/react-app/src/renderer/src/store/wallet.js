@@ -3,7 +3,7 @@ import coinStatus from './actions/coinStatus';
 import utils from './utils';
 
 const initialState = {
-    selectedWallet: 'v123',
+    selectedWallet: '',
     wallets: [],
     backupTxs: []
 };
@@ -14,6 +14,9 @@ const walletSlice = createSlice({
     reducers: {
         loadWallets(state, action) {
             state.wallets = action.payload;
+        },
+        selectWallet(state, action) {
+            state.selectedWallet = action.payload;
         },
         insertToken(state, action) {
             // find wallet

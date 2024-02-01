@@ -1,16 +1,13 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from 'react-redux';
 
-const WalletLoadContainer = ({ walletLoaded }) => {
-  const wallets = useSelector(state => state.wallet.wallets);
-
+const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
   let walletList = wallets.map((wallet) => (
     <option key={wallet.name} value={wallet.name}>
       {wallet.name}
     </option>
   ));
-  const [selectedWalletName, setSelectedWalletName] = useState("");
+  const [selectedWalletName, setSelectedWalletName] = useState(wallets.length > 0 ? wallets[0].name : '');
   const [passwordValue, setPasswordValue] = useState("");
 
   const navigate = useNavigate();
@@ -23,9 +20,7 @@ const WalletLoadContainer = ({ walletLoaded }) => {
     navigate("/");
   }, [navigate]);
 
-  const onOpenButtonClick = useCallback(() => {
-    navigate("/wallet-main-1");
-  }, [navigate]);
+
 
   return (
     <div className="self-stretch h-[460px] flex flex-col items-center justify-center gap-[60px]">
@@ -91,7 +86,7 @@ const WalletLoadContainer = ({ walletLoaded }) => {
             </button>
             <button
               className="cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
-              onClick={onOpenButtonClick}
+              onClick={() => onOpenButtonClick(selectedWalletName)}
             >
               <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
                 OPEN

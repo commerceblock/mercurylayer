@@ -2,11 +2,12 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import WalletLoadContainer from "../components/WalletLoadContainer";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { walletActions } from "../store/wallet";
 
 const LoadWalletPage = () => {
   const wallets = useSelector(state => state.wallet.wallets);
-
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const onNavNavMenuClick = useCallback(() => {
@@ -25,6 +26,14 @@ const LoadWalletPage = () => {
     navigate("/");
   }, [navigate]);
 
+  const onOpenButtonClick = async (selectedWallet) => {
+    console.log('wallet loaded was:', selectedWallet);
+    // set it in the state
+    await dispatch(walletActions.selectWallet(selectedWallet));
+
+    navigate("/wallet-main-1");
+  };
+
   const walletLoaded = wallets.length > 0; // Determine if wallets are present
 
   return (
@@ -38,7 +47,7 @@ const LoadWalletPage = () => {
         showSettingsButton={false}
         showHelpButton={false}
       />
-      <WalletLoadContainer walletLoaded={walletLoaded} />
+      <WalletLoadContainer wallets={wallets} walletLoaded={walletLoaded} onOpenButtonClick={onOpenButtonClick} />
     </div>
   );
 };
