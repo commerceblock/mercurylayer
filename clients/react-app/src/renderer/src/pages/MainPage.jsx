@@ -8,7 +8,7 @@ import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const MainPage = () => {
   const loggedInWallet = useLoggedInWallet();
-  const { coins, activities } = loggedInWallet;
+
   const navigate = useNavigate();
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -26,6 +26,8 @@ const MainPage = () => {
   if (!loggedInWallet) {
     return <p>Loading...</p>;
   }
+
+  const { coins, activities } = loggedInWallet || {};
 
   if (!coins || !activities) {
     return <p>Loading...</p>;
