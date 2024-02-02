@@ -28,11 +28,14 @@ pub struct Wallet {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Token {
-    pub token_id: String,
-    pub invoice: String,
+    pub btc_payment_address: String,
+    pub fee: String,
+    pub lightning_invoice: String,
     pub processor_id: String,
+    pub token_id: String,
     pub confirmed: bool,
     pub spent: bool,
+    pub expiry: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
