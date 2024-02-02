@@ -136,9 +136,7 @@ const WalletWizardPage1 = () => {
           value={wizardState.password}
           onChange={onPasswordChange}
         />
-        {showPopup && (
-          <Popup message={popupMessage} onClose={() => setShowPopup(false)} />
-        )}
+
         <input
           className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${confirmPasswordError ? "border-red-500" : ""
             }`}
@@ -181,6 +179,9 @@ const WalletWizardPage1 = () => {
           </div>
         </button>
       </div>
+      {showPopup && (
+        <Popup message={popupMessage} onClose={() => setShowPopup(false)} />
+      )}
     </div>
   );
 };
