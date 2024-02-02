@@ -28,6 +28,12 @@ const LoadWalletPage = () => {
 
   const onOpenButtonClick = async (selectedWallet) => {
     console.log('wallet loaded was:', selectedWallet);
+
+
+    // firstly check the password can decrypt the database 
+
+
+
     // set it in the state
     await dispatch(walletActions.selectWallet(selectedWallet));
 

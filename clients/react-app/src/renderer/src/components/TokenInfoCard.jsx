@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const TokenInfoCard = ({ deposit, confirmed, fee, invoice, token_id, processor_id, bitcoin_address, expiry, onPayButtonClick, onDeleteButtonClick }) => {
+const TokenInfoCard = ({ deposit, onPayButtonClick, onDeleteButtonClick }) => {
+
+  const { confirmed, fee, invoice, token_id, processor_id, bitcoin_address, expiry } = deposit.token;
 
   const calculateRemainingTime = (expiry) => {
     const currentTime = Math.floor(Date.now() / 1000);

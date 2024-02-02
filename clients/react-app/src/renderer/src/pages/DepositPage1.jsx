@@ -5,14 +5,14 @@ import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import ChooseAmountCard from "../components/ChooseAmountCard";
 import { useDispatch, useSelector } from 'react-redux';
 //import deposit, { depositActions } from "../store/deposit";
-import wallet, { walletActions } from '../store/wallet';
+import { walletActions } from '../store/wallet';
 import deposit from './../logic/deposit';
+import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const DepositPage1 = () => {
 
-  const walletName = useSelector(state => state.wallet.selectedWallet);
-  const wallets = useSelector(state => state.wallet.wallets);
-  let wallet = wallets.find(w => w.name === walletName);
+  const loggedInWallet = useLoggedInWallet();
+
   const pending_deposits = useSelector((state) => state.deposit.pending_deposits);
 
   const [selectedStatecoin, setSelectedStatecoin] = useState(null);
@@ -67,13 +67,13 @@ const DepositPage1 = () => {
     }
 
 
-    if (wallet == null) {
-      console.log('the wallet is null')
+    if (loggedInWallet == null) {
+      console.log('the loggedInWallet is null')
       return;
     }
 
     try {
-      console.log('create a new address with wallet', wallet);
+      console.log('create a new address with loggedInWallet', loggedInWallet);
       console.log('amount: ', selectedStatecoin.amount);
       console.log('token_id', selectedStatecoin.token_id)
 
@@ -83,7 +83,7 @@ const DepositPage1 = () => {
 
 
       // For every pending_deposit and their selectedStatecoin, get their tokenId as well
-      let depositAddress = await deposit.newAddress(wallet, amountInSatoshis, selectedStatecoin.token_id);
+      let depositAddress = await deposit.newAddress(loggedInWallet, amountInSatoshis, selectedStatecoin.token_id);
 
       console.log('created a depositAddress:', depositAddress);
 

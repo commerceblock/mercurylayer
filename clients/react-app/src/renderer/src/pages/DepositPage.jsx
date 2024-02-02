@@ -7,18 +7,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import { depositActions } from '../store/deposit';
 import deposit from "../logic/deposit";
 import { walletActions } from "../store/wallet";
+import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const DepositPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+
+  const loggedInWallet = useLoggedInWallet();
+
   const pending_deposits = useSelector(state => state.deposit.pending_deposits);
-  const walletName = useSelector(state => state.wallet.selectedWallet);
-  const selectedWallet = useSelector(state => {
-    const selectedWalletName = state.wallet.selectedWallet;
-    return state.wallet.wallets.find(wallet => wallet.name === selectedWalletName);
-  });
   const lastId = useSelector(state => state.deposit.lastId) + 1;
 
-  const navigate = useNavigate();
   const [showNoTokenWindow, setShowNoTokenWindow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -40,7 +40,7 @@ const DepositPage = () => {
 
           // Extract relevant data from the real token response
           const { btc_payment_address, fee, lightning_invoice, processor_id, token_id } = token;
-          console.log('fee is equal to:', fee);
+
           // Create a new deposit object with the extracted data and additional variables
           let newDeposit = {
             id: lastId,
@@ -59,7 +59,7 @@ const DepositPage = () => {
             description: 'Add a description' // modified in deposit 3
           };
 
-          // Dispatch the new deposit
+          // Dispatch the new token
           dispatch(depositActions.addDeposit(newDeposit));
 
         }
@@ -126,7 +126,7 @@ const DepositPage = () => {
               dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
 
               // Now also save it into the wallet of the user.
-              let payload = { walletName, token: dep.token }
+              let payload = { walletName: loggedInWallet.name, token: dep.token }
               dispatch(walletActions.insertToken(payload));
             } else if (token.expiry != response.expiry) {
               console.log('updating the expiry time of the token.');
@@ -157,7 +157,7 @@ const DepositPage = () => {
       dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
 
       // Now also save it into the wallet of the user.
-      let payload = { walletName, token: dep.token }
+      let payload = { walletName: loggedInWallet.name, token: dep.token }
       dispatch(walletActions.insertToken(payload));
     } else {
       console.log('token already confirmed...');
@@ -250,14 +250,6 @@ const DepositPage = () => {
               <TokenInfoCard
                 key={index}
                 deposit={deposit}
-                id={deposit.id}
-                confirmed={deposit.token.confirmed}
-                fee={deposit.token.fee}
-                invoice={deposit.token.invoice}
-                token_id={deposit.token.token_id}
-                processor_id={deposit.token.processor_id}
-                bitcoin_address={deposit.token.btc_payment_address}
-                expiry={deposit.token.expiry}
                 onPayButtonClick={onPayButtonClick}
                 onDeleteButtonClick={onDeleteButtonClick}
               />

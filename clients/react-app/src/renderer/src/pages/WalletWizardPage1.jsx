@@ -55,6 +55,8 @@ const WalletWizardPage1 = () => {
       errorMessage = "Passwords do not match.";
     } else if (wallets.some(wallet => wallet.name === wizardState.walletName)) {
       errorMessage = "A wallet with the same name already exists. Please choose a different name.";
+    } else if (wizardState.walletName === '') {
+      errorMessage = 'Provide a wallet name.';
     }
 
     if (errorMessage) {
