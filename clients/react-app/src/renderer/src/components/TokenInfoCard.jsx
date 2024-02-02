@@ -10,7 +10,6 @@ const TokenInfoCard = ({ deposit, onPayButtonClick, onDeleteButtonClick }) => {
     const remainingSeconds = expiry - currentTime;
 
     if (remainingSeconds <= 0) {
-      // Expiry has passed, set remaining time to 0
       return 0;
     }
 
@@ -22,16 +21,6 @@ const TokenInfoCard = ({ deposit, onPayButtonClick, onDeleteButtonClick }) => {
     const remainingSeconds = seconds % 60;
 
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-  }
-
-  const convertTime = (expiry) => {
-    const timestamp = expiry * 1000; // Convert seconds to milliseconds
-    const date = new Date(timestamp);
-    return date;
-  }
-
-  const formatUnconfirmed = () => {
-    return 'Expired';
   }
 
   const [remainingTime, setRemainingTime] = useState(calculateRemainingTime(expiry));
