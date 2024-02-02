@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { depositActions } from "../store/deposit";
 
 
-const ChooseAmountCard = ({ id, onStatecoinSelect, token }) => {
+const ChooseAmountCard = ({ id, onStatecoinSelect, token, disabled }) => {
   const dispatch = useDispatch();
   const [selectedButton, setSelectedButton] = useState(null);
 
@@ -40,6 +40,7 @@ const ChooseAmountCard = ({ id, onStatecoinSelect, token }) => {
             amount={amount}
             onClick={() => handleButtonClick(amount)}
             isSelected={selectedButton === amount}
+            disabled={disabled}
           />
         ))}
       </div>

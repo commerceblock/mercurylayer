@@ -19,6 +19,7 @@ const walletSlice = createSlice({
             state.selectedWallet = action.payload;
         },
         insertToken(state, action) {
+            console.log('[redux]: inserting token into wallet state')
             // find wallet
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
@@ -26,6 +27,8 @@ const walletSlice = createSlice({
             const isDuplicate = state.wallets.some(w =>
                 w.tokens.some(t => t.token_id === action.payload.token.token_id)
             );
+
+            console.log('a token with this id was already inserted...');
 
             // if it's not a duplicate, push to this wallet
             if (!isDuplicate) {

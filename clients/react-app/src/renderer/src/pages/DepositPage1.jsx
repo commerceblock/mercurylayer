@@ -167,6 +167,7 @@ const DepositPage1 = () => {
               token={deposit.token}
               id={deposit.id}
               onStatecoinSelect={handleStatecoinSelection}
+              disabled={deposit.token.spent}
             />
           </div>
         ))
