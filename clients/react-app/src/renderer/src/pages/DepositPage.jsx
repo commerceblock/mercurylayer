@@ -52,7 +52,7 @@ const DepositPage = () => {
               token_id,
               confirmed: false,
               spent: false,
-              expiry: -50
+              expiry: '-50'
             },
             statecoin_amount: 0.001, // modified in deposit 2
             btc_address: 'bc10000000000000000000000000000000000000000', // modified in deposit 3
@@ -130,7 +130,7 @@ const DepositPage = () => {
               dispatch(walletActions.insertToken(payload));
             } else if (token.expiry != response.expiry) {
               console.log('updating the expiry time of the token.');
-              dispatch(depositActions.updateTimeExpiry({ depositId: dep.id, expiryTime: response.expiry }));
+              dispatch(depositActions.updateTimeExpiry({ depositId: dep.id, expiryTime: response.expiry + '' }));
             }
           } catch (error) {
             console.error("Error checking token:", error);
@@ -151,10 +151,11 @@ const DepositPage = () => {
       // Confirm the token payment
       await deposit.confirmDebugToken(dep.token.token_id);
 
-
-
       // Dispatch the action to update the confirmed status
       dispatch(depositActions.updateConfirmedStatus({ depositId: dep.id, confirmedStatus: true }));
+
+      // Also change the local version of the token
+      dep.token.confirmed = true;
 
       // Now also save it into the wallet of the user.
       let payload = { walletName: loggedInWallet.name, token: dep.token }

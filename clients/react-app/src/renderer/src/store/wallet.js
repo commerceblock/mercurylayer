@@ -49,6 +49,21 @@ const walletSlice = createSlice({
             wallet.coins.push(action.payload.coin);
         },
 
+        setTokenSpent(state, action) {
+            const { walletName, token_id } = action.payload;
+
+            // Find the target wallet
+            const wallet = state.wallets.find(w => w.name === walletName);
+
+            // Find the target token in the wallet
+            const targetToken = wallet.tokens.find(token => token.token_id === token_id);
+
+            // If the token is found, set spent to true
+            if (targetToken) {
+                targetToken.spent = true;
+            }
+        },
+
         coinStatus(state, action) {
             coinStatus.handleConfirmation(state, action);
         },

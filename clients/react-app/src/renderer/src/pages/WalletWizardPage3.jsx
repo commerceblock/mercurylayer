@@ -37,6 +37,7 @@ const WalletWizardPage3 = () => {
     // encrypt the wallet
 
     await dispatch(walletActions.createWallet(wallet));
+    await dispatch(walletActions.selectWallet(wallet.name));
 
     // wipe the wizard state clean
     await dispatch(wizardActions.setConfirmPassword(false));

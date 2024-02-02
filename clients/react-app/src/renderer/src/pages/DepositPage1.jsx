@@ -10,7 +10,7 @@ import deposit from './../logic/deposit';
 import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const DepositPage1 = () => {
-
+  const dispatch = useDispatch();
   const loggedInWallet = useLoggedInWallet();
 
   const pending_deposits = useSelector((state) => state.deposit.pending_deposits);
@@ -81,6 +81,8 @@ const DepositPage1 = () => {
       // Convert the amount to satoshis
       const amountInSatoshis = Math.round(selectedStatecoin.amount * 100000000);
 
+      // set the token to spent = true
+      await walletActions.setTokenSpent({ walletName: loggedInWallet.name, token_id: selectedStatecoin.token_id });
 
       // For every pending_deposit and their selectedStatecoin, get their tokenId as well
       let depositAddress = await deposit.newAddress(loggedInWallet, amountInSatoshis, selectedStatecoin.token_id);
