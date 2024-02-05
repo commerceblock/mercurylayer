@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { walletActions } from '../store/wallet';
 import deposit from './../logic/deposit';
 import { useLoggedInWallet } from "../hooks/walletHooks";
+import { depositActions } from "../store/deposit";
 
 const DepositPage1 = () => {
   const dispatch = useDispatch();
@@ -88,6 +89,10 @@ const DepositPage1 = () => {
       let depositAddress = await deposit.newAddress(loggedInWallet, amountInSatoshis, selectedStatecoin.token_id);
 
       console.log('created a depositAddress:', depositAddress);
+
+      // Update the values for deposit 3
+      await dispatch(depositActions.updateBitcoinAddress({ depositId: statecoin.id, bitcoinAddress: depositAddress.coin.address }))
+
 
       await dispatch(walletActions.newDepositAddress(depositAddress));
 

@@ -27,9 +27,11 @@ import DepositPage2 from "./pages/DepositPage2";
 import WithdrawPage from "./pages/WithdrawPage";
 import ReceivePage from "./pages/ReceivePage";
 import SendPage from "./pages/SendPage";
+import { useLoggedInWallet } from './hooks/walletHooks';
 
 function App() {
   const dispatch = useDispatch();
+  const loggedInWallet = useLoggedInWallet();
   const [areWalletsLoaded, setAreWalletLoaded] = useState(false);
   const wallets = useSelector(state => state.wallet.wallets);
   const backupTxs = useSelector(state => state.wallet.backupTxs);
@@ -108,92 +110,16 @@ function App() {
   }, [action, pathname]);
 
   useEffect(() => {
-    let title = "";
-    let metaDescription = "";
+    let title = "Mercury Wallet";
 
-    switch (pathname) {
-      case "/":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/loadwalletpage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/recoverwalletfromseedpage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/recoverwalletfrombackuppage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/new-wallet-0":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/new-wallet-1":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/new-wallet-2":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/new-wallet-3":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/wallet-main-1":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/settingspage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/helpandsupportpage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/depositpage0":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/depositpage1":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/depositpage2":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/withdrawpage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/receivepage":
-        title = "";
-        metaDescription = "";
-        break;
-      case "/sendpage":
-        title = "";
-        metaDescription = "";
-        break;
+    if (loggedInWallet) {
+      title = "Mercury Wallet - " + loggedInWallet.name;
     }
 
     if (title) {
       document.title = title;
     }
 
-    if (metaDescription) {
-      const metaDescriptionTag = document.querySelector(
-        'head > meta[name="description"]'
-      );
-      if (metaDescriptionTag) {
-        metaDescriptionTag.content = metaDescription;
-      }
-    }
   }, [pathname]);
 
   return (
