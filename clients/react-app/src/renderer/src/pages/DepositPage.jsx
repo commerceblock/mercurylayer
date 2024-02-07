@@ -15,8 +15,17 @@ const DepositPage = () => {
 
 
   const loggedInWallet = useLoggedInWallet();
+  let paidButUnspentTokens = [];
+
+  if (loggedInWallet.tokens && loggedInWallet.tokens.length > 0) {
+    paidButUnspentTokens = loggedInWallet.tokens.filter(token => token.spent === false);
+  }
 
   const pending_deposits = useSelector(state => state.deposit.pending_deposits);
+
+
+
+
   const lastId = useSelector(state => state.deposit.lastId) + 1;
 
   const [showNoTokenWindow, setShowNoTokenWindow] = useState(false);

@@ -2,10 +2,13 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import WithdrawBTCPanel from "../components/WithdrawBTCPanel";
-import WithdrawStatecoinsInfoPanel from "../components/WithdrawStatecoinsInfoPanel";
+import SelectStateCoinPanel from "../components/SelectStateCoinPanel";
+import TransactionDetailsPanel from "../components/TransactionDetailsPanel";
+import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const WithdrawPage = () => {
   const navigate = useNavigate();
+  const loggedInWallet = useLoggedInWallet();
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate("/helpandsupportpage");
@@ -20,7 +23,7 @@ const WithdrawPage = () => {
   }, [navigate]);
 
   return (
-    <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[25px]">
+    <div className="w-full relative bg-whitesmoke-100 h-[926px] flex flex-col items-center justify-start gap-[25px]">
       <NavBar
         onHelpButtonContainerClick={onHelpButtonContainerClick}
         onCogIconClick={onCogIconClick}
@@ -30,10 +33,11 @@ const WithdrawPage = () => {
         showHelpButton
       />
       <div className="self-stretch h-[125px] flex flex-col items-start justify-start py-0 px-5 box-border">
-        <WithdrawBTCPanel />
+        <WithdrawBTCPanel wallet={loggedInWallet} />
       </div>
-      <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start p-5">
-        <WithdrawStatecoinsInfoPanel />
+      <div className="self-stretch flex-1 overflow-hidden flex flex-row flex-wrap items-start justify-start p-5 gap-[10px]">
+        <SelectStateCoinPanel wallet={loggedInWallet} />
+        <TransactionDetailsPanel wallet={loggedInWallet} />
       </div>
     </div>
   );

@@ -1,17 +1,12 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-
+import utils from "../logic/utils";
 const MainHeaderPanel = ({ wallet }) => {
   const navigate = useNavigate();
   const coinAmount = wallet.coins.length;
 
   // get total satoshi value by adding up all of wallet.coins.amount value
   const totalSatoshiValue = wallet.coins.reduce((total, coin) => total + coin.amount, 0);
-
-  const convertSatoshisToBTC = (satoshis) => {
-    const btcAmount = satoshis / 100000000; // 1 BTC = 100,000,000 satoshis
-    return btcAmount.toFixed(3); // Format to 3 decimal places
-  };
 
   const onDepositButtonContainerClick = useCallback(() => {
     navigate("/depositpage0");
@@ -37,7 +32,7 @@ const MainHeaderPanel = ({ wallet }) => {
           alt=""
           src="/statecoinicon@2x.png"
         />
-        <div className="relative">{convertSatoshisToBTC(totalSatoshiValue)} BTC</div>
+        <div className="relative">{utils.convertSatoshisToBTC(totalSatoshiValue)} BTC</div>
         <div className="relative text-3xs text-gray-100">
           {coinAmount} Statecoins in wallet
         </div>

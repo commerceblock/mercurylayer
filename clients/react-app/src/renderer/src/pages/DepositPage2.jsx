@@ -5,10 +5,11 @@ import DepositHeaderPanel from "../components/DepositHeaderPanel";
 import DepositBitcoinCard from "../components/DepositBitcoinCard";
 import { useDispatch, useSelector } from 'react-redux';
 import deposit from './../logic/deposit';
+import { useLoggedInWallet } from "../hooks/walletHooks";
 
 const DepositPage2 = () => {
   const dispatch = useDispatch();
-  const pending_deposits = useSelector((state) => state.deposit.pending_deposits);
+  const loggedInWallet = useLoggedInWallet();
   const navigate = useNavigate();
 
   const onHelpButtonContainerClick = useCallback(() => {
@@ -31,6 +32,16 @@ const DepositPage2 = () => {
     navigate("/wallet-main-1");
   }, [navigate]);
 
+  if (!loggedInWallet) {
+    return <p>Loading...</p>;
+  }
+
+  const { coins } = loggedInWallet || {};
+
+  if (!coins) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[33px] text-left text-sm text-white font-body-small">
       <NavBar
@@ -45,6 +56,7 @@ const DepositPage2 = () => {
         <DepositHeaderPanel
           propBackgroundColor="transparent"
           propDisplay="inline-block"
+          backDisabled={true}
           onBackButtonContainerClick={onBackButtonClick}
         />
       </div>
@@ -87,9 +99,9 @@ const DepositPage2 = () => {
       </div>
 
       {
-        pending_deposits.map((deposit, index) => (
+        coins.map((coin, index) => (
           <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
-            <DepositBitcoinCard key={index} address={deposit.btc_address} amount={deposit.statecoin_amount} description={deposit.description} />
+            <DepositBitcoinCard key={index} coin={coin} />
           </div>
         ))
       }

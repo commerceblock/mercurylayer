@@ -53,6 +53,7 @@ const walletSlice = createSlice({
         },
 
         setTokenSpent(state, action) {
+            console.log('set this token to spent')
             const { walletName, token_id } = action.payload;
 
             // Find the target wallet

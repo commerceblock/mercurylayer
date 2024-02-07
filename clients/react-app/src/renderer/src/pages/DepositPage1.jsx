@@ -47,6 +47,8 @@ const DepositPage1 = () => {
   };
 
   const handleConfirmation = async () => {
+
+    console.log('selected coin was:', selectedStatecoin);
     // Perform the action on confirmation
     console.log('Confirmed has been clicked...');
 
@@ -82,6 +84,8 @@ const DepositPage1 = () => {
       // Convert the amount to satoshis
       const amountInSatoshis = Math.round(selectedStatecoin.amount * 100000000);
 
+
+      await depositActions.setTokenSpent({ depositId: selectedStatecoin.deposit.id })
       // set the token to spent = true
       await walletActions.setTokenSpent({ walletName: loggedInWallet.name, token_id: selectedStatecoin.token_id });
 
@@ -91,10 +95,14 @@ const DepositPage1 = () => {
       console.log('created a depositAddress:', depositAddress);
 
       // Update the values for deposit 3
-      await dispatch(depositActions.updateBitcoinAddress({ depositId: statecoin.id, bitcoinAddress: depositAddress.coin.address }))
+      //await dispatch(depositActions.updateBitcoinAddress({ depositId: statecoin.id, bitcoinAddress: depositAddress.coin.address }))
 
 
       await dispatch(walletActions.newDepositAddress(depositAddress));
+
+
+      // delete the pending token
+      await dispatch(depositActions.deletePendingToken({ depositId: selectedStatecoin.deposit.id }));
 
       // If the above is successfull then only go to the next page
       navigate("/depositpage2");
@@ -169,10 +177,8 @@ const DepositPage1 = () => {
           <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
             <ChooseAmountCard
               key={index}
-              token={deposit.token}
-              id={deposit.id}
+              deposit={deposit}
               onStatecoinSelect={handleStatecoinSelection}
-              disabled={deposit.token.spent}
             />
           </div>
         ))

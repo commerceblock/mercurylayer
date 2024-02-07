@@ -23,7 +23,7 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
     }
 
     let reversedHash = await window.api.convertAddressToReversedHash({
-        address: coin.aggregated_address, 
+        address: coin.aggregated_address,
         network: walletNetwork
     });
 
@@ -43,8 +43,10 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
 
     // No deposit found. No change in the coin status
     if (!utxo) {
+        console.log('No deposit found. No change in the coin status')
         return null;
     }
+    console.log('Change in the coin found.');
 
     // IN_MEMPOOL. there is nothing to do
     if (utxo.height == 0 && coin.status == CoinStatus.IN_MEMPOOL) {
@@ -130,7 +132,7 @@ const checkWithdrawal = async (coin, walletNetwork, walletName) => {
     }
 
     let reversedHash = await window.api.convertAddressToReversedHash({
-        address: coin.withdrawal_address, 
+        address: coin.withdrawal_address,
         network: walletNetwork
     });
 
@@ -204,7 +206,7 @@ const checkTransfer = async (coin, walletName) => {
     return null;
 }
 
-const updateWallet  = async (wallet) => {
+const updateWallet = async (wallet) => {
 
     let results = [];
 
@@ -213,6 +215,7 @@ const updateWallet  = async (wallet) => {
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
             let depositResult = await checkDeposit(coin, wallet.network, wallet.name);
+            console.log('CHECK DEPOSIT IS BEING CALLED ON THE COIN...');
             if (depositResult) {
                 results.push(depositResult);
             }
@@ -232,7 +235,7 @@ const updateWallet  = async (wallet) => {
     return results;
 }
 
-const updateCoins  = async (wallets) => {
+const updateCoins = async (wallets) => {
     let results = [];
     for (let wallet of wallets) {
         let result = await updateWallet(wallet);

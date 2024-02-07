@@ -73,6 +73,13 @@ const depositSlice = createSlice({
                 deposit.description = description;
             }
         },
+        setTokenSpent(state, action) {
+            const { depositId } = action.payload;
+            const deposit = state.pending_deposits.find(dep => dep.id === depositId);
+            if (deposit) {
+                deposit.token.spent = true;
+            }
+        }
     },
 });
 

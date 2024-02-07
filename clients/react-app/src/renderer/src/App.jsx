@@ -2,6 +2,8 @@ import init from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 import { useDispatch, useSelector } from 'react-redux'
 import { walletActions } from './store/wallet';
+import transferReceive from './logic/transferReceive';
+import coinStatus from './logic/coinStatus';
 
 import { useEffect, useState, useRef } from 'react'
 import {
@@ -69,14 +71,12 @@ function App() {
       window.api.syncWallets(wallets);
     }
 
-    /*
+
     const executeFunction = async () => {
 
       if (isUpdatingCoins.current) return;
-
       isUpdatingCoins.current = true;
       // Here, wallets will always reflect the latest state
-      console.log("UpdatingCoins");
       let coinsUpdated = await transferReceive.execute(wallets);
       // console.log("coinsUpdated", coinsUpdated);
       await dispatch(walletActions.transferReceive({ coinsUpdated }));
@@ -94,7 +94,7 @@ function App() {
     }, 5000);
 
     // Clean up the interval on component unmount or wallets change
-    return () => clearInterval(interval);*/
+    return () => clearInterval(interval);
   }, [wallets]);
 
   useEffect(() => {

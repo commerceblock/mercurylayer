@@ -1,12 +1,17 @@
 import { useDispatch, useSelector } from 'react-redux';
 import deposit, { depositActions } from "../store/deposit";
 import { QRCodeSVG } from 'qrcode.react';
+import { useState } from 'react';
+import utils from '../logic/utils';
 
-const DepositBitcoinCard = ({ address, amount, description }) => {
+const DepositBitcoinCard = ({ coin }) => {
+
+  const { aggregated_address, amount } = coin;
+  const [description, setDescription] = useState('Set a description...');
 
   return (
     <div className="self-stretch bg-white shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden shrink-0 flex flex-row items-center justify-center p-2.5 gap-[10px] text-center text-3xs text-black font-body-small">
-      <QRCodeSVG value={address} />
+      <QRCodeSVG value={aggregated_address} />
 
       <div className="self-stretch flex-1 overflow-hidden flex flex-col items-start justify-center p-2.5 gap-[10px]">
         <div className="self-stretch overflow-hidden flex flex-row items-center justify-start py-[5px] px-[21px] text-gray-200">
@@ -20,7 +25,7 @@ const DepositBitcoinCard = ({ address, amount, description }) => {
         </div>
         <div className="self-stretch overflow-hidden flex flex-row items-center justify-start gap-[5px]">
           <div className="self-stretch w-20 bg-aliceblue overflow-hidden shrink-0 flex flex-row items-center justify-center">
-            <div className="relative">{amount} BTC</div>
+            <div className="relative">{utils.convertSatoshisToBTC(amount)} BTC</div>
           </div>
           <img
             className="w-[7px] relative max-h-full"
@@ -32,7 +37,7 @@ const DepositBitcoinCard = ({ address, amount, description }) => {
               <img className="w-2 relative h-2" alt="" src="/icon3.svg" />
             </button>
             <div className="self-stretch flex-1 relative">
-              {address}
+              {aggregated_address}
             </div>
           </div>
         </div>
@@ -40,7 +45,7 @@ const DepositBitcoinCard = ({ address, amount, description }) => {
           <div className="w-[247px] flex flex-row items-start justify-center">
             <div className="self-stretch flex-1 relative">
               <span>{`Create a statecoin by sending `}</span>
-              <b>{amount} BTC</b>
+              <b>{convertSatoshisToBTC(amount)} BTC</b>
               <span> to the above address in a SINGLE transaction</span>
             </div>
           </div>
