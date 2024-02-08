@@ -5,7 +5,8 @@ import utils from '../logic/utils';
 const WithdrawBTCPanel = ({ wallet }) => {
   const navigate = useNavigate();
   const { coins } = wallet;
-  const totalSatoshiValue = wallet.coins.reduce((total, coin) => total + coin.amount, 0);
+  const filteredCoins = coins.filter((coin) => coin.status === 'CONFIRMED');
+  const totalSatoshiValue = filteredCoins.reduce((total, coin) => total + coin.amount, 0);
 
   const onBackButtonContainerClick = useCallback(() => {
     navigate("/wallet-main-1");
@@ -35,7 +36,7 @@ const WithdrawBTCPanel = ({ wallet }) => {
         <div className="relative">Send statecoins to a Bitcoin address</div>
       </div>
       <div className="self-stretch rounded-t-none rounded-b-sm bg-white flex flex-row items-center justify-start py-2 px-4">
-        <div className="relative">{`${utils.convertSatoshisToBTC(totalSatoshiValue)} BTC as ${coins.length} Statecoin available in wallet`}</div>
+        <div className="relative">{`${utils.convertSatoshisToBTC(totalSatoshiValue)} BTC as ${filteredCoins.length} Statecoin available in wallet`}</div>
       </div>
     </div>
   );

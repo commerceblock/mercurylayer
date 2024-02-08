@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import utils from "../logic/utils";
 const MainHeaderPanel = ({ wallet }) => {
   const navigate = useNavigate();
-  const coinAmount = wallet.coins.length;
-
+  const filteredCoins = wallet.coins.filter((coin) => coin.status === 'CONFIRMED');
+  const coinAmount = filteredCoins.length;
   // get total satoshi value by adding up all of wallet.coins.amount value
-  const totalSatoshiValue = wallet.coins.reduce((total, coin) => total + coin.amount, 0);
+  const totalSatoshiValue = filteredCoins.reduce((total, coin) => total + coin.amount, 0);
 
   const onDepositButtonContainerClick = useCallback(() => {
     navigate("/depositpage0");

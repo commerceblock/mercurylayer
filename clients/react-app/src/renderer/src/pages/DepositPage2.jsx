@@ -6,6 +6,7 @@ import DepositBitcoinCard from "../components/DepositBitcoinCard";
 import { useDispatch, useSelector } from 'react-redux';
 import deposit from './../logic/deposit';
 import { useLoggedInWallet } from "../hooks/walletHooks";
+import utils from "../store/utils";
 
 const DepositPage2 = () => {
   const dispatch = useDispatch();
@@ -41,6 +42,8 @@ const DepositPage2 = () => {
   if (!coins) {
     return <p>Loading...</p>;
   }
+
+  const filteredCoins = coins.filter((coin) => coin.status === 'INITIALISED');
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[33px] text-left text-sm text-white font-body-small">
@@ -99,7 +102,7 @@ const DepositPage2 = () => {
       </div>
 
       {
-        coins.map((coin, index) => (
+        filteredCoins.map((coin, index) => (
           <div key={index} className="self-stretch h-[448px] overflow-y-auto shrink-0 flex flex-col items-center justify-start p-2.5 box-border">
             <DepositBitcoinCard key={index} coin={coin} />
           </div>
