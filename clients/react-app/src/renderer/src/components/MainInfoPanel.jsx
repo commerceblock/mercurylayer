@@ -4,6 +4,8 @@ import CoinItem from './CoinItem';
 const MainInfoPanel = ({ coins, activities }) => {
   const [activeTab, setActiveTab] = useState('Statecoins');
 
+  const filteredCoins = coins.filter((coin) => coin.status !== 'WITHDRAWN');
+
   console.log('Received coins:', coins);
   console.log('Received activities:', activities);
 
@@ -38,8 +40,8 @@ const MainInfoPanel = ({ coins, activities }) => {
 
         {activeTab === 'Statecoins' && (
           <>
-            {coins && coins.length > 0 ? (
-              coins.map((coin, index) => {
+            {filteredCoins && filteredCoins.length > 0 ? (
+              filteredCoins.map((coin, index) => {
                 console.log("Coin:", coin); // Log each coin for debugging
                 return <CoinItem key={index} coin={coin} />;
               })
