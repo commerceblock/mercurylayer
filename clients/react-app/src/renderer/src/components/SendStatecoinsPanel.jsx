@@ -1,8 +1,13 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import utils from '../logic/utils';
 
-const SendStatecoinsPanel = () => {
+const SendStatecoinsPanel = ({ wallet }) => {
   const navigate = useNavigate();
+  const { coins } = wallet;
+  const filteredCoins = coins.filter((coin) => coin.status === 'CONFIRMED');
+  const totalSatoshiValue = filteredCoins.reduce((total, coin) => total + coin.amount, 0);
+
 
   const onBackButtonContainerClick = useCallback(() => {
     navigate("/wallet-main-1");
@@ -29,7 +34,7 @@ const SendStatecoinsPanel = () => {
         </div>
       </div>
       <div className="self-stretch flex-1 bg-white flex flex-row items-center justify-start py-2 px-4 text-center text-xs">
-        <div className="relative">0 BTC as 0 Statecoins</div>
+        <div className="relative">{`${utils.convertSatoshisToBTC(totalSatoshiValue)} BTC as ${filteredCoins.length} Statecoins`}</div>
       </div>
       <div className="self-stretch flex-1 rounded-t-none rounded-b-sm bg-white" />
     </div>

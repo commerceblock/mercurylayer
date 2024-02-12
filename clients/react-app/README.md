@@ -1,4 +1,4 @@
-# react-app
+# mercury-wallet
 
 An Electron application with React
 

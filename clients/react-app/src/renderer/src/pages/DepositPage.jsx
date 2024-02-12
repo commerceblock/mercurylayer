@@ -18,10 +18,12 @@ const DepositPage = () => {
   let paidButUnspentTokens = [];
 
   if (loggedInWallet.tokens && loggedInWallet.tokens.length > 0) {
-    paidButUnspentTokens = loggedInWallet.tokens.filter(token => token.spent === false);
+    paidButUnspentTokens = loggedInWallet.tokens.filter(token => token?.spent === false);
   }
 
-  const pending_deposits = useSelector(state => state.deposit.pending_deposits);
+  // add paidButUnspenTokens to pending_deposits
+  const pending_deposits = [useSelector(state => state.deposit.pending_deposits), ...paidButUnspentTokens];
+
 
 
 

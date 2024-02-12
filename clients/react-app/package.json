@@ -1,5 +1,5 @@
 {
-  "name": "react-app",
+  "name": "mercury-wallet",
   "version": "1.0.0",
   "description": "An Electron application with React",
   "main": "./out/main/index.js",
