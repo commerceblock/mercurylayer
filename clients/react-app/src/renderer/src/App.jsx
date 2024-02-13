@@ -67,7 +67,10 @@ function App() {
 
   useEffect(() => {
     if (wallets && wallets.length > 0 && areWalletsLoaded) {
-      console.log("Syncing wallets");
+      console.log("Syncing wallets data is->", wallets);
+
+      // TODO encrypt the wallet data before inserting into the wallet with the hashed password value
+
       window.api.syncWallets(wallets);
     }
 

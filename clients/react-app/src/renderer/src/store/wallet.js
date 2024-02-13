@@ -4,6 +4,7 @@ import utils from './utils';
 
 const initialState = {
     selectedWallet: '',
+    hashedPassword: '',
     wallets: [],
     backupTxs: []
 };
@@ -17,6 +18,9 @@ const walletSlice = createSlice({
         },
         selectWallet(state, action) {
             state.selectedWallet = action.payload;
+        },
+        setHashPassword(state, action) {
+            state.hashedPassword = action.payload;
         },
         insertToken(state, action) {
             console.log('[redux]: inserting token into wallet state')

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CoinItem from './CoinItem';
+import ActivityItem from './ActivityItem';
 
 const MainInfoPanel = ({ coins, activities }) => {
   const [activeTab, setActiveTab] = useState('Statecoins');
@@ -52,12 +53,32 @@ const MainInfoPanel = ({ coins, activities }) => {
 
 
         )}
-
         {activeTab === 'Activity Log' && (
-          <div>
-            <p>No activity found.</p>
+          <div className="border border-gray-300 rounded-lg overflow-hidden">
+            {activities && activities.length > 0 ? (
+              <table className="min-w-full">
+                <thead>
+                  <tr className="">
+                    <th className="px-4 py-2">Action</th>
+                    <th className="px-4 py-2">UTXO</th>
+                    <th className="px-4 py-2">Amount</th>
+                    <th className="px-4 py-2">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activities.map((activity, index) => (
+                    <ActivityItem key={index} activity={activity} />
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="px-4 py-2">No activity found.</p>
+            )}
           </div>
         )}
+
+
+
       </div>
     </div>
   );

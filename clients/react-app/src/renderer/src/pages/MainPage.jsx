@@ -50,7 +50,7 @@ const MainPage = () => {
       {/* ... (commented-out code) */}
 
       <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start p-2.5">
-        <MainInfoPanel coins={coins} activities={activities} />
+        <MainInfoPanel wallet={loggedInWallet} coins={coins} activities={activities} />
       </div>
     </div>
   );
