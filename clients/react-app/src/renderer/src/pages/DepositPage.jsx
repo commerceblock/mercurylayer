@@ -22,7 +22,7 @@ const DepositPage = () => {
   }
 
   // add paidButUnspenTokens to pending_deposits
-  const pending_deposits = [useSelector(state => state.deposit.pending_deposits), ...paidButUnspentTokens];
+  const pending_deposits = useSelector(state => state.deposit.pending_deposits);
 
 
 

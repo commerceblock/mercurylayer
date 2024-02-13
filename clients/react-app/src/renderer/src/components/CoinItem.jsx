@@ -4,21 +4,21 @@ import utils from '../logic/utils';
 const CoinItem = ({ coin }) => {
     const { amount, aggregated_address, status } = coin;
 
-
-
     const formattedAmount = utils.convertSatoshisToBTC(amount);
 
-    // Truncate the address for display
-    const truncatedAddress = `${aggregated_address.substring(0, 30)}...`;
+    // Truncate the address for display if it exists
+    const truncatedAddress = aggregated_address ? `${aggregated_address.substring(0, 30)}...` : '';
 
     // State to manage whether the address is copied to clipboard
     const [isCopied, setIsCopied] = useState(false);
 
-    // Function to copy the truncated address to clipboard
+    // Function to copy the truncated address to clipboard if it exists
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(aggregated_address);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 3000); // Reset copied state after 3 seconds
+        if (aggregated_address) {
+            navigator.clipboard.writeText(aggregated_address);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 3000); // Reset copied state after 3 seconds
+        }
     };
 
     return (
