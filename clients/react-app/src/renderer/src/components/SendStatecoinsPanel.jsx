@@ -10,7 +10,7 @@ const SendStatecoinsPanel = ({ wallet }) => {
 
 
   const onBackButtonContainerClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

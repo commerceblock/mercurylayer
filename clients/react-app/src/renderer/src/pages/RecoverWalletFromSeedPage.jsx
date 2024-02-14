@@ -26,7 +26,7 @@ const RecoverWalletFromSeedPage = () => {
   }, [navigate]);
 
   const onConfirmButtonClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

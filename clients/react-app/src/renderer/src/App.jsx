@@ -152,7 +152,7 @@ function App() {
         path="/new-wallet-3"
         element={<WalletWizardPage3 />}
       />
-      <Route path="/wallet-main-1" element={<MainPage />} />
+      <Route path="/mainpage" element={<MainPage />} />
       <Route path="/settingspage" element={<SettingsPage />} />
       <Route path="/helpandsupportpage" element={<HelpAndSupportPage />} />
       <Route path="/depositpage0" element={<DepositPage />} />

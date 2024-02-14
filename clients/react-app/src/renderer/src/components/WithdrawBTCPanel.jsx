@@ -9,7 +9,7 @@ const WithdrawBTCPanel = ({ wallet }) => {
   const totalSatoshiValue = filteredCoins.reduce((total, coin) => total + coin.amount, 0);
 
   const onBackButtonContainerClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

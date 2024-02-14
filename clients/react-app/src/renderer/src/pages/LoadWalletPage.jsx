@@ -37,7 +37,7 @@ const LoadWalletPage = () => {
     // set it in the state
     await dispatch(walletActions.selectWallet(selectedWallet));
 
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   };
 
   const walletLoaded = wallets.length > 0; // Determine if wallets are present

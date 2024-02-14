@@ -30,7 +30,7 @@ const DepositPage2 = () => {
   }, [navigate]);
 
   const onContinueButtonClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   if (!loggedInWallet) {
@@ -43,7 +43,7 @@ const DepositPage2 = () => {
     return <p>Loading...</p>;
   }
 
-  const filteredCoins = coins.filter((coin) => coin.status === 'INITIALISED');
+  const filteredCoins = coins.filter((coin) => coin.status === 'INITIALISED' && coin.amount !== undefined);
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[33px] text-left text-sm text-white font-body-small">

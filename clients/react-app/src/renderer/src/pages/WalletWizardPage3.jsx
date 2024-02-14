@@ -47,7 +47,7 @@ const WalletWizardPage3 = () => {
     await dispatch(wizardActions.setWalletName(''));
 
 
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate, wizardState]);
 
   return (

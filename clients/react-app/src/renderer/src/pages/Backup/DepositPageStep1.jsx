@@ -20,7 +20,7 @@ const DepositPageStep1 = () => {
   }, [navigate]);
 
   const onBackButtonContainerClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   const onContinueButtonClick = useCallback(() => {

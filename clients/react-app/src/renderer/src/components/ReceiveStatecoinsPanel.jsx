@@ -5,7 +5,7 @@ const ReceiveStatecoinsPanel = () => {
   const navigate = useNavigate();
 
   const onBackButtonContainerClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

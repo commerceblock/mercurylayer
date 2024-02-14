@@ -39,7 +39,7 @@ const MainHeaderPanel = ({ wallet }) => {
       </div>
       <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-start py-[5px] px-3 text-gray-400">
         <div className="relative tracking-[-0.02em] leading-[22px] font-semibold">
-          Hide balance
+          {/*Hide balance*/}
         </div>
       </div>
       <div className="self-stretch flex-1 rounded-t-none rounded-b-sm flex flex-row items-center justify-center text-white">

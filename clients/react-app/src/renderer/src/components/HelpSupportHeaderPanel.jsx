@@ -5,7 +5,7 @@ const HelpSupportHeaderPanel = () => {
   const navigate = useNavigate();
 
   const onFrameContainer1Click = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

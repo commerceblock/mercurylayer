@@ -22,7 +22,7 @@ const RecoverWalletFromBackupPage = () => {
   }, [navigate]);
 
   const onSelectBackupFileButtonClick = useCallback(() => {
-    navigate("/wallet-main-1");
+    navigate("/mainpage");
   }, [navigate]);
 
   return (

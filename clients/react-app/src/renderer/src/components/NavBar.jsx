@@ -8,7 +8,7 @@ const NavBar = ({
   showHelpButton,
 }) => {
   return (
-    <header className="self-stretch bg-royalblue-200 flex flex-row items-center justify-between py-2 px-6">
+    <header className="shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] self-stretch bg-royalblue-200 flex flex-row items-center justify-between py-2 px-6">
       <img
         className="w-[119px] relative h-[48.1px] object-cover"
         alt=""
