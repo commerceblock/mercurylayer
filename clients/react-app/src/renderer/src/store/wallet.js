@@ -1,136 +1,149 @@
-import { createSlice } from '@reduxjs/toolkit';
-import coinStatus from './actions/coinStatus';
-import utils from './utils';
+import { createSlice } from '@reduxjs/toolkit'
+import coinStatus from './actions/coinStatus'
+import utils from './utils'
 
 const initialState = {
-    selectedWallet: '',
-    hashedPassword: '',
-    wallets: [],
-    backupTxs: []
-};
+  selectedWallet: '',
+  password: '',
+  wallets: [],
+  backupTxs: []
+}
 
 const walletSlice = createSlice({
-    name: 'wallet',
-    initialState,
-    reducers: {
-        loadWallets(state, action) {
-            state.wallets = action.payload;
-        },
-        selectWallet(state, action) {
-            state.selectedWallet = action.payload;
-        },
-        setHashPassword(state, action) {
-            state.hashedPassword = action.payload;
-        },
-        insertToken(state, action) {
-            console.log('[redux]: inserting token into wallet state')
-            // find wallet
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+  name: 'wallet',
+  initialState,
+  reducers: {
+    loadWallet(state, action) {
+      const index = state.wallets.findIndex((wallet) => wallet.name === action.payload.name)
+      if (index === -1) {
+        state.wallets.push(action.payload)
+      } else {
+        console.error(
+          'The wallet with name ' + action.payload.name + ' already exists:',
+          action.payload
+        )
+      }
+    },
 
-            // check if the token_id already exists in any wallet
-            const isDuplicate = state.wallets.some(w =>
-                w.tokens.some(t => t.token_id === action.payload.token.token_id)
-            );
+    loadWallets(state, action) {
+      state.wallets = action.payload
+    },
+    selectWallet(state, action) {
+      state.selectedWallet = action.payload
+    },
+    setPassword(state, action) {
+      state.password = action.payload
+    },
+    insertToken(state, action) {
+      console.log('[redux]: inserting token into wallet state')
+      // find wallet
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
 
-            console.log('a token with this id was already inserted...');
+      // check if the token_id already exists in any wallet
+      const isDuplicate = state.wallets.some((w) =>
+        w.tokens.some((t) => t.token_id === action.payload.token.token_id)
+      )
 
-            // if it's not a duplicate, push to this wallet
-            if (!isDuplicate) {
-                wallet.tokens.push(action.payload.token);
-            }
-        },
-        loadBackupTxs(state, action) {
-            state.backupTxs = action.payload;
-        },
-        insertNewTransferCoin(state, action) {
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
-            wallet.coins.push(action.payload.newCoin);
-        },
+      console.log('a token with this id was already inserted...')
 
-        createWallet(state, action) {
-            state.wallets.push(action.payload);
-        },
+      // if it's not a duplicate, push to this wallet
+      if (!isDuplicate) {
+        wallet.tokens.push(action.payload.token)
+      }
+    },
+    loadBackupTxs(state, action) {
+      state.backupTxs = action.payload
+    },
+    insertNewTransferCoin(state, action) {
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
+      wallet.coins.push(action.payload.newCoin)
+    },
 
-        newDepositAddress(state, action) {
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
-            wallet.coins.push(action.payload.coin);
-        },
+    createWallet(state, action) {
+      state.wallets.push(action.payload)
+    },
 
-        setTokenSpent(state, action) {
-            console.log('set this token to spent')
-            const { walletName, token_id } = action.payload;
+    newDepositAddress(state, action) {
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
+      wallet.coins.push(action.payload.coin)
+    },
 
-            // Find the target wallet
-            const wallet = state.wallets.find(w => w.name === walletName);
+    setTokenSpent(state, action) {
+      console.log('set this token to spent')
+      const { walletName, token_id } = action.payload
 
-            // Find the target token in the wallet
-            const targetToken = wallet.tokens.find(token => token.token_id === token_id);
+      // Find the target wallet
+      const wallet = state.wallets.find((w) => w.name === walletName)
 
-            // If the token is found, set spent to true
-            if (targetToken) {
-                targetToken.spent = true;
-            }
-        },
+      // Find the target token in the wallet
+      const targetToken = wallet.tokens.find((token) => token.token_id === token_id)
 
-        coinStatus(state, action) {
-            coinStatus.handleConfirmation(state, action);
-        },
+      // If the token is found, set spent to true
+      if (targetToken) {
+        targetToken.spent = true
+      }
+    },
 
-        transferReceive(state, action) {
+    coinStatus(state, action) {
+      coinStatus.handleConfirmation(state, action)
+    },
 
-            let coinsUpdated = action.payload.coinsUpdated;
+    transferReceive(state, action) {
+      let coinsUpdated = action.payload.coinsUpdated
 
-            for (let i = 0; i < coinsUpdated.length; i++) {
-                let coinInfo = coinsUpdated[i];
-                let wallet = state.wallets.find(w => w.name === coinInfo.walletName);
-                utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet);
-                utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions, coinInfo.walletName);
-            }
-        },
+      for (let i = 0; i < coinsUpdated.length; i++) {
+        let coinInfo = coinsUpdated[i]
+        let wallet = state.wallets.find((w) => w.name === coinInfo.walletName)
+        utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet)
+        utils.replaceBackupTxs(
+          state,
+          coinInfo.updatedCoin,
+          coinInfo.backupTransactions,
+          coinInfo.walletName
+        )
+      }
+    },
 
-        withdraw(state, action) {
+    withdraw(state, action) {
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
 
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+      let updatedCoin = action.payload.updatedCoin
 
-            let updatedCoin = action.payload.updatedCoin;
+      utils.updateCoin(updatedCoin, wallet)
 
-            utils.updateCoin(updatedCoin, wallet);
+      wallet.activities.push(action.payload.activity)
 
-            wallet.activities.push(action.payload.activity);
+      utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name)
+    },
 
-            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
+    broadcastBackupTransaction(state, action) {
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
 
-        },
+      let newCoin = action.payload.newCoin
 
-        broadcastBackupTransaction(state, action) {
+      utils.updateCoin(newCoin, wallet)
 
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+      if (action.payload.activity) {
+        wallet.activities.push(action.payload.activity)
+      }
+    },
 
-            let newCoin = action.payload.newCoin;
+    transfer(state, action) {
+      console.log('--> executeTransferSend action.payload', action.payload)
 
-            utils.updateCoin(newCoin, wallet);
+      let wallet = state.wallets.find((w) => w.name === action.payload.walletName)
 
-            if (action.payload.activity) {
-                wallet.activities.push(action.payload.activity);
-            }
-        },
+      let updatedCoin = action.payload.updatedCoin
 
-        transfer(state, action) {
-            console.log('--> executeTransferSend action.payload', action.payload);
+      utils.updateCoin(updatedCoin, wallet)
 
-            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+      wallet.activities.push(action.payload.activity)
 
-            let updatedCoin = action.payload.updatedCoin;
-
-            utils.updateCoin(updatedCoin, wallet);
-
-            wallet.activities.push(action.payload.activity);
-
-            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
-        }
+      utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name)
     }
-});
+  }
+})
 
-export const walletActions = walletSlice.actions;
+export const walletActions = walletSlice.actions
 
-export default walletSlice.reducer;
+export default walletSlice.reducer

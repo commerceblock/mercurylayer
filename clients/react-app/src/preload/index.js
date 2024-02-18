@@ -7,7 +7,10 @@ const api = {
   infoConfig: () => ipcRenderer.invoke('info-config'),
   getConfigFile: () => ipcRenderer.invoke('get-config-file'),
   syncWallets: async (payout) => await ipcRenderer.invoke('sync-wallets', payout),
+  syncEncryptedWallets: async (payout) =>
+    await ipcRenderer.invoke('sync-encrypted-wallets', payout),
   getWallets: () => ipcRenderer.invoke('get-wallets'),
+  getEncryptedWallets: () => ipcRenderer.invoke('get-encrypted-wallets'),
   getToken: () => ipcRenderer.invoke('get-token'),
   initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
   getRealToken: () => ipcRenderer.invoke('get-real-token'),
@@ -15,15 +18,17 @@ const api = {
   confirmDebugToken: async (payout) => await ipcRenderer.invoke('confirm-debug-token', payout),
   signFirst: (payout) => ipcRenderer.invoke('sign-first', payout),
   signSecond: (payout) => ipcRenderer.invoke('sign-second', payout),
-  convertAddressToReversedHash: (payout) => ipcRenderer.invoke('convert-address-to-reversed-hash', payout),
+  convertAddressToReversedHash: (payout) =>
+    ipcRenderer.invoke('convert-address-to-reversed-hash', payout),
   syncBackupTxs: async (payout) => await ipcRenderer.invoke('sync-backup-txs', payout),
   getAllBackupTxs: () => ipcRenderer.invoke('get-all-backup-txs'),
   getNewX1: (payout) => ipcRenderer.invoke('get-new-x1', payout),
   updateMsg: (payout) => ipcRenderer.invoke('update-msg', payout),
-  sendTransferReceiverRequestPayload: (payout) => ipcRenderer.invoke('send-transfer-receiver-request-payload', payout),
+  sendTransferReceiverRequestPayload: (payout) =>
+    ipcRenderer.invoke('send-transfer-receiver-request-payload', payout),
   getStatechainInfo: (payout) => ipcRenderer.invoke('get-statechain-info', payout),
   getMsgAddr: (payout) => ipcRenderer.invoke('get-msg-addr', payout),
-  checkTransfer: (payout) => ipcRenderer.invoke('check-transfer', payout),
+  checkTransfer: (payout) => ipcRenderer.invoke('check-transfer', payout)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

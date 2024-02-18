@@ -1,26 +1,33 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 
-const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
-  let walletList = wallets.map((wallet) => (
-    <option key={wallet.name} value={wallet.name}>
+const WalletLoadContainer = ({
+  encrypted_wallets,
+  walletLoaded,
+  onOpenButtonClick,
+  password,
+  setPassword,
+  isIncorrectPassword,
+  setIsIncorrectPassword
+}) => {
+  let walletList = encrypted_wallets.map((wallet) => (
+    <option key={wallet.name} value={wallet}>
       {wallet.name}
     </option>
-  ));
-  const [selectedWalletName, setSelectedWalletName] = useState(wallets.length > 0 ? wallets[0].name : '');
-  const [passwordValue, setPasswordValue] = useState("");
+  ))
+  const [selectedWalletName, setSelectedWalletName] = useState(
+    encrypted_wallets.length > 0 ? encrypted_wallets[0].name : ''
+  )
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const onGoBackButtonContainerClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onGoBackButtonClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
-
-
+    navigate('/')
+  }, [navigate])
 
   return (
     <div className="self-stretch h-[460px] flex flex-col items-center justify-center gap-[60px]">
@@ -30,17 +37,13 @@ const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
           id="NoWallet"
         >
           <div className="flex flex-row items-center justify-center p-2.5">
-            <div className="relative">
-              No Wallet in memory. Please create a new one.
-            </div>
+            <div className="relative">No Wallet in memory. Please create a new one.</div>
           </div>
           <div
             className="w-[114px] rounded-md bg-mediumslateblue-200 shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center py-3 px-4 box-border cursor-pointer text-base text-white"
             onClick={onGoBackButtonContainerClick}
           >
-            <div className="relative tracking-[-0.02em] leading-[22px] font-semibold">
-              GO BACK
-            </div>
+            <div className="relative tracking-[-0.02em] leading-[22px] font-semibold">GO BACK</div>
           </div>
         </section>
       )}
@@ -69,10 +72,15 @@ const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
               <input
                 className="[outline:none] font-body text-base bg-white self-stretch rounded-md box-border h-12 flex flex-row items-start justify-start p-3 text-primary border-[1px] border-solid border-primary"
                 placeholder="Password"
-                type="text"
-                value={passwordValue}
-                onChange={(event) => setPasswordValue(event.target.value)}
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
               />
+              {isIncorrectPassword && (
+                <div className="text-red text-sm font-bold">
+                  Incorrect password. Please try again.
+                </div>
+              )}
             </div>
           </div>
           <div className="w-[247px] flex flex-row items-center justify-center gap-[19px]">
@@ -86,7 +94,10 @@ const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
             </button>
             <button
               className="cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
-              onClick={() => onOpenButtonClick(selectedWalletName)}
+              onClick={() => {
+                setIsIncorrectPassword(false)
+                onOpenButtonClick(selectedWalletName)
+              }}
             >
               <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
                 OPEN
@@ -96,7 +107,7 @@ const WalletLoadContainer = ({ wallets, walletLoaded, onOpenButtonClick }) => {
         </section>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default WalletLoadContainer;
+export default WalletLoadContainer

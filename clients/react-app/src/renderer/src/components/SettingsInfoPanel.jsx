@@ -1,4 +1,4 @@
-const SettingsInfoPanel = () => {
+const SettingsInfoPanel = ({ wallet }) => {
   return (
     <div className="self-stretch flex-1 shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] flex flex-col items-start justify-start text-center text-xs text-black font-body-small">
       <div className="self-stretch bg-white h-[412px] overflow-hidden shrink-0 flex flex-col items-start justify-start p-2.5 box-border gap-[10px]">
@@ -91,9 +91,7 @@ const SettingsInfoPanel = () => {
         </div>
       </div>
       <div className="self-stretch flex-1 bg-white overflow-hidden flex flex-col items-start justify-start p-2.5 gap-[10px] text-left">
-        <b className="relative tracking-[-0.02em] leading-[22px]">
-          Date/Time Format
-        </b>
+        <b className="relative tracking-[-0.02em] leading-[22px]">Date/Time Format</b>
         <div className="self-stretch h-[45px] flex flex-col items-start justify-start text-center text-sm text-primary">
           <div className="self-stretch flex-1 flex flex-col items-center justify-center gap-[7px]">
             <div className="w-[388px] flex-1 relative tracking-[-0.02em] leading-[19px] hidden" />
@@ -106,7 +104,7 @@ const SettingsInfoPanel = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SettingsInfoPanel;
+export default SettingsInfoPanel

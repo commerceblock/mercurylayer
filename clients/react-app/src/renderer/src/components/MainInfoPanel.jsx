@@ -5,7 +5,7 @@ import ActivityItem from './ActivityItem';
 const MainInfoPanel = ({ coins, activities }) => {
   const [activeTab, setActiveTab] = useState('Statecoins');
 
-  const filteredCoins = coins.filter((coin) => coin.status !== 'WITHDRAWN' && coin.amount !== undefined);
+  const filteredCoins = coins.filter((coin) => coin.status !== 'WITHDRAWN' && coin.amount !== undefined && coin.status !== 'TRANSFERRED');
 
   console.log('Received coins:', coins);
   console.log('Received activities:', activities);
