@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme, session } = require('electron')
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import fs from 'fs'
 
 import installExtension, { REDUX_DEVTOOLS } from 'electron-devtools-installer'
 
@@ -16,9 +17,11 @@ import transferSend from './transferSend'
 import transferReceive from './transferReceive'
 import coinStatus from './coinStatus'
 
+let mainWindow
+
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -111,6 +114,19 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-wallets', async (event) => {
     let wallets = await sqliteManager.getWallets(db)
     return wallets
+  })
+
+  ipcMain.handle('select-backup-file', async (event, arg) => {
+    console.log('calling select backup file')
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'JSON File', extensions: ['json'] }]
+    })
+    fs.readFile(result.filePaths[0], 'utf8', function (err, data) {
+      if (err) return console.log(err)
+      console.log('calling received-backup-data')
+      mainWindow.webContents.send('received-backup-data', data)
+    })
   })
 
   ipcMain.handle('get-encrypted-wallets', async (event) => {

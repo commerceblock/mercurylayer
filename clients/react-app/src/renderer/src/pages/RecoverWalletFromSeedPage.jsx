@@ -1,33 +1,33 @@
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import NavBar from '../components/NavBar'
 
 const RecoverWalletFromSeedPage = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const onHelpButtonContainerClick = useCallback(() => {
-    navigate("/helpandsupportpage");
-  }, [navigate]);
+    navigate('/helpandsupportpage')
+  }, [navigate])
 
   const onCogIconClick = useCallback(() => {
-    navigate("/settingspage");
-  }, [navigate]);
+    navigate('/settingspage')
+  }, [navigate])
 
   const onLogoutButtonIconClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onStateOffContainerClick = useCallback(() => {
-    navigate("/recoverwalletfrombackuppage");
-  }, [navigate]);
+    navigate('/recoverwalletfrombackuppage')
+  }, [navigate])
 
   const onGoBackButtonClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onConfirmButtonClick = useCallback(() => {
-    navigate("/mainpage");
-  }, [navigate]);
+    navigate('/mainpage')
+  }, [navigate])
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[20px] text-center text-base text-primary font-body-small">
@@ -54,6 +54,8 @@ const RecoverWalletFromSeedPage = () => {
           </div>
         </div>
       </div>
+      {/*
+
       <div className="w-[345px] relative h-[525px] text-left text-sm">
         <div className="absolute top-[0px] left-[0px] w-[345px] h-[49px] flex flex-col items-start justify-end gap-[7px]">
           <div className="relative tracking-[-0.02em] leading-[19px]" />
@@ -139,8 +141,10 @@ const RecoverWalletFromSeedPage = () => {
           </div>
         </button>
       </div>
-    </div>
-  );
-};
 
-export default RecoverWalletFromSeedPage;
+        */}
+    </div>
+  )
+}
+
+export default RecoverWalletFromSeedPage

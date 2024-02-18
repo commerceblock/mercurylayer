@@ -1,19 +1,30 @@
+import { useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { useLoggedInWallet } from '../hooks/walletHooks'
+import { walletActions } from '../store/wallet'
+
 const NavBar = ({
   onNavNavMenuClick,
   onHelpButtonContainerClick,
   onCogIconClick,
-  onLogoutButtonIconClick,
   showLogoutButton,
   showSettingsButton,
-  showHelpButton,
+  showHelpButton
 }) => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const loggedInWallet = useLoggedInWallet()
+
+  const onLogoutButtonIconClick = () => {
+    console.log('Log out button was called')
+    // clear the logged in wallet
+    dispatch(walletActions.clearLoggedInWallet())
+    navigate('/')
+  }
+
   return (
     <header className="shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] self-stretch bg-royalblue-200 flex flex-row items-center justify-between py-2 px-6">
-      <img
-        className="w-[119px] relative h-[48.1px] object-cover"
-        alt=""
-        src="/logo@2x.png"
-      />
+      <img className="w-[119px] relative h-[48.1px] object-cover" alt="" src="/logo@2x.png" />
       <div
         className="flex flex-row items-center justify-center gap-[16px]"
         onClick={onNavNavMenuClick}
@@ -53,7 +64,7 @@ const NavBar = ({
         </div>
       </div>
     </header>
-  );
-};
+  )
+}
 
-export default NavBar;
+export default NavBar

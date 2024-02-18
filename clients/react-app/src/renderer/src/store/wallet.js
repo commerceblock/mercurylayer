@@ -13,6 +13,12 @@ const walletSlice = createSlice({
   name: 'wallet',
   initialState,
   reducers: {
+    clearLoggedInWallet(state) {
+      state.selectedWallet = ''
+      state.password = ''
+      state.wallets = []
+      state.backupTxs = []
+    },
     loadWallet(state, action) {
       const index = state.wallets.findIndex((wallet) => wallet.name === action.payload.name)
       if (index === -1) {

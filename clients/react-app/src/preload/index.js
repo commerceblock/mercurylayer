@@ -11,6 +11,7 @@ const api = {
     await ipcRenderer.invoke('sync-encrypted-wallets', payout),
   getWallets: () => ipcRenderer.invoke('get-wallets'),
   getEncryptedWallets: () => ipcRenderer.invoke('get-encrypted-wallets'),
+  selectBackupFile: () => ipcRenderer.invoke('select-backup-file'),
   getToken: () => ipcRenderer.invoke('get-token'),
   initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
   getRealToken: () => ipcRenderer.invoke('get-real-token'),

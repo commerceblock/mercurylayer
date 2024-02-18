@@ -14,7 +14,14 @@ const SettingsHeaderPanel = ({ wallet }) => {
   const downloadWalletBackup = () => {
     console.log('Wallet->', wallet)
     let encrypted = walletManager.encryptString(JSON.stringify(wallet), password)
-    console.log(encrypted)
+    let data = { name: wallet.name, wallet_json: encrypted }
+    data = JSON.stringify(data)
+
+    var a = document.createElement('a')
+    var file = new Blob([data], { type: 'application/json' })
+    a.href = URL.createObjectURL(file)
+    a.download = 'wallet_backup.json'
+    a.click()
   }
 
   const downloadActivity = () => {
