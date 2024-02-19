@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import WalletLoadContainer from '../components/WalletLoadContainer'
 import { useDispatch, useSelector } from 'react-redux'
 import walletManager from '../logic/walletManager'
 import { walletActions } from '../store/wallet'
+import { encryptedWalletActions } from '../store/encryptedWallets'
 
 const LoadWalletPage = () => {
   const encrypted_wallets = useSelector((state) => state.encryptedWallets.encrypted_wallets)
@@ -12,6 +13,15 @@ const LoadWalletPage = () => {
   const dispatch = useDispatch()
   const [password, setPassword] = useState('')
   const [isIncorrectPassword, setIsIncorrectPassword] = useState(false)
+
+  useEffect(() => {
+    const fetchEncryptedWallets = async () => {
+      const wallets = await window.api.getEncryptedWallets() // gets the sqlite3 data
+      console.log('sqlite3 wallets data:', wallets)
+      await dispatch(encryptedWalletActions.loadWallets(wallets)) // populates the sqlite3 data into redux
+    }
+    fetchEncryptedWallets()
+  }, [dispatch])
 
   const onNavNavMenuClick = useCallback(() => {
     navigate('/')
