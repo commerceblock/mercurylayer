@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import thunks from './thunks';
-import coinStatus from './fulfilled_thunks/coinStatus';
+import coinStatus from './actions/coinStatus';
 import utils from './utils';
 
 const initialState = {
@@ -21,22 +20,48 @@ const walletSlice = createSlice({
         insertNewTransferCoin(state, action) {
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
             wallet.coins.push(action.payload.newCoin);
-        }
-    },
-    extraReducers: (builder) => {
-        builder.addCase(thunks.createWallet.fulfilled, (state, action) => {
-            state.wallets.push(action.payload);
-        })
+        },
 
-        builder.addCase(thunks.newDepositAddress.fulfilled, (state, action) => {
+        createWallet(state, action) {
+            state.wallets.push(action.payload);
+        },
+
+        newDepositAddress(state, action) {
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
             wallet.coins.push(action.payload.coin);
-        })
+        },
 
-        coinStatus.handleConfirmation(builder);
+        coinStatus(state, action) {
+            coinStatus.handleConfirmation(state, action);
+        },
 
-        builder.addCase(thunks.broadcastBackupTransaction.fulfilled, (state, action) => {
-            console.log('updateCoins action.payload', action.payload);
+        transferReceive(state, action) {
+
+            let coinsUpdated = action.payload.coinsUpdated;
+
+            for (let i = 0; i < coinsUpdated.length; i++) {
+                let coinInfo = coinsUpdated[i];
+                let wallet = state.wallets.find(w => w.name === coinInfo.walletName);
+                utils.updateCoinByPublicKey(coinInfo.updatedCoin, wallet);
+                utils.replaceBackupTxs(state, coinInfo.updatedCoin, coinInfo.backupTransactions, coinInfo.walletName);
+            }
+        },
+
+        withdraw(state, action) {
+
+            let wallet = state.wallets.find(w => w.name === action.payload.walletName);
+
+            let updatedCoin = action.payload.updatedCoin;
+                        
+            utils.updateCoin(updatedCoin, wallet);
+            
+            wallet.activities.push(action.payload.activity);
+
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
+
+        },
+
+        broadcastBackupTransaction(state, action) {
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
@@ -47,21 +72,21 @@ const walletSlice = createSlice({
             if (action.payload.activity) {
                 wallet.activities.push(action.payload.activity);
             }
-        })
+        },
 
-        builder.addCase(thunks.executeTransferSend.fulfilled, (state, action) => {
-            console.log('executeTransferSend action.payload', action.payload);
+        transfer(state, action) {
+            console.log('--> executeTransferSend action.payload', action.payload);
 
             let wallet = state.wallets.find(w => w.name === action.payload.walletName);
 
             let updatedCoin = action.payload.updatedCoin;
                         
             utils.updateCoin(updatedCoin, wallet);
-
+            
             wallet.activities.push(action.payload.activity);
 
-            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx);
-        })
+            utils.insertNewBackupTx(state, updatedCoin, action.payload.newBackupTx, wallet.name);
+        }
     }
 });
 

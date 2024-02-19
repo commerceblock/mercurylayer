@@ -31,8 +31,6 @@ const getToken = async () => {
 
 const initPod = async (depositMsg1) => {
 
-    console.log('depositMsg1', depositMsg1)
-
     const statechain_entity_url = config.get('statechainEntity');
     const path = "deposit/init/pod";
     const url = statechain_entity_url + '/' + path;

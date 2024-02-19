@@ -15,11 +15,17 @@ const sqlite_manager = require('./sqlite_manager');
 
 const { CoinStatus } = require('./coin_enum');
 
-const getDepositBitcoinAddress = async (db, wallet_name, token_id, amount) => {
+const getDepositBitcoinAddress = async (db, wallet_name, amount) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
-    await init(db, wallet, token_id);
+    let foundToken = wallet.tokens.find(token => token.confirmed === true && token.spent === false);
+
+    if (!foundToken) {
+        throw new Error(`There is no token available`);
+    }
+
+    await init(db, wallet, foundToken.token_id);
 
     let coin = wallet.coins[wallet.coins.length - 1];
 
@@ -28,6 +34,8 @@ const getDepositBitcoinAddress = async (db, wallet_name, token_id, amount) => {
     coin.amount = parseInt(amount, 10);
     coin.aggregated_address = aggregatedPublicKey.aggregate_address;
     coin.aggregated_pubkey = aggregatedPublicKey.aggregate_pubkey;
+
+    foundToken.spent = true;
 
     await sqlite_manager.updateWallet(db, wallet);
 
@@ -210,10 +218,10 @@ const init = async (db, wallet, token_id) => {
     await sqlite_manager.updateWallet(db, wallet);
 }
 
-const getToken = async () => {
+const getTokenFromServer = async () => {
 
     const statechain_entity_url = config.get('statechainEntity');
-    const path = "deposit/get_token";
+    const path = "tokens/token_init";
     const url = statechain_entity_url + '/' + path;
 
     const torProxy = config.get('torProxy');
@@ -232,7 +240,23 @@ const getToken = async () => {
 
     let token = response.data;
 
-    return token.token_id;
+    return token;
+}
+
+const getToken = async (db, walletName) => {
+
+    let wallet = await sqlite_manager.getWallet(db, walletName);
+    
+    let token = await getTokenFromServer();
+
+    // for dev purposes
+    token.confirmed = true;
+
+    wallet.tokens.push(token);
+
+    await sqlite_manager.updateWallet(db, wallet);
+
+    return token;
 }
 
 module.exports = { /*execute, createStatecoin,*/ getDepositBitcoinAddress, createTx1, getToken };

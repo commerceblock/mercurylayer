@@ -26,9 +26,13 @@ const execute = async (wallet, coin, backupTxs, toAddress)  => {
     const isWithdrawal = false;
     const qtBackupTx = coinBackupTxs.length;
 
-    coinBackupTxs.sort((a, b) => a.tx_n - b.tx_n);
+    console.log("coinBackupTxs", coinBackupTxs);
 
-    const bkp_tx1 = coinBackupTxs[0];
+    let clonedBackupTxs = structuredClone(coinBackupTxs);
+
+    clonedBackupTxs.sort((a, b) => a.tx_n - b.tx_n);
+
+    const bkp_tx1 = clonedBackupTxs[0];
 
     const block_height = mercury_wasm.getBlockheight(bkp_tx1);
 
@@ -57,8 +61,7 @@ const execute = async (wallet, coin, backupTxs, toAddress)  => {
     };
 
     /* backupTxs.push(backup_tx); */
-
-    let clonedBackupTxs = structuredClone(coinBackupTxs);
+ 
     clonedBackupTxs.push(backupTx);
 
     const input_txid = updatedCoin.utxo_txid;

@@ -203,3 +203,98 @@ a:hover {
     width: 100%;
   }
 }
+
+.custom-header {
+  max-width: 60rem;
+  margin: auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.fancy-button {
+  background-color: #1abc9c; /* Green background */
+  border: none;
+  color: white; /* White text */
+  padding: 15px 32px; /* Top/bottom and left/right padding */
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 8px; /* Rounded corners */
+  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover effect */
+}
+
+.fancy-button:hover {
+  background-color: #16a085; /* Darker shade of green on hover */
+  transform: scale(1.1); /* Slightly increase the size on hover */
+}
+
+.fancy-input {
+  background-color: #ffffff; /* White background for clear visibility */
+  border: 2px solid #1abc9c; /* Border color same as the button */
+  color: #2f3241; /* Text color similar to your page background for contrast */
+  padding: 10px; /* Comfortable padding */
+  margin: 8px 0; /* Margin for spacing */
+  display: inline-block;
+  border-radius: 4px; /* Slightly rounded corners */
+  box-sizing: border-box; /* To include padding and border in the element's total width and height */
+  transition: border-color 0.3s; /* Smooth transition for focus effect */
+  font-size: 16px; /* Match font size with the button */
+}
+
+.fancy-input:focus {
+  outline: none; /* Remove default focus outline */
+  border-color: #16a085; /* Darker border color on focus, similar to button hover */
+}
+
+.fancy-label {
+  color: white; /* White text for contrast */
+  padding: 8px 16px; /* Padding for a better visual appearance */
+  border-radius: 4px; /* Slightly rounded corners */
+  display: inline-block; /* To enable width and padding */
+  font-size: 16px; /* Consistent font size with button and input */
+  margin: 4px 0; /* Margin for spacing */
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  text-align: center; /* Center the text */
+}
+
+.fancy-label-green {
+  background-image: linear-gradient(to right, green, green); /* Gradient from red to yellow to green */
+}
+
+.fancy-label-red {
+  background-image: linear-gradient(to right, red, red); /* Gradient from red to yellow to green */
+}
+
+.fancy-label-orange {
+  background-image: linear-gradient(to right, orange, orange); /* Gradient from red to yellow to green */
+}
+
+.fancy-label-white {
+  background-image: linear-gradient(to right, white, white); /* Gradient from red to yellow to green */
+}
+
+.card {
+  background-color: #3f4551; /* Slightly lighter than the app's background for contrast */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  padding: 20px; /* Padding inside the card */
+  margin: 20px; /* Space around the card */
+  color: #d4e8ef; /* A light color for text, assuming it matches your app's text color */
+  font-family: Arial, sans-serif; /* Optional: Font style */
+  box-sizing: border-box; /* Include padding and border in the width and height */
+  word-wrap: break-word; /* Older browsers */
+  overflow-wrap: break-word; /* Standard property for breaking long words */
+  word-break: break-all; /* Break at any character */
+}
+
+.transparent-button {
+  background-color: transparent;
+  color: #2f3241;
+  border: none; /* Optional: removes the border */
+  font-size: 16px; /* Optional: for text size */
+  cursor: pointer; /* Optional: changes cursor on hover */
+}

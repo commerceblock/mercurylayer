@@ -3011,6 +3011,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "token-server"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "hex",
+ "mercury-lib",
+ "rand",
+ "reqwest",
+ "rocket",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "uuid 1.4.1",
+]
+
+[[package]]
 name = "tokio"
 version = "1.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

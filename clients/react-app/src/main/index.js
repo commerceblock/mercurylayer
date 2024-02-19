@@ -3,6 +3,8 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+import installExtension, { REDUX_DEVTOOLS } from 'electron-devtools-installer';
+
 import config from 'config';
 import sqlite3 from 'sqlite3';
 import { electrumRequest, disconnectElectrumClient } from './electrumClient';
@@ -12,6 +14,7 @@ import deposit from './deposit';
 import transaction from './transaction';
 import transferSend from './transferSend';
 import transferReceive from './transferReceive';
+import coinStatus from './coinStatus';
 
 function createWindow() {
   // Create the browser window.
@@ -49,6 +52,10 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+
+  installExtension(REDUX_DEVTOOLS)
+        .then((name) => console.log(`Added Extension:  ${name}`))
+        .catch((err) => console.log('An error occurred: ', err));
 
   let db;
 
@@ -123,7 +130,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('sync-backup-txs', async (event, backupTxs) => {
     console.log('sync-backup-txs', backupTxs);
     for (let i = 0; i < backupTxs.length; i++) {
-      await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+      // await sqliteManager.upsertTransaction(db, backupTxs[i].statechain_id, backupTxs[i].backupTxs);
+      await sqliteManager.syncBackupTransactions(db, backupTxs[i].statechain_id, backupTxs[i].walletName, backupTxs[i].backupTxs);
     }
   })
 
@@ -150,6 +158,10 @@ app.whenReady().then(async () => {
   
   ipcMain.handle('get-msg-addr', async (event, authPubkey) => {
     return await transferReceive.getMsgAddr(authPubkey);
+  })
+
+  ipcMain.handle('check-transfer', async (event, statechainId) => {
+    return await coinStatus.checkTransfer(statechainId);
   })
 
   createWindow()

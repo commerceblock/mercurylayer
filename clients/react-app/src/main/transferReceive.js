@@ -42,11 +42,11 @@ const getStatechainInfo = async (statechainId) => {
     return response.data;
 }
 
-const getMsgAddr = async (auth_pubkey) => {
+const getMsgAddr = async (authPubkey) => {
 
     const statechain_entity_url = config.get('statechainEntity');
     const path = "transfer/get_msg_addr/";
-    const url = statechain_entity_url + '/' + path + auth_pubkey;
+    const url = statechain_entity_url + '/' + path + authPubkey;
 
     const torProxy = config.get('torProxy');
 

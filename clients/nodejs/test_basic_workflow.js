@@ -27,10 +27,16 @@ async function createWallet(wallet_name) {
     // console.log('wallet:', wallet);
 }
 
-async function newToken() {
-    const { stdout, stderr } = await exec(`node index.js new-token`);
+async function newToken(wallet_name) {
+    const { stdout, stderr } = await exec(`node index.js new-token ${wallet_name}`);
     let json = JSON.parse(stdout);
-    return json.token_id;
+    return json;
+}
+
+async function listTokens(wallet_name) {
+    const { stdout, stderr } = await exec(`node index.js list-tokens ${wallet_name}`);
+    let json = JSON.parse(stdout);
+    return json;
 }
 
 async function getDepositBitcoinAddress(wallet_name, token_id, amount) {
@@ -105,9 +111,16 @@ async function walletTransfersToItselfAndWithdraw(wallet_name) {
     
     const amount = 10000;
 
-    const token_id = await newToken();
+    const token = await newToken(wallet_name);
+    const tokenId = token.token_id;
 
-    const deposit_info = await getDepositBitcoinAddress(wallet_name,token_id,amount);
+    const deposit_info = await getDepositBitcoinAddress(wallet_name, amount);
+
+    let tokenList = await listTokens(wallet_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
 
     // await createStatecoin(wallet_name,deposit_address);
 
@@ -172,11 +185,20 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wall
 
     const amount = 10000;
 
-    const token_id = await newToken();
+    const token = await newToken(wallet_1_name);
+    const tokenId = token.token_id;
 
-    const deposit_info = await getDepositBitcoinAddress(wallet_1_name, token_id, amount);
+    const deposit_info = await getDepositBitcoinAddress(wallet_1_name, amount);
 
     console.log("deposit_info w1: ", deposit_info);
+
+    let tokenList = await listTokens(wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    console.log("usedToken: ", usedToken);
+
+    assert(usedToken.spent);
 
     let coin = undefined;
 
