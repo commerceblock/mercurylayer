@@ -24,7 +24,7 @@ const decryptString = async (encryptedData, password) => {
   }
 }
 
-const createWallet = async (name, mnemonic) => {
+const createWallet = async (name, mnemonic, walletNetwork) => {
   let block_header = await window.api.electrumRequest({
     method: 'blockchain.headers.subscribe',
     params: []
@@ -33,25 +33,40 @@ const createWallet = async (name, mnemonic) => {
 
   let serverInfo = await window.api.infoConfig()
 
-  let configFile = await window.api.getConfigFile()
-
-  let electrumEndpoint = configFile.electrumServer
-  let statechainEntityEndpoint = configFile.statechainEntity
-  let network = configFile.network
+  let configFile = await window.api.getConfigFile() // remove later
+  let electrumEndpoint = configFile.electrumServer // remove later
+  let statechainEntityEndpoint = configFile.statechainEntity // remove later
 
   let wallet = {
     name,
     mnemonic,
     version: '0.1.0',
-    state_entity_endpoint: statechainEntityEndpoint,
-    electrum_endpoint: electrumEndpoint,
-    network: network,
+    state_entity_endpoint: statechainEntityEndpoint, // remove later
+    electrum_endpoint: electrumEndpoint, // remove later
+    network: walletNetwork, // remove later
     blockheight,
     initlock: serverInfo.initlock,
     interval: serverInfo.interval,
     tokens: [],
     activities: [],
-    coins: []
+    coins: [],
+    settings: {
+      network: walletNetwork,
+      block_explorerURL: 'https://mempool.space/testnet',
+      torProxyHost: 'socks5h://localhost',
+      torProxyPort: '9050',
+      torProxyControlPassword: '',
+      torProxyControlPort: '',
+      statechainEntityApi: 'http://127.0.0.1:8000',
+      torStatechainEntityApi:
+        'http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion',
+      electrumProtocol: 'ssl',
+      electrumHost: 'electrum.blockstream.info',
+      electrumPort: 60002,
+      electrumType: 'electrs',
+      notifications: false,
+      tutorials: false
+    }
   }
 
   return wallet

@@ -5,7 +5,7 @@ import utils from './utils'
 const initialState = {
   selectedWallet: '',
   password: '',
-  wallets: [],
+  wallets: [], // inside here is a settings object wallet1: { settings: {blockExplorerURL: '', electrumProtocol: '', electrumHost: '', electrumPort: '', electrumType: ''}, tokens: [], coins: [], activities: []}
   backupTxs: []
 }
 
@@ -13,6 +13,13 @@ const walletSlice = createSlice({
   name: 'wallet',
   initialState,
   reducers: {
+    updateSettings(state, action) {
+      const { walletName, settings } = action.payload
+      const wallet = state.wallets.find((w) => w.name === walletName)
+      if (wallet) {
+        wallet.settings = settings
+      }
+    },
     clearLoggedInWallet(state) {
       state.selectedWallet = ''
       state.password = ''

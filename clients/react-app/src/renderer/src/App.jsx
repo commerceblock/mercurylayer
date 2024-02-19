@@ -66,6 +66,7 @@ const App = () => {
 
   useEffect(() => {
     if (wallets && wallets.length > 0 && areWalletsLoaded) {
+      console.log('wallet object thats going to get encrypted -> ', wallets[0])
       let encryptedData = walletManager.encryptString(JSON.stringify(wallets[0]), password)
 
       window.api.syncEncryptedWallets({
@@ -92,7 +93,7 @@ const App = () => {
     // Set up the interval
     const interval = setInterval(() => {
       executeFunction()
-    }, 5000)
+    }, 3000)
 
     // Clean up the interval on component unmount or wallets change
     return () => clearInterval(interval)

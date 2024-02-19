@@ -11,7 +11,7 @@ const WalletLoadContainer = ({
   setIsIncorrectPassword
 }) => {
   let walletList = encrypted_wallets.map((wallet) => (
-    <option key={wallet.name} value={wallet}>
+    <option key={wallet.name} value={wallet.name}>
       {wallet.name}
     </option>
   ))
