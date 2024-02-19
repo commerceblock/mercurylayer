@@ -96,7 +96,7 @@ const App = () => {
 
     // Clean up the interval on component unmount or wallets change
     return () => clearInterval(interval)
-  }, [wallets])
+  }, [wallets, password])
 
   useEffect(() => {
     if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
