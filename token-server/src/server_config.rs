@@ -10,6 +10,8 @@ pub struct ServerConfig {
     pub api_key: String,
     /// Token fee value (satoshis)
     pub fee: String,
+    /// Invoice delay (seconds)
+    pub delay: u64,
     /// Postgres connection string
     pub connection_string: String,
 }
@@ -24,8 +26,10 @@ impl ServerConfig {
         ServerConfig {
             processor_url: settings.get_string("processor_url").unwrap(),
             api_key: settings.get_string("api_key").unwrap(),
-            fee: settings.get_string("fee").unwrap(),            
+            fee: settings.get_string("fee").unwrap(),
+            delay: settings.get_int("delay").unwrap() as u64,
             connection_string: settings.get_string("connection_string").unwrap(),
         }
     }
 }
+

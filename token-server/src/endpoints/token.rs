@@ -95,6 +95,7 @@ pub struct PODInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PODStatus {
     pub confirmed: bool,
+    pub expiry: u64,
 }
 
 
@@ -139,6 +140,7 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
     if spent {
         let pod_status = PODStatus {
             confirmed: false,
+            expiry: 0 as u64,
         };
         let response_body = json!(pod_status);
         return status::Custom(Status::Ok, Json(response_body));            
@@ -147,20 +149,24 @@ pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -
     if confirmed {
         let pod_status = PODStatus {
             confirmed: true,
+            expiry: 0 as u64,
         };
         let response_body = json!(pod_status);
         return status::Custom(Status::Ok, Json(response_body));            
     } else {
-        if query_lightning_payment(token_server, &processor_id).await {
+        let expiry = query_lightning_payment(token_server, &processor_id).await;
+        if expiry == 0 {
             set_token_confirmed(&token_server.pool, &token_id).await;
             let pod_status = PODStatus {
                 confirmed: true,
+                expiry: expiry,
             };
             let response_body = json!(pod_status);
             return status::Custom(Status::Ok, Json(response_body));  
         } else {
             let pod_status = PODStatus {
                 confirmed: false,
+                expiry: expiry,
             };
             let response_body = json!(pod_status);
             return status::Custom(Status::Ok, Json(response_body));
@@ -202,7 +208,7 @@ pub async fn get_lightning_invoice(token_server: &State<TokenServer>, token_id: 
         email: "".to_string(),
         emailLanguage: "en".to_string(),
         onChain: true,
-        delay: 1440,
+        delay: token_server.config.delay.clone(),
         extra: extra,
     };
 
@@ -222,7 +228,7 @@ pub async fn get_lightning_invoice(token_server: &State<TokenServer>, token_id: 
     return invoice;
 }
 
-pub async fn query_lightning_payment(token_server: &State<TokenServer>, processor_id: &String) -> bool {
+pub async fn query_lightning_payment(token_server: &State<TokenServer>, processor_id: &String) -> u64 {
 
     let processor_url = token_server.config.processor_url.clone();
     let api_key = token_server.config.api_key.clone();
@@ -236,9 +242,9 @@ pub async fn query_lightning_payment(token_server: &State<TokenServer>, processo
     let ret_invoice: RTLQuery = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
     if ret_invoice.isPaid {
-        return true
+        return 0;
     } else {
-        return false
+        return ret_invoice.createdAt + ret_invoice.delay;
     }
 }
 
