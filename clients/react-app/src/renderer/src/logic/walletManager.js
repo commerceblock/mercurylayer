@@ -14,10 +14,14 @@ const encryptString = (dataString, password) => {
   return encryptdata
 }
 
-const decryptString = (encryptedData, password) => {
-  var bytes = cryptojs.AES.decrypt(encryptedData, password)
-  var decryptdData = bytes.toString(cryptojs.enc.Utf8)
-  return decryptdData
+const decryptString = async (encryptedData, password) => {
+  try {
+    var bytes = await cryptojs.AES.decrypt(encryptedData, password)
+    var decryptedData = await bytes.toString(cryptojs.enc.Utf8)
+    return decryptedData
+  } catch (error) {
+    throw new Error('Decryption failed: ' + error.message)
+  }
 }
 
 const createWallet = async (name, mnemonic) => {

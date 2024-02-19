@@ -6,18 +6,16 @@ import { useDispatch } from 'react-redux'
 import { walletActions } from '../store/wallet'
 
 const RecoverWalletFromBackupPage = () => {
-  const [password, setPassword] = useState('')
-  const [errorMessage, setErrorMessage] = useState(null) // State to store the error message
+  const [password, setPassword] = useState('') // state that stores the password
+  const [errorMessage, setErrorMessage] = useState(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  // Function to check if an object looks well-formatted
-  function isWellFormatted(obj) {
+  const isWellFormatted = (obj) => {
     return obj.hasOwnProperty('name') && obj.hasOwnProperty('wallet_json')
   }
 
-  // Function to check if a string is valid JSON
-  function isValidJSON(str) {
+  const isValidJSON = (str) => {
     try {
       JSON.parse(str)
       return true
@@ -26,60 +24,51 @@ const RecoverWalletFromBackupPage = () => {
     }
   }
 
-  // Usage in your code
   useEffect(() => {
+    setErrorMessage('')
     const handleImportWalletData = async (event, backupData) => {
       try {
-        console.log('[handleImportWalletData]:', backupData)
-
         // Check if backupData is valid JSON
         if (isValidJSON(backupData)) {
           const parsedData = JSON.parse(backupData)
 
           // Check if parsedData is well-formatted
           if (isWellFormatted(parsedData)) {
-            console.log('Backup data is well-formatted')
-
+            // TODO: Password here is not the live password value within the react state, it is using a previous value!!!
+            console.log('password value is:', password)
             try {
-              console.log('parsedData:', parsedData.wallet_json)
-              console.log('password:', password)
-
               // attempt to decrypt the wallet_json
-              let decryptedString = walletManager.decryptString(parsedData.wallet_json, password)
-
-              console.log('decryptedString:', decryptedString)
+              let decryptedString = await walletManager.decryptString(
+                parsedData.wallet_json,
+                password
+              )
 
               let wallet_json = JSON.parse(decryptedString)
-              console.log('wallet_json:', wallet_json)
-              // load the string into the wallet
               await dispatch(walletActions.loadWallet(wallet_json))
               await dispatch(walletActions.setPassword(password))
               await dispatch(walletActions.selectWallet(wallet_json.name))
               navigate('/mainpage')
             } catch (e) {
-              setErrorMessage('Wrong file or password')
+              setErrorMessage('Incorrect Password')
             }
           } else {
-            console.log('Backup data is not well-formatted')
             setErrorMessage('Backup data is not well-formatted')
           }
         } else {
-          console.log('Backup data is not valid JSON')
           setErrorMessage('Backup data is not valid JSON')
         }
       } catch (e) {
-        console.error('Error:', e)
         setErrorMessage(`An error occurred: ${e.message}`)
+        return
       }
     }
 
-    if (window.electron && window.electron.ipcRenderer) {
-      console.log('Adding listener for received-backup-data')
-      window.electron.ipcRenderer.on('received-backup-data', handleImportWalletData)
-      return () =>
-        window.electron.ipcRenderer.removeListener('received-backup-data', handleImportWalletData)
-    }
-  }, [dispatch, navigate, password])
+    // listen for electron updates namely received-backup-data
+    //if (window.electron && window.electron.ipcRenderer) {
+    window.electron.ipcRenderer.on('received-backup-data', handleImportWalletData)
+    return () => window.electron.ipcRenderer.removeAllListeners('received-backup-data')
+    //}
+  }, [password])
 
   const onHelpButtonContainerClick = useCallback(() => {
     navigate('/helpandsupportpage')
@@ -105,6 +94,11 @@ const RecoverWalletFromBackupPage = () => {
 
   const onGoBackButtonClick = () => {
     navigate('/')
+  }
+
+  const onPasswordChange = (event) => {
+    console.log('changing password value...')
+    setPassword(event.target.value)
   }
 
   return (
@@ -140,12 +134,10 @@ const RecoverWalletFromBackupPage = () => {
             placeholder="Password"
             type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={onPasswordChange}
           />
         </div>
-        {errorMessage && (
-          <div className="text-red font-bold text-xl mt-4">Error: {errorMessage}</div>
-        )}
+        {errorMessage && <div className="text-red font-bold text-xl mt-4">{errorMessage}</div>}
         <div className="self-stretch flex-1 flex flex-row items-start justify-center gap-[20px]">
           <button
             className="cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"

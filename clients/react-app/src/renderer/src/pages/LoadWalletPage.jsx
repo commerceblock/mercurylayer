@@ -34,7 +34,11 @@ const LoadWalletPage = () => {
     if (walletObject) {
       console.log('wallet loaded was:', walletObject)
       try {
-        let decryptedString = walletManager.decryptString(walletObject.encrypted_wallet, password)
+        console.log('password used to try to decrypt:', password)
+        let decryptedString = await walletManager.decryptString(
+          walletObject.encrypted_wallet,
+          password
+        )
         console.log('decryptedString value:', decryptedString)
 
         let wallet_json = JSON.parse(decryptedString)
@@ -43,9 +47,9 @@ const LoadWalletPage = () => {
 
         setIsIncorrectPassword(false)
         // load the string into the wallet
-        dispatch(walletActions.loadWallet(wallet_json))
-        dispatch(walletActions.setPassword(password))
-        dispatch(walletActions.selectWallet(wallet_json.name))
+        await dispatch(walletActions.loadWallet(wallet_json))
+        await dispatch(walletActions.setPassword(password))
+        await dispatch(walletActions.selectWallet(wallet_json.name))
         navigate('/mainpage')
       } catch (e) {
         console.error('decryptedString error: ', e)
