@@ -56,6 +56,37 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
     transaction.commit().await.unwrap();
 }
 
+pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercury_lib::deposit::DepositMsg1Response> {
+
+    let row = sqlx::query(
+        "SELECT statechain_id, server_public_key \
+        FROM statechain_data \
+        WHERE auth_xonly_public_key = $1")
+        .bind(&auth_key.serialize())
+        .fetch_one(pool)
+        .await;
+
+    if row.is_err() {
+        match row.err().unwrap() {
+            sqlx::Error::RowNotFound => return None,
+            _ => return None
+        }
+    }
+
+    let row_ur = row.unwrap();
+
+    let server_public_key_bytes = row_ur.get::<Vec<u8>, _>(1);
+    let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
+
+    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+        server_pubkey: server_pubkey.to_string(),
+        statechain_id: row_ur.get(0),
+    };
+
+    return Some(deposit_msg1_response);
+
+}
+
 #[get("/deposit/get_token")]
 pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
 
@@ -137,6 +168,14 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     }
 
+    let existing_key = check_existing_key(&statechain_entity.pool, &auth_key).await;
+
+    if !existing_key.is_none() {
+        let response_body = json!(existing_key.unwrap());
+    
+        return status::Custom(Status::Ok, Json(response_body));
+    }
+
     let valid_token =  get_token_status(&statechain_entity.pool, &token_id).await;
 
     if valid_token.is_none() {
@@ -151,7 +190,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     if !valid_token.unwrap() {
         let response_body = json!({
             "error": "Deposit Error",
-            "message": "Token already spent."
+            "message": "Token unpaid or used."
         });
     
         return status::Custom(Status::Gone, Json(response_body));
