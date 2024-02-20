@@ -103,11 +103,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('sync-encrypted-wallets', async (event, wallet_state) => {
     // password is inside wallet_state
     const { name, wallet_json } = wallet_state
-
-    console.log('ipcMain found:', name, wallet_json)
-
     // encrypt wallets with the password
-
     await sqliteManager.upsertEncryptedWallet(db, name, wallet_json)
   })
 

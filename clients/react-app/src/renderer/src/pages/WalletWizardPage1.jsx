@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
-import { wizardActions } from "../store/wizard";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import NavBar from '../components/NavBar'
+import { wizardActions } from '../store/wizard'
+import { useDispatch, useSelector } from 'react-redux'
 
 const Popup = ({ message, onClose }) => (
   <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 bg-opacity-50">
@@ -13,63 +13,64 @@ const Popup = ({ message, onClose }) => (
       </button>
     </div>
   </div>
-);
+)
 
 const WalletWizardPage1 = () => {
-  const dispatch = useDispatch();
-  const wizardState = useSelector((state) => state.wizard);
-  const wallets = useSelector((state) => state.wallet.wallets);
-  const navigate = useNavigate();
+  const dispatch = useDispatch()
+  const wizardState = useSelector((state) => state.wizard)
+  const wallets = useSelector((state) => state.wallet.wallets)
+  const encrypted_wallets = useSelector((state) => state.encryptedWallets.encrypted_wallets)
+  const navigate = useNavigate()
 
-  const [passwordError, setPasswordError] = useState(false);
-  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState('');
+  const [passwordError, setPasswordError] = useState(false)
+  const [confirmPasswordError, setConfirmPasswordError] = useState(false)
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupMessage, setPopupMessage] = useState('')
 
-  const validateConfirmPassword = () => wizardState.password === wizardState.confirmPassword;
+  const validateConfirmPassword = () => wizardState.password === wizardState.confirmPassword
 
   const onPasswordChange = (e) => {
-    const newPassword = e.target.value;
-    dispatch(wizardActions.setPassword(newPassword));
-    setShowPopup(false);
-  };
+    const newPassword = e.target.value
+    dispatch(wizardActions.setPassword(newPassword))
+    setShowPopup(false)
+  }
 
   const onConfirmPasswordChange = (e) => {
-    const newConfirmPassword = e.target.value;
-    dispatch(wizardActions.setConfirmPassword(newConfirmPassword));
-    setConfirmPasswordError(!validateConfirmPassword());
-    setShowPopup(false);
-  };
+    const newConfirmPassword = e.target.value
+    dispatch(wizardActions.setConfirmPassword(newConfirmPassword))
+    setConfirmPasswordError(!validateConfirmPassword())
+    setShowPopup(false)
+  }
 
-  const onHelpButtonContainerClick = useCallback(() => navigate("/helpandsupportpage"), [navigate]);
-  const onCogIconClick = useCallback(() => navigate("/settingspage"), [navigate]);
-  const onLogoutButtonIconClick = useCallback(() => navigate("/"), [navigate]);
-  const onGoBackButtonClick = useCallback(() => navigate("/new-wallet-0"), [navigate]);
+  const onHelpButtonContainerClick = useCallback(() => navigate('/helpandsupportpage'), [navigate])
+  const onCogIconClick = useCallback(() => navigate('/settingspage'), [navigate])
+  const onLogoutButtonIconClick = useCallback(() => navigate('/'), [navigate])
+  const onGoBackButtonClick = useCallback(() => navigate('/new-wallet-0'), [navigate])
 
   const onNextButtonClick = useCallback(() => {
-    let errorMessage = '';
+    let errorMessage = ''
 
     if (!wizardState.termsConfirmation) {
-      errorMessage = "Please confirm before proceeding.";
+      errorMessage = 'Please confirm before proceeding.'
     } else if (wizardState.password !== wizardState.confirmPassword) {
-      errorMessage = "Passwords do not match.";
-    } else if (wallets.some(wallet => wallet.name === wizardState.walletName)) {
-      errorMessage = "A wallet with the same name already exists. Please choose a different name.";
+      errorMessage = 'Passwords do not match.'
+    } else if (encrypted_wallets.some((wallet) => wallet.name === wizardState.walletName)) {
+      errorMessage = 'A wallet with the same name already exists. Please choose a different name.'
     } else if (wizardState.walletName === '') {
-      errorMessage = 'Provide a wallet name.';
+      errorMessage = 'Provide a wallet name.'
     }
 
     if (errorMessage) {
-      setPopupMessage(errorMessage);
-      setShowPopup(true);
+      setPopupMessage(errorMessage)
+      setShowPopup(true)
     } else {
-      navigate("/new-wallet-2");
+      navigate('/new-wallet-2')
     }
-  }, [dispatch, navigate, wizardState, wallets]);
+  }, [dispatch, navigate, wizardState, wallets])
 
   const onTermsConfirmationChange = useCallback(() => {
-    dispatch(wizardActions.setTermsConfirmation(!wizardState.termsConfirmation));
-  }, [dispatch, wizardState]);
+    dispatch(wizardActions.setTermsConfirmation(!wizardState.termsConfirmation))
+  }, [dispatch, wizardState])
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[13px] text-left text-sm text-gray-300 font-body-small">
@@ -122,15 +123,14 @@ const WalletWizardPage1 = () => {
         />
         <div className="w-[349px] flex flex-row items-center justify-center p-2.5 box-border">
           <div className="relative tracking-[-0.02em] leading-[19px]">
-            <p className="m-0">
-              Enter a password for your wallet. Leave blank for no
-            </p>
+            <p className="m-0">Enter a password for your wallet. Leave blank for no</p>
             <p className="m-0">password.</p>
           </div>
         </div>
         <input
-          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${passwordError ? "border-red-500" : ""
-            }`}
+          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${
+            passwordError ? 'border-red-500' : ''
+          }`}
           placeholder="Password"
           type="password"
           value={wizardState.password}
@@ -138,8 +138,9 @@ const WalletWizardPage1 = () => {
         />
 
         <input
-          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${confirmPasswordError ? "border-red-500" : ""
-            }`}
+          className={`[outline:none] font-body-small text-sm bg-[transparent] w-[318px] rounded box-border flex flex-row items-center justify-center p-2.5 text-silver-200 border-[1px] border-solid border-darkgray-200 ${
+            confirmPasswordError ? 'border-red-500' : ''
+          }`}
           placeholder="Confirm Password"
           type="password"
           value={wizardState.confirmPassword}
@@ -169,8 +170,9 @@ const WalletWizardPage1 = () => {
           </div>
         </button>
         <button
-          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${!wizardState.termsConfirmation ? "cursor-not-allowed opacity-50" : ""
-            }`}
+          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${
+            !wizardState.termsConfirmation ? 'cursor-not-allowed opacity-50' : ''
+          }`}
           onClick={onNextButtonClick}
           disabled={!wizardState.termsConfirmation}
         >
@@ -179,11 +181,9 @@ const WalletWizardPage1 = () => {
           </div>
         </button>
       </div>
-      {showPopup && (
-        <Popup message={popupMessage} onClose={() => setShowPopup(false)} />
-      )}
+      {showPopup && <Popup message={popupMessage} onClose={() => setShowPopup(false)} />}
     </div>
-  );
-};
+  )
+}
 
-export default WalletWizardPage1;
+export default WalletWizardPage1
