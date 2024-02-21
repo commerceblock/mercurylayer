@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux'
 
 const SettingsHeaderPanel = ({ wallet }) => {
   const password = useSelector((state) => state.wallet.password)
+  const backupTxs = useSelector((state) => state.wallet.backupTxs)
   const navigate = useNavigate()
 
   const onFrameContainer1Click = useCallback(() => {
@@ -13,8 +14,13 @@ const SettingsHeaderPanel = ({ wallet }) => {
 
   const downloadWalletBackup = () => {
     console.log('Wallet->', wallet)
-    let encrypted = walletManager.encryptString(JSON.stringify(wallet), password)
-    let data = { name: wallet.name, wallet_json: encrypted }
+    let this_backup_txs = backupTxs.filter((tx) => tx.walletName === wallet.name)
+    let encrypted_backup_txs = walletManager.encryptString(
+      JSON.stringify(this_backup_txs),
+      password
+    )
+    let encrypted_wallet = walletManager.encryptString(JSON.stringify(wallet), password)
+    let data = { name: wallet.name, wallet_json: encrypted_wallet, backup_tx: encrypted_backup_txs }
     data = JSON.stringify(data)
 
     var a = document.createElement('a')

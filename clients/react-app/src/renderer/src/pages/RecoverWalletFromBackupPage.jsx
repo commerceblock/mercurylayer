@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import walletManager from '../logic/walletManager'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { walletActions } from '../store/wallet'
 
 const RecoverWalletFromBackupPage = () => {
@@ -10,6 +10,7 @@ const RecoverWalletFromBackupPage = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const encrypted_wallets = useSelector((state) => state.encryptedWallets.encrypted_wallets)
 
   const isWellFormatted = (obj) => {
     return obj.hasOwnProperty('name') && obj.hasOwnProperty('wallet_json')
@@ -34,19 +35,39 @@ const RecoverWalletFromBackupPage = () => {
 
           // Check if parsedData is well-formatted
           if (isWellFormatted(parsedData)) {
+            // check that another wallet doesn't already exist in memory...
+            if (encrypted_wallets.length > 0) {
+              const walletExists = encrypted_wallets.some((wallet) => {
+                return wallet.name === parsedData.name
+              })
+
+              if (walletExists) {
+                setErrorMessage(`Wallet ${parsedData.name} already exists`)
+                return
+              }
+            }
+
             // TODO: Password here is not the live password value within the react state, it is using a previous value!!!
             console.log('password value is:', password)
             try {
               // attempt to decrypt the wallet_json
-              let decryptedString = await walletManager.decryptString(
+              let decrypted_wallet = await walletManager.decryptString(
                 parsedData.wallet_json,
                 password
               )
 
-              let wallet_json = JSON.parse(decryptedString)
+              let decrypted_backuptx = await walletManager.decryptString(
+                parsedData.backup_tx,
+                password
+              )
+
+              let wallet_json = JSON.parse(decrypted_wallet)
+              let backup_tx = JSON.parse(decrypted_backuptx)
+
               await dispatch(walletActions.loadWallet(wallet_json))
               await dispatch(walletActions.setPassword(password))
               await dispatch(walletActions.selectWallet(wallet_json.name))
+              await dispatch(walletActions.loadBackupTxs(backup_tx))
               navigate('/mainpage')
             } catch (e) {
               setErrorMessage('Incorrect Password')
