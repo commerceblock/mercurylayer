@@ -103,6 +103,18 @@ const syncBackupTransactions = async (db, statechain_id, walletName, txs) => {
   // await run(db, "COMMIT;");
 }
 
+const syncEncryptBackupTransactions = async (db, statechain_id, walletName, txs) => {
+  await run(db, 'DELETE FROM backup_txs WHERE statechain_id = ? AND wallet_name = ?', [
+    statechain_id,
+    walletName
+  ])
+  await run(db, 'INSERT INTO backup_txs (statechain_id, wallet_name, txs) VALUES (?, ?, ?)', [
+    statechain_id,
+    walletName,
+    txs
+  ])
+}
+
 const getAllBackupTxs = async (db) => {
   return new Promise((resolve, reject) => {
     db.all('SELECT statechain_id, wallet_name, txs FROM backup_txs', [], (err, rows) => {
@@ -125,6 +137,28 @@ const getAllBackupTxs = async (db) => {
   })
 }
 
+const getAllEncryptedBackupTxs = async (db) => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT statechain_id, wallet_name, txs FROM backup_txs', [], (err, rows) => {
+      if (err) {
+        reject(err)
+      } else {
+        let backupTxs = []
+
+        for (let i = 0; i < rows.length; i++) {
+          backupTxs.push({
+            statechain_id: rows[i].statechain_id,
+            walletName: rows[i].wallet_name,
+            backupTxs: rows[i].txs
+          })
+        }
+
+        resolve(backupTxs)
+      }
+    })
+  })
+}
+
 export default {
   createTables,
   upsertWallet,
@@ -132,6 +166,7 @@ export default {
   getWallet,
   getWallets,
   getEncryptedWallets,
+  getAllEncryptedBackupTxs,
   getAllBackupTxs,
   syncBackupTransactions
 }

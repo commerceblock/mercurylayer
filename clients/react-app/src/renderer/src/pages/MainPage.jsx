@@ -1,36 +1,36 @@
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
-import MainHeaderPanel from "../components/MainHeaderPanel";
-import ConnectionsPanel from "../components/ConnectionsPanel";
-import MainInfoPanel from "../components/MainInfoPanel";
-import { useLoggedInWallet } from "../hooks/walletHooks";
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import NavBar from '../components/NavBar'
+import MainHeaderPanel from '../components/MainHeaderPanel'
+import ConnectionsPanel from '../components/ConnectionsPanel'
+import MainInfoPanel from '../components/MainInfoPanel'
+import { useLoggedInWallet } from '../hooks/walletHooks'
 
 const MainPage = () => {
-  const loggedInWallet = useLoggedInWallet();
+  const loggedInWallet = useLoggedInWallet()
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const onHelpButtonContainerClick = useCallback(() => {
-    navigate("/helpandsupportpage");
-  }, [navigate]);
+    navigate('/helpandsupportpage')
+  }, [navigate])
 
   const onCogIconClick = useCallback(() => {
-    navigate("/settingspage");
-  }, [navigate]);
+    navigate('/settingspage')
+  }, [navigate])
 
   const onLogoutButtonIconClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   if (!loggedInWallet) {
-    return <p>Loading...</p>;
+    return <p>Loading...</p>
   }
 
-  const { coins, activities } = loggedInWallet || {};
+  const { coins, activities } = loggedInWallet || {}
 
   if (!coins || !activities) {
-    return <p>Loading...</p>;
+    return <p>Loading...</p>
   }
 
   return (
@@ -53,10 +53,10 @@ const MainPage = () => {
         <MainInfoPanel wallet={loggedInWallet} coins={coins} activities={activities} />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default MainPage;
+export default MainPage
 
 /*
 Disabled until UI is complete

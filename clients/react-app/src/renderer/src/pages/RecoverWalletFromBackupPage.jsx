@@ -85,10 +85,8 @@ const RecoverWalletFromBackupPage = () => {
     }
 
     // listen for electron updates namely received-backup-data
-    //if (window.electron && window.electron.ipcRenderer) {
     window.electron.ipcRenderer.on('received-backup-data', handleImportWalletData)
     return () => window.electron.ipcRenderer.removeAllListeners('received-backup-data')
-    //}
   }, [password])
 
   const onHelpButtonContainerClick = useCallback(() => {
