@@ -54,6 +54,10 @@ const RecoverWalletFromSeedPage = () => {
           </div>
         </div>
       </div>
+
+      <div className="w-[345px] relative h-[525px] text-left text-sm">
+        Not currently supported in this version
+      </div>
       {/*
 
       <div className="w-[345px] relative h-[525px] text-left text-sm">

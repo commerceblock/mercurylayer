@@ -23,7 +23,9 @@ const CoinItem = ({ coin, onClick }) => {
 
   return (
     <div
-      className="bg-whitesmoke shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[135px] overflow-hidden flex flex-row items-center justify-center py-0 px-2.5 box-border text-center text-base text-black font-body-small self-stretch"
+      className={`${
+        coin.status === 'CONFIRMED' ? 'cursor-pointer' : ''
+      } bg-whitesmoke shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[135px] overflow-hidden flex flex-row items-center justify-center py-0 px-2.5 box-border text-center text-base text-black font-body-small self-stretch`}
       onClick={onClick}
     >
       <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-center p-2.5">
