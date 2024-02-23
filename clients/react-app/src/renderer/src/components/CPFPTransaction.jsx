@@ -35,7 +35,6 @@ const CPFPTransaction = ({ coin, wallet }) => {
         <table>
           <thead>
             <tr>
-              <th>Amount</th>
               <th>Pay to Address</th>
               <th>Fee Rate</th>
               <th></th> {/* Empty column for the create button */}
@@ -43,15 +42,6 @@ const CPFPTransaction = ({ coin, wallet }) => {
           </thead>
           <tbody>
             <tr>
-              <td>
-                <input
-                  type="text"
-                  placeholder="Amount"
-                  value={coin.amount}
-                  disabled
-                  className="border border-gray-300 rounded-lg p-2"
-                />
-              </td>
               <td>
                 <input
                   type="text"
