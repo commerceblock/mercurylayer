@@ -33,9 +33,9 @@ const createWallet = async (name, mnemonic, walletNetwork) => {
 
   let serverInfo = await window.api.infoConfig()
 
-  let configFile = await window.api.getConfigFile() // remove later
-  let electrumEndpoint = configFile.electrumServer // remove later
-  let statechainEntityEndpoint = configFile.statechainEntity // remove later
+  //let configFile = await window.api.getConfigFile() // remove later
+  let electrumEndpoint = 'tcp://signet-electrumx.wakiyamap.dev:50001' //configFile.electrumServer // remove later
+  let statechainEntityEndpoint = 'http://45.76.136.11:8500' // remove later
 
   let wallet = {
     name,

@@ -41,8 +41,8 @@ const CoinModal = ({ coin, wallet, hasLowestLocktime, onClose }) => {
   }
 
   return (
-    <div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-40 transition-opacity"></div>
+    <div className="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-40 transition-opacity"></div>
 
       <div className="fixed inset-0 z-10 w-screen flex items-center justify-center shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)]">
         <div className="relative p-4 text-center sm:p-0">

@@ -2,6 +2,9 @@ import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 
+import restoreImg from '../../../../resources/welcome_restore_wallet.png?asset&asarUnpack'
+import newImg from '../../../../resources/welcome_new_wallet.png?asset&asarUnpack'
+
 const WelcomePage = () => {
   const navigate = useNavigate()
 
@@ -55,11 +58,7 @@ const WelcomePage = () => {
             className="cursor-pointer [border:none] py-3 px-4 bg-white rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center box-border gap-[10px]"
             onClick={onNewWalletButtonClick}
           >
-            <img
-              className="w-[21px] relative h-[18px] object-cover"
-              alt=""
-              src="/restoreimg-2@2x.png"
-            />
+            <img className="w-[21px] relative h-[18px] object-cover" alt="" src={newImg} />
             <div className="relative text-sm tracking-[-0.02em] leading-[19px] font-body-small text-black text-left">
               New wallet
             </div>
@@ -68,22 +67,14 @@ const WelcomePage = () => {
             className="w-[137px] rounded-md bg-whitesmoke shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center py-3 px-4 box-border gap-[10px] cursor-pointer"
             onClick={onLoadWalletButtonContainerClick}
           >
-            <img
-              className="w-[21px] relative h-[18px] object-cover"
-              alt=""
-              src="/restoreimg-1@2x.png"
-            />
+            <img className="w-[21px] relative h-[18px] object-cover" alt="" src={restoreImg} />
             <div className="relative tracking-[-0.02em] leading-[19px]">Load wallet</div>
           </div>
           <button
             className="cursor-pointer [border:none] py-3 px-4 bg-whitesmoke rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center box-border gap-[10px]"
             onClick={onRecoverWalletButtonClick}
           >
-            <img
-              className="w-[21px] relative h-[18px] object-cover"
-              alt=""
-              src="/restoreimg-1@2x.png"
-            />
+            <img className="w-[21px] relative h-[18px] object-cover" alt="" src={restoreImg} />
             <div className="relative text-sm tracking-[-0.02em] leading-[19px] font-body-small text-black text-left">
               Recover wallet
             </div>

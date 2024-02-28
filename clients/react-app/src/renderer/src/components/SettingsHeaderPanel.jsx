@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import walletManager from '../logic/walletManager'
 import { useSelector } from 'react-redux'
 
+import settingsImg from '../../../../resources/settings_icon.png?asset&asarUnpack'
+
 const SettingsHeaderPanel = ({ wallet }) => {
   const password = useSelector((state) => state.wallet.password)
   const backupTxs = useSelector((state) => state.wallet.backupTxs)
@@ -46,11 +48,7 @@ const SettingsHeaderPanel = ({ wallet }) => {
     <div className="self-stretch rounded-sm shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[117px] flex flex-col items-center justify-center text-left text-3xl text-black font-body-heavy">
       <div className="self-stretch rounded-t-sm rounded-b-none bg-white h-[39px] flex flex-row items-center justify-between p-2.5 box-border">
         <div className="w-[201px] flex flex-row items-center justify-start gap-[6px]">
-          <img
-            className="w-[37px] relative h-[37px] object-cover"
-            alt=""
-            src="/settingsicon@2x.png"
-          />
+          <img className="w-[37px] relative h-[37px] object-cover" alt="" src={settingsImg} />
           <div className="relative">Settings</div>
         </div>
         <div

@@ -1,76 +1,81 @@
-import { useEffect, useState } from 'react';
-import transferReceive from '../logic/transferReceive';
-import { useDispatch } from 'react-redux';
-import { walletActions } from '../store/wallet';
-import { QRCodeSVG } from 'qrcode.react';
+import { useEffect, useState } from 'react'
+import transferReceive from '../logic/transferReceive'
+import { useDispatch } from 'react-redux'
+import { walletActions } from '../store/wallet'
+import { QRCodeSVG } from 'qrcode.react'
+
+import leftArrowImg from '../../../../resources/left-arrow.svg?asset&asarUnpack'
+import rightArrowImg from '../../../../resources/right-arrow.svg?asset&asarUnpack'
 
 const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
 
-  const [address, setAddress] = useState(null);
-  const [truncated, setTruncated] = useState('');
-  const [selectedCoinIndex, setSelectedCoinIndex] = useState(0); // Track the current index+
-  const [loading, setLoading] = useState(false);
-  const { coins } = wallet;
-  const filteredCoins = coins.filter((coin) => coin.status === 'INITIALISED' && coin.amount === undefined);
-
+  const [address, setAddress] = useState(null)
+  const [truncated, setTruncated] = useState('')
+  const [selectedCoinIndex, setSelectedCoinIndex] = useState(0) // Track the current index+
+  const [loading, setLoading] = useState(false)
+  const { coins } = wallet
+  const filteredCoins = coins.filter(
+    (coin) => coin.status === 'INITIALISED' && coin.amount === undefined
+  )
 
   const getAddress = async () => {
-    let op = await getNewTransferAddress();
+    let op = await getNewTransferAddress()
     //setSelectedCoinIndex(filteredCoins.length);
   }
 
   const onGenerateAddress = async () => {
-    setLoading(true);
+    setLoading(true)
 
     setTimeout(() => {
       getAddress().then(() => {
-        setSelectedCoinIndex(filteredCoins.length);
-        setLoading(false);
-      });
-    }, 500);
+        setSelectedCoinIndex(filteredCoins.length)
+        setLoading(false)
+      })
+    }, 500)
   }
 
   useEffect(() => {
     // Cleanup function to clear the timeout when component unmounts
-  }, [filteredCoins, getAddress, setSelectedCoinIndex, setLoading]);
+  }, [filteredCoins, getAddress, setSelectedCoinIndex, setLoading])
 
   useEffect(() => {
     if (filteredCoins.length === 0) {
-      getAddress();
+      getAddress()
     } else {
-      setAddress(filteredCoins[selectedCoinIndex].address);
-      setTruncated(filteredCoins[selectedCoinIndex].address.substring(0, 30) + "...");
+      setAddress(filteredCoins[selectedCoinIndex].address)
+      setTruncated(filteredCoins[selectedCoinIndex].address.substring(0, 30) + '...')
     }
-  }, [filteredCoins, selectedCoinIndex, getAddress]); // Include selectedCoinIndex in dependency array
+  }, [filteredCoins, selectedCoinIndex, getAddress]) // Include selectedCoinIndex in dependency array
 
   const getNewTransferAddress = async () => {
-    let newCoin = await transferReceive.newTransferAddress(wallet);
-    await dispatch(walletActions.insertNewTransferCoin(newCoin));
-    return newCoin;
-  };
+    let newCoin = await transferReceive.newTransferAddress(wallet)
+    await dispatch(walletActions.insertNewTransferCoin(newCoin))
+    return newCoin
+  }
 
   const onPrevButton = () => {
-    setSelectedCoinIndex(prevIndex => Math.max(0, prevIndex - 1)); // Move to previous index
-  };
+    setSelectedCoinIndex((prevIndex) => Math.max(0, prevIndex - 1)) // Move to previous index
+  }
 
   const onNextButton = () => {
-    setSelectedCoinIndex(prevIndex => Math.min(filteredCoins.length - 1, prevIndex + 1)); // Move to next index
-  };
+    setSelectedCoinIndex((prevIndex) => Math.min(filteredCoins.length - 1, prevIndex + 1)) // Move to next index
+  }
 
   const onCopyButton = () => {
     if (address) {
-      navigator.clipboard.writeText(address)
+      navigator.clipboard
+        .writeText(address)
         .then(() => {
-          console.log('Address copied to clipboard');
+          console.log('Address copied to clipboard')
           // You can add a notification or perform any other action upon successful copy
         })
         .catch((error) => {
-          console.error('Failed to copy address: ', error);
+          console.error('Failed to copy address: ', error)
           // You can handle the error here, e.g., display an error message
-        });
+        })
     }
-  };
+  }
 
   return (
     <div className="self-stretch rounded-sm bg-white shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[300px] overflow-hidden shrink-0 flex flex-col items-start justify-start p-2.5 box-border gap-[10px] text-left text-xs text-black font-body-small">
@@ -83,7 +88,6 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
             <p className="mt-4 text-sm text-gray-500">Generating Address...</p>
           </div>
         </div>
-
       )}
       {!loading && (
         <>
@@ -104,7 +108,7 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
                 "
                 onClick={onPrevButton}
               >
-                <img className="w-[18px] relative h-3.5" alt="" src="/left-arrow.svg" />
+                <img className="w-[18px] relative h-3.5" alt="" src={leftArrowImg} />
               </button>
               <button
                 className="
@@ -119,7 +123,7 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
                   border-[0.1px] border-solid border-black"
                 onClick={onNextButton}
               >
-                <img className="w-[18px] relative h-3.5" alt="" src="/right-arrow.svg" />
+                <img className="w-[18px] relative h-3.5" alt="" src={rightArrowImg} />
               </button>
             </div>
           </div>
@@ -130,10 +134,15 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
             <div className="self-stretch flex-1 overflow-hidden flex flex-col items-start justify-start p-2.5 gap-[10px]">
               <div className="self-stretch flex-1 bg-aliceblue overflow-hidden flex flex-row items-center justify-between p-2.5">
                 <div className="flex-1 flex flex-row items-center justify-start gap-[8px]">
-                  <button onClick={onCopyButton} className="cursor-pointer [border:none] p-0 bg-[transparent] flex flex-row items-center justify-start">
+                  <button
+                    onClick={onCopyButton}
+                    className="cursor-pointer [border:none] p-0 bg-[transparent] flex flex-row items-center justify-start"
+                  >
                     <img className="w-2 relative h-2" alt="" src="/icon3.svg" />
                   </button>
-                  <div className="relative" title={address}>{truncated}</div>
+                  <div className="relative" title={address}>
+                    {truncated}
+                  </div>
                 </div>
                 <button className="shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] cursor-pointer [border:none] py-2 px-1 bg-royalblue-200 rounded-sm overflow-hidden flex flex-row items-center justify-end">
                   <div className="relative text-4xs font-body-small text-white text-left">
@@ -142,7 +151,10 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
                 </button>
               </div>
               <div className="self-stretch flex-1 bg-white overflow-hidden flex flex-row items-center justify-between p-2.5">
-                <button onClick={onGenerateAddress} className="cursor-pointer py-2 px-1 bg-white rounded-sm shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center border-[0.1px] border-solid border-black">
+                <button
+                  onClick={onGenerateAddress}
+                  className="cursor-pointer py-2 px-1 bg-white rounded-sm shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] overflow-hidden flex flex-row items-center justify-center border-[0.1px] border-solid border-black"
+                >
                   <div className="relative text-4xs font-body-medium text-black text-left">
                     Generate Address
                   </div>
@@ -153,8 +165,7 @@ const ReceiveStatecoinsInfoPanel = ({ wallet }) => {
         </>
       )}
     </div>
-  );
+  )
+}
 
-};
-
-export default ReceiveStatecoinsInfoPanel;
+export default ReceiveStatecoinsInfoPanel

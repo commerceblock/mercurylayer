@@ -6,7 +6,7 @@ import fs from 'fs'
 
 import installExtension, { REDUX_DEVTOOLS } from 'electron-devtools-installer'
 
-import config from 'config'
+// import config from 'config'
 import sqlite3 from 'sqlite3'
 import { electrumRequest, disconnectElectrumClient } from './electrumClient'
 import { infoConfig, getConfigFile, convertAddressToReversedHash } from './utils'
@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
 
   try {
     // where to put that code?
-    const databaseFile = config.get('databaseFile')
+    const databaseFile = 'wallet.db' // config.get('databaseFile')
     db = new sqlite3.Database(databaseFile)
     await sqliteManager.createTables(db)
   } catch (error) {

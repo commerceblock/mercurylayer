@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import helpImg from '../../../../resources/help_page_icon.svg?asset&asarUnpack'
+
 const HelpSupportHeaderPanel = () => {
   const navigate = useNavigate()
 
@@ -12,7 +14,7 @@ const HelpSupportHeaderPanel = () => {
     <div className="self-stretch flex-1 shadow-[0px_1px_2px_rgba(0,_0,_0,_0.25)] flex flex-col items-start justify-start text-left text-5xl text-black font-body-small">
       <div className="self-stretch flex-1 rounded-t-sm rounded-b-none bg-white flex flex-row items-center justify-between p-2.5">
         <div className="flex flex-row items-center justify-start gap-[6px]">
-          <img className="w-4 relative h-4" alt="" src="/vector.svg" />
+          <img className="w-4 relative h-4" alt="" src={helpImg} />
           <div className="relative">{`Help & Support`}</div>
         </div>
         <div
