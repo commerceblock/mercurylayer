@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: react-app
+productName: mercury-wallet
 directories:
   buildResources: build
 files:
@@ -11,7 +11,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: react-app
+  executableName: mercury-wallet
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

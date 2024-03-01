@@ -13,10 +13,3 @@ wasm-pack build --release --target web
 # Or for nodejs
 wasm-pack build --release --target nodejs
 ```
-
-To run demo: 
-
-```
-npm install -g live-server
-live-server
-```

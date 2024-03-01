@@ -1,163 +1,53 @@
-import { useDispatch } from 'react-redux'
-import { useState, Fragment } from 'react'
+import { useState } from 'react'
+import utils from '../logic/utils'
 
-import { useSelector } from 'react-redux'
+const CoinItem = ({ coin, onClick }) => {
+  const { amount, aggregated_address, status } = coin
 
-import transferReceive from '../logic/transferReceive'
-import { walletActions } from '../store/wallet'
+  const formattedAmount = utils.convertSatoshisToBTC(amount)
 
-import withdraw from '../logic/withdraw';
+  // Truncate the address for display if it exists
+  const truncatedAddress = aggregated_address ? `${aggregated_address.substring(0, 30)}...` : ''
 
-import deposit from './../logic/deposit';
+  // State to manage whether the address is copied to clipboard
+  const [isCopied, setIsCopied] = useState(false)
 
-import broadcastBackupTx from '../logic/broadcastBackupTx';
-
-import transferSend from '../logic/transferSend';
-
-import coinEnum from '../logic/coinEnum';
-
-import CoinItem from './CoinItem';
-
-import { Link } from 'react-router-dom';
-
-export default function WalletControl({coin, wallet}) {
-
-    const backupTxs = useSelector(state => state.wallet.backupTxs);
-
-    const [isProcessingCoinRequest, setIsProcessingCoinRequest] = useState(false);
-
-    let [toAddress, setToAddress] = useState("");
-
-    const dispatch = useDispatch();
-
-    const withdrawTransaction = async (coin) => {
-        if (coin.status != "CONFIRMED") {
-            alert("Coin is not confirmed yet.");
-            return;
-        }
-  
-        setIsProcessingCoinRequest(true);
-  
-        let res = await withdraw.execute(wallet, backupTxs, coin, toAddress);
-  
-        dispatch(walletActions.withdraw(res));
-  
-        setToAddress("");
-  
-        setIsProcessingCoinRequest(false);
-      }
-  
-    const broadcastBackupTransaction = async (coin) => {
-        if (coin.status != "CONFIRMED") {
-            alert("Coin is not confirmed yet.");
-            return;
-        }
-  
-        setIsProcessingCoinRequest(true);
-  
-        let broadcastData = await broadcastBackupTx.execute(wallet, backupTxs, coin, toAddress);
-        await dispatch(walletActions.broadcastBackupTransaction(broadcastData));
-
-        setToAddress("");
-  
-        setIsProcessingCoinRequest(false);
+  // Function to copy the truncated address to clipboard if it exists
+  const copyToClipboard = () => {
+    if (aggregated_address) {
+      navigator.clipboard.writeText(aggregated_address)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 3000) // Reset copied state after 3 seconds
     }
-  
-    const transfer = async (coin) => {
-        if (coin.status != "CONFIRMED") {
-            alert("Coin is not confirmed yet."); 
-            return;
-        }
-  
-        setIsProcessingCoinRequest(true);
-  
-        let transferData = await transferSend.execute(wallet, coin, backupTxs, toAddress);
-        await dispatch(walletActions.transfer(transferData));
-  
-        setToAddress("");
-  
-        setIsProcessingCoinRequest(false);
-    }
+  }
 
-    let actionButtons = (coin) => {
-        if (coin.status == "CONFIRMED") {
-          if (isProcessingCoinRequest) {
-            return <div><span>Processing...</span></div>;
-          } else {
-            return (
-              <div>
-                <input className="fancy-input" type="text" value={toAddress} onChange={(e) => setToAddress(e.target.value)} style={{ marginRight: '10px' }} />
-                <button className="fancy-button" onClick={() => withdrawTransaction(coin)} style={{ marginRight: '10px' }}>Withdraw</button>
-                <button className="fancy-button" onClick={() => broadcastBackupTransaction(coin)} style={{ marginRight: '10px' }}>Broadcast Backup Transaction</button>
-                <button className="fancy-button" onClick={() => transfer(coin)}>Transfer</button>
-              </div>);
-          }
-        } else if (coin.status == "WITHDRAWING" || coin.status == "WITHDRAWN") {
-          let txid = coin.tx_withdraw ? coin.tx_withdraw : coin.tx_cpfp;
-          return (<>Withdrawal Txid: {txid}</>);
-        } else {
-            return <></>;
-        }
-    };
-
-    const getLabelStyle = () => {
-        if (coin.status == coinEnum.INITIALISED || coin.status == coinEnum.IN_MEMPOOL || coin.status == coinEnum.IN_TRANSFER || coin.status == coinEnum.UNCONFIRMED) {
-          return "fancy-label fancy-label-orange";
-        } else if (coin.status == coinEnum.TRANSFERRED || coin.status == coinEnum.WITHDRAWING || coin.status == coinEnum.WITHDRAWN) {
-          return "fancy-label fancy-label-red";
-        } else if (coin.status == coinEnum.CONFIRMED) {
-          return "fancy-label fancy-label-green";
-        }
-  
-        return "fancy-label fancy-label-orange";
-    }
-
-    const getLabelText = () => {
-        if (coin.status == coinEnum.INITIALISED) {
-            if (coin.statechain_id) {
-                return "Awaiting deposit";
-            } else {
-                return "Awaiting transfer";
-            }
-        } else if (coin.status == coinEnum.IN_MEMPOOL) {
-            return "In Mempool";
-        } else if (coin.status == coinEnum.UNCONFIRMED) {
-            return "Unconfirmed";
-        } else if (coin.status == coinEnum.CONFIRMED) {
-            return "Confirmed";
-          } else if (coin.status == coinEnum.IN_TRANSFER) {
-            return "In Transfer";
-        } else if (coin.status == coinEnum.TRANSFERRED) {
-          return "Transferred";
-        } else if (coin.status == coinEnum.WITHDRAWING) {
-            return "Withdrawing";
-        } else if (coin.status == coinEnum.WITHDRAWN) {
-            return "Withdrawn";
-        }
-  
-        return "";
-    }
-
-    let coinAddress = coin.address;
-
-    if (coin.status == coinEnum.INITIALISED && coin.statechain_id) {
-        coinAddress = coin.aggregated_address;
-    }
-
-    return (
-        <div className="card" onClick={console.log('coin', coin)}>
-            <ul style={{marginTop: 10}} >
-                <li>
-                    <span className={getLabelStyle(coin)} style={{marginRight: 20}}><b>{getLabelText()}</b></span>
-                    <Link to={`${coin.user_pubkey}`} className="fancy-label fancy-label-white transparent-button">Details</Link>
-                </li>
-                <li style={{marginTop: 10}}>Address: {coinAddress}</li>
-                { coin.statechain_id && <li style={{marginTop: 10}}>Statechain Id: {coin.statechain_id}</li> }
-                { coin.amount && <li style={{marginTop: 10}}>Amount: {coin.amount}</li> }
-                { coin.locktime && <li style={{marginTop: 10}}>Locktime: {coin.locktime}</li> }
-                <li style={{marginTop: 10}}>{actionButtons(coin)}</li>
-            </ul>
+  return (
+    <div
+      className={`${
+        coin.status === 'CONFIRMED' ? 'cursor-pointer' : ''
+      } bg-whitesmoke shadow-[0px_2px_2px_rgba(0,_0,_0,_0.25)] h-[135px] overflow-hidden flex flex-row items-center justify-center py-0 px-2.5 box-border text-center text-base text-black font-body-small self-stretch`}
+      onClick={onClick}
+    >
+      <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-center p-2.5">
+        <div className="relative tracking-[-0.02em] leading-[22px] font-semibold">
+          {formattedAmount} BTC
         </div>
-    );
+      </div>
+      <div className="self-stretch flex-1 overflow-hidden flex flex-row items-center justify-center p-2.5">
+        <div
+          className="relative tracking-[-0.02em] leading-[22px] font-semibold"
+          title={aggregated_address}
+          onClick={copyToClipboard}
+        >
+          {truncatedAddress}
+          {isCopied && <span className="text-xs text-green-500 ml-1">(Copied)</span>}
+        </div>
+      </div>
+      <div className="self-stretch flex-1 overflow-hidden flex flex-col items-center justify-center p-2.5">
+        <div className="relative tracking-[-0.02em] leading-[22px] font-semibold">{status}</div>
+      </div>
+    </div>
+  )
+}
 
-};
+export default CoinItem

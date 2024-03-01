@@ -1,10 +1,10 @@
 {
-  "name": "react-app",
-  "version": "1.0.0",
-  "description": "An Electron application with React",
+  "name": "mercury-layer",
+  "version": "0.1.0",
+  "description": "Mercury Layer Desktop Application",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://www.electronjs.org",
+  "author": "Mercury Layer Team, rk16449, ssantos21",
+  "homepage": "https://mercurylayer.com/",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
@@ -24,26 +24,31 @@
     "axios": "^1.6.2",
     "bitcoinjs-lib": "^6.1.5",
     "config": "^3.3.9",
+    "crypto-js": "^4.2.0",
     "mercury-wasm": "file:../../wasm/web_pkg",
+    "qrcode.react": "^3.1.0",
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.21.1",
     "socks-proxy-agent": "^8.0.2",
-    "sqlite3": "^5.1.7-rc.0",
+    "sqlite3": "5.0.0",
     "tiny-secp256k1": "^2.2.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.1",
     "@electron-toolkit/eslint-config-prettier": "^1.0.1",
     "@vitejs/plugin-react": "^4.0.4",
+    "autoprefixer": "^10.4.8",
     "electron": "^25.6.0",
     "electron-builder": "^24.6.3",
     "electron-devtools-installer": "^3.2.0",
     "electron-vite": "^1.0.27",
     "eslint": "^8.47.0",
     "eslint-plugin-react": "^7.33.2",
+    "postcss": "^8.4.16",
     "prettier": "^3.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "tailwindcss": "^3.1.8",
     "vite": "^4.4.9"
   }
 }

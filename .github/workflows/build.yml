@@ -1,0 +1,59 @@
+name: Build/release Electron app
+
+on:
+  push:
+    branches:
+      - main, dev
+    tags:
+      - v*.*.*
+
+jobs:
+  release:
+    permissions: write-all
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        working-directory: "./clients/react-app"
+        run: npm install
+
+      - name: build-linux
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: "./clients/react-app"
+        run: |
+          pwd
+          id
+          npm run build:linux
+
+      - name: build-win
+        if: matrix.os == 'windows-latest'
+        working-directory: "./clients/react-app"
+        run: npm run build:win
+
+      - name: release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            ./clients/react-app/dist/*.exe
+            ./clients/react-app/dist/*.zip
+            ./clients/react-app/dist/*.dmg
+            ./clients/react-app/dist/*.AppImage
+            ./clients/react-app/dist/*.snap
+            ./clients/react-app/dist/*.deb
+            ./clients/react-app/dist/*.rpm
+            ./clients/react-app/dist/*.tar.gz
+            ./clients/react-app/dist/*.yml
+            ./clients/react-app/dist/*.blockmap

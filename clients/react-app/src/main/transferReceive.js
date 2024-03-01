@@ -1,64 +1,60 @@
+import axios from 'axios'
+// import config from 'config';
+import SocksProxyAgentLib from 'socks-proxy-agent'
 
-import axios from 'axios';
-import config from 'config';
-import SocksProxyAgentLib from 'socks-proxy-agent';
-
-const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
+const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent
 
 const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload) => {
+  const statechain_entity_url = 'http://45.76.136.11:8500' // config.get('statechainEntity');
+  const path = 'transfer/receiver'
+  const url = statechain_entity_url + '/' + path
 
-    const statechain_entity_url = config.get('statechainEntity');
-    const path = "transfer/receiver";
-    const url = statechain_entity_url + '/' + path;
+  const torProxy = null // config.get('torProxy');
 
-    const torProxy = config.get('torProxy');
+  let socksAgent = undefined
 
-    let socksAgent = undefined;
+  if (torProxy) {
+    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) }
+  }
 
-    if (torProxy) {
-        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
-    }
+  const response = await axios.post(url, transferReceiverRequestPayload, socksAgent)
 
-    const response = await axios.post(url, transferReceiverRequestPayload, socksAgent);
-
-    return response.data.server_pubkey;
+  return response.data.server_pubkey
 }
 
 const getStatechainInfo = async (statechainId) => {
+  const statechainEntityUrl = 'http://45.76.136.11:8500' // config.get('statechainEntity')
+  const path = `info/statechain/${statechainId}`
 
-    const statechainEntityUrl = config.get('statechainEntity');
-    const path = `info/statechain/${statechainId}`;
+  const torProxy = null // config.get('torProxy')
 
-    const torProxy = config.get('torProxy');
+  let socksAgent = undefined
 
-    let socksAgent = undefined;
+  if (torProxy) {
+    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) }
+  }
 
-    if (torProxy) {
-        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
-    }
+  let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent)
 
-    let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
-
-    return response.data;
+  return response.data
 }
 
 const getMsgAddr = async (authPubkey) => {
+  const statechain_entity_url = 'http://45.76.136.11:8500' //config.get('statechainEntity')
+  const path = 'transfer/get_msg_addr/'
+  const url = statechain_entity_url + '/' + path + authPubkey
 
-    const statechain_entity_url = config.get('statechainEntity');
-    const path = "transfer/get_msg_addr/";
-    const url = statechain_entity_url + '/' + path + authPubkey;
+  const torProxy = null // config.get('torProxy')
 
-    const torProxy = config.get('torProxy');
+  let socksAgent = undefined
 
-    let socksAgent = undefined;
+  if (torProxy) {
+    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) }
+  }
 
-    if (torProxy) {
-        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
-    }
+  const response = await axios.get(url, socksAgent)
 
-    const response = await axios.get(url, socksAgent);
-
-    return response.data.list_enc_transfer_msg;
+  return response.data.list_enc_transfer_msg
 }
 
-export default { sendTransferReceiverRequestPayload, getStatechainInfo, getMsgAddr };
+export default { sendTransferReceiverRequestPayload, getStatechainInfo, getMsgAddr }

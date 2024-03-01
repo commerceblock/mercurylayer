@@ -3,15 +3,35 @@ import * as mercury_wasm from 'mercury-wasm';
 import transaction from './transaction';
 import CoinStatus from './coinEnum.js';
 
-const newAddress = async (wallet, amount) => {
+const checkToken = async (token_id) => {
+    let token = await window.api.checkToken(token_id);
+    return token;
+}
 
+const newRealToken = async () => {
+    let token = await window.api.getRealToken();
+    return token;
+}
+
+const confirmDebugToken = async (token_id) => {
+    console.log('[deposit.js]: going through confirm debug token', token_id);
+    let token = await window.api.confirmDebugToken(token_id);
+    return token;
+}
+
+const newTokenID = async () => {
     let token_id = await window.api.getToken();
+    return token_id;
+}
+
+const newAddress = async (wallet, amount, token_id) => {
+    console.log('[newAddress]: wallet, amount, token_Id', wallet, amount, token_id);
 
     const coin = mercury_wasm.getNewCoin(wallet);
 
     const depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
-    const depositMsg1Response = await window.api.initPod(depositMsg1); 
+    const depositMsg1Response = await window.api.initPod(depositMsg1);
 
     const depositInitResult = mercury_wasm.handleDepositMsg1Response(coin, depositMsg1Response);
 
@@ -63,4 +83,4 @@ const createTx1 = async (coin, wallet_network, tx0_hash, tx0_vout) => {
     return backup_tx;
 }
 
-export default { newAddress, createTx1 };
+export default { newAddress, createTx1, newTokenID, newRealToken, checkToken, confirmDebugToken };

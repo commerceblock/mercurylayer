@@ -24,15 +24,38 @@ pub struct Wallet {
     pub tokens: Vec<Token>,
     pub activities: Vec<Activity>,
     pub coins: Vec<Coin>,
+    pub settings: Settings,
 }
 
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Settings {
+    pub network: String,
+    pub block_explorerURL: Option<String>,
+    pub torProxyHost: Option<String>,
+    pub torProxyPort: Option<String>,
+    pub torProxyControlPassword: Option<String>,
+    pub torProxyControlPort: Option<String>,
+    pub statechainEntityApi: String,
+    pub torStatechainEntityApi: Option<String>,
+    pub electrumProtocol: String,
+    pub electrumHost: String,
+    pub electrumPort: String,
+    pub electrumType: String,
+    pub notifications: bool,
+    pub tutorials: bool
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Token {
-    pub token_id: String,
-    pub invoice: String,
+    pub btc_payment_address: String,
+    pub fee: String,
+    pub lightning_invoice: String,
     pub processor_id: String,
+    pub token_id: String,
     pub confirmed: bool,
     pub spent: bool,
+    pub expiry: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

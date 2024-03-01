@@ -428,18 +428,24 @@ pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
         Token {
-            token_id: String::from("e08aee00-cfed-4ab7-b304-38d61405720e"),
+            btc_payment_address: String::from("bc1..."),
+            fee: String::from("0.001"),
+            lightning_invoice: String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4"),
             processor_id: String::from("e04r5e00-cgdd-5yb7-y704-52631405720e"),
-            invoice: String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4"),
+            token_id: String::from("e08aee00-cfed-4ab7-b304-38d61405720e"),
             confirmed: true,
             spent: false,
+            expiry: "2023-11-07T12:34:56.789Z".to_string()
         },
         Token {
-            token_id: String::from("aed9a34c-5666-4d83-940f-9b74e16b8672"),
+            btc_payment_address: String::from("bc1..."),
+            fee: String::from("0.001"),
             processor_id: String::from("e04r5e00-cgdd-5yb7-y704-52631405720e"),
-            invoice: String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4"),
+            lightning_invoice: String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4"),
+            token_id: String::from("aed9a34c-5666-4d83-940f-9b74e16b8672"),
             confirmed: true,
             spent: false,
+            expiry: "2023-11-07T12:34:56.789Z".to_string()
         }
     ];
 
