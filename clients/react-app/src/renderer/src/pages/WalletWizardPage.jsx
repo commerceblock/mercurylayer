@@ -1,47 +1,47 @@
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import NavBar from '../components/NavBar'
 
-import { useDispatch, useSelector } from "react-redux";
-import { wizardActions } from "../store/wizard";
+import { useDispatch, useSelector } from 'react-redux'
+import { wizardActions } from '../store/wizard'
 
 const WalletWizardPage = () => {
   // NBL
-  const dispatch = useDispatch();
-  const wizardState = useSelector((state) => state.wizard);
+  const dispatch = useDispatch()
+  const wizardState = useSelector((state) => state.wizard)
   // NBL
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const onConfirmationChange = useCallback(() => {
     // Dispatch action to update the confirmation state
-    dispatch(wizardActions.setConfirmation(!wizardState.confirmation));
-  }, [dispatch, wizardState]);
+    dispatch(wizardActions.setConfirmation(!wizardState.confirmation))
+  }, [dispatch, wizardState])
 
   const onHelpButtonContainerClick = useCallback(() => {
-    navigate("/helpandsupportpage");
-  }, [navigate]);
+    navigate('/helpandsupportpage')
+  }, [navigate])
 
   const onCogIconClick = useCallback(() => {
-    navigate("/settingspage");
-  }, [navigate]);
+    navigate('/settingspage')
+  }, [navigate])
 
   const onLogoutButtonIconClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onGoBackButtonClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onNextButtonClick = useCallback(() => {
     // Check if the confirmation is pressed before navigating
     if (wizardState.confirmation) {
-      navigate("/new-wallet-1");
+      navigate('/new-wallet-1')
     } else {
-      console.warn("Please confirm before proceeding.");
+      console.warn('Please confirm before proceeding.')
     }
-  }, [dispatch, navigate, wizardState]);
+  }, [dispatch, navigate, wizardState])
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] flex flex-col items-center justify-start gap-[13px] text-left text-sm text-gray-300 font-body-small">
@@ -100,7 +100,7 @@ const WalletWizardPage = () => {
             value={wizardState.networkType}
             onChange={(e) => dispatch(wizardActions.setNetworkType(e.target.value))}
           >
-            <option value="Mainnet">Mainnet</option>
+            {/*<option value="Mainnet">Mainnet</option>*/}
             <option value="Testnet">Testnet</option>
             <option value="Regtest">Regtest</option>
           </select>
@@ -114,9 +114,9 @@ const WalletWizardPage = () => {
             onChange={onConfirmationChange}
           />
           <div className="flex-1 relative text-xs tracking-[-0.02em] leading-[22px] font-body-small text-black text-left flex items-center h-[148px]">
-            I confirm that nobody can see my screen and take responsibility of
-            the security of this machine, because anyone who has access to my
-            seed key will be able to spend the funds in my wallet.
+            I confirm that nobody can see my screen and take responsibility of the security of this
+            machine, because anyone who has access to my seed key will be able to spend the funds in
+            my wallet.
           </div>
         </div>
       </form>
@@ -130,8 +130,9 @@ const WalletWizardPage = () => {
           </div>
         </button>
         <button
-          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${!wizardState.confirmation ? "cursor-not-allowed opacity-50" : ""
-            }`}
+          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${
+            !wizardState.confirmation ? 'cursor-not-allowed opacity-50' : ''
+          }`}
           onClick={onNextButtonClick}
           disabled={!wizardState.confirmation}
         >
@@ -141,7 +142,7 @@ const WalletWizardPage = () => {
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default WalletWizardPage;
+export default WalletWizardPage
