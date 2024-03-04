@@ -45,10 +45,15 @@ jobs:
         working-directory: "./clients/react-app"
         run: npm run build:win
 
+      - name: Get version from package.json
+        id: get-version
+        run: |
+          echo ::set-output name=version::$(node -pe "require('./clients/react-app/package.json').version")
+        working-directory: "./clients/react-app"
+
       - name: release
         uses: softprops/action-gh-release@v1
         with:
-          draft: true
           files: |
             ./clients/react-app/dist/*.exe
             ./clients/react-app/dist/*.zip
@@ -60,3 +65,6 @@ jobs:
             ./clients/react-app/dist/*.tar.gz
             ./clients/react-app/dist/*.yml
             ./clients/react-app/dist/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NAME: ${{ steps.get-version.outputs.version }}
