@@ -3,7 +3,8 @@ name: Build/release Electron app
 on:
   push:
     branches:
-      - main, dev
+      - main
+      - dev
     tags:
       - v*.*.*
 
