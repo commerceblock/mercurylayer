@@ -195,7 +195,9 @@ const checkTransfer = async (coin, walletName) => {
     return null
   }
 
-  let isTransferred = await window.api.checkTransfer(coin.statechain_id)
+  let wallet = await window.api.getWallet(walletName)
+
+  let isTransferred = await window.api.checkTransfer(coin.statechain_id, wallet.settings)
 
   console.log('isTransferred', isTransferred)
 
@@ -223,13 +225,13 @@ const updateWallet = async (wallet) => {
       coin.status == CoinStatus.IN_MEMPOOL ||
       coin.status == CoinStatus.UNCONFIRMED
     ) {
-      let depositResult = await checkDeposit(coin, wallet.network, wallet.name)
+      let depositResult = await checkDeposit(coin, wallet.settings.network, wallet.name)
       console.log('CHECK DEPOSIT IS BEING CALLED ON THE COIN...')
       if (depositResult) {
         results.push(depositResult)
       }
     } else if (coin.status == CoinStatus.WITHDRAWING) {
-      let withdrawalResult = await checkWithdrawal(coin, wallet.network, wallet.name)
+      let withdrawalResult = await checkWithdrawal(coin, wallet.settings.network, wallet.name)
       if (withdrawalResult) {
         results.push(withdrawalResult)
       }

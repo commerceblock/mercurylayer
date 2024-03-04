@@ -40,7 +40,7 @@ const execute = async (wallets) => {
       const new_coins_updated = await process_encrypted_message(
         coin,
         encMessages,
-        wallet.network,
+        wallet.settings.network,
         serverInfo,
         wallet.name
       )
@@ -75,7 +75,14 @@ const process_encrypted_message = async (coin, encMessages, network, serverInfo,
       continue
     }
 
-    const statechainInfo = await window.api.getStatechainInfo(transferMsg.statechain_id)
+    const wallet = await window.api.getWallet(walletName)
+
+    console.log('found wallet->', wallet)
+
+    const statechainInfo = await window.api.getStatechainInfo(
+      transferMsg.statechain_id,
+      wallet.settings
+    )
 
     console.log('statechainInfo', statechainInfo)
     console.log('transferMsg', transferMsg)

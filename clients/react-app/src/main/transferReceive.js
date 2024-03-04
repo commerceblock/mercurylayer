@@ -22,8 +22,8 @@ const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload
   return response.data.server_pubkey
 }
 
-const getStatechainInfo = async (statechainId) => {
-  const statechainEntityUrl = 'http://45.76.136.11:8500' // config.get('statechainEntity')
+const getStatechainInfo = async (statechainId, walletSettings) => {
+  const statechainEntityUrl = walletSettings.statechainEntityApi // config.get('statechainEntity')
   const path = `info/statechain/${statechainId}`
 
   const torProxy = null // config.get('torProxy')

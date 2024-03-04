@@ -14,9 +14,11 @@ const api = {
   selectBackupFile: () => ipcRenderer.invoke('select-backup-file'),
   getToken: () => ipcRenderer.invoke('get-token'),
   initPod: (payout) => ipcRenderer.invoke('init-pod', payout),
-  getRealToken: () => ipcRenderer.invoke('get-real-token'),
-  checkToken: async (payout) => await ipcRenderer.invoke('check-token', payout),
-  confirmDebugToken: async (payout) => await ipcRenderer.invoke('confirm-debug-token', payout),
+  getRealToken: (walletSettings) => ipcRenderer.invoke('get-real-token', walletSettings),
+  checkToken: async (payout, walletSettings) =>
+    await ipcRenderer.invoke('check-token', payout, walletSettings),
+  confirmDebugToken: async (payout, walletSettings) =>
+    await ipcRenderer.invoke('confirm-debug-token', payout, walletSettings),
   signFirst: (payout) => ipcRenderer.invoke('sign-first', payout),
   signSecond: (payout) => ipcRenderer.invoke('sign-second', payout),
   convertAddressToReversedHash: (payout) =>
@@ -27,9 +29,11 @@ const api = {
   updateMsg: (payout) => ipcRenderer.invoke('update-msg', payout),
   sendTransferReceiverRequestPayload: (payout) =>
     ipcRenderer.invoke('send-transfer-receiver-request-payload', payout),
-  getStatechainInfo: (payout) => ipcRenderer.invoke('get-statechain-info', payout),
+  getStatechainInfo: (payout, walletSettings) =>
+    ipcRenderer.invoke('get-statechain-info', payout, walletSettings),
   getMsgAddr: (payout) => ipcRenderer.invoke('get-msg-addr', payout),
-  checkTransfer: (payout) => ipcRenderer.invoke('check-transfer', payout)
+  checkTransfer: (payout, walletSettings) =>
+    ipcRenderer.invoke('check-transfer', payout, walletSettings)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

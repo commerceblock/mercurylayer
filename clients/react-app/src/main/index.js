@@ -143,19 +143,19 @@ app.whenReady().then(async () => {
     return depositMsg1Response
   })
 
-  ipcMain.handle('get-real-token', async (event) => {
-    let token = await deposit.getRealToken()
+  ipcMain.handle('get-real-token', async (event, walletSettings) => {
+    let token = await deposit.getRealToken(walletSettings)
     return token
   })
 
-  ipcMain.handle('check-token', async (event, token_id) => {
-    let res = await deposit.checkToken(token_id)
+  ipcMain.handle('check-token', async (event, token_id, walletSettings) => {
+    let res = await deposit.checkToken(token_id, walletSettings)
     return res
   })
 
-  ipcMain.handle('confirm-debug-token', async (event, payout) => {
+  ipcMain.handle('confirm-debug-token', async (event, payout, walletSettings) => {
     console.log('inside handler confirm-debug-token, payout is equal to:', payout)
-    let token = await deposit.confirmDebugToken(payout)
+    let token = await deposit.confirmDebugToken(payout, walletSettings)
     return token
   })
 
@@ -207,16 +207,16 @@ app.whenReady().then(async () => {
     return await transferReceive.sendTransferReceiverRequestPayload(payout)
   })
 
-  ipcMain.handle('get-statechain-info', async (event, statechainId) => {
-    return await transferReceive.getStatechainInfo(statechainId)
+  ipcMain.handle('get-statechain-info', async (event, statechainId, walletSettings) => {
+    return await transferReceive.getStatechainInfo(statechainId, walletSettings)
   })
 
   ipcMain.handle('get-msg-addr', async (event, authPubkey) => {
     return await transferReceive.getMsgAddr(authPubkey)
   })
 
-  ipcMain.handle('check-transfer', async (event, statechainId) => {
-    return await coinStatus.checkTransfer(statechainId)
+  ipcMain.handle('check-transfer', async (event, statechainId, walletSettings) => {
+    return await coinStatus.checkTransfer(statechainId, walletSettings)
   })
 
   createWindow()

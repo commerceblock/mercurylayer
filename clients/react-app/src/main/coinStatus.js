@@ -4,8 +4,8 @@ import SocksProxyAgentLib from 'socks-proxy-agent'
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent
 
-const checkTransfer = async (statechainId) => {
-  const statechainEntityUrl = 'http://45.76.136.11:8500' //config.get('statechainEntity');
+const checkTransfer = async (statechainId, walletSettings) => {
+  const statechainEntityUrl = walletSettings.statechainEntityApi //config.get('statechainEntity');
   const path = `transfer/receiver/${statechainId}`
 
   const torProxy = null //config.get('torProxy')

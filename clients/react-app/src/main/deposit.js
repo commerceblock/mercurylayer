@@ -4,8 +4,9 @@ import SocksProxyAgentLib from 'socks-proxy-agent'
 
 const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent
 
-const checkToken = async (token_id) => {
-  const statechain_entity_url = 'http://45.76.136.11:8500' //config.get('statechainEntity');
+const checkToken = async (token_id, walletSettings) => {
+  console.log('wallet settings ->', walletSettings)
+  const statechain_entity_url = walletSettings.statechainEntityApi //config.get('statechainEntity');
   const path = 'token/token_verify/' + token_id
   const url = statechain_entity_url + '/' + path
 
@@ -28,13 +29,13 @@ const checkToken = async (token_id) => {
   return token
 }
 
-const confirmDebugToken = async (token_id) => {
+const confirmDebugToken = async (token_id, walletSettings) => {
   console.log('[deposit.js][confirmDebugToken]: token_id is equal to:', token_id)
   if (token_id == null) return
 
   console.log('trying to confirm the token_id of', token_id)
 
-  const statechain_entity_url = 'http://45.76.136.11:8500' //config.get('statechainEntity')
+  const statechain_entity_url = walletSettings.statechainEntityApi // 'http://45.76.136.11:8500' //config.get('statechainEntity')
   const path = 'token/token_confirm/' + token_id
   const url = statechain_entity_url + '/' + path
 
@@ -59,8 +60,8 @@ const confirmDebugToken = async (token_id) => {
   return token
 }
 
-const getRealToken = async () => {
-  const statechain_entity_url = 'http://45.76.136.11:8500' // config.get('statechainEntity')
+const getRealToken = async (walletSettings) => {
+  const statechain_entity_url = walletSettings.statechainEntityApi //'http://45.76.136.11:8500' // config.get('statechainEntity')
   const path = 'token/token_init'
   const url = statechain_entity_url + '/' + path
 

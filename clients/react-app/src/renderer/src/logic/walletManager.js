@@ -33,17 +33,10 @@ const createWallet = async (name, mnemonic, walletNetwork) => {
 
   let serverInfo = await window.api.infoConfig()
 
-  //let configFile = await window.api.getConfigFile() // remove later
-  let electrumEndpoint = 'tcp://signet-electrumx.wakiyamap.dev:50001' //configFile.electrumServer // remove later
-  let statechainEntityEndpoint = 'http://45.76.136.11:8500' // remove later
-
   let wallet = {
     name,
     mnemonic,
     version: '0.1.0',
-    state_entity_endpoint: statechainEntityEndpoint, // remove later
-    electrum_endpoint: electrumEndpoint, // remove later
-    network: walletNetwork, // remove later
     blockheight,
     initlock: serverInfo.initlock,
     interval: serverInfo.interval,
@@ -52,12 +45,12 @@ const createWallet = async (name, mnemonic, walletNetwork) => {
     coins: [],
     settings: {
       network: walletNetwork,
-      block_explorerURL: 'https://mempool.space/testnet',
-      torProxyHost: 'socks5h://localhost',
-      torProxyPort: '9050',
-      torProxyControlPassword: '',
-      torProxyControlPort: '',
-      statechainEntityApi: 'http://127.0.0.1:8000',
+      block_explorerURL: walletNetwork === 'testnet' ? 'https://mempool.space/testnet' : undefined,
+      torProxyHost: null,
+      torProxyPort: null,
+      torProxyControlPassword: null,
+      torProxyControlPort: null,
+      statechainEntityApi: 'http://45.76.136.11:8500',
       torStatechainEntityApi:
         'http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion',
       electrumProtocol: 'ssl',
