@@ -1,30 +1,30 @@
-import React, { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { wizardActions } from "../store/wizard";
+import React, { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { wizardActions } from '../store/wizard'
 
 const NewWalletContainer = () => {
-  const dispatch = useDispatch();
-  const wizardState = useSelector((state) => state.wizard);
-  const navigate = useNavigate();
+  const dispatch = useDispatch()
+  const wizardState = useSelector((state) => state.wizard)
+  const navigate = useNavigate()
 
   const onConfirmationChange = useCallback(() => {
     // Dispatch action to update the confirmation state
-    dispatch(wizardActions.setConfirmation(!wizardState.confirmation));
-  }, [dispatch, wizardState]);
+    dispatch(wizardActions.setConfirmation(!wizardState.confirmation))
+  }, [dispatch, wizardState])
 
   const onGoBackButtonContainerClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onNextButtonClick = useCallback(() => {
     // Check if the confirmation is pressed before navigating
     if (wizardState.confirmation) {
-      navigate("/new-wallet-2-create-password");
+      navigate('/new-wallet-2-create-password')
     } else {
-      console.warn("Please confirm before proceeding.");
+      console.warn('Please confirm before proceeding.')
     }
-  }, [dispatch, navigate, wizardState]);
+  }, [dispatch, navigate, wizardState])
 
   return (
     <form className="m-0 absolute w-full top-[64.1px] right-[0px] left-[0px] h-[478.9px] flex flex-col items-center justify-center">
@@ -38,7 +38,7 @@ const NewWalletContainer = () => {
           value={wizardState.networkType}
           onChange={(e) => dispatch(wizardActions.setNetworkType(e.target.value))}
         >
-          <option value="Mainnet">Mainnet</option>
+          {/*<option value="Mainnet">Mainnet</option>*/}
           <option value="Testnet">Testnet</option>
           <option value="Regtest">Regtest</option>
         </select>
@@ -54,8 +54,8 @@ const NewWalletContainer = () => {
           id="testnet_text"
           showing="false"
         >
-          IMPORTANT: Wallet was opened in testnet, therefore new wallets will be
-          created in testnet. Existing wallets are not changed.
+          IMPORTANT: Wallet was opened in testnet, therefore new wallets will be created in testnet.
+          Existing wallets are not changed.
         </p>
       </div>
       <div className="w-[404px] flex flex-row items-center justify-center gap-[21px]">
@@ -67,9 +67,9 @@ const NewWalletContainer = () => {
           onChange={onConfirmationChange}
         />
         <div className="relative text-xs tracking-[-0.02em] leading-[22px] font-body text-black text-left flex items-center w-[359px] h-[148px] shrink-0">
-          I confirm that nobody can see my screen and take responsibility of the
-          security of this machine, because anyone who has access to my seed key
-          will be able to spend the funds in my wallet.
+          I confirm that nobody can see my screen and take responsibility of the security of this
+          machine, because anyone who has access to my seed key will be able to spend the funds in
+          my wallet.
         </div>
       </div>
       <div className="self-stretch h-[60px] flex flex-row items-center justify-center gap-[21px]">
@@ -82,8 +82,9 @@ const NewWalletContainer = () => {
           </div>
         </div>
         <button
-          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${!wizardState.confirmation ? "cursor-not-allowed opacity-50" : ""
-            }`}
+          className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${
+            !wizardState.confirmation ? 'cursor-not-allowed opacity-50' : ''
+          }`}
           onClick={onNextButtonClick}
           disabled={!wizardState.confirmation}
         >
@@ -93,7 +94,7 @@ const NewWalletContainer = () => {
         </button>
       </div>
     </form>
-  );
-};
+  )
+}
 
-export default NewWalletContainer;
+export default NewWalletContainer
