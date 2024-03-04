@@ -1,4 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme, session } = require('electron')
+import { Tray, nativeImage } from 'electron'
+import appIcon from '../../resources/icon.png?asset'
+
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -61,6 +64,8 @@ app.whenReady().then(async () => {
   installExtension(REDUX_DEVTOOLS)
     .then((name) => console.log(`Added Extension:  ${name}`))
     .catch((err) => console.log('An error occurred: ', err))
+
+  let tray = new Tray(nativeImage.createFromPath(appIcon))
 
   let db
 
