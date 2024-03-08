@@ -85,7 +85,10 @@ const WalletWizardPage1 = () => {
       <div className="self-stretch h-[90px] flex flex-row items-center justify-center">
         <div className="self-stretch flex-1 flex flex-row items-center justify-center gap-[48px]">
           <div className="w-[68px] relative h-[43px] text-mediumslateblue-300">
-            <div className="absolute top-[26px] left-[calc(50%_-_34px)] font-extralight">
+            <div
+              className="absolute top-[26px] left-[calc(50%_-_34px)] font-extralight"
+              data-cy="wallet-info-step"
+            >
               Wallet Info
             </div>
             <div className="absolute top-[0px] left-[calc(50%_-_34px)] rounded-[50%] bg-mediumslateblue-300 w-[22px] h-[22px]" />
@@ -94,7 +97,10 @@ const WalletWizardPage1 = () => {
             </div>
           </div>
           <div className="w-[75px] relative h-[43px]">
-            <div className="absolute top-[26px] left-[calc(50%_-_37.5px)] font-extralight">
+            <div
+              className="absolute top-[26px] left-[calc(50%_-_37.5px)] font-extralight"
+              data-cy="wallet-seed-step"
+            >
               Wallet seed
             </div>
             <div className="absolute top-[calc(50%_-_21.5px)] left-[calc(50%_-_37.5px)] rounded-[50%] bg-gray-500 w-[22px] h-[22px]" />
@@ -103,7 +109,10 @@ const WalletWizardPage1 = () => {
             </div>
           </div>
           <div className="w-[87px] relative h-[43px]">
-            <div className="absolute top-[26px] left-[calc(50%_-_43.5px)] font-extralight">
+            <div
+              className="absolute top-[26px] left-[calc(50%_-_43.5px)] font-extralight"
+              data-cy="confirm-seed-step"
+            >
               Confirm seed
             </div>
             <div className="absolute top-[calc(50%_-_21.5px)] left-[calc(50%_-_43.5px)] rounded-[50%] bg-gray-500 w-[22px] h-[22px]" />
@@ -120,6 +129,7 @@ const WalletWizardPage1 = () => {
           type="text"
           value={wizardState.walletName}
           onChange={(e) => dispatch(wizardActions.setWalletName(e.target.value))}
+          data-cy="wallet-name-input"
         />
         <div className="w-[349px] flex flex-row items-center justify-center p-2.5 box-border">
           <div className="relative tracking-[-0.02em] leading-[19px]">
@@ -135,6 +145,7 @@ const WalletWizardPage1 = () => {
           type="password"
           value={wizardState.password}
           onChange={onPasswordChange}
+          data-cy="password-input"
         />
 
         <input
@@ -145,6 +156,7 @@ const WalletWizardPage1 = () => {
           type="password"
           value={wizardState.confirmPassword}
           onChange={onConfirmPasswordChange}
+          data-cy="confirm-password-input"
         />
         <div className="w-[332px] relative h-[94px] overflow-hidden shrink-0 text-xs">
           <div className="absolute top-[36px] left-[80px]">
@@ -157,6 +169,7 @@ const WalletWizardPage1 = () => {
             required={true}
             checked={wizardState.termsConfirmation}
             onChange={onTermsConfirmationChange}
+            data-cy="terms-checkbox"
           />
         </div>
       </div>
@@ -164,6 +177,7 @@ const WalletWizardPage1 = () => {
         <button
           className="cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
           onClick={onGoBackButtonClick}
+          data-cy="go-back-button"
         >
           <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
             GO BACK
@@ -175,6 +189,7 @@ const WalletWizardPage1 = () => {
           }`}
           onClick={onNextButtonClick}
           disabled={!wizardState.termsConfirmation}
+          data-cy="next-button"
         >
           <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body text-white text-left">
             NEXT

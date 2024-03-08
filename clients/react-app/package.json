@@ -14,7 +14,8 @@
     "postinstall": "electron-builder install-app-deps",
     "build:win": "npm run build && electron-builder --win --config",
     "build:mac": "npm run build && electron-builder --mac --config",
-    "build:linux": "npm run build && electron-builder --linux --config"
+    "build:linux": "npm run build && electron-builder --linux --config",
+    "cypress:open": "cypress open"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^2.0.0",
@@ -38,6 +39,8 @@
     "@electron-toolkit/eslint-config-prettier": "^1.0.1",
     "@vitejs/plugin-react": "^4.0.4",
     "autoprefixer": "^10.4.8",
+    "cypress": "^13.6.6",
+    "cypress-vite": "^1.5.0",
     "electron": "^25.6.0",
     "electron-builder": "^24.6.3",
     "electron-devtools-installer": "^3.2.0",

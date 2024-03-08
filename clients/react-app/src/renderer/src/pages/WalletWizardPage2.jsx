@@ -1,51 +1,51 @@
-import { useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
-import SeedPhrasePanel from "../components/SeedPhrasePanel";
-import { wizardActions } from "../store/wizard";
-import wallet_manager from './../logic/walletManager';
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import NavBar from '../components/NavBar'
+import SeedPhrasePanel from '../components/SeedPhrasePanel'
+import { wizardActions } from '../store/wizard'
+import wallet_manager from './../logic/walletManager'
+import { useDispatch, useSelector } from 'react-redux'
 
 const WalletWizardPage2 = () => {
-  const dispatch = useDispatch();
-  const wizardState = useSelector((state) => state.wizard);
+  const dispatch = useDispatch()
+  const wizardState = useSelector((state) => state.wizard)
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let mnemonic = await wallet_manager.createMnemonic();
-        await dispatch(wizardActions.setMnemonic(mnemonic));
-        console.log('created a key:', mnemonic);
+        let mnemonic = await wallet_manager.createMnemonic()
+        await dispatch(wizardActions.setMnemonic(mnemonic))
+        console.log('created a key:', mnemonic)
       } catch (error) {
         // Handle any errors that might occur during the asynchronous operations
-        console.error('Error:', error);
+        console.error('Error:', error)
       }
-    };
+    }
 
-    fetchData();
-  }, [dispatch]);
+    fetchData()
+  }, [dispatch])
 
   const onHelpButtonContainerClick = useCallback(() => {
-    navigate("/helpandsupportpage");
-  }, [navigate]);
+    navigate('/helpandsupportpage')
+  }, [navigate])
 
   const onCogIconClick = useCallback(() => {
-    navigate("/settingspage");
-  }, [navigate]);
+    navigate('/settingspage')
+  }, [navigate])
 
   const onLogoutButtonIconClick = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+    navigate('/')
+  }, [navigate])
 
   const onGoBackButtonClick = useCallback(() => {
-    navigate("/new-wallet-1");
-  }, [navigate]);
+    navigate('/new-wallet-1')
+  }, [navigate])
 
   const onNextButtonClick = useCallback(() => {
-    navigate("/new-wallet-3");
-  }, [navigate]);
+    navigate('/new-wallet-3')
+  }, [navigate])
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[13px] text-left text-sm text-gray-300 font-body-small">
@@ -97,27 +97,30 @@ const WalletWizardPage2 = () => {
             </p>
             <p className="m-0">
               <b>
-                Carefully write down and store your seed somewhere safe, as it
-                provides access to your wallet.
+                Carefully write down and store your seed somewhere safe, as it provides access to
+                your wallet.
               </b>
             </p>
             <p className="m-0">&nbsp;</p>
             <p className="m-0">
-              For best practice, never store it online or on the same computer
-              as the wallet. The seed key is the only way to recover your wallet
-              if your computer is lost, stolen or stops working. There is no way
-              to recover the seed if lost.
+              For best practice, never store it online or on the same computer as the wallet. The
+              seed key is the only way to recover your wallet if your computer is lost, stolen or
+              stops working. There is no way to recover the seed if lost.
             </p>
           </section>
         </div>
       </div>
-      <div className="self-stretch rounded-sm h-[380px] overflow-hidden shrink-0 flex flex-row items-center justify-start p-2.5 box-border">
+      <div
+        className="self-stretch rounded-sm h-[380px] overflow-hidden shrink-0 flex flex-row items-center justify-start p-2.5 box-border"
+        data-cy="seed-phrase-panel"
+      >
         {wizardState && wizardState.mnemonic && <SeedPhrasePanel mnemonic={wizardState.mnemonic} />}
       </div>
       <div className="self-stretch flex-1 flex flex-row items-start justify-center gap-[13px]">
         <button
           className="cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
           onClick={onGoBackButtonClick}
+          data-cy="go-back-button"
         >
           <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
             GO BACK
@@ -126,6 +129,7 @@ const WalletWizardPage2 = () => {
         <button
           className="cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
           onClick={onNextButtonClick}
+          data-cy="next-button"
         >
           <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
             NEXT
@@ -133,7 +137,7 @@ const WalletWizardPage2 = () => {
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default WalletWizardPage2;
+export default WalletWizardPage2

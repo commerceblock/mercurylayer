@@ -134,9 +134,9 @@ const process_encrypted_message = async (coin, encMessages, network, serverInfo,
 
     const currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte
 
-    const configFile = await window.api.getConfigFile()
+    // const configFile = await window.api.getConfigFile()
 
-    const feeRateTolerance = configFile.feeRateTolerance
+    const feeRateTolerance = 1 // configFile.feeRateTolerance
 
     let previousLockTime = null
 
@@ -268,9 +268,10 @@ const verifyTx0OutputIsUnspentAndConfirmed = async (coin, tx0Outpoint, tx0Hex, w
 
       const confirmations = blockheight - unspent.height + 1
 
-      const configFile = await window.api.getConfigFile()
+      // TODO: get confirmation target from config file
+      // const configFile = await window.api.getConfigFile()
 
-      const confirmationTarget = configFile.confirmationTarget
+      const confirmationTarget = 5 //configFile.confirmationTarget
 
       let coinStatus = CoinStatus.UNCONFIRMED
 

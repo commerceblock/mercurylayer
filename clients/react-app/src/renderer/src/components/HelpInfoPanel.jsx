@@ -57,7 +57,7 @@ const HelpInfoPanel = () => {
               owner at all times, while benefitting from instant and negligible cost transactions.
               The ability to perform this transfer without requiring the confirmation (mining) of
               on-chain transactions has advantages in a variety of different applications. The
-              Mercury Wallet operates with the Mercury protocol to enable users to keep secure
+              Mercury Layer operates with the Mercury protocol to enable users to keep secure
               custody of their Bitcoin while benefitting from fast, secure and private off-chain
               transactions. The essential function of the Mercury system is that it enables
               ownership (and control) of a Bitcoin output (a statecoin) to be transferred between
@@ -74,14 +74,14 @@ const HelpInfoPanel = () => {
               conclusively proven.
             </p>
             <p>
-              A central feature of the Mercury wallet is the ability to perform atomic swaps of
-              equal value statecoins in blinded groups facilitated by a so-called 'conductor' that
-              cannot learn who swapped coins with who. This protocol employs a blind signature
-              scheme to prevent any party from being able to reconstruct the coin history, providing
-              Mercury users with a very powerful privacy tool. Due to the design of the Mercury
-              protocol, all of these swaps occur off-chain, meaning they can happen very quickly and
-              for zero additional transaction fees, leading to much bigger anonymity sets than is
-              possible with a single on-chain coinjoin.
+              A central feature of the Mercury Layer is the ability to perform atomic swaps of equal
+              value statecoins in blinded groups facilitated by a so-called 'conductor' that cannot
+              learn who swapped coins with who. This protocol employs a blind signature scheme to
+              prevent any party from being able to reconstruct the coin history, providing Mercury
+              users with a very powerful privacy tool. Due to the design of the Mercury protocol,
+              all of these swaps occur off-chain, meaning they can happen very quickly and for zero
+              additional transaction fees, leading to much bigger anonymity sets than is possible
+              with a single on-chain coinjoin.
             </p>
           </div>
         )}
@@ -89,18 +89,18 @@ const HelpInfoPanel = () => {
           <div>
             <p>
               {' '}
-              Mercury Wallet has developed this Privacy Statement to explain how it collects,
-              stores, uses and protects personally identifiable information when users visit its
-              website and use its services. This Privacy Statement does not apply to third-party
-              websites or services which Mercury Wallet does not own or control including websites
-              or services with advertisements or URL links hosted on the Mercury Wallet sites.
-              Please contact the Mercury Wallet team (main@mercurywallet.com) if you have any
-              questions about its privacy practices that are not addressed in this Privacy
-              Statement. Please note: Layer Two Limited provides written user support only. Mercury
-              does not offer phone support and will never call, e-mail or get in touch in any form
-              with users to offer any wallet recovery services. Users are advised to be safe and
-              guard their wallet information and funds. If you see any signs of abuse in this
-              regard, please contact our Legal Team (main@mercurywallet.com)
+              Mercury Layer has developed this Privacy Statement to explain how it collects, stores,
+              uses and protects personally identifiable information when users visit its website and
+              use its services. This Privacy Statement does not apply to third-party websites or
+              services which Mercury Layer does not own or control including websites or services
+              with advertisements or URL links hosted on the Mercury Layer sites. Please contact the
+              Mercury Layer team (main@mercurywallet.com) if you have any questions about its
+              privacy practices that are not addressed in this Privacy Statement. Please note: Layer
+              Two Limited provides written user support only. Mercury does not offer phone support
+              and will never call, e-mail or get in touch in any form with users to offer any wallet
+              recovery services. Users are advised to be safe and guard their wallet information and
+              funds. If you see any signs of abuse in this regard, please contact our Legal Team
+              (main@mercurywallet.com)
             </p>
           </div>
         )}
@@ -108,7 +108,7 @@ const HelpInfoPanel = () => {
           <div>
             <h3 className="text-2xl font-semibold text-primary">Terms of Use</h3>
             <p>
-              Users of Mercury Wallet should carefully read the terms of use detailed below. By
+              Users of Mercury Layer should carefully read the terms of use detailed below. By
               clicking ‘Agree’ or by accessing or downloading our services a User agrees to be bound
               by these Terms of Use. These Terms of User are not assignable by the user to anyone
               else.

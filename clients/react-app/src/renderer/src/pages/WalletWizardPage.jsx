@@ -6,15 +6,11 @@ import { useDispatch, useSelector } from 'react-redux'
 import { wizardActions } from '../store/wizard'
 
 const WalletWizardPage = () => {
-  // NBL
   const dispatch = useDispatch()
   const wizardState = useSelector((state) => state.wizard)
-  // NBL
-
   const navigate = useNavigate()
 
   const onConfirmationChange = useCallback(() => {
-    // Dispatch action to update the confirmation state
     dispatch(wizardActions.setConfirmation(!wizardState.confirmation))
   }, [dispatch, wizardState])
 
@@ -35,7 +31,6 @@ const WalletWizardPage = () => {
   }, [navigate])
 
   const onNextButtonClick = useCallback(() => {
-    // Check if the confirmation is pressed before navigating
     if (wizardState.confirmation) {
       navigate('/new-wallet-1')
     } else {
@@ -53,9 +48,15 @@ const WalletWizardPage = () => {
         showSettingsButton={false}
         showHelpButton={false}
       />
-      <div className="self-stretch h-[90px] flex flex-row items-center justify-center">
+      <div
+        data-cy="wallet-wizard-step"
+        className="self-stretch h-[90px] flex flex-row items-center justify-center"
+      >
         <div className="self-stretch flex-1 flex flex-row items-center justify-center gap-[48px]">
-          <div className="w-[68px] relative h-[43px] text-mediumslateblue-300">
+          <div
+            data-cy="wallet-info-step"
+            className="w-[68px] relative h-[43px] text-mediumslateblue-300"
+          >
             <div className="absolute top-[26px] left-[calc(50%_-_34px)] font-extralight">
               Wallet Info
             </div>
@@ -64,7 +65,7 @@ const WalletWizardPage = () => {
               1
             </div>
           </div>
-          <div className="w-[75px] relative h-[43px]">
+          <div data-cy="wallet-seed-step" className="w-[75px] relative h-[43px]">
             <div className="absolute top-[26px] left-[calc(50%_-_37.5px)] font-extralight">
               Wallet seed
             </div>
@@ -73,7 +74,7 @@ const WalletWizardPage = () => {
               2
             </div>
           </div>
-          <div className="w-[87px] relative h-[43px]">
+          <div data-cy="confirm-seed-step" className="w-[87px] relative h-[43px]">
             <div className="absolute top-[26px] left-[calc(50%_-_43.5px)] font-extralight">
               Confirm seed
             </div>
@@ -95,18 +96,19 @@ const WalletWizardPage = () => {
             Select network type
           </div>
           <select
+            data-cy="network-type-select"
             className="self-stretch rounded-md bg-white flex flex-col items-start justify-start py-[13px] px-3 font-body text-base text-primary border-[1px] border-solid border-primary"
             required={true}
             value={wizardState.networkType}
             onChange={(e) => dispatch(wizardActions.setNetworkType(e.target.value))}
           >
-            {/*<option value="Mainnet">Mainnet</option>*/}
             <option value="Testnet">Testnet</option>
             <option value="Regtest">Regtest</option>
           </select>
         </div>
         <div className="self-stretch flex flex-row items-center justify-center py-0 px-2.5 gap-[10px]">
           <input
+            data-cy="confirmation-checkbox"
             className="m-0 w-6 relative h-6"
             required={true}
             type="checkbox"
@@ -122,6 +124,7 @@ const WalletWizardPage = () => {
       </form>
       <div className="self-stretch flex-1 flex flex-row items-start justify-center gap-[13px]">
         <button
+          data-cy="go-back-button"
           className="cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
           onClick={onGoBackButtonClick}
         >
@@ -130,6 +133,7 @@ const WalletWizardPage = () => {
           </div>
         </button>
         <button
+          data-cy="next-button"
           className={`cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] w-[114px] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border ${
             !wizardState.confirmation ? 'cursor-not-allowed opacity-50' : ''
           }`}
