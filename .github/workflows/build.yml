@@ -32,7 +32,7 @@ jobs:
           npm run build
           npm run dev &
           npm install cypress
-          npx wait-on http://localhost:5173 && npx cypress run --browser chrome
+          npx cypress run --browser chrome
 
   release:
     permissions: write-all
