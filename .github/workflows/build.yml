@@ -26,11 +26,8 @@ jobs:
         working-directory: "./clients/react-app"
         run: npm install
       - name: Cypress run
-        uses: cypress-io/github-action@v6
-        with:
-          working-directory: "./clients/react-app"
-          build: npm run build
-          start: npm start
+        working-directory: "./clients/react-app"
+        run: npm run cypress:run
   release:
     permissions: write-all
     runs-on: ${{ matrix.os }}
