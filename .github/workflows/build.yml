@@ -27,7 +27,7 @@ jobs:
         run: npm install
       - name: Cypress run
         working-directory: "./clients/react-app"
-        run: npm run cypress:run
+        run: npm run cypress:open
   release:
     permissions: write-all
     runs-on: ${{ matrix.os }}
