@@ -25,13 +25,14 @@ jobs:
       - name: Install Dependencies
         working-directory: "./clients/react-app"
         run: npm install
+
       - name: Cypress run
         working-directory: "./clients/react-app"
         run: |
           npm run build
-          npm start
+          npm run dev &
           npm install cypress
-          npx cypress run --browser chrome
+          npx wait-on http://localhost:5173 && npx cypress run --browser chrome
 
   release:
     permissions: write-all
