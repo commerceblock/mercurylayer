@@ -23,14 +23,14 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        working-directory: "./clients/react-app"
+        working-directory: "./clients/mercury-layer-base"
         run: npm install
 
       - name: Cypress run
-        working-directory: "./clients/react-app"
+        working-directory: "./clients/mercury-layer-base"
         run: |
           npm run build
-          npm run dev &
+          npm start &
           npm install cypress
           npx cypress run --browser chrome
 
