@@ -1,6 +1,6 @@
-# Atomic coin transfer
+# Atomic transfer protocols
 
-Protocol for atomic transfer of multiple statecoins. 
+## Multiple statecoins
 
 The purpose of the atomic transfer protocol is to enable two (or more) transfers to be completed in a way that they all complete or none of them do. This effectively means that the transfer-receiver function and key update is only completed if both receivers have the correct information to proceed. Once each receiver has verified that the transfer message they have received is valid, then the other parties can be allowed to complete transfer-receiver. 
 
@@ -8,7 +8,7 @@ To enable this there needs to be a mechanism to prevent the transfer-receiver be
 
 The process is performed by each party in the atomic transfer supplying a `batch_id` in the transfer-sender message. The use of this (as opposed to leaving this null) is that the statecoin is put into a special *locked* state for a configured timeout period after the first `batch_id` is submitted. During this locked status two things are prevented 1) The sender cannot perform another `/transfer/sender` operation on the same coin (i.e. to send to a different address) and 2) `/transfer/receiver` cannot be performed until all coins with the same `batch_id` are *unlocked* by all the owners unlocking the coins with a new `/transfer/unlock` function. At the end of the timeout (if all coins with a specified `batch_id` have not been unlocked), the `/transfer/receiver` function will still be blocked (i.e. return error) but the original owner can repeat `/transfer/sender` again with a null `batch_id` to regain control of the coin. 
 
-## Protocol
+### Protocol
 
 The statecoin DB table will have 3 additional columns: `batch_id` (string), `batch-time` (integer) and `locked` (boolen). By default `batch_id`, `batch-time` are null and `locked` is `false`. The server is configured with `batch-timeout` parameter in seconds (in practice this will be some number of minutes). 
 
@@ -39,3 +39,42 @@ The outcomes of this protocol:
 All participants call `/transfer/unlock` within the `batch-time` then `/transfer/receiver` can be performed for all coins. 
 
 Any participant doesn't call `/transfer/unlock` within the `batch-time` then no-one can call `/transfer/receiver` but each owner can call `/transfer/sender` again to recover the coin. 
+
+## Lightning Latch transfer
+
+A latch transfer enables a statecoin to be transferred on condition of the sucessful payment of a Lightning network invoice. This is a protocol that enforces atomicity of the statecoin transfer and lightning payment - it can be used for the sale of a statecoin UTXO for an arbtrary amount of bitcoin in a private and non-custodial way without counterparty risk. 
+
+The latch transfer protocol uses the method of *Hodl invoices* where funds are locked until the payment hash pre-image is revealed. A hodl ivoice can be resolved in one of two ways: 
+
+1. The payment is completes when the recipient releases the preimage (to the payment route). 
+2. The payment is canceled if the recipient does not release the preimage and the invoice expires.
+
+Using this mechanism, a lightning network payment can be made but only completed if some condition is met - specifically if a specified statecoin transfer is made and verified. In this case the statechain entity (i.e. the mercury server) can both generate and release the payment hash pre-image on successful completion of the statecoin transfer. 
+
+### Protocol
+
+The statecoin DB table will have 4 additional columns: `batch_id` (string), `batch-time` (integer), `pre-image` (string), `locked_1` (boolen) and `locked_2` (boolen). By default `batch_id`, `batch-time` are null and `locked` is `false`. The server is configured with `batch-timeout` parameter in seconds (in practice this will be some number of minutes). 
+
+The transfer will then proceed as follows:
+
+1. There are two parties: party 1 has a statecoin they want to sell and party 2 wants to receivie it and pay an agreed price via LN.
+2. Party 1 generates a `batch_id` (this is just a random UUID) and shares with party 2.
+3. Party 1 calls `/transfer/paymenthash` with the `batch_id` and authenticated `statechain_id` for the coin. The server generates a secret `preimage` and stores it in the statecoin table with a new row and `batch-time` set as current time and `locked_1` to `true` and `locked_2` to `true`, and returns the `paymenthash` to Party 1. 
+4. Party 2 generates a `sc` addresses that they want the UTXO sent to. This is sent to Party 1. 
+5. Party 1 generates an invoice with the `paymenthash` and sends to Party 2. 
+6. Party 1 performs `/transfer/sender {statechain_id, batch_id, auth_sig, new_user_auth_key}` with the `batch_id` paying to the other party `new_user_auth_key` and then create and upload the transfer message.
+7. Party 2 makes the LN payment for the invoice, but cannot complete as they don't know the pre-image.
+8. Party 1 verifies the payment and calls `/transfer/unlock` with `statechain_id` and signed with their `auth_key`. If time is within `batch-time` + `batch-timeout` this sets the `locked_1` value to `false`.
+9. Party 2 verifies the transfer message and calls `/transfer/unlock` with `statechain_id` and signed with their `new_user_auth_key`. If time is within `batch-time` + `batch-timeout` this sets the `locked_2` value to `false`.
+10. Party 1 then calls `/transfer/preimage` with `statechain_id` and signed with their `new_user_auth_key`. If `locked_1` and `locked_2` and both false, then the `preimage` is returned and the LN payment can be completed.
+11. Party 2 completes `/transfer/receiver`. If `locked_1` and `locked_2` and both false then the keyupdate is completed.
+
+If both of the `/transfer/unlock` operations are not completed within the `batch-timeout` then both: 1. the LN invoice will timeout and cancel and 2. Party 1 performs another `/transfer/sender` and `/transfer/receiver` operation returning control of the coin. 
+
+The outcomes of this protocol:
+
+All participants call `/transfer/unlock` within the `batch-time` then `/transfer/receiver` can be performed and the pre-image revealed. 
+
+Any participant doesn't call `/transfer/unlock` within the `batch-time` then no-one can call `/transfer/receiver` but party 1 can call `/transfer/sender` again to recover the coin, and the LN payment will fail. 
+
+
