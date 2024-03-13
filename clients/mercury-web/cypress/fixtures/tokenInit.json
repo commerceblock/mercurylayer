@@ -1,3 +1,7 @@
 {
-  "data": "todo"
+  "btc_payment_address": "bc1qvfeh43dxutf9cpduqjsnvcssqag426kyttkf90",
+  "fee": "0.001",
+  "lightning_invoice": "lnbc1m1pjlrer9pp5h2etv8rapuvpxqjuxnmzsup6ewwtp5q74d5x5h9rtjcxppm2tphsdp6v5uxydpnvcer2tfjvd3xztf5xccxgtfcxs6rgtt98yckye33893kywf4xucqzzsxqrrsssp5e4u0k3q2532ckc59g522zpr0mp5kfkcm6qxy7dlg04jpaqtm7ksq9qyyssqyujgpekwwrntlczq2lxrcl43f5yuy33ugg8edfgg6thnlhrdu5j8hgerhxg07qe2djnp3s36da4rj2c5kkrsywdddxsq4ddqy42gtfqpz5dcuc",
+  "processor_id": "bab2b61c7d0f1813025c34f628703acb9cb0d01eab686a5ca35cb060876a586f",
+  "token_id": "e8b43f25-2cba-460d-8444-e91bf19cb957"
 }
