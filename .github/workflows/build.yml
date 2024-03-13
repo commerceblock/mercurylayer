@@ -23,11 +23,11 @@ jobs:
           node-version: 18
 
       - name: Install Dependencies
-        working-directory: "./clients/mercury-layer-base"
+        working-directory: "./clients/mercury-web"
         run: npm install
 
       - name: Cypress run
-        working-directory: "./clients/mercury-layer-base"
+        working-directory: "./clients/mercury-web"
         run: |
           npm run build
           npm start &
