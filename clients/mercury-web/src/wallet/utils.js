@@ -1,5 +1,5 @@
 import axios from "axios";
-import config from "config";
+// import config from "config";
 import SocksProxyAgentLib from "socks-proxy-agent";
 
 import { electrumRequest } from "./electrumClient";
@@ -12,7 +12,7 @@ import ecc from "@bitcoinerlab/secp256k1";
 bitcoinjs.initEccLib(ecc);
 
 const infoConfig = async () => {
-  const statechain_entity_url = config.get("statechainEntity");
+  const statechain_entity_url = "http://45.76.136.11:9000/"; // config.get("statechainEntity");
   const path = "info/config";
 
   let fee_rate_btc_per_kb = await electrumRequest("blockchain.estimatefee", [
@@ -25,7 +25,7 @@ const infoConfig = async () => {
   }
   const fee_rate_sats_per_byte = fee_rate_btc_per_kb * 100000.0;
 
-  const torProxy = config.get("torProxy");
+  const torProxy = undefined; // config.get("torProxy");
 
   let socksAgent = undefined;
 
@@ -46,13 +46,13 @@ const infoConfig = async () => {
 
 const getConfigFile = () => {
   return {
-    statechainEntity: config.get("statechainEntity"),
-    electrumServer: config.get("electrumServer"),
-    network: config.get("network"),
-    feeRateTolerance: config.get("feeRateTolerance"),
-    databaseFile: config.get("databaseFile"),
-    confirmationTarget: config.get("confirmationTarget"),
-    torProxy: config.get("torProxy"),
+    statechainEntity: "http://45.76.136.11:9000/",
+    electrumServer: "ssl://electrum.blockstream.info:60002",
+    network: "testnet",
+    feeRateTolerance: 0.05,
+    databaseFile: "wallet.db",
+    confirmationTarget: 1,
+    torProxy: undefined,
   };
 };
 
