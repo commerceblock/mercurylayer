@@ -46,7 +46,7 @@ A latch transfer enables a statecoin to be transferred on condition of the suces
 
 The latch transfer protocol uses the method of *Hodl invoices* where funds are locked until the payment hash pre-image is revealed. A hodl ivoice can be resolved in one of two ways: 
 
-1. The payment is completes when the recipient releases the preimage (to the payment route). 
+1. The payment is complete when the recipient releases the preimage (to the payment route). 
 2. The payment is canceled if the recipient does not release the preimage and the invoice expires.
 
 Using this mechanism, a lightning network payment can be made but only completed if some condition is met - specifically if a specified statecoin transfer is made and verified. In this case the statechain entity (i.e. the mercury server) can both generate and release the payment hash pre-image on successful completion of the statecoin transfer. 
