@@ -2,7 +2,6 @@
   "name": "mercury-layer-base",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "start": "vite",
     "dev": "vite",
@@ -12,13 +11,21 @@
     "cypress": "cypress open"
   },
   "dependencies": {
+    "@bitcoinerlab/secp256k1": "^1.1.1",
+    "@mempool/electrum-client": "^1.1.9",
     "@reduxjs/toolkit": "^2.2.1",
+    "axios": "^1.6.7",
+    "bitcoinjs-lib": "^6.1.5",
+    "config": "^3.3.11",
     "crypto-js": "^4.2.0",
+    "events": "^3.3.0",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^9.1.0",
-    "react-router-dom": "^6.22.3"
+    "react-router-dom": "^6.22.3",
+    "socks-proxy-agent": "^8.0.2",
+    "tiny-secp256k1": "^2.2.3"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
@@ -34,6 +41,7 @@
     "mercury-wasm": "file:wasm/web_pkg",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vite-plugin-wasm": "^3.3.0"
   }
 }
