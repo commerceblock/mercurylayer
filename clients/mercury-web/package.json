@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cypress": "cypress open"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
@@ -23,6 +24,8 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.17",
+    "cypress": "^13.6.6",
+    "cypress-vite": "^1.5.0",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -30,8 +33,6 @@
     "mercury-wasm": "file:wasm/web_pkg",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "vite": "^5.1.4",
-    "cypress": "^13.6.6",
-    "cypress-vite": "^1.5.0"
+    "vite": "^5.1.4"
   }
 }
