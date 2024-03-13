@@ -1,8 +1,8 @@
 import axios from "axios";
 //import config from 'config';
-import SocksProxyAgentLib from "socks-proxy-agent";
+//import SocksProxyAgentLib from "socks-proxy-agent";
 
-const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
+//const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 const checkToken = async (token_id) => {
   const statechain_entity_url = "http://45.76.136.11:9000/"; //config.get('statechainEntity');
@@ -14,7 +14,7 @@ const checkToken = async (token_id) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.get(url, socksAgent);
@@ -48,7 +48,7 @@ const confirmDebugToken = async (token_id) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.get(url, socksAgent);
@@ -72,7 +72,7 @@ const getRealToken = async () => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.get(url, socksAgent);
@@ -96,7 +96,7 @@ const getToken = async () => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.get(url, socksAgent);
@@ -120,7 +120,7 @@ const initPod = async (depositMsg1) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.post(url, depositMsg1, socksAgent);

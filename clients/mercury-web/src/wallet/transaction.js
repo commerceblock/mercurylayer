@@ -1,8 +1,8 @@
 import axios from "axios";
 // import config from 'config';
-import SocksProxyAgentLib from "socks-proxy-agent";
+//import SocksProxyAgentLib from "socks-proxy-agent";
 
-const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
+//const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 const signFirst = async (signFirstRequestPayload) => {
   const statechain_entity_url = "http://45.76.136.11:9000/"; // config.get('statechainEntity');
@@ -14,7 +14,7 @@ const signFirst = async (signFirstRequestPayload) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   let response = await axios.post(url, signFirstRequestPayload, socksAgent);
@@ -34,7 +34,7 @@ const signSecond = async (partialSigRequest) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   let response = await axios.post(url, partialSigRequest, socksAgent);

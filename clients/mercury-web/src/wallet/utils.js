@@ -1,10 +1,10 @@
 import axios from "axios";
 // import config from "config";
-import SocksProxyAgentLib from "socks-proxy-agent";
+//import SocksProxyAgentLib from "socks-proxy-agent";
 
 import { electrumRequest } from "./electrumClient";
 
-const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
+//const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
 import bitcoinjs from "bitcoinjs-lib";
 import ecc from "@bitcoinerlab/secp256k1";
@@ -30,7 +30,7 @@ const infoConfig = async () => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   let response = await axios.get(
