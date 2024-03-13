@@ -44,7 +44,7 @@ Any participant doesn't call `/transfer/unlock` within the `batch-time` then no-
 
 A latch transfer enables a statecoin to be transferred on condition of the sucessful payment of a Lightning network invoice. This is a protocol that enforces atomicity of the statecoin transfer and lightning payment - it can be used for the sale of a statecoin UTXO for an arbtrary amount of bitcoin in a private and non-custodial way without counterparty risk. 
 
-The latch transfer protocol uses the method of *Hodl invoices* where funds are locked until the payment hash pre-image is revealed. A hodl ivoice can be resolved in one of two ways: 
+The latch transfer protocol uses the method of *Hodl invoices* where funds are locked until the payment hash pre-image is revealed. A hodl invoice can be resolved in one of two ways: 
 
 1. The payment is complete when the recipient releases the preimage (to the payment route). 
 2. The payment is canceled if the recipient does not release the preimage and the invoice expires.
