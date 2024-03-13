@@ -183,7 +183,7 @@ describe("WalletWizardPage3", () => {
     cy.get("[data-cy=step-3-info]").should("contain", "Confirm seed");
     cy.get("[data-cy=confirm-seed-instruction]").should(
       "contain",
-      "Click below or type in the missing words to confirm your seed key."
+      "Click to confirm your seed key."
     );
     cy.get("[data-cy=confirm-seed-panel]").should("exist");
     cy.get("[data-cy=go-back-button]").should("exist");
