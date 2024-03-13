@@ -59,6 +59,10 @@ before(() => {
     fixture: "transferReceiver.json",
   }).as("sendTransferReceiverRequestPayload");
 
+  cy.intercept("POST", "transfer/receiver/1", {
+    fixture: "transferReceiver_statechain1.json",
+  }).as("sendTransferReceiverRequestPayload1");
+
   cy.intercept("GET", "info/statechain/1", {
     fixture: "infoStatecoin1.json",
   }).as("getStatechainInfo");
