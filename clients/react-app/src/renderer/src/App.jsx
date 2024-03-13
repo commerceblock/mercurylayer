@@ -47,16 +47,23 @@ const App = () => {
     }
 
     const fetchEncryptedWallets = async () => {
-      const wallets = await window.api.getEncryptedWallets() // gets the sqlite3 data
-      console.log('sqlite3 wallets data:', wallets)
-      await dispatch(encryptedWalletActions.loadWallets(wallets)) // populates the sqlite3 data into redux
-
-      setAreWalletLoaded(true)
+      try {
+        const wallets = await window.api.getEncryptedWallets() // gets the sqlite3 data
+        console.log('sqlite3 wallets data:', wallets)
+        await dispatch(encryptedWalletActions.loadWallets(wallets)) // populates the sqlite3 data into redux
+        setAreWalletLoaded(true)
+      } catch (e) {
+        console.log('Error in fetching encrypted wallets:', e)
+      }
     }
 
     const fetchBackupTxs = async () => {
-      const backupTxs = await window.api.getAllBackupTxs() // gets the sqlite3 data
-      await dispatch(walletActions.loadBackupTxs(backupTxs)) // populates the sqlite3 data into redux
+      try {
+        const backupTxs = await window.api.getAllBackupTxs() // gets the sqlite3 data
+        await dispatch(walletActions.loadBackupTxs(backupTxs)) // populates the sqlite3 data into redux
+      } catch (e) {
+        console.log('Error in fetching backup txs:', e)
+      }
     }
 
     loadWasm()
@@ -76,18 +83,20 @@ const App = () => {
     }
 
     const executeFunction = async () => {
-      if (isUpdatingCoins.current) return
-      isUpdatingCoins.current = true
-      // Here, wallets will always reflect the latest state
-      let coinsUpdated = await transferReceive.execute(wallets)
-      // console.log("coinsUpdated", coinsUpdated);
-      await dispatch(walletActions.transferReceive({ coinsUpdated }))
+      if (loggedInWallet) {
+        if (isUpdatingCoins.current) return
+        isUpdatingCoins.current = true
+        // Here, wallets will always reflect the latest state
+        let coinsUpdated = await transferReceive.execute(wallets)
+        // console.log("coinsUpdated", coinsUpdated);
+        await dispatch(walletActions.transferReceive({ coinsUpdated }))
 
-      let updatedStatus = await coinStatus.updateCoins(wallets)
+        let updatedStatus = await coinStatus.updateCoins(wallets)
 
-      await dispatch(walletActions.coinStatus(updatedStatus))
+        await dispatch(walletActions.coinStatus(updatedStatus))
 
-      isUpdatingCoins.current = false
+        isUpdatingCoins.current = false
+      }
     }
 
     // Set up the interval
@@ -112,10 +121,10 @@ const App = () => {
   }, [action, pathname])
 
   useEffect(() => {
-    let title = 'Mercury Wallet'
+    let title = 'Mercury Layer'
 
     if (loggedInWallet) {
-      title = 'Mercury Wallet - ' + loggedInWallet.name
+      title = 'Mercury Layer - ' + loggedInWallet.name
     }
 
     if (title) {

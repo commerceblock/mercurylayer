@@ -85,30 +85,35 @@ const checkDeposit = async (coin, walletNetwork, walletName) => {
   }
 
   if (utxo.height > 0) {
-    const block_header = await window.api.electrumRequest({
-      method: 'blockchain.headers.subscribe',
-      params: []
-    })
-    const blockheight = block_header.height
+    try {
+      const block_header = await window.api.electrumRequest({
+        method: 'blockchain.headers.subscribe',
+        params: []
+      })
+      const blockheight = block_header.height
 
-    const confirmations = blockheight - utxo.height + 1
+      const confirmations = blockheight - utxo.height + 1
 
-    let configFile = await window.api.getConfigFile()
+      // TODO: get the confirmation target from the config file
+      //let configFile = await window.api.getConfigFile()
 
-    const confirmationTarget = configFile.confirmationTarget
+      const confirmationTarget = 5 //configFile.confirmationTarget
 
-    newCoin.status = CoinStatus.UNCONFIRMED
+      newCoin.status = CoinStatus.UNCONFIRMED
 
-    if (confirmations >= confirmationTarget) {
-      newCoin.status = CoinStatus.CONFIRMED
-    }
+      if (confirmations >= confirmationTarget) {
+        newCoin.status = CoinStatus.CONFIRMED
+      }
 
-    depositResult = {
-      action: Actions.DEPOSIT_CONFIMED,
-      activity: depositResult == null ? null : depositResult.activity,
-      backupTx: depositResult == null ? null : depositResult.backupTx,
-      newCoin,
-      walletName
+      depositResult = {
+        action: Actions.DEPOSIT_CONFIMED,
+        activity: depositResult == null ? null : depositResult.activity,
+        backupTx: depositResult == null ? null : depositResult.backupTx,
+        newCoin,
+        walletName
+      }
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -171,9 +176,10 @@ const checkWithdrawal = async (coin, walletNetwork, walletName) => {
 
     const confirmations = blockheight - utxo.height + 1
 
-    let configFile = await window.api.getConfigFile()
+    // TODO: get the confirmation target from the config file
+    //let configFile = await window.api.getConfigFile()
 
-    const confirmationTarget = configFile.confirmationTarget
+    const confirmationTarget = 1 //configFile.confirmationTarget
 
     if (confirmations >= confirmationTarget) {
       let newCoin = structuredClone(coin)

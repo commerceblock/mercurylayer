@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import ConfirmSeedPanel from '../components/ConfirmSeedPanel'
 
-import wizard, { wizardActions } from '../store/wizard'
+import { wizardActions } from '../store/wizard'
 import { walletActions } from '../store/wallet'
 import wallet_manager from './../logic/walletManager'
 import { useDispatch, useSelector } from 'react-redux'
@@ -49,7 +49,7 @@ const WalletWizardPage3 = () => {
     await dispatch(wizardActions.setWalletName(''))
 
     navigate('/mainpage')
-  }, [navigate, wizardState])
+  }, [navigate, wizardState, dispatch])
 
   return (
     <div className="w-full relative bg-whitesmoke h-[926px] overflow-hidden flex flex-col items-center justify-start gap-[13px] text-left text-sm text-gray-300 font-body-small">
@@ -72,7 +72,10 @@ const WalletWizardPage3 = () => {
             </div>
           </div>
           <div className="w-[75px] relative h-[43px]">
-            <div className="absolute top-[26px] left-[calc(50%_-_37.5px)] font-extralight">
+            <div
+              className="absolute top-[26px] left-[calc(50%_-_37.5px)] font-extralight"
+              data-cy="wallet-seed-step"
+            >
               Wallet seed
             </div>
             <div className="absolute top-[calc(50%_-_21.5px)] left-[calc(50%_-_37.5px)] rounded-[50%] bg-gray-500 w-[22px] h-[22px]" />
@@ -93,8 +96,11 @@ const WalletWizardPage3 = () => {
       </div>
       <div className="self-stretch flex-1 flex flex-col items-center justify-center p-2.5">
         <div className="self-stretch flex-1 flex flex-row items-center justify-center p-2.5">
-          <section className="w-[391px] relative text-sm font-bold font-body-small text-black text-left inline-block shrink-0">
-            Click below or type in the missing words to confirm your seed key.
+          <section
+            className="w-[391px] relative text-sm font-bold font-body-small text-black text-left inline-block shrink-0"
+            data-cy="confirm-seed-instruction"
+          >
+            Click to confirm your seed key.
           </section>
         </div>
       </div>
@@ -105,20 +111,18 @@ const WalletWizardPage3 = () => {
       </div>
       <div className="self-stretch flex-1 flex flex-row items-start justify-center gap-[13px]">
         <button
-          className="cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
+          className="text-white font-bold cursor-pointer [border:none] py-3 px-4 bg-dimgray-100 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
           onClick={onGoBackButtonClick}
+          data-cy="go-back-button"
         >
-          <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
-            GO BACK
-          </div>
+          GO BACK
         </button>
         <button
-          className="cursor-pointer [border:none] py-3 px-4 bg-mediumslateblue-200 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border"
+          className="cursor-pointer font-bold [border:none] py-3 px-4 bg-mediumslateblue-200 w-[114px] rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-[30px] overflow-hidden shrink-0 flex flex-row items-center justify-center box-border text-white "
           onClick={onConfirmButtonClick}
+          data-cy="confirm-button"
         >
-          <div className="relative text-base tracking-[-0.02em] leading-[22px] font-semibold font-body-small text-white text-left">
-            CONFIRM
-          </div>
+          CONFIRM
         </button>
       </div>
     </div>

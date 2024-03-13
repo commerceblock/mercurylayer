@@ -1,0 +1,8 @@
+{
+  "statechain_id": "string",
+  "r2_commitment": "string",
+  "blind_commitment": "string",
+  "server_pubnonce": "string",
+  "challenge": "string",
+  "tx_n": 0
+}

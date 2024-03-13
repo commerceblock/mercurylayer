@@ -42,13 +42,18 @@ const WelcomePage = () => {
         showSettingsButton={false}
         showHelpButton={false}
       />
-      <div className="self-stretch h-[450px] flex flex-col items-center justify-center gap-[15px]">
+      <div
+        data-cy="welcome-message"
+        className="self-stretch h-[450px] flex flex-col items-center justify-center gap-[15px]"
+      >
         <div className="self-stretch flex flex-row items-center justify-center p-[25px]">
-          <div className="relative">Welcome to Mercury</div>
+          <div className="relative" data-cy="welcome-title">
+            Welcome to Mercury
+          </div>
         </div>
         <div className="self-stretch flex flex-row items-center justify-center py-0 px-[25px] text-[16.1px] text-dimgray-200">
-          <div className="flex-1 relative">
-            If you’re using Mercury Wallet for the first time, create a new wallet. If you have an
+          <div className="flex-1 relative" data-cy="welcome-description">
+            If you’re using Mercury Layer for the first time, create a new wallet. If you have an
             existing wallet, load the wallet from your device storage, or use your seed phrase or
             backup file to restore the wallet.
           </div>
@@ -57,6 +62,7 @@ const WelcomePage = () => {
           <button
             className="cursor-pointer [border:none] py-3 px-4 bg-white rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center box-border gap-[10px]"
             onClick={onNewWalletButtonClick}
+            data-cy="new-wallet-button"
           >
             <img className="w-[21px] relative h-[18px] object-cover" alt="" src={newImg} />
             <div className="relative text-sm tracking-[-0.02em] leading-[19px] font-body-small text-black text-left">
@@ -66,13 +72,17 @@ const WelcomePage = () => {
           <div
             className="w-[137px] rounded-md bg-whitesmoke shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center py-3 px-4 box-border gap-[10px] cursor-pointer"
             onClick={onLoadWalletButtonContainerClick}
+            data-cy="load-wallet-button"
           >
             <img className="w-[21px] relative h-[18px] object-cover" alt="" src={restoreImg} />
-            <div className="relative tracking-[-0.02em] leading-[19px]">Load wallet</div>
+            <div className="relative tracking-[-0.02em] leading-[19px]" data-cy="load-wallet-label">
+              Load wallet
+            </div>
           </div>
           <button
             className="cursor-pointer [border:none] py-3 px-4 bg-whitesmoke rounded-md shadow-[0px_4px_4px_rgba(0,_0,_0,_0.25)] h-12 flex flex-row items-center justify-center box-border gap-[10px]"
             onClick={onRecoverWalletButtonClick}
+            data-cy="recover-wallet-button"
           >
             <img className="w-[21px] relative h-[18px] object-cover" alt="" src={restoreImg} />
             <div className="relative text-sm tracking-[-0.02em] leading-[19px] font-body-small text-black text-left">
