@@ -53,7 +53,7 @@ const App = () => {
     };
 
     const fetchEncryptedWallets = async () => {
-      const wallets = await window.api.getEncryptedWallets(); // gets the sqlite3 data
+      const wallets = await getEncryptedWallets(); // gets the sqlite3 data
       console.log("sqlite3 wallets data:", wallets);
       await dispatch(encryptedWalletActions.loadWallets(wallets)); // populates the sqlite3 data into redux
 
@@ -61,7 +61,7 @@ const App = () => {
     };
 
     const fetchBackupTxs = async () => {
-      const backupTxs = await window.api.getAllBackupTxs(); // gets the sqlite3 data
+      const backupTxs = await getAllBackupTxs(); // gets the sqlite3 data
       await dispatch(walletActions.loadBackupTxs(backupTxs)); // populates the sqlite3 data into redux
     };
 
@@ -71,46 +71,51 @@ const App = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (wallets && wallets.length > 0 && areWalletsLoaded) {
-      console.log("wallet object thats going to get encrypted -> ", wallets[0]);
-      let encryptedData = walletManager.encryptString(
-        JSON.stringify(wallets[0]),
-        password
-      );
+    if (loggedInWallet) {
+      if (wallets && wallets.length > 0 && areWalletsLoaded) {
+        console.log(
+          "wallet object thats going to get encrypted -> ",
+          wallets[0]
+        );
+        let encryptedData = walletManager.encryptString(
+          JSON.stringify(wallets[0]),
+          password
+        );
 
-      window.api.syncEncryptedWallets({
-        name: wallets[0].name,
-        wallet_json: encryptedData,
-      }); // saves wallets with encryption into database
+        syncEncryptedWallets({
+          name: wallets[0].name,
+          wallet_json: encryptedData,
+        }); // saves wallets with encryption into database
+      }
+
+      const executeFunction = async () => {
+        if (isUpdatingCoins.current) return;
+        isUpdatingCoins.current = true;
+        // Here, wallets will always reflect the latest state
+        let coinsUpdated = await transferReceive.execute(wallets);
+        // console.log("coinsUpdated", coinsUpdated);
+        await dispatch(walletActions.transferReceive({ coinsUpdated }));
+
+        let updatedStatus = await coinStatus.updateCoins(wallets);
+
+        await dispatch(walletActions.coinStatus(updatedStatus));
+
+        isUpdatingCoins.current = false;
+      };
+
+      // Set up the interval
+      const interval = setInterval(() => {
+        executeFunction();
+      }, 3000);
+
+      // Clean up the interval on component unmount or wallets change
+      return () => clearInterval(interval);
     }
-
-    const executeFunction = async () => {
-      if (isUpdatingCoins.current) return;
-      isUpdatingCoins.current = true;
-      // Here, wallets will always reflect the latest state
-      let coinsUpdated = await transferReceive.execute(wallets);
-      // console.log("coinsUpdated", coinsUpdated);
-      await dispatch(walletActions.transferReceive({ coinsUpdated }));
-
-      let updatedStatus = await coinStatus.updateCoins(wallets);
-
-      await dispatch(walletActions.coinStatus(updatedStatus));
-
-      isUpdatingCoins.current = false;
-    };
-
-    // Set up the interval
-    const interval = setInterval(() => {
-      executeFunction();
-    }, 3000);
-
-    // Clean up the interval on component unmount or wallets change
-    return () => clearInterval(interval);
   }, [wallets, password]);
 
   useEffect(() => {
     if (backupTxs && backupTxs.length > 0 && areWalletsLoaded) {
-      window.api.syncBackupTxs(backupTxs);
+      syncBackupTxs(backupTxs);
     }
   }, [backupTxs]);
 

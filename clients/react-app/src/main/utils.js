@@ -4,9 +4,9 @@ import SocksProxyAgentLib from 'socks-proxy-agent'
 
 import { electrumRequest } from './electrumClient'
 
-const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent
+//const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent
 
-import bitcoinjs from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import ecc from 'tiny-secp256k1'
 
 bitcoinjs.initEccLib(ecc)

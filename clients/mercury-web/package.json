@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.1.1",
+    "@keep-network/electrum-client-js": "github:keep-network/electrum-client-js",
     "@mempool/electrum-client": "^1.1.9",
+    "@nimiq/electrum-client": "github:nimiq/electrum-client#build",
     "@reduxjs/toolkit": "^2.2.1",
     "axios": "^1.6.7",
     "bitcoinjs-lib": "^6.1.5",
@@ -25,7 +27,8 @@
     "react-router-dom": "^6.22.3",
     "socks-proxy-agent": "^8.0.2",
     "tiny-secp256k1": "^2.2.3",
-    "vite-plugin-node-polyfills": "^0.21.0"
+    "vite-plugin-node-polyfills": "^0.21.0",
+    "ws-electrumx-client": "^1.0.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",

@@ -5,5 +5,11 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    // Your other build options...
+    rollupOptions: {
+      external: ["bitcoinjs-lib"],
+    },
+  },
   plugins: [react(), wasm(), nodePolyfills()],
 });

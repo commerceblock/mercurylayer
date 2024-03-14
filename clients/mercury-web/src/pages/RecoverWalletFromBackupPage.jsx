@@ -111,7 +111,7 @@ const RecoverWalletFromBackupPage = () => {
   const onSelectBackupFileButtonClick = useCallback(() => {
     console.log("password entered was:", password);
 
-    window.api.selectBackupFile();
+    // selectBackupFile();
   }, [navigate]);
 
   const onGoBackButtonClick = () => {

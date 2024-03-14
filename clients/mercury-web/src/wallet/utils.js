@@ -6,18 +6,20 @@ import { electrumRequest } from "./electrumClient";
 
 //const SocksProxyAgent = SocksProxyAgentLib.SocksProxyAgent;
 
-import bitcoinjs from "bitcoinjs-lib";
+//import bitcoinjs from "bitcoinjs-lib";
+import * as bitcoinjs from "bitcoinjs-lib";
 import ecc from "@bitcoinerlab/secp256k1";
 
 bitcoinjs.initEccLib(ecc);
 
 const infoConfig = async () => {
-  const statechain_entity_url = "http://45.76.136.11:9000/"; // config.get("statechainEntity");
+  const statechain_entity_url = "http://45.76.136.11:8500"; // config.get("statechainEntity");
   const path = "info/config";
 
-  let fee_rate_btc_per_kb = await electrumRequest("blockchain.estimatefee", [
-    3,
-  ]);
+  let fee_rate_btc_per_kb = await electrumRequest({
+    method: "blockchain.estimatefee",
+    params: [2],
+  });
 
   // Why does it happen?
   if (fee_rate_btc_per_kb <= 0) {

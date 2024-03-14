@@ -1,4 +1,5 @@
 import axios from "axios";
+
 // import config from 'config';
 //import SocksProxyAgentLib from "socks-proxy-agent";
 
@@ -37,7 +38,7 @@ const getStatechainInfo = async (statechainId) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   let response = await axios.get(statechainEntityUrl + "/" + path, socksAgent);
@@ -55,7 +56,7 @@ const getMsgAddr = async (authPubkey) => {
   let socksAgent = undefined;
 
   if (torProxy) {
-    socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    //socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
   }
 
   const response = await axios.get(url, socksAgent);

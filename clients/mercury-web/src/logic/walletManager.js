@@ -35,15 +35,23 @@ const decryptString = async (encryptedData, password) => {
 };
 
 const createWallet = async (name, mnemonic, walletNetwork) => {
-  console.log("What is window?", window);
-  console.log("What is window.api?", window.api);
+  console.log(
+    "try to create a wallet, do an electrum request to get block height"
+  );
 
+  /*
   let block_header = await electrumRequest({
     method: "blockchain.headers.subscribe",
     params: [],
   });
-  let blockheight = block_header.height;
+  let blockheight = block_header.blockHeight;*/
 
+  let blockheight = await electrumRequest({
+    method: "blockchain.headers.blockheight",
+    params: [],
+  });
+
+  console.log("get the fee estimate from the electrum server");
   let serverInfo = await infoConfig();
 
   let configFile = await getConfigFile(); // remove later
