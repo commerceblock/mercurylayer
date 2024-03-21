@@ -31,7 +31,7 @@ sequenceDiagram
     note over Client: Compute R and challenge
     Client->>Server: /sign/second {statechain_id,challenge,auth_sig}
     note over Server: Verify auth_sig with statechain_id and auth_key
-    note over Server: Save challenge  with ID statechain_id
+    note over Server: Save challenge with ID statechain_id
     Server->>Enclave: /get_partial_signature {statechain_id, challenge}
     note over Enclave: Compute blind partial signature
     note over Enclave: Increment sig_count by 1
@@ -43,7 +43,7 @@ sequenceDiagram
     note over Client: Compile TransferMsg: 
     note over Client: All signed backup transactions (Txi i=1,...,K)
     note over Client: For each backup transaction signature (bi,R2_i i=1,...,K)
-    note over Client: user_pubkey and SC_sig
+    note over Client: user_pubkey and SC_sig (and all previous owner user_pubkey and SC_sig)
     note over Client: t1
     note over Client: statechain_id
     note over Client: Encrypt TransferMsg with new_auth_key: EncTransferMsg
