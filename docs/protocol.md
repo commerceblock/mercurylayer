@@ -59,7 +59,7 @@ Owner 1 wishes to transfer the value of the deposit `v` to a new owner (Owner 2)
 
 	b. For each backup transaction signature (`bi`,`R2_i i=1,...,K`): `b1`,`b2`,`R2_1` and `R2_2`.
 
-	c. `SC_sig_1` (for susequent sends all previous owner sigs `[SC_sig_i]` and previous owner public key shares `[Oi]` for `i=1,...,K-1`). 
+	c. `SC_sig_1`
 
 	d. `t1`
 
@@ -84,9 +84,9 @@ Owner 1 wishes to transfer the value of the deposit `v` to a new owner (Owner 2)
 
 	d. Verifies the commitments to `R2_i` and `bi` and verfies that `ci = bi + SHA256(P||R_i||mi)` (where `mi` is the sighash of `Txi`).
 
-5. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE and all previous public key shares: `[Si]` where `i=1,...,K-1`. 3) The public point `X1 = x1.G`
+5. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE public key share. 3) The public point `X1 = x1.G`
 6. Owner 2 then verifies that `K = N` and that `t1.G = O1 + X1`
-7. For each previous owner (`i=1,...,K-1`) verify the signature `SC_sig_i` verifies against `Oi` and that `P = Si + Oi`. This check mitigates the key cancellation vulnerability. 
+7. Verify the signature `SC_sig_1` verifies against `O1` and that `P = S1 + O1`. This check mitigates the key cancellation vulnerability. 
 
 The SE key share update then proceeds as follows:
 
