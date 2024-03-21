@@ -32,9 +32,8 @@ sequenceDiagram
     note over Client:   Verify SHA256(R2_i) and SHA256(bi) with blind_commits and r2_commits
     note over Client:   Verify that c = b + SHA256(P||R||m) (where m is the sighash of Tx).
     note over Client:   b from blind_challenges and R = R1 + R2
-    note over Client: For each previous owner user_pubkey and SC_sig:
-    note over Client:   Verify SC_sig with user_pubkey
-    note over Client:   Verify user_pubkey + enclave_pubkey = P
+    note over Client: Verify SC_sig with user_pubkey
+    note over Client: Verify user_pubkey + enclave_pubkey = P
     note over Client: Computes: t2 = t1 - privkey
     Client->>Server: /transfer/receiver {statechain_id,batch_data,t2,auth_sig}
     Server->>Enclave: /keyupdate {statechain_id, t2, x1}
