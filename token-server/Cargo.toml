@@ -16,6 +16,7 @@ schemars = { version = "0.8.12", features = ["chrono", "uuid"] }
 uuid = { version = "1.3.1", features = ["v4", "serde"] }
 rand = "0.8.5"
 hex = "0.4.3"
+dotenv = "0.15.0"
 
 [dependencies.mercury-lib]
 path = "../lib"

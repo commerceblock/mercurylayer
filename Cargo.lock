@@ -3018,6 +3018,7 @@ name = "token-server"
 version = "0.1.0"
 dependencies = [
  "config",
+ "dotenv",
  "hex",
  "mercury-lib",
  "rand",
