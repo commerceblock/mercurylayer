@@ -24,7 +24,7 @@ pub struct Wallet {
     pub tokens: Vec<Token>,
     pub activities: Vec<Activity>,
     pub coins: Vec<Coin>,
-    pub settings: Settings,
+    // pub settings: Settings,
 }
 
 
@@ -48,14 +48,14 @@ pub struct Settings {
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Token {
-    pub btc_payment_address: String,
-    pub fee: String,
+    // pub btc_payment_address: String,
+    // pub fee: String,
     pub lightning_invoice: String,
     pub processor_id: String,
     pub token_id: String,
     pub confirmed: bool,
     pub spent: bool,
-    pub expiry: String,
+    // pub expiry: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
