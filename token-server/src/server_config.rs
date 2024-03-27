@@ -69,8 +69,6 @@ impl ServerConfig {
         if let Ok(v) = env::var("CONNECTION_STRING") {
             let _ = conf_rs.set("connection_string", v);
         }
-        print!("{:?}", conf_rs);
         conf_rs.try_into().unwrap()
     }
 }
-

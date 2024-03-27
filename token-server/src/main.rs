@@ -44,6 +44,7 @@ async fn main() {
         .manage(token_server)
         .attach(Cors)
         // .attach(MercuryPgDatabase::fairing())
+        .listen(8001)
         .launch()
         .await;
 }
