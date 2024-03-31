@@ -19,7 +19,8 @@
 
 #include "../utils/include_secp256k1_zkp_lib.h"
 #include "../utils/strencodings.h"
-#include "remote-attestation.h"
+#include "utilities/utilities.h"
+#include "sealing_key_manager/sealing_key_manager.h"
 
 #include "App.h"
 #include "Enclave_u.h"
@@ -27,19 +28,6 @@
 #include "sgx_tcrypto.h"
 
 # define ENCLAVE_FILENAME "enclave.signed.so"
-
-// extracted from sdk/tseal/tSeal_util.cpp
-uint32_t sgx_calc_sealed_data_size(const uint32_t add_mac_txt_size, const uint32_t txt_encrypt_size) 
-{
-    if(add_mac_txt_size > UINT32_MAX - txt_encrypt_size)
-        return UINT32_MAX;
-    uint32_t payload_size = add_mac_txt_size + txt_encrypt_size; //Calculate the payload size
-
-    if(payload_size > UINT32_MAX - sizeof(sgx_sealed_data_t))
-        return UINT32_MAX;
-    return (uint32_t)(sizeof(sgx_sealed_data_t) + payload_size);
-}
-
 
 bool save_generated_public_key(
     std::string& database_connection_string,
@@ -291,6 +279,14 @@ int SGX_CDECL main(int argc, char *argv[])
     (void)(argc);
     (void)(argv);
 
+    sealing_key_manager::SealingKeyManager sealing_key_manager;
+
+    if (sealing_key_manager.isSeedEmpty()) {
+        printf("Seed is empty\n");
+    } else {
+        printf("Seed is not empty\n");
+    }
+
     crow::SimpleApp app;
 
     sgx_enclave_id_t enclave_id = 0;
@@ -328,7 +324,7 @@ int SGX_CDECL main(int argc, char *argv[])
             size_t server_pubkey_size = 33; // serialized compressed public keys are 33-byte array
             unsigned char server_pubkey[server_pubkey_size];
 
-            size_t sealedprivkey_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            size_t sealedprivkey_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
             char sealedprivkey[sealedprivkey_size];
 
             const std::lock_guard<std::mutex> lock(mutex_enclave_id);
@@ -375,10 +371,10 @@ int SGX_CDECL main(int argc, char *argv[])
 
             std::string statechain_id = req_body["statechain_id"].s();
 
-            size_t sealed_keypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            size_t sealed_keypair_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
             std::vector<char> sealed_keypair(sealed_keypair_size);  // Using a vector to manage dynamic-sized array.
 
-            size_t sealed_secnonce_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
+            size_t sealed_secnonce_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
             std::vector<char> sealed_secnonce(sealed_secnonce_size);  // Using a vector to manage dynamic-sized array.
 
             unsigned char serialized_server_pubnonce[66];
@@ -464,10 +460,10 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(400, "Invalid session length. Must be 133 bytes!");
             }
 
-            size_t sealed_keypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            size_t sealed_keypair_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
             std::vector<char> sealed_keypair(sealed_keypair_size);  // Using a vector to manage dynamic-sized array.
 
-            size_t sealed_secnonce_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
+            size_t sealed_secnonce_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
             std::vector<char> sealed_secnonce(sealed_secnonce_size);  // Using a vector to manage dynamic-sized array.
 
             unsigned char serialized_server_pubnonce[66];
@@ -595,10 +591,10 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(400, "Invalid x1 length. Must be 32 bytes!");
             }
 
-            size_t sealed_keypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            size_t sealed_keypair_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
             std::vector<char> sealed_keypair(sealed_keypair_size);  // Using a vector to manage dynamic-sized array.
 
-            size_t sealed_secnonce_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
+            size_t sealed_secnonce_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
             std::vector<char> sealed_secnonce(sealed_secnonce_size);  // Using a vector to manage dynamic-sized array.
 
             unsigned char serialized_server_pubnonce[66];
@@ -630,7 +626,7 @@ int SGX_CDECL main(int argc, char *argv[])
             size_t new_server_pubkey_size = 33; // serialized compressed public keys are 33-byte array
             unsigned char new_server_pubkey[new_server_pubkey_size];
 
-            size_t new_sealedkeypair_size = sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
+            size_t new_sealedkeypair_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
             char new_sealedkeypair[new_sealedkeypair_size];
 
             const std::lock_guard<std::mutex> lock(mutex_enclave_id);
@@ -687,15 +683,36 @@ int SGX_CDECL main(int argc, char *argv[])
         }
     });
 
-    CROW_ROUTE(app,"/test_ra")
-        ([&enclave_id, &mutex_enclave_id](){
 
-        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
 
-        ExecuteRemoteAttestation();
+    CROW_ROUTE(app, "/add_mnemonic")
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
 
-        crow::json::wvalue result({{"message", "Tested."}});
-        return crow::response{result};
+            auto req_body = crow::json::load(req.body);
+            if (!req_body) {
+                return crow::response(400);
+            }
+
+            if (req_body.count("mnemonic") == 0 || 
+                req_body.count("index") == 0 ||
+                req_body.count("threshold") == 0) {
+                return crow::response(400, "Invalid parameters. They must be 'mnemonic', 'index' and 'threshold'.");
+            }
+
+            std::string mnemonic = req_body["mnemonic"].s();
+            int64_t index = req_body["index"].i();
+            int64_t threshold = req_body["threshold"].i();
+
+            const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+
+            auto ret = sealing_key_manager.addMnemonic(enclave_id, mnemonic, (size_t) index, (size_t) threshold);
+
+            if (!ret.success) {
+                return crow::response(ret.code, ret.message);
+            }
+
+            crow::json::wvalue result({{"message", "OK."}});
+            return crow::response{result};
     });
 
     app.port(18080).multithreaded().run();

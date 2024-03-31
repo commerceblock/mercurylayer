@@ -4,28 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <bc-shamir/bc-shamir.h>
+
 #include "../utils/include_secp256k1_zkp_lib.h"
 
 #include "sgx_tkey_exchange.h"
 #include "sgx_tcrypto.h"
 #include "sgx_trts.h"
 #include "sgx_tseal.h"
-
-static const sgx_ec256_public_t g_sp_pub_key = {
-    {
-        0xcb, 0xfc, 0x2d, 0x35, 0x79, 0x77, 0xf8, 0xfc,
-        0x87, 0x38, 0x6e, 0xaf, 0x97, 0xbd, 0xe7, 0x06,
-        0xde, 0xfd, 0x7a, 0x1b, 0xd6, 0x25, 0x46, 0xcb,
-        0x34, 0xda, 0x66, 0x79, 0x82, 0xd0, 0x53, 0xda
-    },
-    {
-        0xae, 0xaf, 0xb0, 0xa1, 0x44, 0xdf, 0x67, 0xa7,
-        0xf7, 0xf7, 0x9e, 0xdc, 0x4d, 0x86, 0x43, 0xb5,
-        0xbe, 0x8c, 0x05, 0x2a, 0x3e, 0xe7, 0x58, 0x36,
-        0xc3, 0xba, 0x6f, 0x93, 0xfd, 0x8b, 0x7c, 0x61
-    }
-
-};
 
 sgx_status_t generate_new_keypair(
     unsigned char *compressed_server_pubkey, 
@@ -383,40 +369,85 @@ sgx_status_t key_update(
     return ret;
 }
 
-// This ecall is a wrapper of sgx_ra_init to create the trusted
-// KE exchange key context needed for the remote attestation
-// SIGMA API's. Input pointers aren't checked since the trusted stubs
-// copy them into EPC memory.
-//
-// @param b_pse Indicates whether the ISV app is using the
-//              platform services.
-// @param p_context Pointer to the location where the returned
-//                  key context is to be copied.
-//
-// @return Any error returned from the trusted key exchange API
-//         for creating a key context.
-
-sgx_status_t enclave_init_ra(
-    int b_pse,
-    sgx_ra_context_t *p_context)
+char* data_to_hex(uint8_t* in, size_t insz)
 {
-    // isv enclave call to trusted key exchange library.
-    sgx_status_t ret;
-    ret = sgx_ra_init(&g_sp_pub_key, b_pse, p_context);
-    return ret;
+  char* out = (char*) malloc(insz * 2 + 1);
+  uint8_t* pin = in;
+  const char * hex = "0123456789abcdef";
+  char* pout = out;
+  for(; pin < in + insz; pout += 2, pin++){
+    pout[0] = hex[(*pin>>4) & 0xF];
+    pout[1] = hex[ *pin     & 0xF];
+  }
+  pout[0] = 0;
+  return out;
 }
 
-// Closes the tKE key context used during the SIGMA key
-// exchange.
-//
-// @param context The trusted KE library key context.
-//
-// @return Return value from the key context close API
+/*
+sgx_status_t  status = recover_seed(
 
-sgx_status_t SGXAPI enclave_ra_close(
-    sgx_ra_context_t context)
-{
-    sgx_status_t ret;
-    ret = sgx_ra_close(context);
+            all_key_shares, total_size, 
+            key_share_indexes, num_key_shares,
+            key_share_data_size, threshold,
+            sealed_seed, sealed_seed_size);*/
+
+sgx_status_t recover_seed(
+  char* all_key_shares, size_t total_size,
+  unsigned char* indexes, size_t num_key_shares,
+  size_t key_share_data_size, size_t threshold,
+  char* sealed_seed, size_t sealed_seed_size) {
+
+    (void) total_size;
+
+    sgx_status_t ret = SGX_SUCCESS;
+
+    uint8_t* shares[threshold];
+
+    uint32_t unsealed_data_size = key_share_data_size;
+
+    for (size_t i = 0; i < num_key_shares; ++i) {
+        shares[i] = new uint8_t[key_share_data_size];
+        memcpy(shares[i], all_key_shares + i * key_share_data_size, key_share_data_size);
+    }
+    
+    assert(threshold == num_key_shares);
+
+    uint8_t secret_data[unsealed_data_size];
+
+    for (size_t i = 0; i < threshold; ++i) {
+      ocall_print_int("share ", (const int *) &i);
+      ocall_print_hex((const unsigned char**) &shares[i], (int *) &key_share_data_size);
+    }
+
+    for (size_t i = 0; i < threshold; ++i) {
+      ocall_print_int("index ", (const int *) &i);
+      ocall_print_int("value ", (const int *) &indexes[i]);
+    }
+
+    int32_t secret_data_len = recover_secret((uint8_t) threshold, (const uint8_t*) indexes, (const uint8_t **)shares, unsealed_data_size, secret_data);
+
+    ocall_print_int("secret_data_len ", (const int *) &secret_data_len);
+    assert(secret_data_len == (int32_t) unsealed_data_size);
+
+    char* seed = data_to_hex(secret_data, unsealed_data_size);
+    ocall_print_string("Seed:");
+    ocall_print_string(seed);
+
+    if (sealed_seed_size >= sgx_calc_sealed_data_size(0U, unsealed_data_size))
+    {
+        if ((ret = sgx_seal_data(0U, NULL, unsealed_data_size, secret_data, (uint32_t) sealed_seed_size, (sgx_sealed_data_t *)sealed_seed)) != SGX_SUCCESS)
+        {
+            ocall_print_string("\nTrustedApp: sgx_seal_data() failed !\n");
+            ret = SGX_ERROR_UNEXPECTED;
+        }
+    }
+    else
+    {
+        ocall_print_string("\nTrustedApp: Size allocated for sealedprivkey by untrusted app is less than the required size !\n");
+        ret = SGX_ERROR_INVALID_PARAMETER;
+    }
+
     return ret;
+
 }
+

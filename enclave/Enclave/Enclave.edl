@@ -41,8 +41,13 @@ enclave {
             [out, size=sealedkeypair_size] char* sealedkeypair, size_t sealedkeypair_size
         );
 
-        public sgx_status_t enclave_init_ra(int b_pse, [out] sgx_ra_context_t *p_context);
-        public sgx_status_t enclave_ra_close(sgx_ra_context_t context);
+        public sgx_status_t recover_seed(
+            [in, size=sealed_total_share_size] char* sealed_shares, size_t sealed_total_share_size,
+            [in, size=num_key_sealed_shares] unsigned char* indexes, size_t num_key_sealed_shares,
+            size_t sealed_share_data_size,
+            size_t threshold,
+            [out, size=sealed_secret_size] char* sealed_secret, size_t sealed_secret_size
+        );
 
     };
 
