@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <bc-bip39/bc-bip39.h>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <string.h>
 #include <iostream>
 
@@ -59,15 +61,7 @@ namespace sealing_key_manager {
         }
 
         if (!isSeedEmpty()) {
-            std::string error_message;
-            auto ret = db_manager::add_sealed_seed(sealed_seed, sealed_seed_size, error_message);
-            if (!ret) {
-                return utils::APIResponse {
-                    .success = false,
-                    .code = 500,
-                    .message = error_message
-                };
-            }
+            writeSeedToFile();
         }
 
         return utils::APIResponse {
@@ -79,16 +73,18 @@ namespace sealing_key_manager {
 
     utils::APIResponse SealingKeyManager::addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, size_t index, size_t _threshold) {
 
+        if (!isSeedEmpty()) {
+            return utils::APIResponse {
+                .success = false,
+                .code = 400,
+                .message = "Seed already exists"
+            };
+        }
+
         size_t max_secret_len = SECRET_SIZE;
         uint8_t secret[max_secret_len];
         memset(secret, 0, max_secret_len);
         size_t secret_len = bip39_secret_from_mnemonics(mnemonic.c_str(), secret, max_secret_len);
-
-        // const auto key_share = KeyShare {
-        //     .index = index,
-        //     .data = (char *) secret,
-        //     .data_size = secret_len
-        // };
 
         auto key_share = KeyShare();
         key_share.index = index;
@@ -97,15 +93,7 @@ namespace sealing_key_manager {
 
         memcpy(key_share.data, secret, secret_len);
 
-        auto secret_hex = key_to_string((unsigned char *) secret, secret_len);
-
-        printf("secret_hex: %s\n", secret_hex.c_str());
-
         return addKeyShare(enclave_id, key_share, _threshold);
-
-        // auto secret_hex = key_to_string((unsigned char *) secret, secret_len);
-
-        // printf("secret_hex: %s\n", secret_hex.c_str());
     }
 
     void SealingKeyManager::listKeyShares() {
@@ -153,14 +141,6 @@ namespace sealing_key_manager {
             key_share_indexes[i] = (uint8_t) key_shares[i].index;
         }
 
-        // auto all_key_shares_hex = key_to_string((unsigned char *) all_key_shares, total_size);
-
-        // printf("all key shares: %s \n", all_key_shares_hex.c_str());
-
-        // for (size_t i = 0; i < key_shares_size; ++i) {
-        //     printf("key_share_indexes[%zu]: %u\n", i, key_share_indexes[i]);
-        // }
-
         size_t key_share_data_size = key_shares[0].data_size;
         size_t num_key_shares = key_shares_size;
 
@@ -197,5 +177,94 @@ namespace sealing_key_manager {
         };
 
     }
+
+    bool SealingKeyManager::writeSeedToFile() {
+        // Check if the file exists
+        const std::string filename = "node.sealed_seed";
+        if (std::filesystem::exists(filename)) {
+            return false; // File already exists, so we don't overwrite it
+        }
+
+        if (isSeedEmpty()) {
+            return false; // Sealed seed is empty
+        }
+
+        // Open file in binary mode to write
+        std::ofstream file(filename, std::ios::binary | std::ios::out);
+        if (!file.is_open()) {
+            return false; // Failed to open file for writing
+        }
+
+        // Write sealed_seed to file
+        file.write(sealed_seed, sealed_seed_size);
+        bool success = file.good(); // Check if write operation was successful
+
+        file.close();
+        return success;
+    }
+
+    bool SealingKeyManager::readSeedFromFile() {
+        const std::string filename = "node.sealed_seed";
+
+        // Check if the file exists and is not empty
+        if (!std::filesystem::exists(filename) || std::filesystem::is_empty(filename)) {
+            return false; // File does not exist or is empty
+        }
+
+        // Open the file in binary mode
+        std::ifstream file(filename, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            return false; // Failed to open file
+        }
+
+        // Get the size of the file
+        std::streamsize size = file.tellg();
+        file.seekg(0, std::ios::beg); // Move to the beginning of the file
+
+        // Allocate memory for sealed_seed
+        sealed_seed = new char[size];
+
+        // Read the contents of the file into sealed_seed
+        if (!file.read(sealed_seed, size)) {
+            delete[] sealed_seed; // Clean up in case of read failure
+            sealed_seed = nullptr;
+            return false;
+        }
+
+        // Update the size of the data read
+        sealed_seed_size = static_cast<size_t>(size);
+        return true;
+    }
+
+    /* bool SealingKeyManager::testSealedSeed(sgx_enclave_id_t& enclave_id) {
+
+        if (isSeedEmpty()) {
+            std::cout << "[test] seed empty" << std::endl;
+            return false;
+        }
+
+        size_t raw_data_size = SECRET_SIZE;
+        unsigned char* raw_data = new unsigned char[raw_data_size];
+        memset(raw_data, 0, raw_data_size);
+
+        sgx_status_t ecall_ret;
+        sgx_status_t  status = unseal(
+            enclave_id, &ecall_ret,
+            sealed_seed, sealed_seed_size, 
+            raw_data, raw_data_size);
+
+        if (ecall_ret != SGX_SUCCESS) {
+            std::cout <<  "unseal failed " << std::endl;
+        }  if (status != SGX_SUCCESS) {
+            std::cout <<  "unseal failed " << std::endl;
+        }
+
+        std::string raw_data_hex = key_to_string(raw_data, raw_data_size);
+        std::cout << "raw_data_hex: " << raw_data_hex << std::endl;
+
+        delete[] raw_data;
+
+        return true;
+    } */
 
 }

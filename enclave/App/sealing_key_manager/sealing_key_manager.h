@@ -36,12 +36,13 @@ namespace sealing_key_manager {
         size_t sealed_seed_size = 0;
         char* sealed_seed = nullptr;
 
-
         utils::APIResponse addKeyShare(sgx_enclave_id_t& enclave_id, const KeyShare& key_share, size_t _threshold);
         utils::APIResponse addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, size_t index, size_t _threshold);
         utils::APIResponse recoverSeed(sgx_enclave_id_t& enclave_id);
         bool isSeedEmpty();
         bool writeSeedToFile();
+        bool readSeedFromFile();
+        // bool testSealedSeed(sgx_enclave_id_t& enclave_id);
         void listKeyShares();
     };
     

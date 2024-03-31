@@ -279,14 +279,6 @@ int SGX_CDECL main(int argc, char *argv[])
     (void)(argc);
     (void)(argv);
 
-    sealing_key_manager::SealingKeyManager sealing_key_manager;
-
-    if (sealing_key_manager.isSeedEmpty()) {
-        printf("Seed is empty\n");
-    } else {
-        printf("Seed is not empty\n");
-    }
-
     crow::SimpleApp app;
 
     sgx_enclave_id_t enclave_id = 0;
@@ -306,6 +298,13 @@ int SGX_CDECL main(int argc, char *argv[])
             printf("Enclave init error\n");
             return -1;
         }
+    }
+
+    sealing_key_manager::SealingKeyManager sealing_key_manager;
+    if (sealing_key_manager.readSeedFromFile()) {
+        std::cout << "Seed loaded" << std::endl;
+    } else {
+        std::cout << "Seed not loaded" << std::endl;
     }
 
     CROW_ROUTE(app, "/get_public_key")
