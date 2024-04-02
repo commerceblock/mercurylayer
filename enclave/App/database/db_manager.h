@@ -13,7 +13,7 @@ namespace db_manager {
     bool get_sealed_seed(char* sealed_secret, size_t sealed_secret_size, std::string& error_message);
 
     bool save_generated_public_key(
-        chacha20_poly1305_encrypted_data& encrypted_data, 
+        const chacha20_poly1305_encrypted_data& encrypted_data, 
         unsigned char* server_public_key, size_t server_public_key_size,
         std::string& statechain_id,
         std::string& error_message);

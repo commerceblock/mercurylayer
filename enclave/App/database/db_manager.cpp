@@ -2,6 +2,8 @@
 
 #include "../Enclave_u.h"
 #include "../lib/toml.hpp"
+#include "../../utils/strencodings.h"
+#include <iostream>
 #include <string>
 #include <pqxx/pqxx>
 
@@ -98,8 +100,64 @@ namespace db_manager {
 
     } // get_sealed_seed
 
+    // Assumes the buffer is large enough. In a real application, ensure buffer safety.
+    void serialize(const chacha20_poly1305_encrypted_data* src, unsigned char* buffer, size_t* serialized_len) {
+        // Copy `data_len`, `nonce`, and `mac` directly
+        size_t offset = 0;
+        memcpy(buffer + offset, &src->data_len, sizeof(src->data_len));
+        offset += sizeof(src->data_len);
+
+        memcpy(buffer + offset, src->nonce, sizeof(src->nonce));
+        offset += sizeof(src->nonce);
+
+        memcpy(buffer + offset, src->mac, sizeof(src->mac));
+        offset += sizeof(src->mac);
+
+        // Now copy dynamic `data`
+        memcpy(buffer + offset, src->data, src->data_len);
+        offset += src->data_len;
+
+        *serialized_len = offset;
+    }
+
+    // Returns a newly allocated structure that must be freed by the caller.
+    bool deserialize(const unsigned char* buffer, size_t serialized_len, chacha20_poly1305_encrypted_data* dest) {
+
+        // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_data;
+        // if (!dest) return NULL;
+
+        if (!dest) return false;
+
+        size_t offset = 0;
+        memcpy(&dest->data_len, buffer + offset, sizeof(dest->data_len));
+        offset += sizeof(dest->data_len);
+
+        memcpy(dest->nonce, buffer + offset, sizeof(dest->nonce));
+        offset += sizeof(dest->nonce);
+
+        memcpy(dest->mac, buffer + offset, sizeof(dest->mac));
+        offset += sizeof(dest->mac);
+
+        dest->data = new unsigned char[dest->data_len];
+        if (!dest->data) {
+            return false; // NULL;
+        }
+        memcpy(dest->data, buffer + offset, dest->data_len);
+        // offset += dest->data_len; // Not needed unless you're reading more data after this
+
+        // return dest;
+        return true;
+    }
+
+    void print_encrypted_data(const chacha20_poly1305_encrypted_data* data) {
+        std::cout << "data_len: " << data->data_len << std::endl;
+        std::cout << "nonce: " << key_to_string(data->nonce, sizeof(data->nonce)) << std::endl;
+        std::cout << "mac: " << key_to_string(data->mac, sizeof(data->mac)) << std::endl;
+        std::cout << "data: " << key_to_string(data->data, data->data_len) << std::endl;
+    }
+
     bool save_generated_public_key(
-        chacha20_poly1305_encrypted_data& encrypted_data, 
+        const chacha20_poly1305_encrypted_data& encrypted_keypair, 
         unsigned char* server_public_key, size_t server_public_key_size,
         std::string& statechain_id,
         std::string& error_message) {
@@ -125,6 +183,50 @@ namespace db_manager {
                     pqxx::work txn(conn);
                     txn.exec(create_table_query);
                     txn.commit();
+
+
+                    size_t serialized_len = 0;
+ 
+                    size_t bufferSize = sizeof(encrypted_keypair.data_len) + sizeof(encrypted_keypair.nonce) + sizeof(encrypted_keypair.mac) + encrypted_keypair.data_len;
+                    unsigned char* buffer = (unsigned char*) malloc(bufferSize);
+
+                    if (!buffer) {
+                        error_message = "Failed to allocate memory for serialization!";
+                        return false;
+                    }
+
+                    serialize(&encrypted_keypair, buffer, &serialized_len);
+                    assert(serialized_len == bufferSize);
+
+                    /* auto buffer_hex = key_to_string(buffer, serialized_len);
+
+                    std::cout << "---- " << std::endl;
+                    print_encrypted_data(&encrypted_keypair);
+                    std::cout << "---- " << std::endl;
+                    std::cout << "buffer: " << buffer_hex << std::endl;
+
+                    // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_keypair;
+                    auto dest = std::make_unique<chacha20_poly1305_encrypted_data>();
+                    bool res = deserialize(buffer, serialized_len, dest.get());
+
+                    std::cout << "---- " << std::endl;
+                    std::cout << "res: " << res << std::endl;
+                    print_encrypted_data(dest.get());
+
+                    free(buffer); */
+
+                    std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
+                    std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
+
+                    std::string insert_query =
+                        "INSERT INTO generated_public_key (sealed_keypair, public_key, statechain_id) VALUES ($1, $2, $3);";
+                    pqxx::work txn2(conn);
+
+                    txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
+                    txn2.commit();
+
+                    conn.close();
+                    return true;
 
                     return true;
                 } else {

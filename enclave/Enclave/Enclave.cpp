@@ -30,12 +30,13 @@ char* data_to_hex(uint8_t* in, size_t insz)
 
 void encrypt_data(
     chacha20_poly1305_encrypted_data *encrypted_data,
+    char* sealed_seed, size_t sealed_seed_len,
     uint8_t* raw_data, size_t raw_data_size)
 {
     unsigned char seed[32];
     memset(seed, 0, 32);
 
-    unseal(encrypted_data->sealed_key, encrypted_data->sealed_key_len, seed, sizeof(seed));
+    unseal(sealed_seed, sealed_seed_len, seed, sizeof(seed));
 
     // Associated data (optional, can be NULL if not used)
     uint8_t *ad = NULL;
@@ -45,11 +46,29 @@ void encrypt_data(
 
     assert(encrypted_data->data_len == raw_data_size);
     crypto_aead_lock(encrypted_data->data, encrypted_data->mac, seed, encrypted_data->nonce, ad, ad_size, raw_data, raw_data_size);
+
+    /* char* seed_hex = data_to_hex(seed, sizeof(seed));
+    ocall_print_string("seed:");
+    ocall_print_string(seed_hex);
+
+    char* mac_hex = data_to_hex(encrypted_data->mac, sizeof(encrypted_data->mac));
+    ocall_print_string("mac:");
+    ocall_print_string(mac_hex);
+
+    char* nonce_hex = data_to_hex(encrypted_data->nonce, sizeof(encrypted_data->nonce));
+    ocall_print_string("nonce:");
+    ocall_print_string(nonce_hex);
+
+    char* encrypted_hex = data_to_hex(encrypted_data->data, encrypted_data->data_len);
+    ocall_print_string("encrypted:");
+    ocall_print_string(encrypted_hex); */
+
 }
 
 sgx_status_t generate_new_keypair2(
     unsigned char *compressed_server_pubkey, 
     size_t compressed_server_pubkey_size, 
+    char* sealed_seed, size_t sealed_seed_len,
     chacha20_poly1305_encrypted_data *encrypted_data)
 {
     
@@ -88,7 +107,7 @@ sgx_status_t generate_new_keypair2(
 
     secp256k1_context_destroy(ctx);
 
-    encrypt_data(encrypted_data, server_keypair.data, sizeof(secp256k1_keypair::data));
+    encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
 
     return ret;
 }
@@ -469,7 +488,7 @@ sgx_status_t recover_seed(
 
     uint8_t* shares[threshold];
 
-    uint32_t unsealed_data_size = key_share_data_size;
+    uint32_t unsealed_data_size = (uint32_t) key_share_data_size;
 
     for (size_t i = 0; i < num_key_shares; ++i) {
         shares[i] = new uint8_t[key_share_data_size];

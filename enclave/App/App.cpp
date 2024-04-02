@@ -20,6 +20,7 @@
 #include "../utils/include_secp256k1_zkp_lib.h"
 #include "../utils/strencodings.h"
 #include "utilities/utilities.h"
+#include "database/db_manager.h"
 #include "sealing_key_manager/sealing_key_manager.h"
 
 #include "App.h"
@@ -274,7 +275,7 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
-void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len, sealing_key_manager::SealingKeyManager& sealing_key_manager) {
+void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len) {
 
     // initialize encrypted_data
     encrypted_data.data_len = data_len;
@@ -283,12 +284,6 @@ void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data,
 
     memset(encrypted_data.mac, 0, sizeof(encrypted_data.mac));
     memset(encrypted_data.nonce, 0, sizeof(encrypted_data.nonce));
-
-    // copy sealed seed
-    encrypted_data.sealed_key_len = sealing_key_manager.sealed_seed_size;
-    encrypted_data.sealed_key = new char[encrypted_data.sealed_key_len];
-    memcpy(encrypted_data.sealed_key, sealing_key_manager.sealed_seed, encrypted_data.sealed_key_len);
-
 }
 
 int SGX_CDECL main(int argc, char *argv[])
@@ -362,14 +357,21 @@ int SGX_CDECL main(int argc, char *argv[])
             }
 
             // new encryption scheme
-            chacha20_poly1305_encrypted_data encrypted_data;
-            initialize_encrypted_data(encrypted_data, sizeof(secp256k1_keypair), sealing_key_manager);
+            /* chacha20_poly1305_encrypted_data encrypted_data;
+            initialize_encrypted_data(encrypted_data, sizeof(secp256k1_keypair));
 
             size_t server_pubkey_size2 = 33; // serialized compressed public keys are 33-byte array
             unsigned char server_pubkey2[server_pubkey_size2];
 
             sgx_status_t ecall_ret2;
-            generate_new_keypair2(enclave_id, &ecall_ret2, server_pubkey2, server_pubkey_size2, &encrypted_data);
+            generate_new_keypair2(enclave_id, &ecall_ret2, 
+                server_pubkey2, server_pubkey_size2, 
+                sealing_key_manager.sealed_seed, sealing_key_manager.sealed_seed_size,
+                &encrypted_data);
+
+            std::string error_message2;
+            db_manager::save_generated_public_key(encrypted_data, server_pubkey2, server_pubkey_size2, statechain_id, error_message2);
+            */
 
             auto server_seckey_hex = key_to_string(server_pubkey, server_pubkey_size);
 

@@ -13,8 +13,6 @@ enclave {
         [size=data_len] unsigned char* data;
         unsigned char nonce[24];
         unsigned char mac[16];
-        size_t sealed_key_len;
-        [size=sealed_key_len] char* sealed_key;
     };
 
     trusted {
@@ -22,6 +20,7 @@ enclave {
         public sgx_status_t generate_new_keypair2(
             [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, 
             size_t compressed_server_pubkey_size, 
+            [in, size=sealed_seed_len] char* sealed_seed, size_t sealed_seed_len,
             [in, out] struct chacha20_poly1305_encrypted_data* encrypted_data);
 
         public sgx_status_t generate_new_keypair(
