@@ -274,6 +274,23 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
+void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len, sealing_key_manager::SealingKeyManager& sealing_key_manager) {
+
+    // initialize encrypted_data
+    encrypted_data.data_len = data_len;
+    encrypted_data.data = new unsigned char[encrypted_data.data_len];
+    memset(encrypted_data.data, 0, encrypted_data.data_len);
+
+    memset(encrypted_data.mac, 0, sizeof(encrypted_data.mac));
+    memset(encrypted_data.nonce, 0, sizeof(encrypted_data.nonce));
+
+    // copy sealed seed
+    encrypted_data.sealed_key_len = sealing_key_manager.sealed_seed_size;
+    encrypted_data.sealed_key = new char[encrypted_data.sealed_key_len];
+    memcpy(encrypted_data.sealed_key, sealing_key_manager.sealed_seed, encrypted_data.sealed_key_len);
+
+}
+
 int SGX_CDECL main(int argc, char *argv[])
 {
     (void)(argc);
@@ -308,7 +325,11 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     CROW_ROUTE(app, "/get_public_key")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string, &sealing_key_manager](const crow::request& req) {
+
+            if (sealing_key_manager.isSeedEmpty()) {
+                return crow::response(500, "Sealing key is empty.");
+            }
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -339,6 +360,16 @@ int SGX_CDECL main(int argc, char *argv[])
             }  if (status != SGX_SUCCESS) {
                 return crow::response(500, "Key aggregation failed ");
             }
+
+            // new encryption scheme
+            chacha20_poly1305_encrypted_data encrypted_data;
+            initialize_encrypted_data(encrypted_data, sizeof(secp256k1_keypair), sealing_key_manager);
+
+            size_t server_pubkey_size2 = 33; // serialized compressed public keys are 33-byte array
+            unsigned char server_pubkey2[server_pubkey_size2];
+
+            sgx_status_t ecall_ret2;
+            generate_new_keypair2(enclave_id, &ecall_ret2, server_pubkey2, server_pubkey_size2, &encrypted_data);
 
             auto server_seckey_hex = key_to_string(server_pubkey, server_pubkey_size);
 

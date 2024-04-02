@@ -7,11 +7,91 @@
 #include <bc-shamir/bc-shamir.h>
 
 #include "../utils/include_secp256k1_zkp_lib.h"
+#include "libs/monocypher.h"
 
 #include "sgx_tkey_exchange.h"
 #include "sgx_tcrypto.h"
 #include "sgx_trts.h"
 #include "sgx_tseal.h"
+
+char* data_to_hex(uint8_t* in, size_t insz)
+{
+  char* out = (char*) malloc(insz * 2 + 1);
+  uint8_t* pin = in;
+  const char * hex = "0123456789abcdef";
+  char* pout = out;
+  for(; pin < in + insz; pout += 2, pin++){
+    pout[0] = hex[(*pin>>4) & 0xF];
+    pout[1] = hex[ *pin     & 0xF];
+  }
+  pout[0] = 0;
+  return out;
+}
+
+void encrypt_data(
+    chacha20_poly1305_encrypted_data *encrypted_data,
+    uint8_t* raw_data, size_t raw_data_size)
+{
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    unseal(encrypted_data->sealed_key, encrypted_data->sealed_key_len, seed, sizeof(seed));
+
+    // Associated data (optional, can be NULL if not used)
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+
+    sgx_read_rand(encrypted_data->nonce, sizeof(encrypted_data->nonce));
+
+    assert(encrypted_data->data_len == raw_data_size);
+    crypto_aead_lock(encrypted_data->data, encrypted_data->mac, seed, encrypted_data->nonce, ad, ad_size, raw_data, raw_data_size);
+}
+
+sgx_status_t generate_new_keypair2(
+    unsigned char *compressed_server_pubkey, 
+    size_t compressed_server_pubkey_size, 
+    chacha20_poly1305_encrypted_data *encrypted_data)
+{
+    
+    (void) compressed_server_pubkey_size;
+
+    sgx_status_t ret = SGX_SUCCESS;
+
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
+    unsigned char server_privkey[32];
+    memset(server_privkey, 0, 32);
+
+    do {
+        sgx_read_rand(server_privkey, 32);
+    } while (!secp256k1_ec_seckey_verify(ctx, server_privkey));
+
+    secp256k1_keypair server_keypair;
+
+    int return_val = secp256k1_keypair_create(ctx, &server_keypair, server_privkey);
+    assert(return_val);
+
+    secp256k1_pubkey server_pubkey;
+    return_val = secp256k1_keypair_pub(ctx, &server_pubkey, &server_keypair);
+    assert(return_val);
+
+    unsigned char local_compressed_server_pubkey[33];
+    memset(local_compressed_server_pubkey, 0, 33);
+
+    size_t len = sizeof(local_compressed_server_pubkey);
+    return_val = secp256k1_ec_pubkey_serialize(ctx, local_compressed_server_pubkey, &len, &server_pubkey, SECP256K1_EC_COMPRESSED);
+    assert(return_val);
+    // Should be the same size as the size of the output, because we passed a 33 byte array.
+    assert(len == sizeof(local_compressed_server_pubkey));
+
+    memcpy(compressed_server_pubkey, local_compressed_server_pubkey, 33);
+
+    secp256k1_context_destroy(ctx);
+
+    encrypt_data(encrypted_data, server_keypair.data, sizeof(secp256k1_keypair::data));
+
+    return ret;
+}
 
 sgx_status_t generate_new_keypair(
     unsigned char *compressed_server_pubkey, 
@@ -367,20 +447,6 @@ sgx_status_t key_update(
     }
 
     return ret;
-}
-
-char* data_to_hex(uint8_t* in, size_t insz)
-{
-  char* out = (char*) malloc(insz * 2 + 1);
-  uint8_t* pin = in;
-  const char * hex = "0123456789abcdef";
-  char* pout = out;
-  for(; pin < in + insz; pout += 2, pin++){
-    pout[0] = hex[(*pin>>4) & 0xF];
-    pout[1] = hex[ *pin     & 0xF];
-  }
-  pout[0] = 0;
-  return out;
 }
 
 /*

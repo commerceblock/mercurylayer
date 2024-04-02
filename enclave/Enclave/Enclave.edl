@@ -8,7 +8,22 @@ enclave {
     include "sgx_tcrypto.h"
     include "sgx_tseal.h"
 
+    struct chacha20_poly1305_encrypted_data {
+        size_t data_len;
+        [size=data_len] unsigned char* data;
+        unsigned char nonce[24];
+        unsigned char mac[16];
+        size_t sealed_key_len;
+        [size=sealed_key_len] char* sealed_key;
+    };
+
     trusted {
+
+        public sgx_status_t generate_new_keypair2(
+            [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, 
+            size_t compressed_server_pubkey_size, 
+            [in, out] struct chacha20_poly1305_encrypted_data* encrypted_data);
+
         public sgx_status_t generate_new_keypair(
             [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, 
             size_t compressed_server_pubkey_size, 

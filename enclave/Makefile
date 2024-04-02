@@ -104,6 +104,7 @@ endif
 Crypto_Library_Name := sgx_tcrypto
 
 Enclave_Cpp_Files := Enclave/Enclave.cpp
+Enclave_C_Files := Enclave/libs/monocypher.c
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/libcxx -I./secp256k1-zkp/include -I/usr/local/include
 
 Enclave_C_Flags := $(Enclave_Include_Paths) -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections $(MITIGATION_CFLAGS)
@@ -136,6 +137,7 @@ Enclave_Link_Flags := $(MITIGATION_LDFLAGS) $(Enclave_Security_Link_Flags) \
 	-Wl,--version-script=Enclave/Enclave.lds
 
 Enclave_Cpp_Objects := $(sort $(Enclave_Cpp_Files:.cpp=.o))
+Enclave_C_Objects := $(sort $(Enclave_C_Files:.c=.o))
 
 Enclave_Name := enclave.so
 Signed_Enclave_Name := enclave.signed.so
@@ -240,7 +242,7 @@ Enclave/%.o: Enclave/%.cpp Enclave/Enclave_t.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects) $(SECP256K1_LIB)
+$(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects) $(Enclave_C_Objects) $(SECP256K1_LIB)
 	@$(CXX) $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 
