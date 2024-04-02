@@ -27,7 +27,6 @@ pub struct Wallet {
     pub settings: Settings,
 }
 
-
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
