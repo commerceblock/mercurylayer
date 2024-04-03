@@ -159,7 +159,7 @@ namespace db_manager {
     bool save_generated_public_key(
         const chacha20_poly1305_encrypted_data& encrypted_keypair, 
         unsigned char* server_public_key, size_t server_public_key_size,
-        std::string& statechain_id,
+        const std::string& statechain_id,
         std::string& error_message) {
 
             auto config = toml::parse_file("Settings.toml");

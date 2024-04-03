@@ -45,10 +45,6 @@ namespace sealing_key_manager {
         // bool testSealedSeed(sgx_enclave_id_t& enclave_id);
         void listKeyShares();
     };
-    
-
-    
-
 }
 
 #endif // SEALING_KEY_MANAGER_H

@@ -21,6 +21,7 @@
 #include "../utils/strencodings.h"
 #include "utilities/utilities.h"
 #include "database/db_manager.h"
+#include "statechain/deposit.h"
 #include "sealing_key_manager/sealing_key_manager.h"
 
 #include "App.h"
@@ -29,56 +30,6 @@
 #include "sgx_tcrypto.h"
 
 # define ENCLAVE_FILENAME "enclave.signed.so"
-
-bool save_generated_public_key(
-    std::string& database_connection_string,
-    char* sealed, size_t sealed_size, 
-    unsigned char* server_public_key, size_t server_public_key_size,
-    std::string& statechain_id,
-    std::string& error_message) 
-{
-    try
-    {
-        pqxx::connection conn(database_connection_string);
-        if (conn.is_open()) {
-
-            std::string create_table_query =
-                "CREATE TABLE IF NOT EXISTS generated_public_key ( "
-                "id SERIAL PRIMARY KEY, "
-                "statechain_id varchar(50), "
-                "sealed_keypair BYTEA, "
-                "sealed_secnonce BYTEA, "
-                "public_nonce BYTEA, "
-                "public_key BYTEA UNIQUE, "
-                "sig_count INTEGER DEFAULT 0);";
-
-            pqxx::work txn(conn);
-            txn.exec(create_table_query);
-            txn.commit();
-
-            std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(sealed), sealed_size);
-            std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
-
-            std::string insert_query =
-                "INSERT INTO generated_public_key (sealed_keypair, public_key, statechain_id) VALUES ($1, $2, $3);";
-            pqxx::work txn2(conn);
-
-            txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
-            txn2.commit();
-
-            conn.close();
-            return true;
-        } else {
-            error_message = "Failed to connect to the database!";
-            return false;
-        }
-    }
-    catch (std::exception const &e)
-    {
-        error_message = e.what();
-        return false;
-    }
-}
 
 bool update_sealed_keypair(
     std::string& database_connection_string,
@@ -275,17 +226,6 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
-void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len) {
-
-    // initialize encrypted_data
-    encrypted_data.data_len = data_len;
-    encrypted_data.data = new unsigned char[encrypted_data.data_len];
-    memset(encrypted_data.data, 0, encrypted_data.data_len);
-
-    memset(encrypted_data.mac, 0, sizeof(encrypted_data.mac));
-    memset(encrypted_data.nonce, 0, sizeof(encrypted_data.nonce));
-}
-
 int SGX_CDECL main(int argc, char *argv[])
 {
     (void)(argc);
@@ -298,8 +238,6 @@ int SGX_CDECL main(int argc, char *argv[])
 
     auto config = toml::parse_file("Settings.toml");
     auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
-
-    std::cout << "Database connection string: " << database_connection_string << std::endl;
 
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
@@ -331,63 +269,13 @@ int SGX_CDECL main(int argc, char *argv[])
                 return crow::response(400);
 
             if (req_body.count("statechain_id") == 0)
-                return crow::response(400, "Invalid parameter. It must be 'client_pubkey'.");
+                return crow::response(400, "Invalid parameter. It must be 'statechain_id'.");
 
             std::string statechain_id = req_body["statechain_id"].s();
 
-            // 1. Allocate memory for the aggregated pubkey and sealedprivkey.
-            size_t server_pubkey_size = 33; // serialized compressed public keys are 33-byte array
-            unsigned char server_pubkey[server_pubkey_size];
-
-            size_t sealedprivkey_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
-            char sealedprivkey[sealedprivkey_size];
-
             const std::lock_guard<std::mutex> lock(mutex_enclave_id);
 
-            sgx_status_t ecall_ret;
-            sgx_status_t status = generate_new_keypair(
-                enclave_id, &ecall_ret, 
-                server_pubkey, server_pubkey_size,
-                sealedprivkey, sealedprivkey_size);
-
-            if (ecall_ret != SGX_SUCCESS) {
-                return crow::response(500, "Key aggregation Ecall failed ");
-            }  if (status != SGX_SUCCESS) {
-                return crow::response(500, "Key aggregation failed ");
-            }
-
-            // new encryption scheme
-            /* chacha20_poly1305_encrypted_data encrypted_data;
-            initialize_encrypted_data(encrypted_data, sizeof(secp256k1_keypair));
-
-            size_t server_pubkey_size2 = 33; // serialized compressed public keys are 33-byte array
-            unsigned char server_pubkey2[server_pubkey_size2];
-
-            sgx_status_t ecall_ret2;
-            generate_new_keypair2(enclave_id, &ecall_ret2, 
-                server_pubkey2, server_pubkey_size2, 
-                sealing_key_manager.sealed_seed, sealing_key_manager.sealed_seed_size,
-                &encrypted_data);
-
-            std::string error_message2;
-            db_manager::save_generated_public_key(encrypted_data, server_pubkey2, server_pubkey_size2, statechain_id, error_message2);
-            */
-
-            auto server_seckey_hex = key_to_string(server_pubkey, server_pubkey_size);
-
-            std::string error_message;
-            bool data_saved = save_generated_public_key(
-                // sealedprivkey.data(), sealedprivkey.size(), server_pubkey, server_pubkey_size, error_message);
-                database_connection_string, sealedprivkey, sealedprivkey_size, server_pubkey, server_pubkey_size, statechain_id, error_message);
-
-            if (!data_saved) {
-                error_message = "Failed to save aggregated key data: " + error_message;
-                return crow::response(500, error_message);
-            }
-
-            crow::json::wvalue result({{"server_pubkey", server_seckey_hex}});
-            return crow::response{result};
-
+            return deposit::get_public_key(enclave_id, statechain_id, sealing_key_manager);
     });
 
     CROW_ROUTE(app, "/get_public_nonce")
