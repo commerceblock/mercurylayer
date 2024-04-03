@@ -43,6 +43,28 @@ $ sudo cmake --install .
 # found in the directories specified on the command line
 $ sudo ldconfig 
 
+# Install https://github.com/ssantos21/bc-crypto-base
+$ git clone https://github.com/ssantos21/bc-crypto-base
+$ cd bc-crypto-base
+$ ./configure 
+$ make check
+$ sudo make install
+
+# Install https://github.com/ssantos21/bc-shamir
+$ git clone https://github.com/ssantos21/bc-shamir
+$ cd bc-shamir
+$ ./configure 
+$ make check
+$ sudo make install
+
+# Install https://github.com/ssantos21/bc-bip39
+$ sudo apt-get install make clang
+$ git clone https://github.com/ssantos21/bc-bip39
+$ cd bc-bip39
+$ export CC="clang-14" && ./configure
+$ make check
+$ sudo make install
+
 # clone this repo
 $ git clone https://github.com/commerceblock/mercurylayer
 $ git checkout -b dev origin/dev

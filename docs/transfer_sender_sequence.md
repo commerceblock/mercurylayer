@@ -31,7 +31,7 @@ sequenceDiagram
     note over Client: Compute R and challenge
     Client->>Server: /sign/second {statechain_id,challenge,auth_sig}
     note over Server: Verify auth_sig with statechain_id and auth_key
-    note over Server: Save challenge  with ID statechain_id
+    note over Server: Save challenge with ID statechain_id
     Server->>Enclave: /get_partial_signature {statechain_id, challenge}
     note over Enclave: Compute blind partial signature
     note over Enclave: Increment sig_count by 1

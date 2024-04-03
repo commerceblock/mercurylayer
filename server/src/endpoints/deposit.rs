@@ -112,39 +112,6 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
     return status::Custom(Status::Ok, Json(response_body));
 }
 
-#[get("/tokens/token_init")]
-pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
-
-    if statechain_entity.config.network == "mainnet" {
-        let response_body = json!({
-            "error": "Internal Server Error",
-            "message": "Token generation not supported on mainnet."
-        });
-    
-        return status::Custom(Status::InternalServerError, Json(response_body));
-    }
-
-    let token_id = uuid::Uuid::new_v4().to_string();
-    let processor_id = uuid::Uuid::new_v4().to_string();
-    let lightning_invoice =  String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4");
-    let confirmed = false;
-    let spent = false;
-
-    insert_new_token(&statechain_entity.pool, &token_id).await;
-
-    let token = mercury_lib::wallet::Token {
-        token_id,
-        lightning_invoice,
-        processor_id,
-        confirmed,
-        spent,
-    };
-
-    let response_body = json!(token);
-
-    return status::Custom(Status::Ok, Json(response_body));
-}
-
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
 pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 

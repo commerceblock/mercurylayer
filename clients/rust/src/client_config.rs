@@ -11,6 +11,8 @@ pub struct ClientConfig {
     pub electrum_client: electrum_client::Client,
     /// Electrum server url
     pub electrum_server_url: String,
+    /// Electrum server type (e.g. electrs, electrumx, etc.)
+    pub electrum_type: String,
     /// Bitcoin network name (testnet, regtest, mainnet)
     pub network: Network,
     /// Fee rate tolerance
@@ -32,6 +34,7 @@ impl ClientConfig {
 
         let statechain_entity = settings.get_string("statechain_entity").unwrap();
         let electrum_server = settings.get_string("electrum_server").unwrap();
+        let electrum_type = settings.get_string("electrum_type").unwrap();
         let network = settings.get_string("network").unwrap();
         let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as u32;
         let database_file = settings.get_string("database_file").unwrap();
@@ -75,6 +78,7 @@ impl ClientConfig {
             statechain_entity,
             electrum_client,
             electrum_server_url: electrum_server,
+            electrum_type,
             network,
             fee_rate_tolerance,
             confirmation_target,
