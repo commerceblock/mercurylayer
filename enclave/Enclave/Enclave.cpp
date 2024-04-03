@@ -65,6 +65,40 @@ void encrypt_data(
 
 }
 
+int decrypt_data(
+    chacha20_poly1305_encrypted_data *encrypted_data,
+    char* sealed_seed, size_t sealed_seed_len,
+    uint8_t* decrypted_data, size_t decrypted_data_size)
+{
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    unseal(sealed_seed, sealed_seed_len, seed, sizeof(seed));
+
+    // Associated data (optional, can be NULL if not used)
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+    
+    uint8_t decrypted[decrypted_data_size];
+    int status = crypto_aead_unlock(decrypted_data, encrypted_data->mac, seed, encrypted_data->nonce, ad, ad_size, encrypted_data->data, encrypted_data->data_len);
+    return status;
+}
+
+sgx_status_t test_decrypt_data(
+    char* sealed_seed, size_t sealed_seed_len,
+    chacha20_poly1305_encrypted_data *encrypted_data,
+    unsigned char *decrypted_data, size_t decrypted_data_size)
+{
+    int status = decrypt_data(encrypted_data, sealed_seed, sealed_seed_len, decrypted_data, decrypted_data_size);
+    if (status != 0) {
+        ocall_print_string("\nDecryption failed\n");
+        return SGX_ERROR_UNEXPECTED;
+    } else {
+        ocall_print_string("\nDecryption successful!\n");
+        return SGX_SUCCESS;
+    }
+}
+
 sgx_status_t generate_new_keypair2(
     unsigned char *compressed_server_pubkey, 
     size_t compressed_server_pubkey_size, 
@@ -107,84 +141,12 @@ sgx_status_t generate_new_keypair2(
 
     secp256k1_context_destroy(ctx);
 
+    // print server_keypair.data
+    char* keypair_hex = data_to_hex(server_keypair.data, sizeof(server_keypair.data));
+    ocall_print_string("keypair:");
+    ocall_print_string(keypair_hex);
+
     encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
-
-    return ret;
-}
-
-sgx_status_t generate_new_keypair(
-    unsigned char *compressed_server_pubkey, 
-    size_t compressed_server_pubkey_size, 
-    
-    char *sealedkeypair, 
-    size_t sealedkeypair_size)
-{
-    (void) compressed_server_pubkey_size;
-
-    // Step 1: Open Context.
-    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-    sgx_ecc_state_handle_t p_ecc_handle = NULL;
-
-    if ((ret = sgx_ecc256_open_context(&p_ecc_handle)) != SGX_SUCCESS)
-    {
-        ocall_print_string("\nTrustedApp: sgx_ecc256_open_context() failed !\n");
-        if (p_ecc_handle != NULL)
-        {
-            sgx_ecc256_close_context(p_ecc_handle);
-        }
-        return ret;
-    }
-
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-
-    unsigned char server_privkey[32];
-    memset(server_privkey, 0, 32);
-
-    do {
-        sgx_read_rand(server_privkey, 32);
-    } while (!secp256k1_ec_seckey_verify(ctx, server_privkey));
-
-    secp256k1_keypair server_keypair;
-
-    int return_val = secp256k1_keypair_create(ctx, &server_keypair, server_privkey);
-    assert(return_val);
-
-    secp256k1_pubkey server_pubkey;
-    return_val = secp256k1_keypair_pub(ctx, &server_pubkey, &server_keypair);
-    assert(return_val);
-
-    unsigned char local_compressed_server_pubkey[33];
-    memset(local_compressed_server_pubkey, 0, 33);
-
-    size_t len = sizeof(local_compressed_server_pubkey);
-    return_val = secp256k1_ec_pubkey_serialize(ctx, local_compressed_server_pubkey, &len, &server_pubkey, SECP256K1_EC_COMPRESSED);
-    assert(return_val);
-    // Should be the same size as the size of the output, because we passed a 33 byte array.
-    assert(len == sizeof(local_compressed_server_pubkey));
-
-    memcpy(compressed_server_pubkey, local_compressed_server_pubkey, 33);
-
-    secp256k1_context_destroy(ctx);
-
-    // Step 3: Calculate sealed data size.
-    if (sealedkeypair_size >= sgx_calc_sealed_data_size(0U, sizeof(server_keypair)))
-    {
-        if ((ret = sgx_seal_data(0U, NULL, sizeof(server_keypair.data), server_keypair.data, (uint32_t) sealedkeypair_size, (sgx_sealed_data_t *)sealedkeypair)) != SGX_SUCCESS)
-        {
-            ocall_print_string("\nTrustedApp: sgx_seal_data() failed !\n");
-        }
-    }
-    else
-    {
-        ocall_print_string("\nTrustedApp: Size allocated for sealedprivkey by untrusted app is less than the required size !\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-    }
-
-    // Step 4: Close Context.
-    if (p_ecc_handle != NULL)
-    {
-        sgx_ecc256_close_context(p_ecc_handle);
-    }
 
     return ret;
 }

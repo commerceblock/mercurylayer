@@ -635,6 +635,60 @@ int SGX_CDECL main(int argc, char *argv[])
             return crow::response{result};
     });
 
+    CROW_ROUTE(app, "/test_decrypt_data")
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
+
+            auto req_body = crow::json::load(req.body);
+            if (!req_body)
+                return crow::response(400);
+
+            if (req_body.count("statechain_id") == 0) {
+                return crow::response(400, "Invalid parameters. They must be 'statechain_id'.");
+            }
+
+            std::string statechain_id = req_body["statechain_id"].s();
+
+            unsigned char serialized_server_pubnonce[66];
+
+            memset(serialized_server_pubnonce, 0, sizeof(serialized_server_pubnonce));
+
+            auto encrypted_keypair = std::make_unique<chacha20_poly1305_encrypted_data>();
+
+            std::string error_message;
+            bool data_loaded = db_manager::load_generated_key_data(
+                statechain_id,
+                encrypted_keypair.get(),
+                serialized_server_pubnonce,
+                sizeof(serialized_server_pubnonce),
+                error_message
+            );
+
+            // db_manager::print_encrypted_data(encrypted_keypair.get());
+
+            unsigned char decrypted_data[encrypted_keypair->data_len];
+
+            sgx_status_t ecall_ret;
+            sgx_status_t status = test_decrypt_data(
+                enclave_id, &ecall_ret,
+                sealing_key_manager.sealed_seed, sealing_key_manager.sealed_seed_size,
+                encrypted_keypair.get(),
+                decrypted_data, sizeof(decrypted_data));
+
+            if (ecall_ret != SGX_SUCCESS) {
+                return crow::response(500, "Decrypt Data Ecall failed ");
+            }  if (status != SGX_SUCCESS) {
+                return crow::response(500, "Decrypt Data failed ");
+            }
+
+            // prin decrypted data
+            std::string decrypted_data_hex = key_to_string(decrypted_data, sizeof(decrypted_data));
+            std::cout << "Decrypted keypair: " << decrypted_data_hex << std::endl;
+
+            crow::json::wvalue result({{"message", "OK."}});
+            return crow::response{result};
+    });
+
+
     app.port(18080).multithreaded().run();
 
     {

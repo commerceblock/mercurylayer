@@ -1,14 +1,16 @@
 #include "db_manager.h"
 
+#include "../../utils/strencodings.h"
 #include "../Enclave_u.h"
 #include "../lib/toml.hpp"
-#include "../../utils/strencodings.h"
+#include "../utilities/utilities.h"
 #include <iostream>
 #include <string>
 #include <pqxx/pqxx>
 
 namespace db_manager {
 
+    /*
     bool add_sealed_seed(char* sealed_secret, size_t sealed_secret_size, std::string& error_message) {
 
         auto config = toml::parse_file("Settings.toml");
@@ -99,6 +101,7 @@ namespace db_manager {
         return true;
 
     } // get_sealed_seed
+    */
 
     // Assumes the buffer is large enough. In a real application, ensure buffer safety.
     void serialize(const chacha20_poly1305_encrypted_data* src, unsigned char* buffer, size_t* serialized_len) {
@@ -121,7 +124,7 @@ namespace db_manager {
     }
 
     // Returns a newly allocated structure that must be freed by the caller.
-    bool deserialize(const unsigned char* buffer, size_t serialized_len, chacha20_poly1305_encrypted_data* dest) {
+    bool deserialize(const unsigned char* buffer, chacha20_poly1305_encrypted_data* dest) {
 
         // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_data;
         // if (!dest) return NULL;
@@ -162,84 +165,182 @@ namespace db_manager {
         const std::string& statechain_id,
         std::string& error_message) {
 
-            auto config = toml::parse_file("Settings.toml");
-            auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
 
-            try
-            {
-                pqxx::connection conn(database_connection_string);
-                if (conn.is_open()) {
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
 
-                    std::string create_table_query =
-                        "CREATE TABLE IF NOT EXISTS generated_public_key ( "
-                        "id SERIAL PRIMARY KEY, "
-                        "statechain_id varchar(50), "
-                        "sealed_keypair BYTEA, "
-                        "sealed_secnonce BYTEA, "
-                        "public_nonce BYTEA, "
-                        "public_key BYTEA UNIQUE, "
-                        "sig_count INTEGER DEFAULT 0);";
+                std::string create_table_query =
+                    "CREATE TABLE IF NOT EXISTS generated_public_key ( "
+                    "id SERIAL PRIMARY KEY, "
+                    "statechain_id varchar(50), "
+                    "sealed_keypair BYTEA, "
+                    "sealed_secnonce BYTEA, "
+                    "public_nonce BYTEA, "
+                    "public_key BYTEA UNIQUE, "
+                    "sig_count INTEGER DEFAULT 0);";
 
-                    pqxx::work txn(conn);
-                    txn.exec(create_table_query);
-                    txn.commit();
+                pqxx::work txn(conn);
+                txn.exec(create_table_query);
+                txn.commit();
 
 
-                    size_t serialized_len = 0;
- 
-                    size_t bufferSize = sizeof(encrypted_keypair.data_len) + sizeof(encrypted_keypair.nonce) + sizeof(encrypted_keypair.mac) + encrypted_keypair.data_len;
-                    unsigned char* buffer = (unsigned char*) malloc(bufferSize);
+                size_t serialized_len = 0;
 
-                    if (!buffer) {
-                        error_message = "Failed to allocate memory for serialization!";
-                        return false;
-                    }
+                size_t bufferSize = sizeof(encrypted_keypair.data_len) + sizeof(encrypted_keypair.nonce) + sizeof(encrypted_keypair.mac) + encrypted_keypair.data_len;
+                unsigned char* buffer = (unsigned char*) malloc(bufferSize);
 
-                    serialize(&encrypted_keypair, buffer, &serialized_len);
-                    assert(serialized_len == bufferSize);
-
-                    /* auto buffer_hex = key_to_string(buffer, serialized_len);
-
-                    std::cout << "---- " << std::endl;
-                    print_encrypted_data(&encrypted_keypair);
-                    std::cout << "---- " << std::endl;
-                    std::cout << "buffer: " << buffer_hex << std::endl;
-
-                    // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_keypair;
-                    auto dest = std::make_unique<chacha20_poly1305_encrypted_data>();
-                    bool res = deserialize(buffer, serialized_len, dest.get());
-
-                    std::cout << "---- " << std::endl;
-                    std::cout << "res: " << res << std::endl;
-                    print_encrypted_data(dest.get());
-
-                    free(buffer); */
-
-                    std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
-                    std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
-
-                    std::string insert_query =
-                        "INSERT INTO generated_public_key (sealed_keypair, public_key, statechain_id) VALUES ($1, $2, $3);";
-                    pqxx::work txn2(conn);
-
-                    txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
-                    txn2.commit();
-
-                    conn.close();
-                    return true;
-
-                    return true;
-                } else {
-                    error_message = "Failed to connect to the database!";
+                if (!buffer) {
+                    error_message = "Failed to allocate memory for serialization!";
                     return false;
                 }
-            }
-            catch (std::exception const &e)
-            {
-                error_message = e.what();
+
+                print_encrypted_data(&encrypted_keypair);
+
+                serialize(&encrypted_keypair, buffer, &serialized_len);
+                assert(serialized_len == bufferSize);
+
+                /* auto buffer_hex = key_to_string(buffer, serialized_len);
+
+                std::cout << "---- " << std::endl;
+                print_encrypted_data(&encrypted_keypair);
+                std::cout << "---- " << std::endl;
+                std::cout << "buffer: " << buffer_hex << std::endl;
+
+                // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_keypair;
+                auto dest = std::make_unique<chacha20_poly1305_encrypted_data>();
+                bool res = deserialize(buffer, serialized_len, dest.get());
+
+                std::cout << "---- " << std::endl;
+                std::cout << "res: " << res << std::endl;
+                print_encrypted_data(dest.get());
+
+                free(buffer); */
+
+                std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
+                std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
+
+                std::string insert_query =
+                    "INSERT INTO generated_public_key (sealed_keypair, public_key, statechain_id) VALUES ($1, $2, $3);";
+                pqxx::work txn2(conn);
+
+                txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
+                txn2.commit();
+
+                conn.close();
+                return true;
+
+                return true;
+            } else {
+                error_message = "Failed to connect to the database!";
                 return false;
             }
-
-            return true;
         }
+        catch (std::exception const &e)
+        {
+            error_message = e.what();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool load_generated_key_data(
+        std::string& statechain_id, 
+        chacha20_poly1305_encrypted_data* encrypted_keypair,
+        // char* sealed_keypair, size_t sealed_keypair_size,
+        // char* sealed_secnonce, size_t sealed_secnonce_size,
+        unsigned char* public_nonce, const size_t public_nonce_size, 
+        std::string& error_message)
+    {
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
+
+                std::string sealed_keypair_query =
+                    "SELECT sealed_keypair, sealed_secnonce, public_nonce FROM generated_public_key WHERE statechain_id = $1;";
+
+                pqxx::nontransaction ntxn(conn);
+
+                conn.prepare("load_generated_key_data_query", sealed_keypair_query);
+
+                pqxx::result result = ntxn.exec_prepared("load_generated_key_data_query", statechain_id);
+
+                if (!result.empty()) {
+                    auto sealed_keypair_field = result[0]["sealed_keypair"];
+                    auto sealed_secnonce_field = result[0]["sealed_secnonce"];
+                    auto public_nonce_field = result[0]["public_nonce"];
+
+                    if (!sealed_keypair_field.is_null()) {
+                        auto sealed_keypair_view = sealed_keypair_field.as<std::basic_string<std::byte>>();
+
+                        std::vector<unsigned char> sealed_keypair(sealed_keypair_view.size());
+                        memcpy(sealed_keypair.data(), sealed_keypair_view.data(), sealed_keypair_view.size());
+
+                        // auto encrypted_keypair = std::make_unique<chacha20_poly1305_encrypted_data>();
+
+                        if (!deserialize(sealed_keypair.data(), encrypted_keypair)) {
+                            error_message = "Failed to deserialize keypair!";
+                            return false;
+                        }
+
+                        // print_encrypted_data(encrypted_keypair);
+
+
+                        
+                        /* if (sealed_keypair_view.size() != sealed_keypair_size) {
+                            error_message = "Failed to retrieve keypair. Different size than expected !";
+                            return false;
+                        } */
+
+                        // memcpy(sealed_keypair, sealed_keypair_view.data(), sealed_keypair.size());
+                    }
+
+                    /*if (!sealed_secnonce_field.is_null()) {
+                        auto sealed_secnonce_view = sealed_secnonce_field.as<std::basic_string<std::byte>>();
+
+                        if (sealed_secnonce_view.size() != sealed_secnonce_size) {
+                            error_message = "Failed to retrieve secret nonce. Different size than expected !";
+                            return false;
+                        }
+
+                        memcpy(sealed_secnonce, sealed_secnonce_view.data(), sealed_secnonce_size);
+                    }*/
+
+                    if (!public_nonce_field.is_null()) {
+                        auto public_nonce_view = public_nonce_field.as<std::basic_string<std::byte>>();
+
+                        if (public_nonce_view.size() != public_nonce_size) {
+                            error_message = "Failed to retrieve public nonce. Different size than expected !";
+                            return false;
+                        }
+
+                        memcpy(public_nonce, public_nonce_view.data(), public_nonce_size);
+                    }
+                }
+                else {
+                    error_message = "Failed to retrieve keypair. No data found !";
+                    return false;
+                }
+
+                conn.close();
+                return true;
+            } else {
+                error_message = "Failed to connect to the database!";
+                return false;
+            }
+        }
+        catch (std::exception const &e)
+        {
+            error_message = e.what();
+            return false;
+        }
+    }
 }
