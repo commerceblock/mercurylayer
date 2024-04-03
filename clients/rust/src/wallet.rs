@@ -53,7 +53,7 @@ pub async fn create_wallet(
         tokens: Vec::new(),
         activities: Vec::new(),
         coins: Vec::new(),
-        settings,
+        // settings,
     };
 
     // save wallet to database
