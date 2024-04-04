@@ -11,4 +11,4 @@ COPY . .
 RUN cargo build --release
 EXPOSE 8000
 # Run the application
-CMD ["cargo", "run"]
+CMD ["cargo", "run", "--bin", "mercury-server"]
