@@ -99,7 +99,7 @@ sgx_status_t test_decrypt_data(
     }
 }
 
-sgx_status_t generate_new_keypair2(
+sgx_status_t enclave_generate_new_keypair(
     unsigned char *compressed_server_pubkey, 
     size_t compressed_server_pubkey_size, 
     char* sealed_seed, size_t sealed_seed_len,
@@ -149,6 +149,61 @@ sgx_status_t generate_new_keypair2(
     encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
 
     return ret;
+}
+
+sgx_status_t enclave_generate_nonce(
+    char* sealed_seed, size_t sealed_seed_len,
+    chacha20_poly1305_encrypted_data *encrypted_keypair,
+    chacha20_poly1305_encrypted_data *encrypted_secnonce,
+    unsigned char* server_pubnonce_data, size_t server_pubnonce_data_size)
+{
+    (void) server_pubnonce_data_size;
+
+    secp256k1_keypair server_keypair;
+    memset(server_keypair.data, 0, sizeof(server_keypair.data));
+
+    int status = decrypt_data(encrypted_keypair, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(server_keypair.data));
+    if (status != 0) {
+        ocall_print_string("\nDecryption failed\n");
+        return SGX_ERROR_UNEXPECTED;
+    }
+
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+
+    // step 1 - Extract server secret and public keys from keypair
+
+    unsigned char server_seckey[32];
+    int return_val = secp256k1_keypair_sec(ctx, server_seckey, &server_keypair);
+    assert(return_val);
+
+    secp256k1_pubkey server_pubkey;
+    return_val = secp256k1_keypair_pub(ctx, &server_pubkey, &server_keypair);
+    assert(return_val);
+
+    // step 2 - Generate secret and public nonce
+
+    unsigned char session_id[32];
+    memset(session_id, 0, 32);
+    sgx_read_rand(session_id, sizeof(session_id));
+
+    secp256k1_musig_pubnonce server_pubnonce;
+    secp256k1_musig_secnonce server_secnonce;
+
+    return_val = secp256k1_musig_nonce_gen(ctx, &server_secnonce, &server_pubnonce, session_id, server_seckey, &server_pubkey, NULL, NULL, NULL);
+    assert(return_val);
+
+    // step 3 - Encrypt secret nonce
+    encrypt_data(encrypted_secnonce, sealed_seed, sealed_seed_len, server_secnonce.data, sizeof(secp256k1_musig_secnonce::data));
+
+    unsigned char serialized_server_pubnonce[66];
+    return_val = secp256k1_musig_pubnonce_serialize(ctx, serialized_server_pubnonce, &server_pubnonce);
+    assert(return_val);
+
+    memcpy(server_pubnonce_data, serialized_server_pubnonce, sizeof(serialized_server_pubnonce));
+
+    secp256k1_context_destroy(ctx);
+
+    return SGX_SUCCESS;
 }
 
 sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, size_t raw_data_size)

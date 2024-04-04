@@ -30,7 +30,7 @@ namespace deposit {
         std::cout << "statechain_id: " << statechain_id << std::endl;
 
         sgx_status_t ecall_ret;
-        generate_new_keypair2(enclave_id, &ecall_ret, 
+        enclave_generate_new_keypair(enclave_id, &ecall_ret, 
             server_pubkey, server_pubkey_size, 
             sealing_key_manager.sealed_seed, sealing_key_manager.sealed_seed_size,
             &encrypted_data);

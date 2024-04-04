@@ -62,10 +62,11 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := App/App.cpp utils/strencodings.cpp utils/include_secp256k1_zkp_lib.cpp App/utilities/utilities.cpp App/database/db_manager.cpp App/sealing_key_manager/sealing_key_manager.cpp App/statechain/deposit.cpp
+App_Cpp_Files := App/App.cpp utils/strencodings.cpp utils/include_secp256k1_zkp_lib.cpp App/utilities/utilities.cpp App/database/db_manager.cpp \
+				 App/sealing_key_manager/sealing_key_manager.cpp App/statechain/deposit.cpp App/statechain/sign.cpp 
 App_Include_Paths := -IApp -I$(SGX_SDK)/include -I./secp256k1-zkp/include
 
-App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)
+App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)	
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.

@@ -22,6 +22,7 @@
 #include "utilities/utilities.h"
 #include "database/db_manager.h"
 #include "statechain/deposit.h"
+#include "statechain/sign.h"
 #include "sealing_key_manager/sealing_key_manager.h"
 
 #include "App.h"
@@ -258,7 +259,7 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     CROW_ROUTE(app, "/get_public_key")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string, &sealing_key_manager](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
 
             if (sealing_key_manager.isSeedEmpty()) {
                 return crow::response(500, "Sealing key is empty.");
@@ -279,7 +280,7 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app, "/get_public_nonce")
-        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
             if (!req_body)
@@ -291,64 +292,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
             std::string statechain_id = req_body["statechain_id"].s();
 
-            size_t sealed_keypair_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_keypair));
-            std::vector<char> sealed_keypair(sealed_keypair_size);  // Using a vector to manage dynamic-sized array.
-
-            size_t sealed_secnonce_size = utils::sgx_calc_sealed_data_size(0U, sizeof(secp256k1_musig_secnonce));
-            std::vector<char> sealed_secnonce(sealed_secnonce_size);  // Using a vector to manage dynamic-sized array.
-
-            unsigned char serialized_server_pubnonce[66];
-
-            memset(sealed_keypair.data(), 0, sealed_keypair_size);
-            memset(sealed_secnonce.data(), 0, sealed_secnonce_size);
-
-            std::string error_message;
-            bool data_loaded = load_generated_key_data(
-                database_connection_string,
-                statechain_id,
-                sealed_keypair.data(), sealed_keypair_size,
-                sealed_secnonce.data(), sealed_secnonce_size,
-                serialized_server_pubnonce, sizeof(serialized_server_pubnonce),
-                error_message);
-
-            if (!data_loaded) {
-                error_message = "Failed to load aggregated key data: " + error_message;
-                return crow::response(500, error_message);
-            }
-
-            memset(sealed_secnonce.data(), 0, sealed_secnonce_size);
-            memset(serialized_server_pubnonce, 0, sizeof(serialized_server_pubnonce));
-            
-            sgx_status_t ecall_ret;
-            sgx_status_t status = generate_nonce(
-                enclave_id, &ecall_ret, 
-                sealed_keypair.data(), sealed_keypair_size,
-                sealed_secnonce.data(), sealed_secnonce_size,
-                serialized_server_pubnonce, sizeof(serialized_server_pubnonce));
-
-            if (ecall_ret != SGX_SUCCESS) {
-                return crow::response(500, "Generate Nonce Ecall failed ");
-            }  if (status != SGX_SUCCESS) {
-                return crow::response(500, "Generate Nonce failed ");
-            }
-
-            bool data_saved = update_sealed_secnonce(
-                database_connection_string,
-                statechain_id,
-                serialized_server_pubnonce, sizeof(serialized_server_pubnonce),
-                sealed_secnonce.data(), sealed_secnonce_size,
-                error_message
-            );
-
-            if (!data_saved) {
-                error_message = "Failed to save sealed secret nonce: " + error_message;
-                return crow::response(500, error_message);
-            }
-
-            auto serialized_server_pubnonce_hex = key_to_string(serialized_server_pubnonce, sizeof(serialized_server_pubnonce));
-
-            crow::json::wvalue result({{"server_pubnonce", serialized_server_pubnonce_hex}});
-            return crow::response{result};
+            return signature::get_public_nonce(enclave_id, statechain_id, sealing_key_manager);
     });
 
     CROW_ROUTE(app, "/get_partial_signature")

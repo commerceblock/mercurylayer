@@ -249,7 +249,7 @@ namespace db_manager {
     }
 
     bool load_generated_key_data(
-        std::string& statechain_id, 
+        const std::string& statechain_id, 
         chacha20_poly1305_encrypted_data* encrypted_keypair,
         // char* sealed_keypair, size_t sealed_keypair_size,
         // char* sealed_secnonce, size_t sealed_secnonce_size,
@@ -314,7 +314,7 @@ namespace db_manager {
                         memcpy(sealed_secnonce, sealed_secnonce_view.data(), sealed_secnonce_size);
                     }*/
 
-                    if (!public_nonce_field.is_null()) {
+                    if (!public_nonce_field.is_null() && public_nonce != nullptr) {
                         auto public_nonce_view = public_nonce_field.as<std::basic_string<std::byte>>();
 
                         if (public_nonce_view.size() != public_nonce_size) {
@@ -329,6 +329,57 @@ namespace db_manager {
                     error_message = "Failed to retrieve keypair. No data found !";
                     return false;
                 }
+
+                conn.close();
+                return true;
+            } else {
+                error_message = "Failed to connect to the database!";
+                return false;
+            }
+        }
+        catch (std::exception const &e)
+        {
+            error_message = e.what();
+            return false;
+        }
+    }
+
+    bool update_sealed_secnonce(
+        const std::string& statechain_id, 
+        unsigned char* serialized_server_pubnonce, const size_t serialized_server_pubnonce_size, 
+        const chacha20_poly1305_encrypted_data& encrypted_secnonce, 
+        std::string& error_message) 
+    {
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
+
+                size_t serialized_len = 0;
+
+                size_t bufferSize = sizeof(encrypted_secnonce.data_len) + sizeof(encrypted_secnonce.nonce) + sizeof(encrypted_secnonce.mac) + encrypted_secnonce.data_len;
+                unsigned char* buffer = (unsigned char*) malloc(bufferSize);
+
+                if (!buffer) {
+                    error_message = "Failed to allocate memory for serialization!";
+                    return false;
+                }
+
+                serialize(&encrypted_secnonce, buffer, &serialized_len);
+                assert(serialized_len == bufferSize);
+
+                std::basic_string_view<std::byte> sealed_secnonce_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
+                std::basic_string_view<std::byte> serialized_server_pubnonce_view(reinterpret_cast<std::byte*>(serialized_server_pubnonce), serialized_server_pubnonce_size);
+
+                std::string updated_query =
+                    "UPDATE generated_public_key SET public_nonce = $1, sealed_secnonce = $2 WHERE statechain_id = $3";
+                pqxx::work txn(conn);
+
+                txn.exec_params(updated_query, serialized_server_pubnonce_view, sealed_secnonce_view, statechain_id);
+                txn.commit();
 
                 conn.close();
                 return true;

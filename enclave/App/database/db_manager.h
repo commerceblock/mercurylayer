@@ -24,11 +24,17 @@ namespace db_manager {
     void print_encrypted_data(const chacha20_poly1305_encrypted_data* data);
 
     bool load_generated_key_data(
-        std::string& statechain_id, 
+        const std::string& statechain_id, 
         chacha20_poly1305_encrypted_data* encrypted_keypair,
         // char* sealed_keypair, size_t sealed_keypair_size,
         // char* sealed_secnonce, size_t sealed_secnonce_size,
         unsigned char* public_nonce, const size_t public_nonce_size, 
+        std::string& error_message);
+
+    bool update_sealed_secnonce(
+        const std::string& statechain_id, 
+        unsigned char* serialized_server_pubnonce, const size_t serialized_server_pubnonce_size, 
+        const chacha20_poly1305_encrypted_data& encrypted_secnonce, 
         std::string& error_message);
 }
 

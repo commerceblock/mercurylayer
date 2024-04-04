@@ -17,7 +17,7 @@ enclave {
 
     trusted {
 
-        public sgx_status_t generate_new_keypair2(
+        public sgx_status_t enclave_generate_new_keypair(
             [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, 
             size_t compressed_server_pubkey_size, 
             [in, size=sealed_seed_len] char* sealed_seed, size_t sealed_seed_len,
@@ -27,6 +27,12 @@ enclave {
             [in, size=sealed_seed_len] char* sealed_seed, size_t sealed_seed_len,
             [in, out] struct chacha20_poly1305_encrypted_data *encrypted_data,
             [out, size=decrypted_data_size] unsigned char *decrypted_data, size_t decrypted_data_size);
+
+        public sgx_status_t enclave_generate_nonce(
+            [in, size=sealed_seed_len] char* sealed_seed, size_t sealed_seed_len,
+            [in] struct chacha20_poly1305_encrypted_data *encrypted_keypair,
+            [in, out] struct chacha20_poly1305_encrypted_data *encrypted_secnonce,
+            [out, size=server_pubnonce_data_size] unsigned char* server_pubnonce_data, size_t server_pubnonce_data_size);
 
         public sgx_status_t unseal(
             [in, size=sealed_size] char* sealed, size_t sealed_size,
