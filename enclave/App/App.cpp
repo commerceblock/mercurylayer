@@ -23,6 +23,7 @@
 #include "database/db_manager.h"
 #include "statechain/deposit.h"
 #include "statechain/sign.h"
+#include "statechain/transfer_receiver.h"
 #include "sealing_key_manager/sealing_key_manager.h"
 
 #include "App.h"
@@ -270,38 +271,13 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app,"/signature_count/<string>")
-    ([&database_connection_string](std::string statechain_id){
+    ([](std::string statechain_id){
 
-        std::string error_message;
-        pqxx::connection conn(database_connection_string);
-        if (conn.is_open()) {
-
-            std::string sig_count_query =
-                "SELECT sig_count FROM generated_public_key WHERE statechain_id = $1;";
-            
-            pqxx::nontransaction ntxn(conn);
-
-            conn.prepare("sig_count_query", sig_count_query);
-
-            pqxx::result result = ntxn.exec_prepared("sig_count_query", statechain_id);
-
-            if (!result.empty()) {
-                auto sig_count_field = result[0]["sig_count"];
-                if (!sig_count_field.is_null()) {
-                    auto sig_count = sig_count_field.as<int>();
-                    crow::json::wvalue response({{"sig_count", sig_count}});
-                    return crow::response{response};
-                }
-            }
-            conn.close();
-            return crow::response(500, "Failed to retrieve signature count!");
-        } else {
-            return crow::response(500, "Failed to connect to the database!");
-        }
+        return signature::signature_count(statechain_id);
 
     });
 
-    CROW_ROUTE(app, "/keyupdate")
+    CROW_ROUTE(app, "/keyupdate_old")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &database_connection_string](const crow::request& req) {
 
             auto req_body = crow::json::load(req.body);
@@ -405,6 +381,52 @@ int SGX_CDECL main(int argc, char *argv[])
 
             crow::json::wvalue result({{"server_pubkey", new_server_seckey_hex}});
             return crow::response{result};
+    });
+
+    CROW_ROUTE(app, "/keyupdate")
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
+
+            auto req_body = crow::json::load(req.body);
+            if (!req_body)
+                return crow::response(400);
+
+            if (req_body.count("statechain_id") == 0 || 
+                req_body.count("t2") == 0 ||
+                req_body.count("x1") == 0) {
+                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 't2' and 'x1'.");
+            }
+
+            std::string statechain_id = req_body["statechain_id"].s();
+            std::string t2_hex = req_body["t2"].s();
+            std::string x1_hex = req_body["x1"].s();
+
+            if (t2_hex.substr(0, 2) == "0x") {
+                t2_hex = t2_hex.substr(2);
+            }
+
+            std::vector<unsigned char> serialized_t2 = ParseHex(t2_hex);
+
+            if (serialized_t2.size() != 32) {
+                return crow::response(400, "Invalid t2 length. Must be 32 bytes!");
+            }
+
+            if (x1_hex.substr(0, 2) == "0x") {
+                x1_hex = x1_hex.substr(2);
+            }
+
+            std::vector<unsigned char> serialized_x1 = ParseHex(x1_hex);
+
+            if (serialized_x1.size() != 32) {
+                return crow::response(400, "Invalid x1 length. Must be 32 bytes!");
+            }
+
+            return transfer_receiver::keyupdate(
+                enclave_id, 
+                statechain_id, 
+                serialized_t2,
+                serialized_x1,
+                sealing_key_manager
+            );
     });
 
     CROW_ROUTE(app,"/delete_statechain/<string>")

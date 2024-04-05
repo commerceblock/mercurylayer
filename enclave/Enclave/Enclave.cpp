@@ -243,64 +243,6 @@ sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, s
     return ret;
 }
 
-sgx_status_t get_partial_signature(
-    char* sealed_keypair, size_t sealed_keypair_size,
-    char* sealed_secnonce, size_t sealed_secnonce_size,
-    int negate_seckey,
-    unsigned char* session_data, size_t session_data_size,
-    unsigned char* serialized_server_pubnonce, size_t serialized_server_pubnonce_size,
-    unsigned char *partial_sig_data, size_t partial_sig_data_size)
-{
-    (void) partial_sig_data;
-    (void) partial_sig_data_size;
-    (void) serialized_server_pubnonce_size;
-    // step 0 - Unseal sealed keypair
-
-    secp256k1_keypair server_keypair;
-    unseal(sealed_keypair, sealed_keypair_size, server_keypair.data, sizeof(server_keypair.data));
-
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
-
-    // step 1 - Extract server secret and public keys from keypair
-
-    unsigned char server_seckey[32];
-    int return_val = secp256k1_keypair_sec(ctx, server_seckey, &server_keypair);
-    assert(return_val);
-
-    secp256k1_pubkey server_pubkey;
-    return_val = secp256k1_keypair_pub(ctx, &server_pubkey, &server_keypair);
-    assert(return_val);
-
-    // step 2 - Unseal sealed sealed_secnonce
-
-    secp256k1_musig_secnonce server_secnonce;
-    unseal(sealed_secnonce, sealed_secnonce_size, server_secnonce.data, sizeof(server_secnonce.data));
-
-    secp256k1_musig_session session;
-    memcpy(session.data, session_data, session_data_size);
-
-    secp256k1_musig_pubnonce server_pubnonce;
-    secp256k1_musig_pubnonce_parse(ctx, &server_pubnonce, serialized_server_pubnonce);
-
-    secp256k1_musig_partial_sig partial_sig;
-
-    return_val = secp256k1_blinded_musig_partial_sign_without_keyaggcoeff(ctx, &partial_sig, &server_secnonce, &server_keypair, &session, negate_seckey);
-    assert(return_val);
-
-    unsigned char serialized_partial_sig[32];
-    memset(serialized_partial_sig, 0, 32);
-    assert(sizeof(serialized_partial_sig) == partial_sig_data_size);
-
-    return_val = secp256k1_musig_partial_sig_serialize(ctx,serialized_partial_sig, &partial_sig);
-    assert(return_val);   
-
-    memcpy(partial_sig_data, serialized_partial_sig, sizeof(serialized_partial_sig));
-
-    secp256k1_context_destroy(ctx);
-    
-    return SGX_SUCCESS;
-}
-
 sgx_status_t enclave_partial_signature(
     char* sealed_seed, size_t sealed_seed_len,
     chacha20_poly1305_encrypted_data *encrypted_keypair,
@@ -368,6 +310,92 @@ sgx_status_t enclave_partial_signature(
 
     secp256k1_context_destroy(ctx);
     
+    return SGX_SUCCESS;
+}
+
+sgx_status_t enclave_key_update(
+    char* sealed_seed, size_t sealed_seed_len,
+    chacha20_poly1305_encrypted_data *old_encrypted_keypair,
+    unsigned char* serialized_x1, size_t serialized_x1_size,
+    unsigned char* serialized_t2, size_t serialized_t2_size,
+    unsigned char *compressed_server_pubkey, size_t compressed_server_pubkey_size, 
+    chacha20_poly1305_encrypted_data *new_encrypted_keypair)
+{
+    (void) compressed_server_pubkey_size;
+
+    assert(serialized_x1_size == 32);
+    assert(serialized_t2_size == 32);
+
+    // step 0 - Unseal sealed keypair
+
+    secp256k1_keypair server_keypair;
+    int status = decrypt_data(old_encrypted_keypair, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(server_keypair.data));
+    if (status != 0) {
+        ocall_print_string("\nDecryption failed\n");
+        return SGX_ERROR_UNEXPECTED;
+    }
+
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+
+    // step 1 - Extract server secret from keypair
+
+    unsigned char server_seckey[32];
+    int return_val = secp256k1_keypair_sec(ctx, server_seckey, &server_keypair);
+    assert(return_val);
+
+    // size_t len_p = 32;
+    // const unsigned char* priv_key_data = server_seckey;
+    // ocall_print_string("--- original priv_key:");
+    // ocall_print_hex(&priv_key_data, (int *) &len_p);
+
+    unsigned char new_server_seckey[32];
+    memcpy(new_server_seckey, server_seckey, 32);
+
+    return_val = secp256k1_ec_seckey_tweak_add(ctx, new_server_seckey, serialized_t2);
+    assert(return_val);
+
+    unsigned char x1[32];
+    memcpy(x1, serialized_x1, 32);
+
+    return_val = secp256k1_ec_seckey_verify(ctx, x1);
+    assert(return_val);
+
+    return_val = secp256k1_ec_seckey_negate(ctx, x1);
+    assert(return_val);
+
+    return_val = secp256k1_ec_seckey_tweak_add(ctx, new_server_seckey, x1);
+    assert(return_val);
+
+    // priv_key_data = new_server_seckey;
+    // ocall_print_string("--- new priv_key:");
+    // ocall_print_hex(&priv_key_data, (int *) &len_p);
+
+    // Seal new keypair
+    secp256k1_keypair new_server_keypair;
+
+    return_val = secp256k1_keypair_create(ctx, &new_server_keypair, new_server_seckey);
+    assert(return_val);
+
+    secp256k1_pubkey new_server_pubkey;
+    return_val = secp256k1_keypair_pub(ctx, &new_server_pubkey, &new_server_keypair);
+    assert(return_val);
+
+    unsigned char local_compressed_server_pubkey[33];
+    memset(local_compressed_server_pubkey, 0, 33);
+
+    size_t len = sizeof(local_compressed_server_pubkey);
+    return_val = secp256k1_ec_pubkey_serialize(ctx, local_compressed_server_pubkey, &len, &new_server_pubkey, SECP256K1_EC_COMPRESSED);
+    assert(return_val);
+    // Should be the same size as the size of the output, because we passed a 33 byte array.
+    assert(len == sizeof(local_compressed_server_pubkey));
+
+    memcpy(compressed_server_pubkey, local_compressed_server_pubkey, 33);
+
+    secp256k1_context_destroy(ctx);
+
+    // step 3 - Encrypt secret nonce
+    encrypt_data(new_encrypted_keypair, sealed_seed, sealed_seed_len, new_server_keypair.data, sizeof(secp256k1_keypair::data));
+
     return SGX_SUCCESS;
 }
 

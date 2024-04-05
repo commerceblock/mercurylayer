@@ -19,4 +19,4 @@ namespace deposit {
     crow::response get_public_key(sgx_enclave_id_t& enclave_id, const std::string& statechain_id, sealing_key_manager::SealingKeyManager& sealing_key_manager);
 }
 
-#endif // SEALING_KEY_MANAGER_H
+#endif // STATECHAIN_DEPOSIT_H

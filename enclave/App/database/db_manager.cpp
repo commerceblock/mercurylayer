@@ -468,4 +468,57 @@ namespace db_manager {
             return false;
         }
     }
+
+    bool update_sealed_keypair(
+        const chacha20_poly1305_encrypted_data& encrypted_keypair, 
+        unsigned char* server_public_key, size_t server_public_key_size,
+        const std::string& statechain_id,
+        std::string& error_message) 
+    {
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
+
+                std::string insert_query =
+                    "UPDATE generated_public_key "
+                    "SET sealed_keypair = $1, public_key = $2, sealed_secnonce = NULL, public_nonce = NULL "
+                    "WHERE statechain_id = $3;";
+                pqxx::work txn2(conn);
+
+                size_t serialized_len = 0;
+
+                size_t bufferSize = sizeof(encrypted_keypair.data_len) + sizeof(encrypted_keypair.nonce) + sizeof(encrypted_keypair.mac) + encrypted_keypair.data_len;
+                unsigned char* buffer = (unsigned char*) malloc(bufferSize);
+
+                if (!buffer) {
+                    error_message = "Failed to allocate memory for serialization!";
+                    return false;
+                }
+
+                serialize(&encrypted_keypair, buffer, &serialized_len);
+                assert(serialized_len == bufferSize);
+
+                std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
+                std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
+
+                txn2.exec_params(insert_query, sealed_data_view, public_key_data_view, statechain_id);
+                txn2.commit();
+
+                conn.close();
+                return true;
+            } else {
+                error_message = "Failed to connect to the database!";
+                return false;
+            }
+        }
+        catch (std::exception const &e)
+        {
+            error_message = e.what();
+            return false;
+        }
+    }
 }

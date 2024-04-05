@@ -16,7 +16,7 @@ namespace db_manager {
     */
 
     bool save_generated_public_key(
-        const chacha20_poly1305_encrypted_data& encrypted_data, 
+        const chacha20_poly1305_encrypted_data& encrypted_keypair, 
         unsigned char* server_public_key, size_t server_public_key_size,
         const std::string& statechain_id,
         std::string& error_message);
@@ -40,6 +40,12 @@ namespace db_manager {
     bool update_sig_count(const std::string& statechain_id);
 
     bool signature_count(const std::string& statechain_id, int& sig_count);
+
+    bool update_sealed_keypair(
+        const chacha20_poly1305_encrypted_data& encrypted_keypair, 
+        unsigned char* server_public_key, size_t server_public_key_size,
+        const std::string& statechain_id,
+        std::string& error_message);
 }
 
 #endif // DB_MANAGER_H

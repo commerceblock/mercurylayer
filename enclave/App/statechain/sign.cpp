@@ -103,12 +103,6 @@ namespace signature {
             error_message
         );
 
-        if (encrypted_secnonce == nullptr) {
-            std::cout << "Failed to load encrypted_secnonce" << std::endl;
-        } else {
-            std::cout << "Loaded encrypted_secnonce" << std::endl;
-        }
-
         if (!data_loaded) {
             error_message = "Failed to load aggregated key data: " + error_message;
             return crow::response(500, error_message);
@@ -116,7 +110,6 @@ namespace signature {
 
         bool is_sealed_keypair_empty = encrypted_keypair == nullptr;
         bool is_sealed_secnonce_empty = encrypted_secnonce == nullptr;
-
 
         if (is_sealed_keypair_empty || is_sealed_secnonce_empty) {
             return crow::response(400, "Empty sealed keypair or sealed secnonce!");
@@ -149,6 +142,22 @@ namespace signature {
         auto partial_sig_hex = key_to_string(serialized_partial_sig, sizeof(serialized_partial_sig));
 
         crow::json::wvalue result({{"partial_sig", partial_sig_hex}});
+        return crow::response{result};
+
+    }
+
+    crow::response signature_count(const std::string& statechain_id) {
+
+        int sig_count;
+        std::string error_message;
+        bool count_retrieved = db_manager::signature_count(statechain_id, sig_count);
+
+        if (!count_retrieved) {
+            error_message = "Failed to retrieve signature count: " + error_message;
+            return crow::response(500, error_message);
+        }
+
+        crow::json::wvalue result({{"sig_count", sig_count}});
         return crow::response{result};
 
     }

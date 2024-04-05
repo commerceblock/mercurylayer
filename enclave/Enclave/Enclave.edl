@@ -48,13 +48,13 @@ enclave {
             [out, size=partial_sig_data_size] unsigned char *partial_sig_data, size_t partial_sig_data_size
         );
 
-        public sgx_status_t get_partial_signature(
-            [in, size=sealed_keypair_size] char* sealed_keypair, size_t sealed_keypair_size,
-            [in, size=sealed_secnonce_size] char* sealed_secnonce, size_t sealed_secnonce_size,
-            int negate_seckey,
-            [in, size=session_data_size] unsigned char* session_data, size_t session_data_size,
-            [in, size=serialized_server_pubnonce_size] unsigned char* serialized_server_pubnonce, size_t serialized_server_pubnonce_size,
-            [out, size=partial_sig_data_size] unsigned char *partial_sig_data, size_t partial_sig_data_size
+        public sgx_status_t enclave_key_update(
+            [in, size=sealed_seed_len] char* sealed_seed, size_t sealed_seed_len,
+            [in] struct chacha20_poly1305_encrypted_data *old_encrypted_keypair,
+            [in, size=serialized_x1_size] unsigned char* serialized_x1, size_t serialized_x1_size,
+            [in, size=serialized_t2_size] unsigned char* serialized_t2, size_t serialized_t2_size,
+            [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, size_t compressed_server_pubkey_size, 
+            [in, out] struct chacha20_poly1305_encrypted_data* new_encrypted_keypair
         );
 
         public sgx_status_t key_update(
