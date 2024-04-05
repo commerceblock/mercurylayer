@@ -56,6 +56,7 @@ namespace transfer_receiver {
         unsigned char new_server_pubkey[new_server_pubkey_size];
 
         auto new_encrypted_keypair = std::make_unique<chacha20_poly1305_encrypted_data>();
+        utils::initialize_encrypted_data(*new_encrypted_keypair, sizeof(secp256k1_keypair));
 
         sgx_status_t ecall_ret;
         sgx_status_t status = enclave_key_update(
