@@ -4,6 +4,7 @@
 #define DB_MANAGER_H
 
 #include "../Enclave_u.h"
+#include <memory>
 #include <string>
 
 namespace db_manager {
@@ -25,9 +26,8 @@ namespace db_manager {
 
     bool load_generated_key_data(
         const std::string& statechain_id, 
-        chacha20_poly1305_encrypted_data* encrypted_keypair,
-        // char* sealed_keypair, size_t sealed_keypair_size,
-        // char* sealed_secnonce, size_t sealed_secnonce_size,
+        std::unique_ptr<chacha20_poly1305_encrypted_data>& encrypted_keypair,
+        std::unique_ptr<chacha20_poly1305_encrypted_data>& encrypted_secnonce,
         unsigned char* public_nonce, const size_t public_nonce_size, 
         std::string& error_message);
 
@@ -36,6 +36,10 @@ namespace db_manager {
         unsigned char* serialized_server_pubnonce, const size_t serialized_server_pubnonce_size, 
         const chacha20_poly1305_encrypted_data& encrypted_secnonce, 
         std::string& error_message);
+
+    bool update_sig_count(const std::string& statechain_id);
+
+    bool signature_count(const std::string& statechain_id, int& sig_count);
 }
 
 #endif // DB_MANAGER_H

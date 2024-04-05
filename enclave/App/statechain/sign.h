@@ -17,6 +17,12 @@
 
 namespace signature {
     crow::response get_public_nonce(sgx_enclave_id_t& enclave_id, const std::string& statechain_id, sealing_key_manager::SealingKeyManager& sealing_key_manager);
+    crow::response get_partial_signature(
+        sgx_enclave_id_t& enclave_id, 
+        const std::string& statechain_id, 
+        const int64_t negate_seckey, 
+        std::vector<unsigned char>& serialized_session, 
+        const sealing_key_manager::SealingKeyManager& sealing_key_manager); 
 }
 
 #endif // SEALING_KEY_MANAGER_H

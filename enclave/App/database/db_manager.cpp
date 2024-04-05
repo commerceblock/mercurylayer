@@ -5,9 +5,9 @@
 #include "../lib/toml.hpp"
 #include "../utilities/utilities.h"
 #include <iostream>
-#include <string>
+#include <memory>
 #include <pqxx/pqxx>
-
+#include <string>
 namespace db_manager {
 
     /*
@@ -250,9 +250,8 @@ namespace db_manager {
 
     bool load_generated_key_data(
         const std::string& statechain_id, 
-        chacha20_poly1305_encrypted_data* encrypted_keypair,
-        // char* sealed_keypair, size_t sealed_keypair_size,
-        // char* sealed_secnonce, size_t sealed_secnonce_size,
+        std::unique_ptr<chacha20_poly1305_encrypted_data>& encrypted_keypair,
+        std::unique_ptr<chacha20_poly1305_encrypted_data>& encrypted_secnonce,
         unsigned char* public_nonce, const size_t public_nonce_size, 
         std::string& error_message)
     {
@@ -278,7 +277,9 @@ namespace db_manager {
                     auto sealed_secnonce_field = result[0]["sealed_secnonce"];
                     auto public_nonce_field = result[0]["public_nonce"];
 
-                    if (!sealed_keypair_field.is_null()) {
+                    if (sealed_keypair_field.is_null()) {
+                        encrypted_keypair.reset();
+                    } else if (encrypted_keypair != nullptr) {
                         auto sealed_keypair_view = sealed_keypair_field.as<std::basic_string<std::byte>>();
 
                         std::vector<unsigned char> sealed_keypair(sealed_keypair_view.size());
@@ -286,7 +287,7 @@ namespace db_manager {
 
                         // auto encrypted_keypair = std::make_unique<chacha20_poly1305_encrypted_data>();
 
-                        if (!deserialize(sealed_keypair.data(), encrypted_keypair)) {
+                        if (!deserialize(sealed_keypair.data(), encrypted_keypair.get())) {
                             error_message = "Failed to deserialize keypair!";
                             return false;
                         }
@@ -303,16 +304,21 @@ namespace db_manager {
                         // memcpy(sealed_keypair, sealed_keypair_view.data(), sealed_keypair.size());
                     }
 
-                    /*if (!sealed_secnonce_field.is_null()) {
+                    if (sealed_secnonce_field.is_null()) {
+                        std::cout << "sealed_secnonce_field is null" << std::endl;
+                        encrypted_secnonce.reset();
+                    } else if (encrypted_secnonce != nullptr) {
+                        std::cout << "sealed_secnonce_field is NOT null" << std::endl;
                         auto sealed_secnonce_view = sealed_secnonce_field.as<std::basic_string<std::byte>>();
 
-                        if (sealed_secnonce_view.size() != sealed_secnonce_size) {
-                            error_message = "Failed to retrieve secret nonce. Different size than expected !";
+                        std::vector<unsigned char> sealed_secnonce(sealed_secnonce_view.size());
+                        memcpy(sealed_secnonce.data(), sealed_secnonce_view.data(), sealed_secnonce_view.size());
+
+                        if (!deserialize(sealed_secnonce.data(), encrypted_secnonce.get())) {
+                            error_message = "Failed to deserialize keypair!";
                             return false;
                         }
-
-                        memcpy(sealed_secnonce, sealed_secnonce_view.data(), sealed_secnonce_size);
-                    }*/
+                    } 
 
                     if (!public_nonce_field.is_null() && public_nonce != nullptr) {
                         auto public_nonce_view = public_nonce_field.as<std::basic_string<std::byte>>();
@@ -391,6 +397,74 @@ namespace db_manager {
         catch (std::exception const &e)
         {
             error_message = e.what();
+            return false;
+        }
+    }
+
+    bool update_sig_count(const std::string& statechain_id) 
+    {
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
+
+                std::string update_query =
+                    "UPDATE generated_public_key SET sig_count = sig_count + 1 WHERE statechain_id = $1;";
+                pqxx::work txn(conn);
+
+                txn.exec_params(update_query, statechain_id);
+                txn.commit();
+
+                conn.close();
+                return true;
+            } else {
+                return false;
+            }
+        }
+        catch (std::exception const &e)
+        {
+            return false;
+        }
+    }
+
+    bool signature_count(const std::string& statechain_id, int& sig_count) {
+
+        auto config = toml::parse_file("Settings.toml");
+        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+
+        try
+        {
+            pqxx::connection conn(database_connection_string);
+            if (conn.is_open()) {
+
+                std::string sig_count_query =
+                    "SELECT sig_count FROM generated_public_key WHERE statechain_id = $1;";
+            
+                pqxx::nontransaction ntxn(conn);
+
+                conn.prepare("sig_count_query", sig_count_query);
+
+                pqxx::result result = ntxn.exec_prepared("sig_count_query", statechain_id);
+
+                if (!result.empty()) {
+                    auto sig_count_field = result[0]["sig_count"];
+                    if (!sig_count_field.is_null()) {
+                        sig_count = sig_count_field.as<int>();
+                        return true;
+                    }
+                }
+                
+                conn.close();
+                return true;
+            } else {
+                return false;
+            }
+        }
+        catch (std::exception const &e)
+        {
             return false;
         }
     }
