@@ -27,8 +27,6 @@ namespace deposit {
         chacha20_poly1305_encrypted_data encrypted_data;
         utils::initialize_encrypted_data(encrypted_data, sizeof(secp256k1_keypair));
 
-        std::cout << "statechain_id: " << statechain_id << std::endl;
-
         sgx_status_t ecall_ret;
         enclave_generate_new_keypair(enclave_id, &ecall_ret, 
             server_pubkey, server_pubkey_size, 

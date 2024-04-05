@@ -29,7 +29,7 @@ enclave {
             [in, out] struct chacha20_poly1305_encrypted_data *encrypted_secnonce,
             [out, size=server_pubnonce_data_size] unsigned char* server_pubnonce_data, size_t server_pubnonce_data_size);
 
-        public sgx_status_t unseal(
+        sgx_status_t unseal(
             [in, size=sealed_size] char* sealed, size_t sealed_size,
             [out, size=raw_data_size] unsigned char *raw_data, size_t raw_data_size);
 
@@ -51,7 +51,6 @@ enclave {
             [out, size=compressed_server_pubkey_size] unsigned char *compressed_server_pubkey, size_t compressed_server_pubkey_size, 
             [in, out] struct chacha20_poly1305_encrypted_data* new_encrypted_keypair
         );
-
 
         public sgx_status_t recover_seed(
             [in, size=sealed_total_share_size] char* sealed_shares, size_t sealed_total_share_size,

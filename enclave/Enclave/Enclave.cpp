@@ -79,7 +79,6 @@ int decrypt_data(
     uint8_t *ad = NULL;
     size_t ad_size = 0;
     
-    uint8_t decrypted[decrypted_data_size];
     int status = crypto_aead_unlock(decrypted_data, encrypted_data->mac, seed, encrypted_data->nonce, ad, ad_size, encrypted_data->data, encrypted_data->data_len);
     return status;
 }

@@ -10,99 +10,6 @@
 #include <string>
 namespace db_manager {
 
-    /*
-    bool add_sealed_seed(char* sealed_secret, size_t sealed_secret_size, std::string& error_message) {
-
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
-
-        try
-        {
-            pqxx::connection conn(database_connection_string);
-            if (conn.is_open()) {
-
-                std::string create_table_query =
-                    "CREATE TABLE IF NOT EXISTS seed ( "
-                    "id SERIAL PRIMARY KEY, "
-                    "sealed_seed BYTEA NOT NULL);";
-
-                pqxx::work txn(conn);
-                txn.exec(create_table_query);
-                txn.commit();
-
-                std::string insert_command = "INSERT INTO seed (sealed_seed) VALUES ($1);";
-                pqxx::work txn2(conn);
-
-                std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(sealed_secret), sealed_secret_size);
-
-                txn2.exec_params(insert_command, sealed_data_view);
-                txn2.commit();
-
-                conn.close();
-                return true;
-            } else {
-                error_message = "Failed to connect to the database!";
-                return false;
-            }
-        }
-        catch (std::exception const &e)
-        {
-            error_message = e.what();
-            return false;
-        }
-
-        return true;
-
-    } // add_sealed_seed
-
-    bool get_sealed_seed(char* sealed_secret, size_t sealed_secret_size, std::string& error_message) {
-
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
-
-        try
-        {
-            pqxx::connection conn(database_connection_string);
-            if (conn.is_open()) {
-
-                std::string select_command = "SELECT sealed_seed FROM seed ORDER BY id DESC LIMIT 1;";
-                pqxx::work txn(conn);
-
-                pqxx::result result = txn.exec(select_command);
-
-                if (result.size() == 0) {
-                    error_message = "No sealed seed found!";
-                    return false;
-                }
-
-                pqxx::binarystring sealed_data = result[0]["sealed_seed"].as<pqxx::binarystring>();
-
-                if (sealed_data.size() != sealed_secret_size) {
-                    error_message = "Failed to retrieve keypair. Different size than expected !";
-                    return false;
-                }
-
-                std::memcpy(sealed_secret, sealed_data.data(), sealed_data.size());
-
-                txn.commit();
-                conn.close();
-                return true;
-            } else {
-                error_message = "Failed to connect to the database!";
-                return false;
-            }
-        }
-        catch (std::exception const &e)
-        {
-            error_message = e.what();
-            return false;
-        }
-
-        return true;
-
-    } // get_sealed_seed
-    */
-
     // Assumes the buffer is large enough. In a real application, ensure buffer safety.
     void serialize(const chacha20_poly1305_encrypted_data* src, unsigned char* buffer, size_t* serialized_len) {
         // Copy `data_len`, `nonce`, and `mac` directly
@@ -126,9 +33,6 @@ namespace db_manager {
     // Returns a newly allocated structure that must be freed by the caller.
     bool deserialize(const unsigned char* buffer, chacha20_poly1305_encrypted_data* dest) {
 
-        // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_data;
-        // if (!dest) return NULL;
-
         if (!dest) return false;
 
         size_t offset = 0;
@@ -146,17 +50,8 @@ namespace db_manager {
             return false; // NULL;
         }
         memcpy(dest->data, buffer + offset, dest->data_len);
-        // offset += dest->data_len; // Not needed unless you're reading more data after this
 
-        // return dest;
         return true;
-    }
-
-    void print_encrypted_data(const chacha20_poly1305_encrypted_data* data) {
-        std::cout << "data_len: " << data->data_len << std::endl;
-        std::cout << "nonce: " << key_to_string(data->nonce, sizeof(data->nonce)) << std::endl;
-        std::cout << "mac: " << key_to_string(data->mac, sizeof(data->mac)) << std::endl;
-        std::cout << "data: " << key_to_string(data->data, data->data_len) << std::endl;
     }
 
     bool save_generated_public_key(
@@ -198,27 +93,8 @@ namespace db_manager {
                     return false;
                 }
 
-                print_encrypted_data(&encrypted_keypair);
-
                 serialize(&encrypted_keypair, buffer, &serialized_len);
                 assert(serialized_len == bufferSize);
-
-                /* auto buffer_hex = key_to_string(buffer, serialized_len);
-
-                std::cout << "---- " << std::endl;
-                print_encrypted_data(&encrypted_keypair);
-                std::cout << "---- " << std::endl;
-                std::cout << "buffer: " << buffer_hex << std::endl;
-
-                // chacha20_poly1305_encrypted_data* dest = new chacha20_poly1305_encrypted_keypair;
-                auto dest = std::make_unique<chacha20_poly1305_encrypted_data>();
-                bool res = deserialize(buffer, serialized_len, dest.get());
-
-                std::cout << "---- " << std::endl;
-                std::cout << "res: " << res << std::endl;
-                print_encrypted_data(dest.get());
-
-                free(buffer); */
 
                 std::basic_string_view<std::byte> sealed_data_view(reinterpret_cast<std::byte*>(buffer), bufferSize);
                 std::basic_string_view<std::byte> public_key_data_view(reinterpret_cast<std::byte*>(server_public_key), server_public_key_size);
