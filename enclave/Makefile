@@ -62,10 +62,11 @@ else
 	Urts_Library_Name := sgx_urts
 endif
 
-App_Cpp_Files := App/App.cpp utils/strencodings.cpp App/utilities/utilities.cpp App/database/db_manager.cpp App/sealing_key_manager/sealing_key_manager.cpp
+App_Cpp_Files := App/App.cpp utils/strencodings.cpp utils/include_secp256k1_zkp_lib.cpp App/utilities/utilities.cpp App/database/db_manager.cpp \
+				 App/sealing_key_manager/sealing_key_manager.cpp App/statechain/deposit.cpp App/statechain/sign.cpp App/statechain/transfer_receiver.cpp
 App_Include_Paths := -IApp -I$(SGX_SDK)/include -I./secp256k1-zkp/include
 
-App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)
+App_C_Flags := -fPIC -Wno-attributes $(App_Include_Paths)	
 
 # Three configuration modes - Debug, prerelease, release
 #   Debug - Macro DEBUG enabled.
@@ -103,7 +104,7 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := Enclave/Enclave.cpp
+Enclave_Cpp_Files := Enclave/Enclave.cpp utils/include_secp256k1_zkp_lib.cpp
 Enclave_C_Files := Enclave/libs/monocypher.c
 Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/libcxx -I./secp256k1-zkp/include -I/usr/local/include
 
