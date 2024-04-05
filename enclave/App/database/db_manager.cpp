@@ -285,30 +285,15 @@ namespace db_manager {
                         std::vector<unsigned char> sealed_keypair(sealed_keypair_view.size());
                         memcpy(sealed_keypair.data(), sealed_keypair_view.data(), sealed_keypair_view.size());
 
-                        // auto encrypted_keypair = std::make_unique<chacha20_poly1305_encrypted_data>();
-
                         if (!deserialize(sealed_keypair.data(), encrypted_keypair.get())) {
                             error_message = "Failed to deserialize keypair!";
                             return false;
                         }
-
-                        // print_encrypted_data(encrypted_keypair);
-
-
-                        
-                        /* if (sealed_keypair_view.size() != sealed_keypair_size) {
-                            error_message = "Failed to retrieve keypair. Different size than expected !";
-                            return false;
-                        } */
-
-                        // memcpy(sealed_keypair, sealed_keypair_view.data(), sealed_keypair.size());
                     }
 
                     if (sealed_secnonce_field.is_null()) {
-                        std::cout << "sealed_secnonce_field is null" << std::endl;
                         encrypted_secnonce.reset();
                     } else if (encrypted_secnonce != nullptr) {
-                        std::cout << "sealed_secnonce_field is NOT null" << std::endl;
                         auto sealed_secnonce_view = sealed_secnonce_field.as<std::basic_string<std::byte>>();
 
                         std::vector<unsigned char> sealed_secnonce(sealed_secnonce_view.size());

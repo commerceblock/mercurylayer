@@ -84,21 +84,6 @@ int decrypt_data(
     return status;
 }
 
-sgx_status_t test_decrypt_data(
-    char* sealed_seed, size_t sealed_seed_len,
-    chacha20_poly1305_encrypted_data *encrypted_data,
-    unsigned char *decrypted_data, size_t decrypted_data_size)
-{
-    int status = decrypt_data(encrypted_data, sealed_seed, sealed_seed_len, decrypted_data, decrypted_data_size);
-    if (status != 0) {
-        ocall_print_string("\nDecryption failed\n");
-        return SGX_ERROR_UNEXPECTED;
-    } else {
-        ocall_print_string("\nDecryption successful!\n");
-        return SGX_SUCCESS;
-    }
-}
-
 sgx_status_t enclave_generate_new_keypair(
     unsigned char *compressed_server_pubkey, 
     size_t compressed_server_pubkey_size, 
@@ -140,11 +125,6 @@ sgx_status_t enclave_generate_new_keypair(
     memcpy(compressed_server_pubkey, local_compressed_server_pubkey, 33);
 
     secp256k1_context_destroy(ctx);
-
-    // print server_keypair.data
-    char* keypair_hex = data_to_hex(server_keypair.data, sizeof(server_keypair.data));
-    ocall_print_string("keypair:");
-    ocall_print_string(keypair_hex);
 
     encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
 
@@ -399,132 +379,6 @@ sgx_status_t enclave_key_update(
     return SGX_SUCCESS;
 }
 
-sgx_status_t key_update(
-    char* sealed_keypair, size_t sealed_keypair_size,
-    unsigned char* serialized_x1, size_t serialized_x1_size,
-    unsigned char* serialized_t2, size_t serialized_t2_size,
-    unsigned char *compressed_server_pubkey, size_t compressed_server_pubkey_size, 
-    char* sealedkeypair, size_t sealedkeypair_size)
-{
-    (void) sealed_keypair_size;
-
-    (void) compressed_server_pubkey_size;
-    (void) sealedkeypair_size;
-
-    assert(serialized_x1_size == 32);
-    assert(serialized_t2_size == 32);
-
-    // step 0 - Unseal sealed keypair
-
-    secp256k1_keypair server_keypair;
-    unseal(sealed_keypair, sealed_keypair_size, server_keypair.data, sizeof(server_keypair.data));
-
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
-
-    // step 1 - Extract server secret from keypair
-
-    unsigned char server_seckey[32];
-    int return_val = secp256k1_keypair_sec(ctx, server_seckey, &server_keypair);
-    assert(return_val);
-
-    // size_t len_p = 32;
-    // const unsigned char* priv_key_data = server_seckey;
-    // ocall_print_string("--- original priv_key:");
-    // ocall_print_hex(&priv_key_data, (int *) &len_p);
-
-    unsigned char new_server_seckey[32];
-    memcpy(new_server_seckey, server_seckey, 32);
-
-    return_val = secp256k1_ec_seckey_tweak_add(ctx, new_server_seckey, serialized_t2);
-    assert(return_val);
-
-    unsigned char x1[32];
-    memcpy(x1, serialized_x1, 32);
-
-    return_val = secp256k1_ec_seckey_verify(ctx, x1);
-    assert(return_val);
-
-    return_val = secp256k1_ec_seckey_negate(ctx, x1);
-    assert(return_val);
-
-    return_val = secp256k1_ec_seckey_tweak_add(ctx, new_server_seckey, x1);
-    assert(return_val);
-
-    // priv_key_data = new_server_seckey;
-    // ocall_print_string("--- new priv_key:");
-    // ocall_print_hex(&priv_key_data, (int *) &len_p);
-
-    // Seal new keypair
-    secp256k1_keypair new_server_keypair;
-
-    return_val = secp256k1_keypair_create(ctx, &new_server_keypair, new_server_seckey);
-    assert(return_val);
-
-    secp256k1_pubkey new_server_pubkey;
-    return_val = secp256k1_keypair_pub(ctx, &new_server_pubkey, &new_server_keypair);
-    assert(return_val);
-
-    unsigned char local_compressed_server_pubkey[33];
-    memset(local_compressed_server_pubkey, 0, 33);
-
-    size_t len = sizeof(local_compressed_server_pubkey);
-    return_val = secp256k1_ec_pubkey_serialize(ctx, local_compressed_server_pubkey, &len, &new_server_pubkey, SECP256K1_EC_COMPRESSED);
-    assert(return_val);
-    // Should be the same size as the size of the output, because we passed a 33 byte array.
-    assert(len == sizeof(local_compressed_server_pubkey));
-
-    memcpy(compressed_server_pubkey, local_compressed_server_pubkey, 33);
-
-    // Step 1: Open Context.
-    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-    sgx_ecc_state_handle_t p_ecc_handle = NULL;
-
-    secp256k1_context_destroy(ctx);
-
-    if ((ret = sgx_ecc256_open_context(&p_ecc_handle)) != SGX_SUCCESS)
-    {
-        ocall_print_string("\nTrustedApp: sgx_ecc256_open_context() failed !\n");
-        if (p_ecc_handle != NULL)
-        {
-            sgx_ecc256_close_context(p_ecc_handle);
-        }
-        return ret;
-    }
-
-    // Step 3: Calculate sealed data size.
-    if (sealedkeypair_size >= sgx_calc_sealed_data_size(0U, sizeof(new_server_keypair)))
-    {
-        if ((ret = sgx_seal_data(0U, NULL, sizeof(new_server_keypair.data), new_server_keypair.data, (uint32_t) sealedkeypair_size, (sgx_sealed_data_t *)sealedkeypair)) != SGX_SUCCESS)
-        {
-            ocall_print_string("\nTrustedApp: sgx_seal_data() failed !\n");
-        }
-    }
-    else
-    {
-        ocall_print_string("\nTrustedApp: Size allocated for sealedprivkey by untrusted app is less than the required size !\n");
-        ret = SGX_ERROR_INVALID_PARAMETER;
-    }
-
-    // ocall_print_string("--- new sealedkeypair:");
-    // ocall_print_hex((const unsigned char**) &sealedkeypair, (int *) &sealedkeypair_size);
-
-    // Step 4: Close Context.
-    if (p_ecc_handle != NULL)
-    {
-        sgx_ecc256_close_context(p_ecc_handle);
-    }
-
-    return ret;
-}
-
-/*
-sgx_status_t  status = recover_seed(
-
-            all_key_shares, total_size, 
-            key_share_indexes, num_key_shares,
-            key_share_data_size, threshold,
-            sealed_seed, sealed_seed_size);*/
-
 sgx_status_t recover_seed(
   char* all_key_shares, size_t total_size,
   unsigned char* indexes, size_t num_key_shares,
@@ -548,24 +402,9 @@ sgx_status_t recover_seed(
 
     uint8_t secret_data[unsealed_data_size];
 
-    for (size_t i = 0; i < threshold; ++i) {
-      ocall_print_int("share ", (const int *) &i);
-      ocall_print_hex((const unsigned char**) &shares[i], (int *) &key_share_data_size);
-    }
-
-    for (size_t i = 0; i < threshold; ++i) {
-      ocall_print_int("index ", (const int *) &i);
-      ocall_print_int("value ", (const int *) &indexes[i]);
-    }
-
     int32_t secret_data_len = recover_secret((uint8_t) threshold, (const uint8_t*) indexes, (const uint8_t **)shares, unsealed_data_size, secret_data);
 
-    ocall_print_int("secret_data_len ", (const int *) &secret_data_len);
     assert(secret_data_len == (int32_t) unsealed_data_size);
-
-    char* seed = data_to_hex(secret_data, unsealed_data_size);
-    ocall_print_string("Seed:");
-    ocall_print_string(seed);
 
     if (sealed_seed_size >= sgx_calc_sealed_data_size(0U, unsealed_data_size))
     {
