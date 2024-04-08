@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: token-server
+  name: token-server
+spec:
+  ports:
+  - port: 80
+    nodePort: 32451
+    protocol: TCP
+    targetPort: 8001
+  selector:
+    app: token-server
+  type: NodePort

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mercury-server
+  labels:
+    app: mercury-server
+spec:
+  selector:
+    matchLabels:
+      app: mercury-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mercury-server
+    spec:
+      containers:
+      - name: mercury-server
+        image: commerceblockx/mercury-server:latest
+        ports:
+        - containerPort: 8000
+        command: ["cargo", "run", "--bin", "mercury-server"]
+        env:
+        - name: LOCKBOX
+          value: "http://78.141.209.195:18080"
+        - name: NETWORK
+          value: "testnet"
+        - name: LOCKHEIGHT_INIT
+          value: "1000"
+        - name: LH_DECREMENT
+          value: "10"
+        - name: CONNECTION_STRING
+          value: "postgresql://postgres:password1@45.76.136.11/mercury_token2"
