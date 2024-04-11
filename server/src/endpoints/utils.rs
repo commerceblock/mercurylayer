@@ -43,7 +43,7 @@ pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, s
     secp.verify_schnorr(&signed_message, &msg, &auth_key).is_ok()
 }
 
-#[get("/info/config", format = "json")]
+#[get("/info/config")]
 pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
     let statechain_entity = statechain_entity.inner();
 
@@ -57,7 +57,7 @@ pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status:
     return status::Custom(Status::Ok, Json(response_body));
 }
 
-#[get("/info/keylist", format = "json")]
+#[get("/info/keylist")]
 pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
 
     let query = "\

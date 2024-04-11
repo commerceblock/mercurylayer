@@ -755,7 +755,7 @@ dependencies = [
  "serde",
  "serde_json",
  "webpki",
- "webpki-roots",
+ "webpki-roots 0.22.6",
  "winapi",
 ]
 
@@ -2688,6 +2688,8 @@ dependencies = [
  "once_cell",
  "paste",
  "percent-encoding",
+ "rustls",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "sha2",
@@ -2700,6 +2702,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid 1.8.0",
+ "webpki-roots 0.25.4",
 ]
 
 [[package]]
@@ -3508,6 +3511,12 @@ checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
 dependencies = [
  "webpki",
 ]
+
+[[package]]
+name = "webpki-roots"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "whoami"
