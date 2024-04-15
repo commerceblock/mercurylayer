@@ -40,3 +40,11 @@ jobs:
             file: ./token-server/Dockerfile
             push: true
             tags: commerceblockx/token-server:latest
+        -
+          name: Build and push
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            file: ./explorer/Dockerfile
+            push: true
+            tags: commerceblockx/mercury-explorer:latest
