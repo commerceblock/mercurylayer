@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <bc-bip39/bc-bip39.h>
+#include <cassert>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -15,7 +16,7 @@
 
 namespace sealing_key_manager {
 
-    utils::APIResponse SealingKeyManager::addKeyShare(sgx_enclave_id_t& enclave_id, const KeyShare& new_key_share, size_t _threshold) {
+    utils::APIResponse SealingKeyManager::addKeyShare(sgx_enclave_id_t& enclave_id, const SealedKeyShare& new_key_share, size_t _threshold) {
 
         if (threshold == 0) {
             threshold = _threshold;
@@ -50,8 +51,6 @@ namespace sealing_key_manager {
         std::lock_guard<std::mutex> lock(mutex_key_shares);
         key_shares.push_back(new_key_share);
 
-        listKeyShares();
-
         if (key_shares.size() == threshold) {
             // Recover seed
             auto ret = recoverSeed(enclave_id);
@@ -71,7 +70,7 @@ namespace sealing_key_manager {
         };
     }
 
-    utils::APIResponse SealingKeyManager::addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, size_t index, size_t _threshold) {
+    utils::APIResponse SealingKeyManager::addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, const std::string& password, size_t index, size_t _threshold) {
 
         if (!isSeedEmpty()) {
             return utils::APIResponse {
@@ -81,19 +80,48 @@ namespace sealing_key_manager {
             };
         }
 
+        unsigned char* password_bytes = (unsigned char*) malloc(password.size());
+        memcpy(password_bytes, password.c_str(), password.size());
+
         size_t max_secret_len = SECRET_SIZE;
-        uint8_t secret[max_secret_len];
-        memset(secret, 0, max_secret_len);
-        size_t secret_len = bip39_secret_from_mnemonics(mnemonic.c_str(), secret, max_secret_len);
+        uint8_t xor_secret[max_secret_len];
+        memset(xor_secret, 0, max_secret_len);
+        size_t xor_secret_len = bip39_secret_from_mnemonics(mnemonic.c_str(), xor_secret, max_secret_len);
 
-        auto key_share = KeyShare();
-        key_share.index = index;
-        key_share.data_size = secret_len;
-        key_share.data =  new char[secret_len];
+        assert(xor_secret_len == SECRET_SIZE);
 
-        memcpy(key_share.data, secret, secret_len);
+        size_t sealed_key_share_data_size = utils::sgx_calc_sealed_data_size(0U, (uint32_t) xor_secret_len);
+        char sealed_key_share_data[sealed_key_share_data_size];
 
-        return addKeyShare(enclave_id, key_share, _threshold);
+        sgx_status_t ecall_ret;
+        sgx_status_t status = sealed_key_from_mnemonics(
+            enclave_id, &ecall_ret, 
+            xor_secret, xor_secret_len,
+            password_bytes, password.size(),
+            sealed_key_share_data, sealed_key_share_data_size);
+
+        if (ecall_ret != SGX_SUCCESS) {
+            return utils::APIResponse {
+                    .success = false,
+                    .code = 500,
+                    .message = "Recove Seed Ecall failed "
+                };
+        }  if (status != SGX_SUCCESS) {
+            return utils::APIResponse {
+                    .success = false,
+                    .code = 500,
+                    .message = "Recove Seed failed "
+                };
+        }
+
+        auto sealed_key_share = SealedKeyShare();
+        sealed_key_share.index = index;
+        sealed_key_share.data_size = sealed_key_share_data_size;
+        sealed_key_share.data = new char[sealed_key_share_data_size];
+
+        memcpy(sealed_key_share.data, sealed_key_share_data, sealed_key_share_data_size);
+
+        return addKeyShare(enclave_id, sealed_key_share, _threshold);
     }
 
     void SealingKeyManager::listKeyShares() {
@@ -148,12 +176,15 @@ namespace sealing_key_manager {
         sealed_seed = new char[sealed_seed_size];
         memset(sealed_seed, 0, sealed_seed_size);
 
+        // auto all_key_shares_hex = key_to_string((unsigned char *) all_key_shares, total_size);
+        // printf("all_key_shares_hex: %s\n", all_key_shares_hex.c_str());
+
         sgx_status_t ecall_ret;
         sgx_status_t  status = recover_seed(
             enclave_id, &ecall_ret,
             all_key_shares, total_size, 
             key_share_indexes, num_key_shares,
-            key_share_data_size, threshold,
+            key_share_data_size, threshold, SECRET_SIZE,
             sealed_seed, sealed_seed_size);
 
         if (ecall_ret != SGX_SUCCESS) {
@@ -175,7 +206,6 @@ namespace sealing_key_manager {
             .code = 0,
             .message = ""
         };
-
     }
 
     bool SealingKeyManager::writeSeedToFile() {
