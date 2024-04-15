@@ -5,7 +5,7 @@ FROM nginx:latest
 WORKDIR /usr/share/nginx/html
 
 # Copy the contents of your local /explorer folder to the container's working directory
-COPY ./. .
+COPY ./. /usr/share/nginx/html
 
 # Expose port 80 for web traffic
 EXPOSE 80
