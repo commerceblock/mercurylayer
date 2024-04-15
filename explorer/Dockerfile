@@ -1,9 +1,6 @@
 # Use the official nginx image as the base
 FROM nginx:latest
 
-# Define a working directory for the container
-WORKDIR /usr/share/nginx/html
-
 # Copy the contents of your local /explorer folder to the container's working directory
 COPY ./. /usr/share/nginx/html
 
