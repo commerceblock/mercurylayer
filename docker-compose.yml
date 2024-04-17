@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  enclave-sgx:
+    build:
+      context: enclave
+      dockerfile: Dockerfiles/SIM/Dockerfile
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db/enclave
+    ports:
+      - "18080:18080"
+
+  db:
+    image: postgres:16.2
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: enclave
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

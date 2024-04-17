@@ -10,6 +10,17 @@
 #include <string>
 namespace db_manager {
 
+    std::string getDatabaseConnectionString() {
+        const char* value = std::getenv("ENCLAVE_DATABASE_URL");
+
+        if (value == nullptr) {
+            auto config = toml::parse_file("Settings.toml");
+            return config["intel_sgx"]["database_connection_string"].as_string()->get();
+        } else {
+            return std::string(value);        
+        }
+    }
+
     // Assumes the buffer is large enough. In a real application, ensure buffer safety.
     void serialize(const chacha20_poly1305_encrypted_data* src, unsigned char* buffer, size_t* serialized_len) {
         // Copy `data_len`, `nonce`, and `mac` directly
@@ -60,8 +71,7 @@ namespace db_manager {
         const std::string& statechain_id,
         std::string& error_message) {
 
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {
@@ -131,8 +141,7 @@ namespace db_manager {
         unsigned char* public_nonce, const size_t public_nonce_size, 
         std::string& error_message)
     {
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {
@@ -217,8 +226,7 @@ namespace db_manager {
         const chacha20_poly1305_encrypted_data& encrypted_secnonce, 
         std::string& error_message) 
     {
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {
@@ -264,8 +272,7 @@ namespace db_manager {
 
     bool update_sig_count(const std::string& statechain_id) 
     {
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {
@@ -293,8 +300,7 @@ namespace db_manager {
 
     bool signature_count(const std::string& statechain_id, int& sig_count) {
 
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {
@@ -336,8 +342,7 @@ namespace db_manager {
         const std::string& statechain_id,
         std::string& error_message) 
     {
-        auto config = toml::parse_file("Settings.toml");
-        auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
+        auto database_connection_string = getDatabaseConnectionString();
 
         try
         {

@@ -49,6 +49,18 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
+// TODO: duplicated. Remove this.
+std::string getDatabaseConnectionString() {
+    const char* value = std::getenv("ENCLAVE_DATABASE_URL");
+
+    if (value == nullptr) {
+        auto config = toml::parse_file("Settings.toml");
+        return config["intel_sgx"]["database_connection_string"].as_string()->get();
+    } else {
+        return std::string(value);        
+    }
+}
+
 int SGX_CDECL main(int argc, char *argv[])
 {
     (void)(argc);
@@ -58,9 +70,6 @@ int SGX_CDECL main(int argc, char *argv[])
 
     sgx_enclave_id_t enclave_id = 0;
     std::mutex mutex_enclave_id; // protects map_aggregate_key_data
-
-    auto config = toml::parse_file("Settings.toml");
-    auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
 
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
@@ -218,7 +227,9 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app,"/delete_statechain/<string>")
-        .methods("DELETE"_method)([&database_connection_string](std::string statechain_id){
+        .methods("DELETE"_method)([](std::string statechain_id){
+
+        auto database_connection_string = getDatabaseConnectionString();
 
         std::string error_message;
         pqxx::connection conn(database_connection_string);
