@@ -17,11 +17,10 @@ sequenceDiagram
     note over Client: Construct Tx2 spending Tx0 output to new_user_pubkey
     note over Client: set nLocktime = nLocktime - interval
     note over Client: Compute Tx1 sighash
-    note over Client: Generate random r2, f 
-    note over Client: Compute R2, SHA256(R2) and SHA256(f)
-    Client->>Server: /sign/first {r2_com,blind_com,statechain_id,auth_sig}
+    note over Client: Generate random r2, f
+    note over Client: Compute R2
+    Client->>Server: /sign/first {statechain_id,auth_sig}
     note over Server: Verify auth_sig with statechain_id and auth_key
-    note over Server: Save r2_com and blind_com with ID statechain_id
     Server->>Enclave: /get_public_nonce {statechain_id}
     note over Enclave: Generate private_nonce
     note over Enclave: Compute r1_public
@@ -42,11 +41,10 @@ sequenceDiagram
     note over Client: Concatenate Tx0 outpoint with user_pubkey and sign with privkey (SC_sig)
     note over Client: Compile TransferMsg: 
     note over Client: All signed backup transactions (Txi i=1,...,K)
-    note over Client: For each backup transaction signature (bi,R2_i i=1,...,K)
     note over Client: user_pubkey and SC_sig
     note over Client: t1
     note over Client: statechain_id
     note over Client: Encrypt TransferMsg with new_auth_key: EncTransferMsg
     Client->>Server: /transfer/update_msg {new_auth_key,EncTransferMsg,statechain_id}
-    note over Server: Save EncTransferMsg with new_auth_key
+    note over Server: Save EncTransferMsg in DB with new_auth_key
 ```
