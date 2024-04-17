@@ -9,7 +9,7 @@ sequenceDiagram
     note over Client: Compute new_user_pubkey, new_auth_key
     note over Client: Send new_user_pubkey || new_auth_key to sender
     Client->>Server: /info/fee
-    Server-->>Client: {backup_fee_rate,initlock,interval}
+    Server-->>Client: {initlock,interval}
     note over Client: batch_data is null
     note over Client: Query server to check for transfers
     Client->>Server: /transfer/get_msg_addr/{new_auth_key}
@@ -19,7 +19,7 @@ sequenceDiagram
     Client->>Server: /info/statechain/ {statechain_id}
     Server->>Enclave: /signature_count {statechain_id}
     Enclave-->>Server: {num_sigs}
-    Server-->>Client: {enclave_pubkeys, num_sigs, blind_commits, r2_commits, r1_values, blind_challenges, x1_pub}
+    Server-->>Client: {enclave_pubkey, num_sigs, x1_pub}
     note over Client: Verify TransferMsg:
     note over Client: Verify latest backup transaction pays to new_user_pubkey
     note over Client: Verify that the input (Tx0) is unspent.
@@ -28,10 +28,6 @@ sequenceDiagram
     note over Client: For each previous K backup transactions (Txi i=1,...,K):
     note over Client:   Verify the signature is valid.
     note over Client:   Verify the nLocktimes are decremented correctly
-    note over Client:   Verify backup_fee_rate
-    note over Client:   Verify SHA256(R2_i) and SHA256(bi) with blind_commits and r2_commits
-    note over Client:   Verify that c = b + SHA256(P||R||m) (where m is the sighash of Tx).
-    note over Client:   b from blind_challenges and R = R1 + R2
     note over Client: Verify SC_sig with user_pubkey
     note over Client: Verify user_pubkey + enclave_pubkey = P
     note over Client: Computes: t2 = t1 - privkey
