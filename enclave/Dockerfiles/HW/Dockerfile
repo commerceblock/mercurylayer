@@ -9,7 +9,7 @@ RUN apt-get update
 
 FROM sgxbase as sgx_sample_builder
 # App build time dependencies
-RUN apt-get install -y build-essential libpq-dev clang git cmake
+RUN apt-get install -y build-essential libpq-dev clang git cmake libcurl4-openssl-dev autoconf libtool libboost-dev libboost-system-dev libboost-thread-dev
 
 WORKDIR /opt/intel
 RUN wget https://download.01.org/intel-sgx/sgx-linux/2.23/distro/ubuntu22.04-server/sgx_linux_x64_sdk_2.23.100.2.bin
@@ -67,10 +67,10 @@ RUN apt-get install -y \
 
 # No AESM daemon, only AESM client side API support for launch.
 # For applications requiring attestation, add libsgx-quote-ex
-RUN apt-get install -y --no-install-recommends libsgx-launch libsgx-urts
+RUN apt-get install -y --no-install-recommends libsgx-launch libsgx-urts curl
 
-COPY --from=sgx_sample_builder /lockbox-sgx/app lockbox-sgx-app
-COPY --from=sgx_sample_builder /lockbox-sgx/enclave.signed.so .
+COPY --from=sgx_sample_builder /home/lockbox-sgx/app lockbox-sgx-app
+COPY --from=sgx_sample_builder /home/lockbox-sgx/enclave.signed.so .
 
 RUN adduser -q --disabled-password --gecos "" --no-create-home sgxuser
 USER sgxuser
