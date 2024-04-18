@@ -6,13 +6,12 @@
 
 ```bash
 $ cd mercurylayer
-$ docker compose build
-$ docker compose up
+$ docker compose -f docker-compose-sim.yml up --build
 ```
 ### Add mmnemonics
 
 ```bash
-$ docker exec -it mercurylayer-enclave-sgx bash
+$ docker exec -it mercurylayer-enclave-sgx-1 bash
 $ curl -X POST http://0.0.0.0:18080/add_mnemonic \
 -H "Content-Type: application/json" \
 -d '{
