@@ -18,6 +18,7 @@ services:
     build:
       context: enclave
       dockerfile: Dockerfiles/HW/Dockerfile
+      target: sample
     depends_on:
       - aesm
       - db_enclave
