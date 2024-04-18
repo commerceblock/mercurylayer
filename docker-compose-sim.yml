@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  enclave-sgx:
+    build:
+      context: enclave
+      dockerfile: Dockerfiles/SIM/Dockerfile
+    depends_on:
+      - db_enclave
+    environment:
+      - ENCLAVE_DATABASE_URL=postgres://postgres:postgres@db_enclave:5432/enclave
+
+  mercury-server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    depends_on:
+      - db_server
+    environment:
+      - LOCKBOX_URL=http://enclave-sgx:18080
+      - BITCOIN_NETWORK=testnet
+      - LOCKHEIGHT_INIT=1000
+      - LH_DECREMENT=10
+      - DATABASE_CONNECTION_STRING=postgres://postgres:postgres@db_server:5432/mercury
+    ports:
+      - "8000:8000"
+
+  db_enclave:
+    image: postgres:16.2
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: enclave
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_enclave_data:/var/lib/postgresql/data
+
+  db_server:
+    image: postgres:16.2
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mercury
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_server_data:/var/lib/postgresql/data
+
+
+volumes:
+  postgres_enclave_data:
+  postgres_server_data:
+
