@@ -57,7 +57,14 @@ enclave {
             [in, size=num_key_sealed_shares] unsigned char* indexes, size_t num_key_sealed_shares,
             size_t sealed_share_data_size,
             size_t threshold,
+            size_t unsealed_size,
             [out, size=sealed_secret_size] char* sealed_secret, size_t sealed_secret_size
+        );
+
+        public sgx_status_t sealed_key_from_mnemonics(
+            [in, size=xor_secret_len] unsigned char* xor_secret, size_t xor_secret_len,
+            [in, size=password_len] unsigned char* password, size_t password_len,
+            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
         );
 
     };

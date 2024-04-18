@@ -381,27 +381,39 @@ sgx_status_t enclave_key_update(
 sgx_status_t recover_seed(
   char* all_key_shares, size_t total_size,
   unsigned char* indexes, size_t num_key_shares,
-  size_t key_share_data_size, size_t threshold,
+  size_t key_share_data_size, size_t threshold, size_t unsealed_size,
   char* sealed_seed, size_t sealed_seed_size) {
 
     (void) total_size;
 
     sgx_status_t ret = SGX_SUCCESS;
 
-    uint8_t* shares[threshold];
-
-    uint32_t unsealed_data_size = (uint32_t) key_share_data_size;
+    char* sealed_shares[threshold];
 
     for (size_t i = 0; i < num_key_shares; ++i) {
-        shares[i] = new uint8_t[key_share_data_size];
-        memcpy(shares[i], all_key_shares + i * key_share_data_size, key_share_data_size);
+        sealed_shares[i] = new char[key_share_data_size];
+        memcpy(sealed_shares[i], all_key_shares + i * key_share_data_size, key_share_data_size);
     }
-    
+
+    uint8_t* shares[threshold];
+
+    for (size_t i = 0; i < num_key_shares; ++i) {
+        shares[i] = new uint8_t[unsealed_size];
+        memset(shares[i], 0, unsealed_size);
+        unseal(sealed_shares[i], key_share_data_size, shares[i], unsealed_size);
+    }
+
+    uint32_t unsealed_data_size = (uint32_t) unsealed_size;
+
     assert(threshold == num_key_shares);
 
     uint8_t secret_data[unsealed_data_size];
 
     int32_t secret_data_len = recover_secret((uint8_t) threshold, (const uint8_t*) indexes, (const uint8_t **)shares, unsealed_data_size, secret_data);
+
+/*     char* seed_hex = data_to_hex(secret_data, unsealed_data_size);
+    ocall_print_string("Seed: ");
+    ocall_print_string(seed_hex); */
 
     assert(secret_data_len == (int32_t) unsealed_data_size);
 
@@ -420,6 +432,66 @@ sgx_status_t recover_seed(
     }
 
     return ret;
+}
 
+void xor_arrays(const unsigned char *data1, const unsigned char *data2, unsigned char *result, size_t size) {
+  
+  for (size_t i = 0; i < size; i++) {
+    // Dereference each pointer in share_data to get the value, then XOR with hash
+    result[i] = data1[i] ^ data2[i];
+  }
+}
+
+sgx_status_t seal_key_share(
+  unsigned char* key_share, size_t key_share_size,
+  char* sealed_key_share, size_t sealed_key_share_size) {
+
+  sgx_status_t ret = SGX_SUCCESS;
+
+  if (sealed_key_share_size >= sgx_calc_sealed_data_size(0U, (uint32_t) key_share_size))
+  {
+    if ((ret = sgx_seal_data(0U, NULL, (uint32_t) key_share_size, key_share, (uint32_t) sealed_key_share_size, (sgx_sealed_data_t *)sealed_key_share)) != SGX_SUCCESS)
+    {
+      ocall_print_string("\nTrustedApp: sgx_seal_data() failed !\n");
+      ret =  SGX_ERROR_UNEXPECTED;
+    }
+  }
+  else
+  {
+    ocall_print_string("\nTrustedApp: Size allocated for sealed_key_share_size by untrusted app is less than the required size !\n");
+    ret =  SGX_ERROR_INVALID_PARAMETER;
+  }
+
+  return ret;
+}
+
+sgx_status_t sealed_key_from_mnemonics(
+  unsigned char* xor_secret, size_t xor_secret_len,
+  unsigned char* password, size_t password_len,
+  char* sealed_key_share, size_t sealed_key_share_size) 
+{
+  sgx_status_t ret = SGX_SUCCESS;
+
+  // Define the output hash array and size
+  uint8_t hash_password[xor_secret_len];  // Output size for 256-bit hash
+  size_t hash_password_size = sizeof(hash_password);  // Size of the hash (32 bytes)
+  memset(hash_password, 0, hash_password_size);
+
+  // Perform the hash computation
+  crypto_blake2b(hash_password, hash_password_size, password, password_len);
+
+  size_t key_share_size = xor_secret_len;
+  uint8_t key_share[key_share_size];
+
+  xor_arrays(hash_password, xor_secret, key_share, key_share_size);
+
+//  char* key_share_hex = data_to_hex(key_share, key_share_size);
+//  ocall_print_string("Key Share: ");
+//  ocall_print_string(key_share_hex);
+//  ocall_print_string("\n");
+
+  seal_key_share(key_share, key_share_size, sealed_key_share, sealed_key_share_size);
+
+  return ret;
 }
 

@@ -49,15 +49,16 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
-void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len) {
+// TODO: duplicated. Remove this.
+std::string getDatabaseConnectionString() {
+    const char* value = std::getenv("ENCLAVE_DATABASE_URL");
 
-    // initialize encrypted_data
-    encrypted_data.data_len = data_len;
-    encrypted_data.data = new unsigned char[encrypted_data.data_len];
-    memset(encrypted_data.data, 0, encrypted_data.data_len);
-
-    memset(encrypted_data.mac, 0, sizeof(encrypted_data.mac));
-    memset(encrypted_data.nonce, 0, sizeof(encrypted_data.nonce));
+    if (value == nullptr) {
+        auto config = toml::parse_file("Settings.toml");
+        return config["intel_sgx"]["database_connection_string"].as_string()->get();
+    } else {
+        return std::string(value);        
+    }
 }
 
 int SGX_CDECL main(int argc, char *argv[])
@@ -69,9 +70,6 @@ int SGX_CDECL main(int argc, char *argv[])
 
     sgx_enclave_id_t enclave_id = 0;
     std::mutex mutex_enclave_id; // protects map_aggregate_key_data
-
-    auto config = toml::parse_file("Settings.toml");
-    auto database_connection_string = config["intel_sgx"]["database_connection_string"].as_string()->get();
 
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
@@ -229,7 +227,9 @@ int SGX_CDECL main(int argc, char *argv[])
     });
 
     CROW_ROUTE(app,"/delete_statechain/<string>")
-        .methods("DELETE"_method)([&database_connection_string](std::string statechain_id){
+        .methods("DELETE"_method)([](std::string statechain_id){
+
+        auto database_connection_string = getDatabaseConnectionString();
 
         std::string error_message;
         pqxx::connection conn(database_connection_string);
@@ -262,18 +262,20 @@ int SGX_CDECL main(int argc, char *argv[])
             }
 
             if (req_body.count("mnemonic") == 0 || 
+                req_body.count("password") == 0 || 
                 req_body.count("index") == 0 ||
                 req_body.count("threshold") == 0) {
-                return crow::response(400, "Invalid parameters. They must be 'mnemonic', 'index' and 'threshold'.");
+                return crow::response(400, "Invalid parameters. They must be 'mnemonic', 'password', 'index' and 'threshold'.");
             }
 
             std::string mnemonic = req_body["mnemonic"].s();
+            std::string password = req_body["password"].s();
             int64_t index = req_body["index"].i();
             int64_t threshold = req_body["threshold"].i();
 
             const std::lock_guard<std::mutex> lock(mutex_enclave_id);
 
-            auto ret = sealing_key_manager.addMnemonic(enclave_id, mnemonic, (size_t) index, (size_t) threshold);
+            auto ret = sealing_key_manager.addMnemonic(enclave_id, mnemonic, password, (size_t) index, (size_t) threshold);
 
             if (!ret.success) {
                 return crow::response(ret.code, ret.message);

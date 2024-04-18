@@ -1,7 +1,6 @@
 use config::{Config as ConfigRs, Environment, File};
 use serde::{Serialize, Deserialize};
 use std::env;
-use dotenv::dotenv;
 
 /// Config struct storing all StataChain Entity config
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,21 +52,17 @@ impl ServerConfig {
         // Override with settings in file Rocket.toml if exists
         conf_rs.merge(File::with_name("Rocket").required(false));
 
-        dotenv().ok();
-        if let Ok(v) = env::var("LOCKBOX") {
-            let _ = conf_rs.set("lockbox", v);
-        }
-        if let Ok(v) = env::var("NETWORK") {
-            let _ = conf_rs.set("network", v);
-        }
-        if let Ok(v) = env::var("LOCKHEIGHT_INIT") {
-            let _ = conf_rs.set("lockheight_init", v);
-        }
-        if let Ok(v) = env::var("LH_DECREMENT") {
-            let _ = conf_rs.set("lh_decrement", v);
-        }
-        if let Ok(v) = env::var("CONNECTION_STRING") {
-            let _ = conf_rs.set("connection_string", v);
+        // Function to fetch a setting from the environment or fallback to the config file
+        let get_env_or_config = |key: &str, env_var: &str| -> String {
+            env::var(env_var).unwrap_or_else(|_| settings.get_string(key).unwrap())
+        };
+
+        ServerConfig {
+            lockbox: Some(get_env_or_config("lockbox", "LOCKBOX_URL")),
+            network: get_env_or_config("network", "BITCOIN_NETWORK"),
+            lockheight_init: get_env_or_config("lockheight_init", "LOCKHEIGHT_INIT").parse::<u32>().unwrap(),
+            lh_decrement: get_env_or_config("lh_decrement", "LH_DECREMENT").parse::<u32>().unwrap(),
+            connection_string: get_env_or_config("connection_string", "DATABASE_CONNECTION_STRING"),
         }
         conf_rs.try_into().unwrap()
     }

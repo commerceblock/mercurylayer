@@ -72,8 +72,10 @@ app.whenReady().then(async () => {
 
   try {
     // where to put that code?
+    const appDataPath = app.getPath('appData');
     const databaseFile = 'wallet.db' // config.get('databaseFile')
-    db = new sqlite3.Database(databaseFile)
+    const dbFilePath = path.join(appDataPath, databaseFile)
+    db = new sqlite3.Database(dbFilePath)
     await sqliteManager.createTables(db)
   } catch (error) {
     console.log('Database intialization Error:', error)

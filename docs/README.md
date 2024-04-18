@@ -48,7 +48,7 @@ The design changes required are then as follows:
 
 ### Blind two-party Schnorr signatures
 
-Mercury layer by default employs Schnorr signatures via Taproot addresses for statecoins. To enable a signature to be generated over a shared public key (by the two private key shares of the server and owner) a blinded variant of the Musig2 protocol is employed. In this variant, one of the co-signing parties (the server) does not learn of 1) The full shared public key or 2) The final signature generated. An ephemeral key commitment scheme is employed to ensure Wagner based attacks are not possible. 
+Mercury layer by default employs Schnorr signatures via Taproot addresses for statecoins. To enable a signature to be generated over a shared public key (by the two private key shares of the server and owner) a blinded variant of the Musig2 protocol is employed. In this variant, one of the co-signing parties (the server) does not learn of 1) The full shared public key or 2) The final signature generated. 
 
 ### Client transaction verification
 
