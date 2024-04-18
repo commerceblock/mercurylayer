@@ -52,6 +52,11 @@ impl ServerConfig {
         // Override with settings in file Rocket.toml if exists
         conf_rs.merge(File::with_name("Rocket").required(false));
 
+        let settings = ConfigRs::builder()
+            .add_source(File::with_name("Settings"))
+            .build()
+            .unwrap();
+
         // Function to fetch a setting from the environment or fallback to the config file
         let get_env_or_config = |key: &str, env_var: &str| -> String {
             env::var(env_var).unwrap_or_else(|_| settings.get_string(key).unwrap())
@@ -63,7 +68,7 @@ impl ServerConfig {
             lockheight_init: get_env_or_config("lockheight_init", "LOCKHEIGHT_INIT").parse::<u32>().unwrap(),
             lh_decrement: get_env_or_config("lh_decrement", "LH_DECREMENT").parse::<u32>().unwrap(),
             connection_string: get_env_or_config("connection_string", "DATABASE_CONNECTION_STRING"),
-        }
+        };
         conf_rs.try_into().unwrap()
     }
 }
