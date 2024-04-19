@@ -3,7 +3,7 @@ FROM alpine:latest
 RUN apk update && apk add --no-cache curl
 WORKDIR /app
 
-COPY ./send_commitment.sh .
+COPY ../keylistCron/send_commitment.sh .
 
 RUN chmod +x /app/send_commitment.sh
 
