@@ -37,3 +37,17 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "Keylist $KEYLIST_HASH attestation completed successfully!"
+
+# Connect to the database and save the keylist JSON
+PG_COMMAND="psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -U $DB_USER -c \"INSERT INTO keylist (json_data) VALUES ('$KEYLIST_JSON');\""
+
+# Execute the PostgreSQL command
+eval "$PG_COMMAND"
+
+# Check if the command was successful
+if [[ $? -ne 0 ]]; then
+  echo "Error: Failed to save keylist JSON to the database"
+  exit 1
+fi
+
+echo "Keylist JSON saved to the database successfully!"
