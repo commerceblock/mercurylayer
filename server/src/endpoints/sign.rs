@@ -1,3 +1,4 @@
+use mercury_lib::transaction::SignFirstRequestPayload;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
@@ -6,16 +7,7 @@ use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct SignFirstRequestPayload {
-    statechain_id: String,
-    r2_commitment: String,
-    blind_commitment: String,
-    signed_statechain_id: String,
-}
-
-pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str, blind_commitment: &str, server_pubnonce: &str, statechain_id: &str)  {
+pub async fn insert_new_signature_data(pool: &sqlx::PgPool, server_pubnonce: &str, statechain_id: &str)  {
 
     let mut transaction = pool.begin().await.unwrap();
 
@@ -39,12 +31,10 @@ pub async fn insert_new_signature_data(pool: &sqlx::PgPool, r2_commitment: &str,
 
     let query = "\
         INSERT INTO statechain_signature_data \
-        (blind_commitment, r2_commitment, server_pubnonce, statechain_id, tx_n) \
-        VALUES ($1, $2, $3, $4, $5)";
+        (server_pubnonce, statechain_id, tx_n) \
+        VALUES ($1, $2, $3)";
 
     let _ = sqlx::query(query)
-        .bind(blind_commitment)
-        .bind(r2_commitment)
         .bind(server_pubnonce)
         .bind(statechain_id)
         .bind(new_tx_n)
@@ -67,8 +57,6 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
     let request = client.post(&format!("{}/{}", lockbox_endpoint, path));
 
     let statechain_id = sign_first_request_payload.0.statechain_id.clone();
-    let r2_commitment = sign_first_request_payload.0.r2_commitment.clone();
-    let blind_commitment = sign_first_request_payload.0.blind_commitment.clone();
     let signed_statechain_id = sign_first_request_payload.0.signed_statechain_id.clone();
 
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
@@ -106,7 +94,7 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
         server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
     }
 
-    insert_new_signature_data(&statechain_entity.pool, &r2_commitment, &blind_commitment, &server_pubnonce_hex, &statechain_id,).await;
+    insert_new_signature_data(&statechain_entity.pool, &server_pubnonce_hex, &statechain_id,).await;
 
     let response_body = json!(response);
 

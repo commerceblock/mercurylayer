@@ -23,8 +23,6 @@ pub struct DepositMsg2 {
 
 #[derive(Serialize, Deserialize)]
 pub struct DepositMsg3 {
-    r2_commitment: String,
-    blind_commitment: String,
     statechain_id: String,
     auth_sig: String,
 }

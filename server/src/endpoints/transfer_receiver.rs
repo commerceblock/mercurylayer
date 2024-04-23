@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
+use mercury_lib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo};
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
 use serde::{Serialize, Deserialize};
@@ -10,23 +10,12 @@ use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct StatechainInfo {
-    statechain_id: String,
-    r2_commitment: String,
-    blind_commitment: String,
-    server_pubnonce: String,
-    challenge: String,
-    tx_n: u32,
-}
-
 async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Vec::<StatechainInfo> {
 
     let mut result = Vec::<StatechainInfo>::new();
 
     let query = "\
-        SELECT statechain_id, r2_commitment, blind_commitment, server_pubnonce, challenge, tx_n \
+        SELECT statechain_id, server_pubnonce, challenge, tx_n \
         FROM statechain_signature_data \
         WHERE statechain_id = $1 \
         ORDER BY created_at ASC";
@@ -39,16 +28,12 @@ async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Vec::<
 
     for row in rows {
         let statechain_id: String = row.get(0);
-        let r2_commitment: String = row.get(1);
-        let blind_commitment: String = row.get(2);
-        let server_pubnonce: String = row.get(3);
-        let challenge: String = row.get(4);
-        let tx_n: i32 = row.get(5);
+        let server_pubnonce: String = row.get(1);
+        let challenge: String = row.get(2);
+        let tx_n: i32 = row.get(3);
 
         let statechain_transfer = StatechainInfo {
             statechain_id,
-            r2_commitment,
-            blind_commitment,
             server_pubnonce,
             challenge,
             tx_n: tx_n as u32,

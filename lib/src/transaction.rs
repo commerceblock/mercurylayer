@@ -11,8 +11,6 @@ use crate::{wallet::Coin, utils::{self, get_network}, decode_transfer_address};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignFirstRequestPayload {
     pub statechain_id: String,
-    pub r2_commitment: String,
-    pub blind_commitment: String,
     pub signed_statechain_id: String,
 }
 
@@ -70,15 +68,10 @@ pub fn create_and_commit_nonces(coin: &Coin) -> Result<CoinNonce>{
 
     let (client_sec_nonce, client_pub_nonce) = new_musig_nonce_pair(&secp, client_session_id, None, Some(client_seckey), client_pubkey, None, None).unwrap();
 
-    let r2_commitment = sha256::Hash::hash(&client_pub_nonce.serialize());
-
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
-    let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
 
     let sign_first_request_payload = SignFirstRequestPayload {
         statechain_id: coin.statechain_id.as_ref().unwrap().to_owned(),
-        r2_commitment: r2_commitment.to_string(),
-        blind_commitment: blind_commitment.to_string(),
         signed_statechain_id: coin.signed_statechain_id.as_ref().unwrap().to_owned(),
     };
 
