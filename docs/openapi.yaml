@@ -677,15 +677,9 @@ components:
       description: User commitments for signing
       type: object
       required:
-        - r2_commitment
-        - blind_commitment
         - statechain_id
         - auth_sig
       properties:
-        r2_commitment:
-          type: string
-        blind_commitment:
-          type: string
         statechain_id:
           $ref: '#/components/schemas/Uuid'
         auth_sig:
@@ -746,8 +740,6 @@ components:
         - num_sigs
         - s2_pub
         - signature_count
-        - blind_commits
-        - r2_commits
         - r1_values
         - blind_challenges
         - x1_pub
@@ -765,14 +757,6 @@ components:
           type: integer
         s2_pub:
           type: string
-        blind_commits:
-          type: array
-          items:
-            type: string
-        r2_commits:
-          type: array
-          items:
-            type: string
         r1_values:
           type: array
           items:
@@ -963,21 +947,11 @@ components:
       required:
         - s2_pub
         - signature_count
-        - blind_commits
-        - r2_commits
         - r1_values
         - blind_challenges
       properties:
         s2_pub:
           type: string
-        blind_commits:
-          type: array
-          items:
-            type: string
-        r2_commits:
-          type: array
-          items:
-            type: string
         r1_values:
           type: array
           items:

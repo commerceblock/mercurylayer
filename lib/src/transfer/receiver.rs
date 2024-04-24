@@ -32,8 +32,6 @@ pub struct GetMsgAddrResponsePayload {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StatechainInfo {
     pub statechain_id: String,
-    pub r2_commitment: String,
-    pub blind_commitment: String,
     pub server_pubnonce: String,
     pub challenge: String,
     pub tx_n: u32,
@@ -283,17 +281,6 @@ pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statecha
     let server_public_key = PublicKey::from_str(&backup_tx.server_public_key)?;
 
     let blinding_factor = BlindingFactor::from_slice(hex::decode(&backup_tx.blinding_factor)?.as_slice())?;
-
-    let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
-    let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
-
-    if statechain_info.blind_commitment != blind_commitment.to_string() {
-        return Err(anyhow!("blind_commitment is not correct".to_string()));
-    }
-
-    if statechain_info.r2_commitment != r2_commitment.to_string() {
-        return Err(anyhow!("r2_commitment is not correct".to_string()));
-    }
 
     let secp = Secp256k1::new();
 

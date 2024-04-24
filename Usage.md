@@ -21,3 +21,18 @@ $ curl -X POST http://0.0.0.0:18080/add_mnemonic \
     "threshold": 2
 }'
 ```
+
+## Hardware Mode
+
+```bash
+$ cd mercurylayer
+$ ./build_compose_hw_run.sh
+```
+
+Add mnemonics in the same way as above.
+
+## Compose down
+
+`docker compose -f docker-compose-sim.yml down -v` in simulation mode
+
+`docker compose -f docker-compose-hw.yml down -v` in hardware mode

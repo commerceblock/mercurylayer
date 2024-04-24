@@ -26,10 +26,9 @@ sequenceDiagram
     note over Client: set nLocktime = current_block + initlock
     note over Client: Compute Tx1 sighash
     note over Client: Generate random r2, f 
-    note over Client: Compute R2, SHA256(R2) and SHA256(f)
-    Client->>Server: /sign/first {r2_com,blind_com,statechain_id,auth_sig}
+    note over Client: Compute R2
+    Client->>Server: /sign/first {statechain_id,auth_sig}
     note over Server: Verify auth_sig with statechain_id and auth_key
-    note over Server: Save r2_com and blind_com with ID statechain_id
     Server->>Enclave: /get_public_nonce {statechain_id}
     note over Enclave: Generate private_nonce
     note over Enclave: Compute r1_public

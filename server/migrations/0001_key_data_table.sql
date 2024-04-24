@@ -22,8 +22,6 @@ CREATE TABLE public.statechain_transfer (
 
 CREATE TABLE public.statechain_signature_data (
 	id serial4 NOT NULL,
-	r2_commitment varchar NULL,
-	blind_commitment varchar NULL,
 	server_pubnonce varchar NULL,
 	challenge varchar NULL,
 	tx_n integer DEFAULT 0,
