@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk update && apk add --no-cache curl postgresql-client
+RUN apk update && apk add --no-cache curl postgresql-client jq
 WORKDIR /app
 
 COPY ../keylistCron/send_commitment.sh .

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Fetch keylist JSON from the provided URL
-KEYLIST_URL="http://45.77.225.72:32450/info/keylist"
-KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL")
+KEYLIST_URL="https://api.mercurywallet.io/info/keylist"
+KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL" | jq -r '.list_keyinfo')
 
 # Check if the GET request was successful
 if [[ $? -ne 0 ]]; then
@@ -39,7 +39,12 @@ fi
 echo "Keylist $KEYLIST_HASH attestation completed successfully!"
 
 # Connect to the database and save the keylist JSON
-PG_COMMAND="psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -U $DB_USER -c \"INSERT INTO keylist (json_data) VALUES ('$KEYLIST_JSON');\""
+PG_COMMAND="PGPASSWORD=\"$DB_PASSWORD\" psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -U $DB_USER -c \"
+    CREATE TABLE IF NOT EXISTS keylist_info (
+      json_data json NOT NULL
+    );
+    INSERT INTO keylist_info (json_data) VALUES ('$KEYLIST_JSON');
+  \""
 
 # Execute the PostgreSQL command
 eval "$PG_COMMAND"
