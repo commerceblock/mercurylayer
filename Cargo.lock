@@ -526,15 +526,9 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "cookie"
-<<<<<<< HEAD
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cd91cf61412820176e137621345ee43b3f4423e589e7ae4e50d601d93e35ef8"
-=======
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
->>>>>>> d9d56ba672fd8ea638c9e8a20e155efa8b5a8bbc
 dependencies = [
  "percent-encoding",
  "time",
@@ -1235,27 +1229,10 @@ dependencies = [
 name = "indexmap"
 version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-<<<<<<< HEAD
 checksum = "7b0b929d511467233429c45a44ac1dcaa21ba0f5ba11e4879e6ed28ddb4f9df4"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
-=======
-checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
-dependencies = [
- "autocfg",
- "hashbrown 0.12.3",
-]
-
-[[package]]
-name = "indexmap"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8adf3ddd720272c6ea8bf59463c04e0f93d0bbf7c5439b691bca2987e0270897"
-dependencies = [
- "equivalent",
- "hashbrown 0.14.1",
->>>>>>> d9d56ba672fd8ea638c9e8a20e155efa8b5a8bbc
  "serde",
 ]
 
@@ -2185,11 +2162,7 @@ dependencies = [
  "either",
  "figment",
  "futures",
-<<<<<<< HEAD
  "indexmap",
-=======
- "indexmap 2.0.2",
->>>>>>> d9d56ba672fd8ea638c9e8a20e155efa8b5a8bbc
  "log",
  "memchr",
  "multer",
@@ -2221,11 +2194,7 @@ checksum = "a2238066abf75f21be6cd7dc1a09d5414a671f4246e384e49fe3f8a4936bd04c"
 dependencies = [
  "devise",
  "glob",
-<<<<<<< HEAD
  "indexmap",
-=======
- "indexmap 2.0.2",
->>>>>>> d9d56ba672fd8ea638c9e8a20e155efa8b5a8bbc
  "proc-macro2",
  "quote",
  "rocket_http",
@@ -2245,11 +2214,7 @@ dependencies = [
  "futures",
  "http",
  "hyper",
-<<<<<<< HEAD
  "indexmap",
-=======
- "indexmap 2.0.2",
->>>>>>> d9d56ba672fd8ea638c9e8a20e155efa8b5a8bbc
  "log",
  "memchr",
  "pear",
@@ -3765,11 +3730,31 @@ dependencies = [
 
 [[package]]
 name = "yansi"
-version = "1.0.0-rc.1"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1367295b8f788d371ce2dbc842c7b709c73ee1364d30351dd300ec2203b12377"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 dependencies = [
  "is-terminal",
+]
+
+[[package]]
+name = "zerocopy"
+version = "0.7.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74d4d3961e53fa4c9a25a8637fc2bfaf2595b3d3ae34875568a5cf64787716be"
+dependencies = [
+ "zerocopy-derive",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.7.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.53",
 ]
 
 [[package]]
