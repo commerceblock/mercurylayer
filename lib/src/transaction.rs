@@ -117,8 +117,7 @@ pub fn create_tx_out(
 
     let mut recipient_address: Option<Address> = None;
 
-    let hrp = "sc";
-    if to_address.starts_with(hrp) {
+    if to_address.starts_with(crate::MAINNET_HRP) || to_address.starts_with(crate::TESTNET_HRP) {
         let (_, recipient_user_pubkey, _) = decode_transfer_address(to_address)?;
         let new_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, network);
         recipient_address = Some(new_address);

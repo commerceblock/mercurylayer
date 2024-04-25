@@ -2,9 +2,7 @@
 
 mod utils;
 
-use std::str::FromStr;
-
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo, StatechainInfoResponsePayload, create_transfer_receiver_request_payload, get_new_key_info}, TransferMsg}, decode_transfer_address};
+use mercury_lib::{decode_transfer_address, deposit::DepositMsg1Response, transfer::{receiver::{create_transfer_receiver_request_payload, decrypt_transfer_msg, get_new_key_info, StatechainInfo, StatechainInfoResponsePayload, TxOutpoint}, sender::create_transfer_signature, TransferMsg}, utils::ServerConfig, wallet::{Activity, BackupTx, Coin, Settings, Token, Wallet}};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -98,9 +96,9 @@ pub fn getBalance(wallet_json: JsValue) -> u32 {
 }
 
 #[wasm_bindgen]
-pub fn getSCAddress(wallet_json: JsValue, index: u32) -> String {
+pub fn getSCAddress(wallet_json: JsValue, index: u32, network: String) -> String {
     let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
-    let address = mercury_lib::get_sc_address(&wallet.mnemonic, index);
+    let address = mercury_lib::get_sc_address(&wallet.mnemonic, index, &network).unwrap();
     address.to_string()
 }
 
@@ -114,19 +112,38 @@ pub fn generateMnemonic() -> String {
 
 #[wasm_bindgen]
 pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
+
+    let settings = Settings {
+        network: String::from("signet"),
+        block_explorerURL: None,
+        torProxyHost: None,
+        torProxyPort: None,
+        torProxyControlPassword: None,
+        torProxyControlPort: None,
+        statechainEntityApi: String::from("http://127.0.0.1:8000"),
+        torStatechainEntityApi: None,
+        electrumProtocol: String::from("tcp"),
+        electrumHost: String::from("signet-electrumx.wakiyamap.dev"),
+        electrumPort: String::from("50001"),
+        electrumType: String::from("electrs"),
+        notifications: false,
+        tutorials: false
+    };
+
     let mut wallet = Wallet {
-        name: name,
-        mnemonic: mnemonic,
+        name,
+        mnemonic,
         version: String::from("0.1.0"),
-        state_entity_endpoint: String::from(""),
-        electrum_endpoint: String::from(""),
-        network: String::from("testnet"),
+        state_entity_endpoint: String::from("http://127.0.0.1:8000"),
+        electrum_endpoint: String::from("tcp://signet-electrumx.wakiyamap.dev:50001"),
+        network: String::from("signet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
         tokens: Vec::new(),
         activities: Vec::new(),
-        coins: Vec::new()
+        coins: Vec::new(),
+        settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
@@ -504,19 +521,37 @@ pub fn getMockWallet() -> JsValue {
         }
     ]; */
 
+    let settings = Settings {
+        network: String::from("signet"),
+        block_explorerURL: None,
+        torProxyHost: None,
+        torProxyPort: None,
+        torProxyControlPassword: None,
+        torProxyControlPort: None,
+        statechainEntityApi: String::from("http://127.0.0.1:8000"),
+        torStatechainEntityApi: None,
+        electrumProtocol: String::from("tcp"),
+        electrumHost: String::from("signet-electrumx.wakiyamap.dev"),
+        electrumPort: String::from("50001"),
+        electrumType: String::from("electrs"),
+        notifications: false,
+        tutorials: false
+    };
+
     let wallet = Wallet {
         name: String::from("Mock Wallet"),
         mnemonic: String::from("coil knock parade empower divorce scorpion float force carbon side wonder choice"),
         version: String::from("0.1.0"),
-        state_entity_endpoint: String::from(""),
-        electrum_endpoint: String::from(""),
-        network: String::from("testnet"),
+        state_entity_endpoint: String::from("http://127.0.0.1:8000"),
+        electrum_endpoint: String::from("tcp://signet-electrumx.wakiyamap.dev:50001"),
+        network: String::from("signet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
         tokens,
         activities: activity,
-        coins: Vec::new() // coins
+        coins: Vec::new(), // coins
+        settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }

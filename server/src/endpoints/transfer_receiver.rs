@@ -71,7 +71,7 @@ async fn get_enclave_pubkey_and_x1pub(pool: &sqlx::PgPool, statechain_id: &str) 
 }
 
 #[get("/info/statechain/<statechain_id>")]
-pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
+pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: &str) -> status::Custom<Json<Value>> {
 
     let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "signature_count";

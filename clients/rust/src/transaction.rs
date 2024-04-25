@@ -6,6 +6,8 @@ use crate::{client_config::ClientConfig, utils::info_config};
 
 pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, qt_backup_tx: u32, is_withdrawal: bool, block_height: Option<u32>, network: &str) -> Result<String> {
 
+    // TODO: validate address first
+
     let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
     coin.public_nonce = Some(coin_nonce.public_nonce);
