@@ -1,2 +1,2 @@
 [workspace]
-members = ["clients/standalone-rust", "clients/rust", "server", "wasm", "lib", "token-server"]
+members = ["clients/rust", "server", "wasm", "lib", "token-server"]

@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use bitcoin::{secp256k1, hashes::sha256, Txid, PrivateKey};
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, Scalar};
+use secp256k1_zkp::{Secp256k1, Message, Scalar};
 use serde::{Serialize, Deserialize};
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use serde_json::json;
 
 use crate::{decode_transfer_address, wallet::{Coin, BackupTx}};

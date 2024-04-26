@@ -4,7 +4,15 @@ use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
 use crate::{client_config::ClientConfig, utils::info_config};
 
-pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, qt_backup_tx: u32, is_withdrawal: bool, block_height: Option<u32>, network: &str) -> Result<String> {
+pub async fn new_transaction(
+    client_config: &ClientConfig, 
+    coin: &mut Coin, 
+    to_address: &str, 
+    qt_backup_tx: u32, 
+    is_withdrawal: bool, 
+    block_height: Option<u32>, 
+    network: &str, 
+    fee_rate: Option<u64>) -> Result<String> {
 
     // TODO: validate address first
 
@@ -29,7 +37,11 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_a
            
     let initlock = server_info.initlock;
     let interval = server_info.interval;
-    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
+
+    let fee_rate_sats_per_byte = match fee_rate {
+        Some(fee_rate) => fee_rate as u32,
+        None => server_info.fee_rate_sats_per_byte as u32,
+    };
 
     let partial_sig_request = get_partial_sig_request(
         &coin, 

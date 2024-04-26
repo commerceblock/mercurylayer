@@ -8,6 +8,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
+    let is_address_valid = mercury_lib::validate_address(to_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
     let mut backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
     
     if backup_txs.len() == 0 {
@@ -39,7 +45,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("Coin status must be CONFIRMED to withdraw it. The current status is {}", coin.status));
     }
 
-    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network).await?;
+    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network, fee_rate).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));

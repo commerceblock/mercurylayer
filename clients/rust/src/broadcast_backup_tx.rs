@@ -7,6 +7,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     
     let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
+    let is_address_valid = mercury_lib::validate_address(to_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
     let backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
     
     let backup_tx = backup_txs.iter().max_by_key(|tx| tx.tx_n);

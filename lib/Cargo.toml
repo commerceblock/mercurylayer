@@ -14,4 +14,4 @@ hex = "0.4.3"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", branch = "blinded-musig-scheme", features = [ "rand-std", "bitcoin_hashes", "std" ] }
-anyhow = "1.0"  
+anyhow = "1.0"
