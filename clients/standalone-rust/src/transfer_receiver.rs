@@ -199,14 +199,6 @@ async fn verify_blinded_musig_scheme(backup_tx: &mercury_lib::transfer::Receiver
     let blind_commitment = sha256::Hash::hash(blinding_factor.as_bytes());
     let r2_commitment = sha256::Hash::hash(&client_public_nonce.serialize());
 
-    if statechain_info.blind_commitment != blind_commitment.to_string() {
-        return Err(CError::Generic("blind_commitment is not correct".to_string()));
-    }
-
-    if statechain_info.r2_commitment != r2_commitment.to_string() {
-        return Err(CError::Generic("r2_commitment is not correct".to_string()));
-    }
-
     let secp = Secp256k1::new();
 
     // TODO: this code is repeated in client/src/transaction/mod.rs. Move it to a common place.
