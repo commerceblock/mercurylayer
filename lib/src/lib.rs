@@ -9,9 +9,9 @@ use std::str::FromStr;
 
 use bech32::{Variant, ToBase32, FromBase32};
 use bip39::Mnemonic;
-use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::{ffi::types::AlignedType, AllPreallocated, PublicKey, Secp256k1, SecretKey}};
+use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::{ffi::types::AlignedType, AllPreallocated, PublicKey, Secp256k1, SecretKey}, Address};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 const MAINNET_HRP : &str = "ml";
 const TESTNET_HRP : &str = "tml";
@@ -99,6 +99,38 @@ pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> Result<Strin
     encode_sc_address(&user_pubkey, &auth_pubkey, network)
 }
 
+pub fn validate_address(address: &str, network: &str) -> Result<bool> {
+
+    let network = utils::get_network(network)?;
+
+    if address.starts_with(MAINNET_HRP) || address.starts_with(TESTNET_HRP) {
+        if address.starts_with(MAINNET_HRP) && network != bitcoin::Network::Bitcoin {
+            return Err(anyhow!("Statechain address does not match the network"));
+        }
+
+        if address.starts_with(TESTNET_HRP) && network == bitcoin::Network::Bitcoin {
+            return Err(anyhow!("Statechain address does not match the network"));
+        }
+
+        match decode_transfer_address(address) {
+            Ok(_) => Ok(true),
+            Err(_) => Err(anyhow::anyhow!("Invalid statechain address")),
+        }
+    }
+    else {
+        match Address::from_str(address) {
+            Ok(addr) => {
+
+                match addr.require_network(network) {
+                    Ok(_) => Ok(true),
+                    Err(_) => Err(anyhow::anyhow!("Bitcoin address does not match the network")),
+                }
+            },
+            Err(_) => Err(anyhow::anyhow!("Invalid bitcoin address")),
+        }
+    
+    }    
+}
 
 #[cfg(test)]
 mod tests {

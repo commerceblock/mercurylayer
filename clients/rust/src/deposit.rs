@@ -39,7 +39,7 @@ pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_ne
 
     let to_address = get_user_backup_address(&coin, wallet_netwotk.to_string())?;
 
-    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, wallet_netwotk).await?;
+    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, wallet_netwotk, None).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));

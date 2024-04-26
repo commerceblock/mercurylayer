@@ -1,6 +1,6 @@
 use std::{str::FromStr, collections::BTreeMap};
 
-use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, taproot::{TapTweakHash, self}, hashes::{Hash, sha256}, Address, PrivateKey, Network};
+use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, TxOut, psbt::{Psbt, Input, PsbtSighashType}, sighash::{TapSighashType, SighashCache, self, TapSighash}, taproot::{TapTweakHash, self}, hashes::Hash, Address, PrivateKey, Network};
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce, MusigSecNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
 use serde::{Serialize, Deserialize};
 
@@ -115,18 +115,14 @@ pub fn create_tx_out(
     let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte;
     let amount_out = input_amount - absolute_fee;
 
-    let mut recipient_address: Option<Address> = None;
-
-    if to_address.starts_with(crate::MAINNET_HRP) || to_address.starts_with(crate::TESTNET_HRP) {
+    let recipient_address = if to_address.starts_with(crate::MAINNET_HRP) || to_address.starts_with(crate::TESTNET_HRP) {
         let (_, recipient_user_pubkey, _) = decode_transfer_address(to_address)?;
         let new_address = Address::p2tr(&Secp256k1::new(), recipient_user_pubkey.x_only_public_key().0, None, network);
-        recipient_address = Some(new_address);
+        new_address
     } else {
         let new_address = Address::from_str(&to_address).unwrap().require_network(network)?;
-        recipient_address = Some(new_address);
-    }
-
-    let recipient_address = recipient_address.unwrap();
+        new_address
+    };
 
     let tx_out = TxOut { value: amount_out, script_pubkey: recipient_address.script_pubkey() };
 

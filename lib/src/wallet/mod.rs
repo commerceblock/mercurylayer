@@ -103,6 +103,7 @@ pub struct Coin {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[allow(non_camel_case_types)]
 pub enum CoinStatus {
     INITIALISED, //  address generated but no Tx0 yet
     IN_MEMPOOL, // Tx0 in mempool

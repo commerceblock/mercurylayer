@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Wallet, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
+use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
 use serde_json::Value;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
