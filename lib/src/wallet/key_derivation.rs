@@ -103,7 +103,7 @@ impl Wallet {
         let user_pubkey = client_secret_key.public_key(&secp).to_string();
         let auth_pubkey = auth_secret.public_key(&secp).to_string();
 
-        let coin_address = encode_sc_address(&client_pubkey_share, &auth_key_data.public_key);
+        let coin_address = encode_sc_address(&client_pubkey_share, &auth_key_data.public_key, network)?;
 
         let coin = Coin {
             index: address_index,

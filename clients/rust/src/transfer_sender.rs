@@ -7,6 +7,12 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
 
     let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
+    let is_address_valid = mercury_lib::validate_address(recipient_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
     let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {
@@ -109,7 +115,7 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
     let block_height = Some(get_blockheight(bkp_tx1)?);
 
     let is_withdrawal = false;
-    let signed_tx = new_transaction(client_config, coin, recipient_address, qt_backup_tx, is_withdrawal, block_height, network).await?;
+    let signed_tx = new_transaction(client_config, coin, recipient_address, qt_backup_tx, is_withdrawal, block_height, network, None).await?;
 
     Ok(signed_tx)
 }
