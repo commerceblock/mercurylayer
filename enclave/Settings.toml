@@ -1,0 +1,2 @@
+[intel_sgx]
+database_connection_string = "postgresql://postgres:postgres@localhost/enclave"

@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use bitcoin::Address;
 use electrum_client::{ElectrumApi, ListUnspentRes};
-use mercury_lib::wallet::{CoinStatus, Coin, Activity, BackupTx};
+use mercurylib::wallet::{CoinStatus, Coin, Activity, BackupTx};
 use anyhow::{anyhow, Result, Ok};
 use serde_json::Value;
 
@@ -174,7 +174,7 @@ async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Resu
 
 pub async fn update_coins(client_config: &ClientConfig, wallet_name: &str) -> Result<()> {
     
-    let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let network = wallet.network.clone();
 

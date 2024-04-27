@@ -1,4 +1,4 @@
-use mercury_lib::transaction::SignFirstRequestPayload;
+use mercurylib::transaction::SignFirstRequestPayload;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
@@ -86,7 +86,7 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
 
     println!("value: {}", value);
 
-    let response: mercury_lib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+    let response: mercurylib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
     let mut server_pubnonce_hex = response.server_pubnonce.clone();
 
@@ -126,7 +126,7 @@ pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_non
 }
 
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
-pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercury_lib::transaction::PartialSignatureRequestPayload>) -> status::Custom<Json<Value>>  {
+pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercurylib::transaction::PartialSignatureRequestPayload>) -> status::Custom<Json<Value>>  {
     
     let statechain_entity = statechain_entity.inner();
 

@@ -473,7 +473,7 @@ dependencies = [
  "config",
  "electrum-client",
  "hex",
- "mercury-lib",
+ "mercurylib",
  "rand",
  "reqwest",
  "schemars",
@@ -1462,28 +1462,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f665ee40bc4a3c5590afb1e9677db74a508659dfd71e126420da8274909a0167"
 
 [[package]]
-name = "mercury-lib"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bech32",
- "bip39",
- "bitcoin",
- "ecies",
- "hex",
- "secp256k1-zkp",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "mercury-server"
 version = "0.1.0"
 dependencies = [
  "bitcoin",
  "config",
  "hex",
- "mercury-lib",
+ "mercurylib",
  "rand",
  "reqwest",
  "rocket",
@@ -1503,7 +1488,7 @@ dependencies = [
  "console_error_panic_hook",
  "getrandom",
  "js-sys",
- "mercury-lib",
+ "mercurylib",
  "rand",
  "serde",
  "serde-wasm-bindgen",
@@ -1511,6 +1496,21 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "mercurylib"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bech32",
+ "bip39",
+ "bitcoin",
+ "ecies",
+ "hex",
+ "secp256k1-zkp",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2992,7 +2992,6 @@ version = "0.1.0"
 dependencies = [
  "config",
  "hex",
- "mercury-lib",
  "rand",
  "reqwest",
  "rocket",

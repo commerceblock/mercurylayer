@@ -1,7 +1,7 @@
 
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
+use mercurylib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
 use anyhow::{Result, Ok};
 
 use crate::client_config::ClientConfig;
