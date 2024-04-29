@@ -4,12 +4,15 @@ use anyhow::{anyhow, Result};
 
 use crate::wallet::BackupTx;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct ServerConfig {
     pub initlock: u32,
     pub interval: u32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct InfoConfig {
     pub initlock: u32,
     pub interval: u32,
@@ -17,6 +20,7 @@ pub struct InfoConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct PubKeyInfo {
     pub server_pubkey: String,
     pub tx_n: u32,
@@ -24,6 +28,7 @@ pub struct PubKeyInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct KeyListResponsePayload {
     pub list_keyinfo: Vec<PubKeyInfo>,
 }

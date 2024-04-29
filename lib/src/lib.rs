@@ -13,6 +13,9 @@ use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::
 
 use anyhow::{anyhow, Result};
 
+#[cfg(feature = "bindings")]
+uniffi::setup_scaffolding!();
+
 const MAINNET_HRP : &str = "ml";
 const TESTNET_HRP : &str = "tml";
 
