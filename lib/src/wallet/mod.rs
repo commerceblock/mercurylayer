@@ -8,7 +8,7 @@ use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
 
-use crate::utils::ServerConfig;
+use crate::{utils::ServerConfig, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -188,24 +188,6 @@ pub struct BackupTx {
 pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
     wallet.initlock = config.initlock;
     wallet.interval = config.interval;
-}
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Error))]
-pub enum MercuryError {
-    Bip39Error,
-}
-
-impl core::fmt::Display for MercuryError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
-    }
-}
-
-impl From<bip39::Error> for MercuryError {
-    fn from(_: bip39::Error) -> Self {
-        MercuryError::Bip39Error
-    }
 }
 
 #[cfg_attr(feature = "bindings", uniffi::export)]

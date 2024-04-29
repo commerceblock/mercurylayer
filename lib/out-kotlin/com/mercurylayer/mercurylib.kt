@@ -23,6 +23,8 @@ import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
 import com.sun.jna.ptr.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.CharBuffer
@@ -1132,6 +1134,7 @@ public object FfiConverterString : FfiConverter<String, RustBuffer.ByValue> {
     }
 }
 
+@Serializable
 data class Activity(
     var `utxo`: kotlin.String,
     var `amount`: kotlin.UInt,
@@ -1220,6 +1223,7 @@ public object FfiConverterTypeBackupTx : FfiConverterRustBuffer<BackupTx> {
     }
 }
 
+@Serializable
 data class Coin(
     var `index`: kotlin.UInt,
     var `userPrivkey`: kotlin.String,
@@ -1477,6 +1481,7 @@ public object FfiConverterTypePubKeyInfo : FfiConverterRustBuffer<PubKeyInfo> {
     }
 }
 
+@Serializable
 data class ServerConfig(
     var `initlock`: kotlin.UInt,
     var `interval`: kotlin.UInt,
@@ -1507,6 +1512,7 @@ public object FfiConverterTypeServerConfig : FfiConverterRustBuffer<ServerConfig
     }
 }
 
+@Serializable
 data class Settings(
     var `network`: kotlin.String,
     var `blockExplorerUrl`: kotlin.String?,
@@ -1615,11 +1621,16 @@ public object FfiConverterTypeStatechainBackupTxs : FfiConverterRustBuffer<State
     }
 }
 
+@Serializable
 data class Token(
+	@SerialName("btc_payment_address")
     var `btcPaymentAddress`: kotlin.String,
     var `fee`: kotlin.String,
+	@SerialName("lightning_invoice")
     var `lightningInvoice`: kotlin.String,
+	@SerialName("processor_id")
     var `processorId`: kotlin.String,
+	@SerialName("token_id")
     var `tokenId`: kotlin.String,
     var `confirmed`: kotlin.Boolean,
     var `spent`: kotlin.Boolean,
@@ -1669,6 +1680,7 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
     }
 }
 
+@Serializable
 data class Wallet(
     var `name`: kotlin.String,
     var `mnemonic`: kotlin.String,

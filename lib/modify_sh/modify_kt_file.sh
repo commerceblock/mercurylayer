@@ -21,7 +21,8 @@ ADD_TEXT="@Serializable"
 IMPORT_FIND_TEXT="import com.sun.jna.ptr.*"
 
 # New import text to add
-IMPORT_ADD_TEXT="import kotlinx.serialization.Serializable"
+IMPORT_ADD_SERIALIZABLE="import kotlinx.serialization.Serializable"
+IMPORT_ADD_SERIALNAME="import kotlinx.serialization.SerialName"
 
 # Using find to locate Kotlin files and sed to modify them
 find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
@@ -31,7 +32,10 @@ find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
     -e "/$FIND_TEXT_ACTIVITY/i $ADD_TEXT" \
     -e "/$FIND_TEXT_COIN/i $ADD_TEXT" \
     -e "/$FIND_TEXT_SETTINGS/i $ADD_TEXT" \
-    -e "/$IMPORT_FIND_TEXT$/ {n; /$IMPORT_ADD_TEXT/! {i $IMPORT_ADD_TEXT
-}}" {} +
+    -e "/$IMPORT_FIND_TEXT$/ {
+        n; 
+        /$IMPORT_ADD_SERIALIZABLE/!i $IMPORT_ADD_SERIALIZABLE
+        /$IMPORT_ADD_SERIALNAME/!i $IMPORT_ADD_SERIALNAME
+    }" {} +
 
 echo "Modification complete."

@@ -135,6 +135,24 @@ pub fn validate_address(address: &str, network: &str) -> Result<bool> {
     }    
 }
 
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Error))]
+pub enum MercuryError {
+    Bip39Error,
+}
+
+impl core::fmt::Display for MercuryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self))
+    }
+}
+
+impl From<bip39::Error> for MercuryError {
+    fn from(_: bip39::Error) -> Self {
+        MercuryError::Bip39Error
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
