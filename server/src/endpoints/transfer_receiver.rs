@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercury_lib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo};
+use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo};
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
 use serde::{Serialize, Deserialize};
@@ -188,7 +188,7 @@ async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, statechain_id: &str) -> Opt
     Some((new_user_auth_public_key, x1_bytes))
 }
 
-type TransferReceiverRequestPayload = mercury_lib::transfer::receiver::TransferReceiverRequestPayload;
+type TransferReceiverRequestPayload = mercurylib::transfer::receiver::TransferReceiverRequestPayload;
 
 #[post("/transfer/receiver", format = "json", data = "<transfer_receiver_request_payload>")]
 pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, transfer_receiver_request_payload: Json<TransferReceiverRequestPayload>) -> status::Custom<Json<Value>> {
@@ -254,7 +254,7 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     let x1_hex = hex::encode(x1);
 
-    let key_update_response_payload = mercury_lib::transfer::receiver::KeyUpdateResponsePayload { 
+    let key_update_response_payload = mercurylib::transfer::receiver::KeyUpdateResponsePayload { 
         statechain_id: statechain_id.clone(),
         t2,
         x1: x1_hex,

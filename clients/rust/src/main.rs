@@ -98,7 +98,7 @@ async fn main() -> Result<()> {
         },
         Commands::ListStatecoins { wallet_name } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
-            let wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+            let wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
             for coin in wallet.coins.iter() {
                 println!("----\ncoin.user_pubkey: {}", coin.user_pubkey);
                 println!("coin.aggregated_address: {}", coin.aggregated_address.as_ref().unwrap_or(&"".to_string()));

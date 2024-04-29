@@ -1,13 +1,19 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs, update_wallet, update_backup_txs}, transaction::new_transaction};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercury_lib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
 
 pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
 
-    let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
-    let is_address_valid = mercury_lib::validate_address(recipient_address, &wallet.network)?;
+    let is_address_valid = mercurylib::validate_address(recipient_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
+    let is_address_valid = mercurylib::validate_address(recipient_address, &wallet.network)?;
 
     if !is_address_valid {
         return Err(anyhow!("Invalid address"));

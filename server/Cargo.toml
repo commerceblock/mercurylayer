@@ -20,6 +20,4 @@ hex = "0.4.3"
 secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", branch = "blinded-musig-scheme", features = [ "rand-std", "bitcoin_hashes", "std" ] }
 dotenv = "0.15.0"
 # secp256k1-zkp = { path = "../ss-rust-secp256k1-zkp", features = [ "rand-std", "bitcoin_hashes", "std" ] }
-
-[dependencies.mercury-lib]
-path = "../lib"
+mercurylib = { path = "../lib" }

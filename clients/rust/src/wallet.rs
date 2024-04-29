@@ -1,6 +1,6 @@
 use anyhow::Result;
 use electrum_client::ElectrumApi;
-use mercury_lib::wallet::{generate_mnemonic, Settings, Wallet};
+use mercurylib::wallet::{generate_mnemonic, Settings, Wallet};
 
 use crate::{utils::info_config, client_config::ClientConfig};
 

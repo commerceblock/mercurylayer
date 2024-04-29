@@ -18,5 +18,3 @@ rand = "0.8.5"
 hex = "0.4.3"
 dotenv = "0.15.0"
 
-[dependencies.mercury-lib]
-path = "../lib"

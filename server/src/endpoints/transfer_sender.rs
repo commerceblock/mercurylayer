@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use mercury_lib::transfer::sender::TransferSenderResponsePayload;
+use mercurylib::transfer::sender::TransferSenderResponsePayload;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
 use serde::{Serialize, Deserialize};

@@ -29,7 +29,7 @@ async fn delete_statechain_db(pool: &sqlx::PgPool,  statechain_id: &String)  {
 }
 
 #[delete("/delete_statechain", format = "json", data = "<delete_statechain_payload>")]
-pub async fn delete_statechain(statechain_entity: &State<StateChainEntity>, delete_statechain_payload: Json<mercury_lib::withdraw::DeleteStatechainPayload>) -> status::Custom<Json<Value>>  {
+pub async fn delete_statechain(statechain_entity: &State<StateChainEntity>, delete_statechain_payload: Json<mercurylib::withdraw::DeleteStatechainPayload>) -> status::Custom<Json<Value>>  {
 
     let statechain_id = delete_statechain_payload.0.statechain_id.clone();
     let signed_statechain_id = delete_statechain_payload.0.signed_statechain_id.clone();

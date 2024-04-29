@@ -56,7 +56,7 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
     transaction.commit().await.unwrap();
 }
 
-pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercury_lib::deposit::DepositMsg1Response> {
+pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercurylib::deposit::DepositMsg1Response> {
 
     let row = sqlx::query(
         "SELECT statechain_id, server_public_key \
@@ -78,7 +78,7 @@ pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) 
     let server_public_key_bytes = row_ur.get::<Vec<u8>, _>(1);
     let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
 
-    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+    let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
         statechain_id: row_ur.get(0),
     };
@@ -103,7 +103,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 
     insert_new_token(&statechain_entity.pool, &token_id).await;
 
-    let token = mercury_lib::deposit::TokenID {
+    let token = mercurylib::deposit::TokenID {
         token_id
     };
 
@@ -113,7 +113,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 }
 
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
-pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
+pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercurylib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
     let statechain_entity = statechain_entity.inner();
 
@@ -214,7 +214,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     set_token_spent(&statechain_entity.pool, &token_id).await;
 
-    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+    let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
         statechain_id,
     };

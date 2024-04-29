@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
+use mercurylib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
 use serde_json::Value;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -80,11 +80,11 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
     for enc_message in enc_messages {
 
-        let transfer_msg = mercury_lib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
+        let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
 
         // println!("transfer_msg: {:?}", transfer_msg);
 
-        let tx0_outpoint = mercury_lib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
+        let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
         
         println!("tx0_outpoint: {:?}", tx0_outpoint);
 
@@ -253,7 +253,7 @@ async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) 
 }
 
 async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, coin: &mut Coin, network: &str, confirmation_target: u32) -> Result<bool> {
-    let output_address = mercury_lib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network)?;
+    let output_address = mercurylib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network)?;
 
     let network = get_network(&network)?;
     let address = Address::from_str(&output_address)?.require_network(network)?;

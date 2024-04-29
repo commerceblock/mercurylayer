@@ -2,13 +2,19 @@ use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wal
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::wallet::{BackupTx, Activity, CoinStatus};
+use mercurylib::wallet::{BackupTx, Activity, CoinStatus};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()>{
 
-    let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
-    let is_address_valid = mercury_lib::validate_address(to_address, &wallet.network)?;
+    let is_address_valid = mercurylib::validate_address(to_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
+    let is_address_valid = mercurylib::validate_address(to_address, &wallet.network)?;
 
     if !is_address_valid {
         return Err(anyhow!("Invalid address"));

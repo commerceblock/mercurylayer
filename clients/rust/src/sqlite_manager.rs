@@ -1,4 +1,4 @@
-use mercury_lib::wallet::{Wallet, BackupTx};
+use mercurylib::wallet::{Wallet, BackupTx};
 use serde_json::json;
 use sqlx::{Pool, Sqlite, Row};
 use anyhow::{anyhow, Result};
