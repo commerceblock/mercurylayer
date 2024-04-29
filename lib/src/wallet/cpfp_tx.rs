@@ -1,13 +1,13 @@
 use std::{str::FromStr, collections::BTreeMap};
 
-use crate::utils::get_network;
+use crate::{error::MercuryError, utils::get_network};
 
 use super::{BackupTx, Coin};
-use anyhow::{anyhow, Result};
 use bitcoin::{Transaction, Address, TxOut, Txid, OutPoint, TxIn, ScriptBuf, Witness, absolute, psbt::{Psbt, Input, PsbtSighashType, self}, bip32::{Fingerprint, DerivationPath}, Amount, Network, sighash::{TapSighashType, SighashCache, self, TapSighash}, taproot::{TapLeafHash, self}, secp256k1, key::TapTweak, PrivateKey};
 use secp256k1_zkp::{Secp256k1, SecretKey, PublicKey, XOnlyPublicKey};
 
-pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats_per_byte: u64, network: &str) -> Result<String> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats_per_byte: u64, network: &str) -> Result<String, MercuryError> {
 
     let network = get_network(network)?;
 
@@ -15,7 +15,7 @@ pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats
     let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes)?;
 
     if tx.output.len() != 1 {
-        return Err(anyhow!("Unkown network"));
+        return Err(MercuryError::UnkownNetwork);
     }
 
     let output: &TxOut = tx.output.get(0).unwrap();
@@ -23,7 +23,7 @@ pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats
     let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
 
     if backup_address.script_pubkey() != output.script_pubkey {
-        return Err(anyhow!("Backup transaction does not pay user"));
+        return Err(MercuryError::BackupTransactionDoesNotPayUser);
     }
 
     let input_tx_hash = tx.txid();
@@ -44,7 +44,7 @@ pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats
     let amount_out = input_amount as i64 - absolute_fee as i64;
 
     if amount_out < 0 {
-        return Err(anyhow!("Fee is too high"));
+        return Err(MercuryError::FeeTooHigh);
     }
 
     let outputs = vec![
@@ -59,7 +59,7 @@ pub fn create(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats
     Ok(encoded_signed_tx)
 }
 
-fn create_transaction(input_tx_hash: &Txid, input_vout: u32, coin: &Coin, input_amount: u64, outputs: &Vec<TxOut>, network: Network) -> Result<Transaction> {
+fn create_transaction(input_tx_hash: &Txid, input_vout: u32, coin: &Coin, input_amount: u64, outputs: &Vec<TxOut>, network: Network) -> Result<Transaction, MercuryError> {
 
     let secp = Secp256k1::new();
 

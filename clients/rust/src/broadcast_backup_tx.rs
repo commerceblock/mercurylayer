@@ -55,7 +55,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         },
     };
 
-    let cpfp_tx = cpfp_tx::create(&backup_tx, &coin, to_address, fee_rate, &wallet.network)?;
+    let cpfp_tx = cpfp_tx::create_cpfp_tx(&backup_tx, &coin, to_address, fee_rate, &wallet.network)?;
 
     let tx_bytes = hex::decode(&backup_tx.tx)?;
     let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;

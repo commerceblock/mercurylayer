@@ -6,11 +6,11 @@ use std::{fmt, str::FromStr};
 use bip39::{Mnemonic, Language};
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
-use anyhow::Result;
 
-use crate::utils::ServerConfig;
+use crate::{utils::ServerConfig, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Wallet {
     pub name: String,
     pub mnemonic: String,
@@ -29,6 +29,7 @@ pub struct Wallet {
 
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Settings {
     pub network: String,
     pub block_explorerURL: Option<String>,
@@ -46,6 +47,7 @@ pub struct Settings {
     pub tutorials: bool
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Token {
     pub btc_payment_address: String,
     pub fee: String,
@@ -58,6 +60,7 @@ pub struct Token {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Activity {
     pub utxo: String,
     pub amount: u32,
@@ -66,6 +69,7 @@ pub struct Activity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Coin {
     
     pub index: u32,
@@ -103,6 +107,7 @@ pub struct Coin {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Enum))]
 #[allow(non_camel_case_types)]
 pub enum CoinStatus {
     INITIALISED, //  address generated but no Tx0 yet
@@ -132,6 +137,7 @@ impl fmt::Display for CoinStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct CoinStatusParseError;
 
 impl fmt::Display for CoinStatusParseError {
@@ -160,12 +166,14 @@ impl FromStr for CoinStatus {
     }
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct StatechainBackupTxs {
     pub statechain_id: String,
     pub backup_txs: Vec<BackupTx>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct BackupTx {
     pub tx_n: u32,
     pub tx: String,
@@ -181,7 +189,8 @@ pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
     wallet.interval = config.interval;
 }
 
-pub fn generate_mnemonic() -> Result<String> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn generate_mnemonic() -> core::result::Result<String, MercuryError> {
     let mut rng = rand::thread_rng();
     let entropy = (0..16).map(|_| rng.gen::<u8>()).collect::<Vec<u8>>(); // 16 bytes of entropy for 12 words
     let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)?;
