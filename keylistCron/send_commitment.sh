@@ -39,7 +39,7 @@ fi
 echo "Keylist $KEYLIST_HASH attestation completed successfully!"
 
 # Connect to the database and save the keylist JSON
-PG_COMMAND="PGPASSWORD=\"$DB_PASSWORD\" psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -U $DB_USER -c \"
+PG_COMMAND="PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -d \"$DB_NAME\" -U \"$DB_USER\" -c \"
     CREATE TABLE IF NOT EXISTS keylist_info (
       json_data json NOT NULL
     );
