@@ -191,7 +191,7 @@ pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
 }
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
-pub fn generate_mnemonic() -> Result<String, MercuryError> {
+pub fn generate_mnemonic() -> core::result::Result<String, MercuryError> {
     let mut rng = rand::thread_rng();
     let entropy = (0..16).map(|_| rng.gen::<u8>()).collect::<Vec<u8>>(); // 16 bytes of entropy for 12 words
     let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)?;

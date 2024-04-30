@@ -13,6 +13,10 @@ FIND_TEXT_TOKEN="data class Token("
 FIND_TEXT_ACTIVITY="data class Activity("
 FIND_TEXT_COIN="data class Coin("
 FIND_TEXT_SETTINGS="data class Settings("
+FIND_TEXT_DEPOSIT_MSG1="data class DepositMsg1("
+FIND_TEXT_DEPOSIT_MSG1_RESPONSE="data class DepositMsg1Response("
+FIND_TEXT_DEPOSIT_INIT_RESULT="data class DepositInitResult("
+FIND_TEXT_AGGREGATED_PUBLIC_KEY="data class AggregatedPublicKey("
 
 # The text to add @Serializable
 ADD_TEXT="@Serializable"
@@ -24,6 +28,9 @@ IMPORT_FIND_TEXT="import com.sun.jna.ptr.*"
 IMPORT_ADD_SERIALIZABLE="import kotlinx.serialization.Serializable"
 IMPORT_ADD_SERIALNAME="import kotlinx.serialization.SerialName"
 
+# Import text to remove. This should be disabled when the folder struct is fixed
+PACKAGE_REMOVE_TEXT="package com.mercurylayer"
+
 # Using find to locate Kotlin files and sed to modify them
 find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
     -e "/$FIND_TEXT_SERVER_CONFIG/i $ADD_TEXT" \
@@ -32,10 +39,15 @@ find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
     -e "/$FIND_TEXT_ACTIVITY/i $ADD_TEXT" \
     -e "/$FIND_TEXT_COIN/i $ADD_TEXT" \
     -e "/$FIND_TEXT_SETTINGS/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_DEPOSIT_MSG1/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_DEPOSIT_MSG1_RESPONSE/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_DEPOSIT_INIT_RESULT/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_AGGREGATED_PUBLIC_KEY/i $ADD_TEXT" \
     -e "/$IMPORT_FIND_TEXT$/ {
         n; 
         /$IMPORT_ADD_SERIALIZABLE/!i $IMPORT_ADD_SERIALIZABLE
         /$IMPORT_ADD_SERIALNAME/!i $IMPORT_ADD_SERIALNAME
-    }" {} +
+    }" \
+    -e "/$PACKAGE_REMOVE_TEXT/d" {} +
 
-echo "Modification complete."
+echo "@Serializable annotations added successfully."

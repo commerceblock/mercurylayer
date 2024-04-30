@@ -2,7 +2,7 @@ use bitcoin::Transaction;
 use serde::{Serialize, Deserialize};
 use anyhow::{anyhow, Result};
 
-use crate::wallet::BackupTx;
+use crate::{wallet::BackupTx, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -33,13 +33,13 @@ pub struct KeyListResponsePayload {
     pub list_keyinfo: Vec<PubKeyInfo>,
 }
 
-pub fn get_network(network: &str) -> Result<bitcoin::Network> {
+pub fn get_network(network: &str) -> core::result::Result<bitcoin::Network, MercuryError> {
     match network {
         "signet" => Ok(bitcoin::Network::Signet),
         "testnet" => Ok(bitcoin::Network::Testnet),
         "regtest" => Ok(bitcoin::Network::Regtest),
         "mainnet" => Ok(bitcoin::Network::Bitcoin),
-        _ => Err(anyhow!("Unkown network"))
+        _ => Err(MercuryError::NetworkConversionError)
     }
 }
 

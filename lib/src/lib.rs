@@ -4,6 +4,8 @@ pub mod withdraw;
 pub mod wallet;
 pub mod utils;
 pub mod transaction;
+pub mod unifii_interface;
+pub mod error;
 
 use std::str::FromStr;
 
@@ -12,6 +14,7 @@ use bip39::Mnemonic;
 use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::{ffi::types::AlignedType, AllPreallocated, PublicKey, Secp256k1, SecretKey}, Address};
 
 use anyhow::{anyhow, Result};
+use error::MercuryError;
 
 #[cfg(feature = "bindings")]
 uniffi::setup_scaffolding!();
@@ -19,7 +22,7 @@ uniffi::setup_scaffolding!();
 const MAINNET_HRP : &str = "ml";
 const TESTNET_HRP : &str = "tml";
 
-pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, network: bitcoin::Network) -> Result<String> {
+pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, network: bitcoin::Network) -> core::result::Result<String, MercuryError> {
 
     let mut hrp = TESTNET_HRP;
 
@@ -59,7 +62,7 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
     Ok((version, user_pubkey, auth_pubkey))
 }
 
-fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivation_path: &str, change_index: u32, address_index:u32) -> Result<SecretKey> {
+fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivation_path: &str, change_index: u32, address_index:u32) -> core::result::Result<SecretKey, MercuryError> {
     // derive child xpub
     let path = DerivationPath::from_str(derivation_path)?;
     let child = root.derive_priv(&secp, &path)?;
@@ -73,7 +76,7 @@ fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivat
     Ok(secret_key)
 }
 
-pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> Result<String> {
+pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> core::result::Result<String, MercuryError> {
 
     let network = utils::get_network(network)?;
 
@@ -133,24 +136,6 @@ pub fn validate_address(address: &str, network: &str) -> Result<bool> {
         }
     
     }    
-}
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Error))]
-pub enum MercuryError {
-    Bip39Error,
-}
-
-impl core::fmt::Display for MercuryError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self))
-    }
-}
-
-impl From<bip39::Error> for MercuryError {
-    fn from(_: bip39::Error) -> Self {
-        MercuryError::Bip39Error
-    }
 }
 
 #[cfg(test)]

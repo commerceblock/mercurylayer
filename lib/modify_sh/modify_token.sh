@@ -68,4 +68,4 @@ export -f add_serial_name
 # Use find to locate Kotlin files and process them with the add_serial_name function
 find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec bash -c 'add_serial_name "$0"' {} \;
 
-echo "Annotation modification complete."
+echo "@SerialName annotations added to Token successfully."

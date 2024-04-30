@@ -3,7 +3,6 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package com.mercurylayer
 
 // Common helper code.
 //
@@ -730,7 +729,30 @@ internal interface UniffiLib : Library {
         }
     }
 
+    fun uniffi_mercurylib_fn_func_create_aggregated_address(
+        `coin`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_create_deposit_msg1(
+        `coin`: RustBuffer.ByValue,
+        `tokenId`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_generate_mnemonic(uniffi_out_err: UniffiRustCallStatus): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_new_coin(
+        `wallet`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_handle_deposit_msg_1_response(
+        `coin`: RustBuffer.ByValue,
+        `depositMsg1Response`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
 
     fun ffi_mercurylib_rustbuffer_alloc(
         `size`: Long,
@@ -948,7 +970,15 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): Unit
 
+    fun uniffi_mercurylib_checksum_func_create_aggregated_address(): Short
+
+    fun uniffi_mercurylib_checksum_func_create_deposit_msg1(): Short
+
     fun uniffi_mercurylib_checksum_func_generate_mnemonic(): Short
+
+    fun uniffi_mercurylib_checksum_func_get_new_coin(): Short
+
+    fun uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response(): Short
 
     fun ffi_mercurylib_uniffi_contract_version(): Int
 }
@@ -965,7 +995,19 @@ private fun uniffiCheckContractApiVersion(lib: UniffiLib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: UniffiLib) {
+    if (lib.uniffi_mercurylib_checksum_func_create_aggregated_address() != 44269.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_create_deposit_msg1() != 9767.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_generate_mnemonic() != 62910.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_get_new_coin() != 45841.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response() != 64110.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1170,6 +1212,37 @@ public object FfiConverterTypeActivity : FfiConverterRustBuffer<Activity> {
         FfiConverterUInt.write(value.`amount`, buf)
         FfiConverterString.write(value.`action`, buf)
         FfiConverterString.write(value.`date`, buf)
+    }
+}
+
+@Serializable
+data class AggregatedPublicKey(
+    var `aggregatePubkey`: kotlin.String,
+    var `aggregateAddress`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeAggregatedPublicKey : FfiConverterRustBuffer<AggregatedPublicKey> {
+    override fun read(buf: ByteBuffer): AggregatedPublicKey {
+        return AggregatedPublicKey(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: AggregatedPublicKey) =
+        (
+            FfiConverterString.allocationSize(value.`aggregatePubkey`) +
+                FfiConverterString.allocationSize(value.`aggregateAddress`)
+        )
+
+    override fun write(
+        value: AggregatedPublicKey,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`aggregatePubkey`, buf)
+        FfiConverterString.write(value.`aggregateAddress`, buf)
     }
 }
 
@@ -1384,6 +1457,112 @@ public object FfiConverterTypeCoinStatusParseError : FfiConverterRustBuffer<Coin
         value: CoinStatusParseError,
         buf: ByteBuffer,
     ) {
+    }
+}
+
+@Serializable
+data class DepositInitResult(
+    var `serverPubkey`: kotlin.String,
+    var `statechainId`: kotlin.String,
+    var `signedStatechainId`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeDepositInitResult : FfiConverterRustBuffer<DepositInitResult> {
+    override fun read(buf: ByteBuffer): DepositInitResult {
+        return DepositInitResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DepositInitResult) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubkey`) +
+                FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`signedStatechainId`)
+        )
+
+    override fun write(
+        value: DepositInitResult,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubkey`, buf)
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`signedStatechainId`, buf)
+    }
+}
+
+@Serializable
+data class DepositMsg1(
+	@SerialName("auth_key")
+    var `authKey`: kotlin.String,
+	@SerialName("token_id")
+    var `tokenId`: kotlin.String,
+	@SerialName("signed_token_id")
+    var `signedTokenId`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeDepositMsg1 : FfiConverterRustBuffer<DepositMsg1> {
+    override fun read(buf: ByteBuffer): DepositMsg1 {
+        return DepositMsg1(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DepositMsg1) =
+        (
+            FfiConverterString.allocationSize(value.`authKey`) +
+                FfiConverterString.allocationSize(value.`tokenId`) +
+                FfiConverterString.allocationSize(value.`signedTokenId`)
+        )
+
+    override fun write(
+        value: DepositMsg1,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`authKey`, buf)
+        FfiConverterString.write(value.`tokenId`, buf)
+        FfiConverterString.write(value.`signedTokenId`, buf)
+    }
+}
+
+@Serializable
+data class DepositMsg1Response(
+	@SerialName("server_pubkey")
+    var `serverPubkey`: kotlin.String,
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeDepositMsg1Response : FfiConverterRustBuffer<DepositMsg1Response> {
+    override fun read(buf: ByteBuffer): DepositMsg1Response {
+        return DepositMsg1Response(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DepositMsg1Response) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubkey`) +
+                FfiConverterString.allocationSize(value.`statechainId`)
+        )
+
+    override fun write(
+        value: DepositMsg1Response,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubkey`, buf)
+        FfiConverterString.write(value.`statechainId`, buf)
     }
 }
 
@@ -1793,6 +1972,31 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class Bip32Exception() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class NetworkConversionException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class Secp256k1UpstreamException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class KeyException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class Bech32Exception() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -1802,6 +2006,11 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
     override fun read(buf: ByteBuffer): MercuryException {
         return when (buf.getInt()) {
             1 -> MercuryException.Bip39Exception()
+            2 -> MercuryException.Bip32Exception()
+            3 -> MercuryException.NetworkConversionException()
+            4 -> MercuryException.Secp256k1UpstreamException()
+            5 -> MercuryException.KeyException()
+            6 -> MercuryException.Bech32Exception()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -1809,6 +2018,26 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
     override fun allocationSize(value: MercuryException): ULong {
         return when (value) {
             is MercuryException.Bip39Exception -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.Bip32Exception -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.NetworkConversionException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.Secp256k1UpstreamException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.KeyException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.Bech32Exception -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -1822,6 +2051,26 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
         when (value) {
             is MercuryException.Bip39Exception -> {
                 buf.putInt(1)
+                Unit
+            }
+            is MercuryException.Bip32Exception -> {
+                buf.putInt(2)
+                Unit
+            }
+            is MercuryException.NetworkConversionException -> {
+                buf.putInt(3)
+                Unit
+            }
+            is MercuryException.Secp256k1UpstreamException -> {
+                buf.putInt(4)
+                Unit
+            }
+            is MercuryException.KeyException -> {
+                buf.putInt(5)
+                Unit
+            }
+            is MercuryException.Bech32Exception -> {
+                buf.putInt(6)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -2012,10 +2261,70 @@ public object FfiConverterSequenceTypeToken : FfiConverterRustBuffer<List<Token>
 }
 
 @Throws(MercuryException::class)
+fun `createAggregatedAddress`(
+    `coin`: Coin,
+    `network`: kotlin.String,
+): AggregatedPublicKey {
+    return FfiConverterTypeAggregatedPublicKey.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_aggregated_address(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `createDepositMsg1`(
+    `coin`: Coin,
+    `tokenId`: kotlin.String,
+): DepositMsg1 {
+    return FfiConverterTypeDepositMsg1.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_deposit_msg1(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`tokenId`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `generateMnemonic`(): kotlin.String {
     return FfiConverterString.lift(
         uniffiRustCallWithError(MercuryException) { _status ->
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_generate_mnemonic(
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `getNewCoin`(`wallet`: Wallet): Coin {
+    return FfiConverterTypeCoin.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_new_coin(
+                FfiConverterTypeWallet.lower(`wallet`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `handleDepositMsg1Response`(
+    `coin`: Coin,
+    `depositMsg1Response`: DepositMsg1Response,
+): DepositInitResult {
+    return FfiConverterTypeDepositInitResult.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_handle_deposit_msg_1_response(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterTypeDepositMsg1Response.lower(`depositMsg1Response`),
                 _status,
             )
         },
