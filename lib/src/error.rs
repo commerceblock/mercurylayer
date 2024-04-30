@@ -59,6 +59,10 @@ pub enum MercuryError {
     MusigSignError,
     SchnorrSignatureValidationError,
     MoreThanOneInputError,
+    UnkownNetwork,
+    BackupTransactionDoesNotPayUser,
+    FeeTooHigh,
+
 }
 
 impl core::fmt::Display for MercuryError {

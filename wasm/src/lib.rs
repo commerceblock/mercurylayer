@@ -255,7 +255,7 @@ pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: Str
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx_json).unwrap();
 
-    let backup_tx = mercurylib::wallet::cpfp_tx::create(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
+    let backup_tx = mercurylib::wallet::cpfp_tx::create_cpfp_tx(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
     backup_tx
     // "".to_string()
 }

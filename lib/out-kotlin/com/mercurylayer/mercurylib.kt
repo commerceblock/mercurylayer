@@ -740,6 +740,15 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_create_cpfp_tx(
+        `backupTx`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        `toAddress`: RustBuffer.ByValue,
+        `feeRateSatsPerByte`: Long,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_create_deposit_msg1(
         `coin`: RustBuffer.ByValue,
         `tokenId`: RustBuffer.ByValue,
@@ -1024,6 +1033,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_create_and_commit_nonces(): Short
 
+    fun uniffi_mercurylib_checksum_func_create_cpfp_tx(): Short
+
     fun uniffi_mercurylib_checksum_func_create_deposit_msg1(): Short
 
     fun uniffi_mercurylib_checksum_func_create_signature(): Short
@@ -1063,6 +1074,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_create_and_commit_nonces() != 16584.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_create_cpfp_tx() != 63811.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_create_deposit_msg1() != 9767.toShort()) {
@@ -2442,6 +2456,21 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class UnkownNetwork() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BackupTransactionDoesNotPayUser() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class FeeTooHigh() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -2474,6 +2503,9 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             22 -> MercuryException.MusigSignException()
             23 -> MercuryException.SchnorrSignatureValidationException()
             24 -> MercuryException.MoreThanOneInputException()
+            25 -> MercuryException.UnkownNetwork()
+            26 -> MercuryException.BackupTransactionDoesNotPayUser()
+            27 -> MercuryException.FeeTooHigh()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -2573,6 +2605,18 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.MoreThanOneInputException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.UnkownNetwork -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BackupTransactionDoesNotPayUser -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.FeeTooHigh -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -2678,6 +2722,18 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             }
             is MercuryException.MoreThanOneInputException -> {
                 buf.putInt(24)
+                Unit
+            }
+            is MercuryException.UnkownNetwork -> {
+                buf.putInt(25)
+                Unit
+            }
+            is MercuryException.BackupTransactionDoesNotPayUser -> {
+                buf.putInt(26)
+                Unit
+            }
+            is MercuryException.FeeTooHigh -> {
+                buf.putInt(27)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -2889,6 +2945,28 @@ fun `createAndCommitNonces`(`coin`: Coin): CoinNonce {
         uniffiRustCallWithError(MercuryException) { _status ->
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_and_commit_nonces(
                 FfiConverterTypeCoin.lower(`coin`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `createCpfpTx`(
+    `backupTx`: BackupTx,
+    `coin`: Coin,
+    `toAddress`: kotlin.String,
+    `feeRateSatsPerByte`: kotlin.ULong,
+    `network`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_cpfp_tx(
+                FfiConverterTypeBackupTx.lower(`backupTx`),
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`toAddress`),
+                FfiConverterULong.lower(`feeRateSatsPerByte`),
+                FfiConverterString.lower(`network`),
                 _status,
             )
         },
