@@ -798,6 +798,12 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_validate_address(
+        `address`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
     fun ffi_mercurylib_rustbuffer_alloc(
         `size`: Long,
         uniffi_out_err: UniffiRustCallStatus,
@@ -1036,6 +1042,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
+    fun uniffi_mercurylib_checksum_func_validate_address(): Short
+
     fun ffi_mercurylib_uniffi_contract_version(): Int
 }
 
@@ -1082,6 +1090,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_new_backup_transaction() != 56642.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_validate_address() != 16334.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -3029,6 +3040,22 @@ fun `newBackupTransaction`(
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_new_backup_transaction(
                 FfiConverterString.lower(`encodedUnsignedTx`),
                 FfiConverterString.lower(`signatureHex`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `validateAddress`(
+    `address`: kotlin.String,
+    `network`: kotlin.String,
+): kotlin.Boolean {
+    return FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_validate_address(
+                FfiConverterString.lower(`address`),
+                FfiConverterString.lower(`network`),
                 _status,
             )
         },

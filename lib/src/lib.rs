@@ -104,6 +104,7 @@ pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> core::result
     encode_sc_address(&user_pubkey, &auth_pubkey, network)
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn validate_address(address: &str, network: &str) -> core::result::Result<bool, MercuryError> {
 
     let network = utils::get_network(network)?;
