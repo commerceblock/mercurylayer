@@ -4,17 +4,17 @@ use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, T
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce, MusigSecNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
 use serde::{Serialize, Deserialize};
 
-use anyhow::{anyhow, Result};
-
-use crate::{wallet::Coin, utils::{self, get_network}, decode_transfer_address};
+use crate::{decode_transfer_address, error::MercuryError, utils::{self, get_network}, wallet::Coin};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct SignFirstRequestPayload {
     pub statechain_id: String,
     pub signed_statechain_id: String,
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct CoinNonce {
     pub secret_nonce: String,
     pub public_nonce: String,
@@ -23,11 +23,13 @@ pub struct CoinNonce {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct SignFirstResponsePayload {
     pub server_pubnonce: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct PartialSignatureMsg1 {
     pub msg: String,
     pub output_pubkey: String, // the tweaked pubkey
@@ -38,6 +40,7 @@ pub struct PartialSignatureMsg1 {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct PartialSignatureRequestPayload {
     pub statechain_id: String,
     pub negate_seckey: u8,
@@ -47,17 +50,19 @@ pub struct PartialSignatureRequestPayload {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ServerPublicNonceResponsePayload<'r> {
-    pub server_pubnonce: &'r str,
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct ServerPublicNonceResponsePayload {
+    pub server_pubnonce: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartialSignatureResponsePayload<'r> {
-    pub partial_sig: &'r str,
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct PartialSignatureResponsePayload {
+    pub partial_sig: String,
 }
 
-
-pub fn create_and_commit_nonces(coin: &Coin) -> Result<CoinNonce>{
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_and_commit_nonces(coin: &Coin) -> core::result::Result<CoinNonce, MercuryError>{
     
     let secp = Secp256k1::new();
 
@@ -66,7 +71,7 @@ pub fn create_and_commit_nonces(coin: &Coin) -> Result<CoinNonce>{
     let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
     let client_pubkey = PublicKey::from_str(&coin.user_pubkey)?;
 
-    let (client_sec_nonce, client_pub_nonce) = new_musig_nonce_pair(&secp, client_session_id, None, Some(client_seckey), client_pubkey, None, None).unwrap();
+    let (client_sec_nonce, client_pub_nonce) = new_musig_nonce_pair(&secp, client_session_id, None, Some(client_seckey), client_pubkey, None, None)?;
 
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
 
@@ -106,7 +111,7 @@ pub fn create_tx_out(
     fee_rate_sats_per_byte: u64,
     to_address: &str,
     network: Network,
-) -> Result<TxOut>
+) -> core::result::Result<TxOut, MercuryError>
 {
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
     // 163 is the real size one input P2TR and one output P2TR
@@ -134,7 +139,7 @@ pub fn calculate_block_height(
     initlock: u32, 
     interval: u32, 
     qt_backup_tx: u32,
-    is_withdrawal: bool)  -> Result<u32>
+    is_withdrawal: bool)  -> core::result::Result<u32, MercuryError>
 {
     // if qt_backup_tx == 0, it means this is the first backup transaction (Tx0)
     // In this case, the block_height is equal to the current block height
@@ -146,7 +151,8 @@ pub fn calculate_block_height(
     Ok(block_height)
 }
 
-pub fn get_user_backup_address(coin: &Coin, network: String) -> Result<String> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_user_backup_address(coin: &Coin, network: String) -> core::result::Result<String, MercuryError> {
 
     let network = get_network(&network)?;
 
@@ -155,6 +161,7 @@ pub fn get_user_backup_address(coin: &Coin, network: String) -> Result<String> {
     Ok(to_address.to_string())
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn get_partial_sig_request(
     coin: &Coin, 
     block_height: u32, 
@@ -164,7 +171,7 @@ pub fn get_partial_sig_request(
     qt_backup_tx: u32,
     to_address: String,
     network: String,
-    is_withdrawal: bool) -> Result<PartialSignatureMsg1>
+    is_withdrawal: bool) -> core::result::Result<PartialSignatureMsg1, MercuryError>
 {
     let network = utils::get_network(&network)?;
     
@@ -191,7 +198,7 @@ pub fn get_musig_session(
     coin: &Coin,
     block_height: u32, 
     output: &TxOut,
-    network: Network) -> Result<PartialSignatureMsg1>
+    network: Network) -> core::result::Result<PartialSignatureMsg1, MercuryError>
 {
     let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
     let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
@@ -268,7 +275,7 @@ pub fn get_musig_session(
 pub fn calculate_musig_session(
     coin: &Coin,
     hash: TapSighash,
-    encoded_unsigned_tx: String,) -> Result<PartialSignatureMsg1>
+    encoded_unsigned_tx: String,) -> core::result::Result<PartialSignatureMsg1, MercuryError>
 {
     let secp = Secp256k1::new();
 
@@ -360,12 +367,13 @@ pub fn calculate_musig_session(
     })
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn create_signature(
     msg: String,
     client_partial_sig_hex: String,
     server_partial_sig_hex: String,
     session_hex: String,
-    output_pubkey_hex: String) -> Result<String> 
+    output_pubkey_hex: String) -> core::result::Result<String, MercuryError> 
 {
     let secp = Secp256k1::new();
 
@@ -387,16 +395,17 @@ pub fn create_signature(
     let x_only_key_tweaked = output_pubkey.x_only_public_key().0;
 
     if !secp.verify_schnorr(&sig, &msg, &x_only_key_tweaked).is_ok() {
-        return Err(anyhow!("Unkown network"));
+        return Err(MercuryError::SchnorrSignatureValidationError);
     }
 
     Ok(sig.to_string())
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn new_backup_transaction(
     encoded_unsigned_tx: String,
     signature_hex: String,
-) -> Result<String> {
+) -> core::result::Result<String, MercuryError> {
 
     let tx_bytes = hex::decode(encoded_unsigned_tx)?;
     let tx: Transaction = bitcoin::consensus::encode::deserialize(&tx_bytes)?;
@@ -404,7 +413,7 @@ pub fn new_backup_transaction(
     let mut psbt = Psbt::from_unsigned_tx(tx)?;
 
     if psbt.inputs.len() != 1 {
-        return Err(anyhow!("There must be only one input"));
+        return Err(MercuryError::MoreThanOneInputError);
     }
 
     let vout = 0;

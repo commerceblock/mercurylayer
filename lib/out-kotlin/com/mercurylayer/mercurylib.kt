@@ -735,22 +735,66 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_create_and_commit_nonces(
+        `coin`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_create_deposit_msg1(
         `coin`: RustBuffer.ByValue,
         `tokenId`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_create_signature(
+        `msg`: RustBuffer.ByValue,
+        `clientPartialSigHex`: RustBuffer.ByValue,
+        `serverPartialSigHex`: RustBuffer.ByValue,
+        `sessionHex`: RustBuffer.ByValue,
+        `outputPubkeyHex`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_generate_mnemonic(uniffi_out_err: UniffiRustCallStatus): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_blockheight(
+        `bkpTx`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Int
 
     fun uniffi_mercurylib_fn_func_get_new_coin(
         `wallet`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_get_partial_sig_request(
+        `coin`: RustBuffer.ByValue,
+        `blockHeight`: Int,
+        `initlock`: Int,
+        `interval`: Int,
+        `feeRateSatsPerByte`: Int,
+        `qtBackupTx`: Int,
+        `toAddress`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        `isWithdrawal`: Byte,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_user_backup_address(
+        `coin`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_handle_deposit_msg_1_response(
         `coin`: RustBuffer.ByValue,
         `depositMsg1Response`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_new_backup_transaction(
+        `encodedUnsignedTx`: RustBuffer.ByValue,
+        `signatureHex`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
@@ -972,13 +1016,25 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_create_aggregated_address(): Short
 
+    fun uniffi_mercurylib_checksum_func_create_and_commit_nonces(): Short
+
     fun uniffi_mercurylib_checksum_func_create_deposit_msg1(): Short
+
+    fun uniffi_mercurylib_checksum_func_create_signature(): Short
 
     fun uniffi_mercurylib_checksum_func_generate_mnemonic(): Short
 
+    fun uniffi_mercurylib_checksum_func_get_blockheight(): Short
+
     fun uniffi_mercurylib_checksum_func_get_new_coin(): Short
 
+    fun uniffi_mercurylib_checksum_func_get_partial_sig_request(): Short
+
+    fun uniffi_mercurylib_checksum_func_get_user_backup_address(): Short
+
     fun uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response(): Short
+
+    fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
     fun ffi_mercurylib_uniffi_contract_version(): Int
 }
@@ -998,16 +1054,34 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_mercurylib_checksum_func_create_aggregated_address() != 44269.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_mercurylib_checksum_func_create_and_commit_nonces() != 16584.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_create_deposit_msg1() != 9767.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_create_signature() != 53021.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_generate_mnemonic() != 62910.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_mercurylib_checksum_func_get_blockheight() != 5222.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_get_new_coin() != 45841.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_mercurylib_checksum_func_get_partial_sig_request() != 13111.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_get_user_backup_address() != 29075.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response() != 64110.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_new_backup_transaction() != 56642.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1049,6 +1123,29 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
 
 /** Used to instantiate an interface without an actual pointer, for fakes in tests, mostly. */
 object NoPointer
+
+public object FfiConverterUByte : FfiConverter<UByte, Byte> {
+    override fun lift(value: Byte): UByte {
+        return value.toUByte()
+    }
+
+    override fun read(buf: ByteBuffer): UByte {
+        return lift(buf.get())
+    }
+
+    override fun lower(value: UByte): Byte {
+        return value.toByte()
+    }
+
+    override fun allocationSize(value: UByte) = 1UL
+
+    override fun write(
+        value: UByte,
+        buf: ByteBuffer,
+    ) {
+        buf.put(value.toByte())
+    }
+}
 
 public object FfiConverterUInt : FfiConverter<UInt, Int> {
     override fun lift(value: Int): UInt {
@@ -1434,6 +1531,44 @@ public object FfiConverterTypeCoin : FfiConverterRustBuffer<Coin> {
     }
 }
 
+data class CoinNonce(
+    var `secretNonce`: kotlin.String,
+    var `publicNonce`: kotlin.String,
+    var `blindingFactor`: kotlin.String,
+    var `signFirstRequestPayload`: SignFirstRequestPayload,
+) {
+    companion object
+}
+
+public object FfiConverterTypeCoinNonce : FfiConverterRustBuffer<CoinNonce> {
+    override fun read(buf: ByteBuffer): CoinNonce {
+        return CoinNonce(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypeSignFirstRequestPayload.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CoinNonce) =
+        (
+            FfiConverterString.allocationSize(value.`secretNonce`) +
+                FfiConverterString.allocationSize(value.`publicNonce`) +
+                FfiConverterString.allocationSize(value.`blindingFactor`) +
+                FfiConverterTypeSignFirstRequestPayload.allocationSize(value.`signFirstRequestPayload`)
+        )
+
+    override fun write(
+        value: CoinNonce,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`secretNonce`, buf)
+        FfiConverterString.write(value.`publicNonce`, buf)
+        FfiConverterString.write(value.`blindingFactor`, buf)
+        FfiConverterTypeSignFirstRequestPayload.write(value.`signFirstRequestPayload`, buf)
+    }
+}
+
 class CoinStatusParseError {
     override fun equals(other: Any?): Boolean {
         return other is CoinStatusParseError
@@ -1626,6 +1761,127 @@ public object FfiConverterTypeKeyListResponsePayload : FfiConverterRustBuffer<Ke
     }
 }
 
+data class PartialSignatureMsg1(
+    var `msg`: kotlin.String,
+    var `outputPubkey`: kotlin.String,
+    var `clientPartialSig`: kotlin.String,
+    var `encodedSession`: kotlin.String,
+    var `encodedUnsignedTx`: kotlin.String,
+    var `partialSignatureRequestPayload`: PartialSignatureRequestPayload,
+) {
+    companion object
+}
+
+public object FfiConverterTypePartialSignatureMsg1 : FfiConverterRustBuffer<PartialSignatureMsg1> {
+    override fun read(buf: ByteBuffer): PartialSignatureMsg1 {
+        return PartialSignatureMsg1(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterTypePartialSignatureRequestPayload.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PartialSignatureMsg1) =
+        (
+            FfiConverterString.allocationSize(value.`msg`) +
+                FfiConverterString.allocationSize(value.`outputPubkey`) +
+                FfiConverterString.allocationSize(value.`clientPartialSig`) +
+                FfiConverterString.allocationSize(value.`encodedSession`) +
+                FfiConverterString.allocationSize(value.`encodedUnsignedTx`) +
+                FfiConverterTypePartialSignatureRequestPayload.allocationSize(value.`partialSignatureRequestPayload`)
+        )
+
+    override fun write(
+        value: PartialSignatureMsg1,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`msg`, buf)
+        FfiConverterString.write(value.`outputPubkey`, buf)
+        FfiConverterString.write(value.`clientPartialSig`, buf)
+        FfiConverterString.write(value.`encodedSession`, buf)
+        FfiConverterString.write(value.`encodedUnsignedTx`, buf)
+        FfiConverterTypePartialSignatureRequestPayload.write(value.`partialSignatureRequestPayload`, buf)
+    }
+}
+
+@Serializable
+data class PartialSignatureRequestPayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("negate_seckey")
+    var `negateSeckey`: kotlin.UByte,
+    var `session`: kotlin.String,
+	@SerialName("signed_statechain_id")
+    var `signedStatechainId`: kotlin.String,
+	@SerialName("server_pub_nonce")
+    var `serverPubNonce`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypePartialSignatureRequestPayload : FfiConverterRustBuffer<PartialSignatureRequestPayload> {
+    override fun read(buf: ByteBuffer): PartialSignatureRequestPayload {
+        return PartialSignatureRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterUByte.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PartialSignatureRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterUByte.allocationSize(value.`negateSeckey`) +
+                FfiConverterString.allocationSize(value.`session`) +
+                FfiConverterString.allocationSize(value.`signedStatechainId`) +
+                FfiConverterString.allocationSize(value.`serverPubNonce`)
+        )
+
+    override fun write(
+        value: PartialSignatureRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterUByte.write(value.`negateSeckey`, buf)
+        FfiConverterString.write(value.`session`, buf)
+        FfiConverterString.write(value.`signedStatechainId`, buf)
+        FfiConverterString.write(value.`serverPubNonce`, buf)
+    }
+}
+
+@Serializable
+data class PartialSignatureResponsePayload(
+	@SerialName("partial_sig")
+    var `partialSig`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypePartialSignatureResponsePayload : FfiConverterRustBuffer<PartialSignatureResponsePayload> {
+    override fun read(buf: ByteBuffer): PartialSignatureResponsePayload {
+        return PartialSignatureResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PartialSignatureResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`partialSig`)
+        )
+
+    override fun write(
+        value: PartialSignatureResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`partialSig`, buf)
+    }
+}
+
 data class PubKeyInfo(
     var `serverPubkey`: kotlin.String,
     var `txN`: kotlin.UInt,
@@ -1688,6 +1944,32 @@ public object FfiConverterTypeServerConfig : FfiConverterRustBuffer<ServerConfig
     ) {
         FfiConverterUInt.write(value.`initlock`, buf)
         FfiConverterUInt.write(value.`interval`, buf)
+    }
+}
+
+data class ServerPublicNonceResponsePayload(
+    var `serverPubnonce`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeServerPublicNonceResponsePayload : FfiConverterRustBuffer<ServerPublicNonceResponsePayload> {
+    override fun read(buf: ByteBuffer): ServerPublicNonceResponsePayload {
+        return ServerPublicNonceResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ServerPublicNonceResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubnonce`)
+        )
+
+    override fun write(
+        value: ServerPublicNonceResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubnonce`, buf)
     }
 }
 
@@ -1767,6 +2049,67 @@ public object FfiConverterTypeSettings : FfiConverterRustBuffer<Settings> {
         FfiConverterString.write(value.`electrumType`, buf)
         FfiConverterBoolean.write(value.`notifications`, buf)
         FfiConverterBoolean.write(value.`tutorials`, buf)
+    }
+}
+
+@Serializable
+data class SignFirstRequestPayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("signed_statechain_id")
+    var `signedStatechainId`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeSignFirstRequestPayload : FfiConverterRustBuffer<SignFirstRequestPayload> {
+    override fun read(buf: ByteBuffer): SignFirstRequestPayload {
+        return SignFirstRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SignFirstRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`signedStatechainId`)
+        )
+
+    override fun write(
+        value: SignFirstRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`signedStatechainId`, buf)
+    }
+}
+
+@Serializable
+data class SignFirstResponsePayload(
+	@SerialName("server_pubnonce")
+    var `serverPubnonce`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeSignFirstResponsePayload : FfiConverterRustBuffer<SignFirstResponsePayload> {
+    override fun read(buf: ByteBuffer): SignFirstResponsePayload {
+        return SignFirstResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SignFirstResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubnonce`)
+        )
+
+    override fun write(
+        value: SignFirstResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubnonce`, buf)
     }
 }
 
@@ -1997,6 +2340,96 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class HexException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class LocktimeNotBlockHeightException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinConsensusEncodeException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class MusigNonceGenException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class InvalidStatechainAddressException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class InvalidBitcoinAddressException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class StatechainAddressMismatchNetworkException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinAddressMismatchNetworkException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinAddressException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinAbsoluteException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinHashHexException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinPsbtException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class SighashTypeParseException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class BitcoinSighashException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class ParseException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class MusigSignException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class SchnorrSignatureValidationException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class MoreThanOneInputException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -2011,6 +2444,24 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             4 -> MercuryException.Secp256k1UpstreamException()
             5 -> MercuryException.KeyException()
             6 -> MercuryException.Bech32Exception()
+            7 -> MercuryException.HexException()
+            8 -> MercuryException.LocktimeNotBlockHeightException()
+            9 -> MercuryException.BitcoinConsensusEncodeException()
+            10 -> MercuryException.MusigNonceGenException()
+            11 -> MercuryException.InvalidStatechainAddressException()
+            12 -> MercuryException.InvalidBitcoinAddressException()
+            13 -> MercuryException.StatechainAddressMismatchNetworkException()
+            14 -> MercuryException.BitcoinAddressMismatchNetworkException()
+            15 -> MercuryException.BitcoinAddressException()
+            16 -> MercuryException.BitcoinAbsoluteException()
+            17 -> MercuryException.BitcoinHashHexException()
+            18 -> MercuryException.BitcoinPsbtException()
+            19 -> MercuryException.SighashTypeParseException()
+            20 -> MercuryException.BitcoinSighashException()
+            21 -> MercuryException.ParseException()
+            22 -> MercuryException.MusigSignException()
+            23 -> MercuryException.SchnorrSignatureValidationException()
+            24 -> MercuryException.MoreThanOneInputException()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -2038,6 +2489,78 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.Bech32Exception -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.HexException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.LocktimeNotBlockHeightException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinConsensusEncodeException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.MusigNonceGenException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.InvalidStatechainAddressException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.InvalidBitcoinAddressException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.StatechainAddressMismatchNetworkException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinAddressMismatchNetworkException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinAddressException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinAbsoluteException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinHashHexException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinPsbtException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.SighashTypeParseException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.BitcoinSighashException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.ParseException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.MusigSignException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.SchnorrSignatureValidationException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.MoreThanOneInputException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -2071,6 +2594,78 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             }
             is MercuryException.Bech32Exception -> {
                 buf.putInt(6)
+                Unit
+            }
+            is MercuryException.HexException -> {
+                buf.putInt(7)
+                Unit
+            }
+            is MercuryException.LocktimeNotBlockHeightException -> {
+                buf.putInt(8)
+                Unit
+            }
+            is MercuryException.BitcoinConsensusEncodeException -> {
+                buf.putInt(9)
+                Unit
+            }
+            is MercuryException.MusigNonceGenException -> {
+                buf.putInt(10)
+                Unit
+            }
+            is MercuryException.InvalidStatechainAddressException -> {
+                buf.putInt(11)
+                Unit
+            }
+            is MercuryException.InvalidBitcoinAddressException -> {
+                buf.putInt(12)
+                Unit
+            }
+            is MercuryException.StatechainAddressMismatchNetworkException -> {
+                buf.putInt(13)
+                Unit
+            }
+            is MercuryException.BitcoinAddressMismatchNetworkException -> {
+                buf.putInt(14)
+                Unit
+            }
+            is MercuryException.BitcoinAddressException -> {
+                buf.putInt(15)
+                Unit
+            }
+            is MercuryException.BitcoinAbsoluteException -> {
+                buf.putInt(16)
+                Unit
+            }
+            is MercuryException.BitcoinHashHexException -> {
+                buf.putInt(17)
+                Unit
+            }
+            is MercuryException.BitcoinPsbtException -> {
+                buf.putInt(18)
+                Unit
+            }
+            is MercuryException.SighashTypeParseException -> {
+                buf.putInt(19)
+                Unit
+            }
+            is MercuryException.BitcoinSighashException -> {
+                buf.putInt(20)
+                Unit
+            }
+            is MercuryException.ParseException -> {
+                buf.putInt(21)
+                Unit
+            }
+            is MercuryException.MusigSignException -> {
+                buf.putInt(22)
+                Unit
+            }
+            is MercuryException.SchnorrSignatureValidationException -> {
+                buf.putInt(23)
+                Unit
+            }
+            is MercuryException.MoreThanOneInputException -> {
+                buf.putInt(24)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -2277,6 +2872,18 @@ fun `createAggregatedAddress`(
 }
 
 @Throws(MercuryException::class)
+fun `createAndCommitNonces`(`coin`: Coin): CoinNonce {
+    return FfiConverterTypeCoinNonce.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_and_commit_nonces(
+                FfiConverterTypeCoin.lower(`coin`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `createDepositMsg1`(
     `coin`: Coin,
     `tokenId`: kotlin.String,
@@ -2293,10 +2900,44 @@ fun `createDepositMsg1`(
 }
 
 @Throws(MercuryException::class)
+fun `createSignature`(
+    `msg`: kotlin.String,
+    `clientPartialSigHex`: kotlin.String,
+    `serverPartialSigHex`: kotlin.String,
+    `sessionHex`: kotlin.String,
+    `outputPubkeyHex`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_signature(
+                FfiConverterString.lower(`msg`),
+                FfiConverterString.lower(`clientPartialSigHex`),
+                FfiConverterString.lower(`serverPartialSigHex`),
+                FfiConverterString.lower(`sessionHex`),
+                FfiConverterString.lower(`outputPubkeyHex`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `generateMnemonic`(): kotlin.String {
     return FfiConverterString.lift(
         uniffiRustCallWithError(MercuryException) { _status ->
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_generate_mnemonic(
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `getBlockheight`(`bkpTx`: BackupTx): kotlin.UInt {
+    return FfiConverterUInt.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_blockheight(
+                FfiConverterTypeBackupTx.lower(`bkpTx`),
                 _status,
             )
         },
@@ -2316,6 +2957,52 @@ fun `getNewCoin`(`wallet`: Wallet): Coin {
 }
 
 @Throws(MercuryException::class)
+fun `getPartialSigRequest`(
+    `coin`: Coin,
+    `blockHeight`: kotlin.UInt,
+    `initlock`: kotlin.UInt,
+    `interval`: kotlin.UInt,
+    `feeRateSatsPerByte`: kotlin.UInt,
+    `qtBackupTx`: kotlin.UInt,
+    `toAddress`: kotlin.String,
+    `network`: kotlin.String,
+    `isWithdrawal`: kotlin.Boolean,
+): PartialSignatureMsg1 {
+    return FfiConverterTypePartialSignatureMsg1.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_partial_sig_request(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterUInt.lower(`blockHeight`),
+                FfiConverterUInt.lower(`initlock`),
+                FfiConverterUInt.lower(`interval`),
+                FfiConverterUInt.lower(`feeRateSatsPerByte`),
+                FfiConverterUInt.lower(`qtBackupTx`),
+                FfiConverterString.lower(`toAddress`),
+                FfiConverterString.lower(`network`),
+                FfiConverterBoolean.lower(`isWithdrawal`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `getUserBackupAddress`(
+    `coin`: Coin,
+    `network`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_user_backup_address(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `handleDepositMsg1Response`(
     `coin`: Coin,
     `depositMsg1Response`: DepositMsg1Response,
@@ -2325,6 +3012,22 @@ fun `handleDepositMsg1Response`(
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_handle_deposit_msg_1_response(
                 FfiConverterTypeCoin.lower(`coin`),
                 FfiConverterTypeDepositMsg1Response.lower(`depositMsg1Response`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `newBackupTransaction`(
+    `encodedUnsignedTx`: kotlin.String,
+    `signatureHex`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_new_backup_transaction(
+                FfiConverterString.lower(`encodedUnsignedTx`),
+                FfiConverterString.lower(`signatureHex`),
                 _status,
             )
         },

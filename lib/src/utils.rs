@@ -1,6 +1,5 @@
 use bitcoin::Transaction;
 use serde::{Serialize, Deserialize};
-use anyhow::{anyhow, Result};
 
 use crate::{wallet::BackupTx, MercuryError};
 
@@ -33,7 +32,7 @@ pub struct KeyListResponsePayload {
     pub list_keyinfo: Vec<PubKeyInfo>,
 }
 
-pub fn get_network(network: &str) -> core::result::Result<bitcoin::Network, MercuryError> {
+pub fn get_network(network: &str) -> Result<bitcoin::Network, MercuryError> {
     match network {
         "signet" => Ok(bitcoin::Network::Signet),
         "testnet" => Ok(bitcoin::Network::Testnet),
@@ -43,13 +42,14 @@ pub fn get_network(network: &str) -> core::result::Result<bitcoin::Network, Merc
     }
 }
 
-pub fn get_blockheight(bkp_tx: &BackupTx) -> Result<u32> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_blockheight(bkp_tx: &BackupTx) -> Result<u32, MercuryError> {
     let tx_bytes = hex::decode(&bkp_tx.tx)?;
-    let tx1 = bitcoin::consensus::deserialize::<Transaction>(&tx_bytes).unwrap();
+    let tx1 = bitcoin::consensus::deserialize::<Transaction>(&tx_bytes)?;
 
     let lock_time = tx1.lock_time;
     if !(lock_time.is_block_height()) {
-        return Err(anyhow!("Locktime is not block height"));
+        return Err(MercuryError::LocktimeNotBlockHeightError);
     }
     let block_height = lock_time.to_consensus_u32();
 

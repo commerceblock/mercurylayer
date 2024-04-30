@@ -13,7 +13,6 @@ use bech32::{Variant, ToBase32, FromBase32};
 use bip39::Mnemonic;
 use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::{ffi::types::AlignedType, AllPreallocated, PublicKey, Secp256k1, SecretKey}, Address};
 
-use anyhow::{anyhow, Result};
 use error::MercuryError;
 
 #[cfg(feature = "bindings")]
@@ -42,15 +41,15 @@ pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, netwo
     Ok(encoded)
 }
 
-pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, PublicKey)> {
+pub fn decode_transfer_address(sc_address: &str) -> core::result::Result<(u8, PublicKey, PublicKey), MercuryError> {
     let (hrp, data, variant)  = bech32::decode(sc_address)?;
 
     if hrp != MAINNET_HRP && hrp != TESTNET_HRP {
-        return Err(anyhow!("Invalid SC address".to_string()));
+        return Err(MercuryError::InvalidStatechainAddressError);
     }
 
     if variant != Variant::Bech32m {
-        return Err(anyhow!("Invalid address".to_string()));
+        return Err(MercuryError::InvalidBitcoinAddressError);
     }
 
     let decoded_data = Vec::<u8>::from_base32(&data)?;
@@ -105,22 +104,22 @@ pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> core::result
     encode_sc_address(&user_pubkey, &auth_pubkey, network)
 }
 
-pub fn validate_address(address: &str, network: &str) -> Result<bool> {
+pub fn validate_address(address: &str, network: &str) -> core::result::Result<bool, MercuryError> {
 
     let network = utils::get_network(network)?;
 
     if address.starts_with(MAINNET_HRP) || address.starts_with(TESTNET_HRP) {
         if address.starts_with(MAINNET_HRP) && network != bitcoin::Network::Bitcoin {
-            return Err(anyhow!("Statechain address does not match the network"));
+            return Err(MercuryError::StatechainAddressMismatchNetworkError);
         }
 
         if address.starts_with(TESTNET_HRP) && network == bitcoin::Network::Bitcoin {
-            return Err(anyhow!("Statechain address does not match the network"));
+            return Err(MercuryError::StatechainAddressMismatchNetworkError);
         }
 
         match decode_transfer_address(address) {
             Ok(_) => Ok(true),
-            Err(_) => Err(anyhow::anyhow!("Invalid statechain address")),
+            Err(_) => Err(MercuryError::InvalidStatechainAddressError),
         }
     }
     else {
@@ -129,10 +128,10 @@ pub fn validate_address(address: &str, network: &str) -> Result<bool> {
 
                 match addr.require_network(network) {
                     Ok(_) => Ok(true),
-                    Err(_) => Err(anyhow::anyhow!("Bitcoin address does not match the network")),
+                    Err(_) => Err(MercuryError::BitcoinAddressMismatchNetworkError),
                 }
             },
-            Err(_) => Err(anyhow::anyhow!("Invalid bitcoin address")),
+            Err(_) => Err(MercuryError::InvalidBitcoinAddressError),
         }
     
     }    

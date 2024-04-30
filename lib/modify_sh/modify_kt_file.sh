@@ -17,6 +17,10 @@ FIND_TEXT_DEPOSIT_MSG1="data class DepositMsg1("
 FIND_TEXT_DEPOSIT_MSG1_RESPONSE="data class DepositMsg1Response("
 FIND_TEXT_DEPOSIT_INIT_RESULT="data class DepositInitResult("
 FIND_TEXT_AGGREGATED_PUBLIC_KEY="data class AggregatedPublicKey("
+FIND_TEXT_SIGN_FIRST_REQUEST_PAYLOAD="data class SignFirstRequestPayload("
+FIND_TEXT_SIGN_FIRST_RESPONSE_PAYLOAD="data class SignFirstResponsePayload("
+FIND_TEXT_PARTIAL_SIGNATURE_REQUEST_PAYLOAD="data class PartialSignatureRequestPayload("
+FIND_TEXT_PARTIAL_SIGNATURE_RESPONSE_PAYLOAD="data class PartialSignatureResponsePayload("
 
 # The text to add @Serializable
 ADD_TEXT="@Serializable"
@@ -43,6 +47,10 @@ find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
     -e "/$FIND_TEXT_DEPOSIT_MSG1_RESPONSE/i $ADD_TEXT" \
     -e "/$FIND_TEXT_DEPOSIT_INIT_RESULT/i $ADD_TEXT" \
     -e "/$FIND_TEXT_AGGREGATED_PUBLIC_KEY/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_SIGN_FIRST_REQUEST_PAYLOAD/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_SIGN_FIRST_RESPONSE_PAYLOAD/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_PARTIAL_SIGNATURE_REQUEST_PAYLOAD/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_PARTIAL_SIGNATURE_RESPONSE_PAYLOAD/i $ADD_TEXT" \
     -e "/$IMPORT_FIND_TEXT$/ {
         n; 
         /$IMPORT_ADD_SERIALIZABLE/!i $IMPORT_ADD_SERIALIZABLE
