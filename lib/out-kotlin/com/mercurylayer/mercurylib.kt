@@ -1343,6 +1343,7 @@ public object FfiConverterTypeAggregatedPublicKey : FfiConverterRustBuffer<Aggre
     }
 }
 
+@Serializable
 data class BackupTx(
     var `txN`: kotlin.UInt,
     var `tx`: kotlin.String,
