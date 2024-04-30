@@ -46,6 +46,8 @@ PG_COMMAND="PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -d 
     INSERT INTO keylist_info (json_data) VALUES ('$KEYLIST_JSON');
   \""
 
+echo "PG_COMMAND: $PG_COMMAND"
+
 # Execute the PostgreSQL command
 eval "$PG_COMMAND"
 
