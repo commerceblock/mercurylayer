@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Fetch keylist JSON from the provided URL
-KEYLIST_URL="https://api.mercurywallet.io/info/keylist"
+KEYLIST_URL="http://45.76.136.11:8000/info/keylist"
 KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL" | jq -r '.list_keyinfo')
 
 # Check if the GET request was successful
