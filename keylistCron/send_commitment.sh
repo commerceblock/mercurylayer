@@ -2,7 +2,7 @@
 
 # Fetch keylist JSON from the provided URL
 KEYLIST_URL="http://45.76.136.11:8000/info/keylist"
-KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL" | jq -r '.list_keyinfo')
+KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL" | jq -r '.list_keyinfo' | sed 's/"/\\"/g')
 
 # Check if the GET request was successful
 if [[ $? -ne 0 ]]; then
@@ -39,7 +39,7 @@ fi
 echo "Keylist $KEYLIST_HASH attestation completed successfully!"
 
 # Connect to the database and save the keylist JSON
-PG_COMMAND="PGPASSWORD=mercurypass@12345 psql -h vultr-prod-e795780f-1f41-4d13-978d-5fd624923873-vultr-prod-86c1.vultrdb.com -p 16751 -d defaultdb -U mercury -c \"CREATE TABLE IF NOT EXISTS keylist_info ( json_data LONGTEXT NOT NULL, keylist_hash TEXT NOT NULL ); INSERT INTO keylist_info (json_data, keylist_hash) VALUES ('$KEYLIST_JSON', '$KEYLIST_HASH');\""
+PG_COMMAND="PGPASSWORD=mercurypass@12345 psql -h vultr-prod-e795780f-1f41-4d13-978d-5fd624923873-vultr-prod-86c1.vultrdb.com -p 16751 -d defaultdb -U mercury -c \"CREATE TABLE IF NOT EXISTS keylist_info ( json_data TEXT NOT NULL, keylist_hash TEXT NOT NULL ); INSERT INTO keylist_info (json_data, keylist_hash) VALUES ('$KEYLIST_JSON', '$KEYLIST_HASH');\""
 
 echo "PG_COMMAND $PG_COMMAND"
 # Execute the PostgreSQL command
