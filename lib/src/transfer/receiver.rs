@@ -17,6 +17,12 @@ pub struct TransferReceiverRequestPayload {
     pub auth_sig: String,
 }
 
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct TransferReceiverResponsePayload {
+    pub server_pubkey: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct KeyUpdateResponsePayload { 

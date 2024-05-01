@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo};
+use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo, TransferReceiverResponsePayload};
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
 use serde::{Serialize, Deserialize};
@@ -282,14 +282,9 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         },
     };
 
-    #[derive(Serialize, Deserialize)]
-    pub struct TransferReceiverResponsePayload<'r> {
-        server_pubkey: &'r str,
-    }
-
     let response: TransferReceiverResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let mut server_pubkey_hex = response.server_pubkey.to_string();
+    let mut server_pubkey_hex = response.server_pubkey.clone();
 
     if server_pubkey_hex.starts_with("0x") {
         server_pubkey_hex = server_pubkey_hex[2..].to_string();

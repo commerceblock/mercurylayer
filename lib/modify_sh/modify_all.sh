@@ -8,3 +8,9 @@
 ./modify_sh/modify_partial_signature_response_payload.sh
 ./modify_sh/modify_transfer_sender_request_payload.sh
 ./modify_sh/modify_transfer_update_msg_request_payload.sh
+./modify_sh/modify_get_msg_addr_response_payload.sh
+./modify_sh/modify_key_update_response_payload.sh
+./modify_sh/modify_statechain_info.sh
+./modify_sh/modify_statechainInfo_response_payload.sh
+./modify_sh/modify_transfer_receiver_request_payload.sh
+./modify_sh/modify_transfer_receiver_response_payload.sh

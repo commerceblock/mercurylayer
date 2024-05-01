@@ -3,7 +3,6 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package com.mercurylayer
 
 // Common helper code.
 //
@@ -23,6 +22,8 @@ import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
 import com.sun.jna.ptr.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.CharBuffer
@@ -1478,6 +1479,7 @@ public object FfiConverterByteArray : FfiConverterRustBuffer<ByteArray> {
     }
 }
 
+@Serializable
 data class Activity(
     var `utxo`: kotlin.String,
     var `amount`: kotlin.UInt,
@@ -1516,6 +1518,7 @@ public object FfiConverterTypeActivity : FfiConverterRustBuffer<Activity> {
     }
 }
 
+@Serializable
 data class AggregatedPublicKey(
     var `aggregatePubkey`: kotlin.String,
     var `aggregateAddress`: kotlin.String,
@@ -1546,6 +1549,7 @@ public object FfiConverterTypeAggregatedPublicKey : FfiConverterRustBuffer<Aggre
     }
 }
 
+@Serializable
 data class BackupTx(
     var `txN`: kotlin.UInt,
     var `tx`: kotlin.String,
@@ -1596,6 +1600,7 @@ public object FfiConverterTypeBackupTx : FfiConverterRustBuffer<BackupTx> {
     }
 }
 
+@Serializable
 data class Coin(
     var `index`: kotlin.UInt,
     var `userPrivkey`: kotlin.String,
@@ -1831,6 +1836,7 @@ public object FfiConverterTypeDecodedSCAddress : FfiConverterRustBuffer<DecodedS
     }
 }
 
+@Serializable
 data class DepositInitResult(
     var `serverPubkey`: kotlin.String,
     var `statechainId`: kotlin.String,
@@ -1865,9 +1871,13 @@ public object FfiConverterTypeDepositInitResult : FfiConverterRustBuffer<Deposit
     }
 }
 
+@Serializable
 data class DepositMsg1(
+	@SerialName("auth_key")
     var `authKey`: kotlin.String,
+	@SerialName("token_id")
     var `tokenId`: kotlin.String,
+	@SerialName("signed_token_id")
     var `signedTokenId`: kotlin.String,
 ) {
     companion object
@@ -1899,8 +1909,11 @@ public object FfiConverterTypeDepositMsg1 : FfiConverterRustBuffer<DepositMsg1> 
     }
 }
 
+@Serializable
 data class DepositMsg1Response(
+	@SerialName("server_pubkey")
     var `serverPubkey`: kotlin.String,
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
 ) {
     companion object
@@ -1971,7 +1984,9 @@ public object FfiConverterTypeFFITransferMsg : FfiConverterRustBuffer<FfiTransfe
     }
 }
 
+@Serializable
 data class GetMsgAddrResponsePayload(
+	@SerialName("list_enc_transfer_msg")
     var `listEncTransferMsg`: List<kotlin.String>,
 ) {
     companion object
@@ -2057,7 +2072,9 @@ public object FfiConverterTypeKeyListResponsePayload : FfiConverterRustBuffer<Ke
     }
 }
 
+@Serializable
 data class KeyUpdateResponsePayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
     var `t2`: kotlin.String,
     var `x1`: kotlin.String,
@@ -2175,11 +2192,16 @@ public object FfiConverterTypePartialSignatureMsg1 : FfiConverterRustBuffer<Part
     }
 }
 
+@Serializable
 data class PartialSignatureRequestPayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("negate_seckey")
     var `negateSeckey`: kotlin.UByte,
     var `session`: kotlin.String,
+	@SerialName("signed_statechain_id")
     var `signedStatechainId`: kotlin.String,
+	@SerialName("server_pub_nonce")
     var `serverPubNonce`: kotlin.String,
 ) {
     companion object
@@ -2217,7 +2239,9 @@ public object FfiConverterTypePartialSignatureRequestPayload : FfiConverterRustB
     }
 }
 
+@Serializable
 data class PartialSignatureResponsePayload(
+	@SerialName("partial_sig")
     var `partialSig`: kotlin.String,
 ) {
     companion object
@@ -2277,6 +2301,7 @@ public object FfiConverterTypePubKeyInfo : FfiConverterRustBuffer<PubKeyInfo> {
     }
 }
 
+@Serializable
 data class ServerConfig(
     var `initlock`: kotlin.UInt,
     var `interval`: kotlin.UInt,
@@ -2333,6 +2358,7 @@ public object FfiConverterTypeServerPublicNonceResponsePayload : FfiConverterRus
     }
 }
 
+@Serializable
 data class Settings(
     var `network`: kotlin.String,
     var `blockExplorerUrl`: kotlin.String?,
@@ -2411,8 +2437,11 @@ public object FfiConverterTypeSettings : FfiConverterRustBuffer<Settings> {
     }
 }
 
+@Serializable
 data class SignFirstRequestPayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("signed_statechain_id")
     var `signedStatechainId`: kotlin.String,
 ) {
     companion object
@@ -2441,7 +2470,9 @@ public object FfiConverterTypeSignFirstRequestPayload : FfiConverterRustBuffer<S
     }
 }
 
+@Serializable
 data class SignFirstResponsePayload(
+	@SerialName("server_pubnonce")
     var `serverPubnonce`: kotlin.String,
 ) {
     companion object
@@ -2497,10 +2528,14 @@ public object FfiConverterTypeStatechainBackupTxs : FfiConverterRustBuffer<State
     }
 }
 
+@Serializable
 data class StatechainInfo(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("server_pubnonce")
     var `serverPubnonce`: kotlin.String,
     var `challenge`: kotlin.String,
+	@SerialName("tx_n")
     var `txN`: kotlin.UInt,
 ) {
     companion object
@@ -2535,10 +2570,15 @@ public object FfiConverterTypeStatechainInfo : FfiConverterRustBuffer<Statechain
     }
 }
 
+@Serializable
 data class StatechainInfoResponsePayload(
+	@SerialName("enclave_public_key")
     var `enclavePublicKey`: kotlin.String,
+	@SerialName("num_sigs")
     var `numSigs`: kotlin.UInt,
+	@SerialName("statechain_info")
     var `statechainInfo`: List<StatechainInfo>,
+	@SerialName("x1_pub")
     var `x1Pub`: kotlin.String,
 ) {
     companion object
@@ -2573,11 +2613,16 @@ public object FfiConverterTypeStatechainInfoResponsePayload : FfiConverterRustBu
     }
 }
 
+@Serializable
 data class Token(
+	@SerialName("btc_payment_address")
     var `btcPaymentAddress`: kotlin.String,
     var `fee`: kotlin.String,
+	@SerialName("lightning_invoice")
     var `lightningInvoice`: kotlin.String,
+	@SerialName("processor_id")
     var `processorId`: kotlin.String,
+	@SerialName("token_id")
     var `tokenId`: kotlin.String,
     var `confirmed`: kotlin.Boolean,
     var `spent`: kotlin.Boolean,
@@ -2627,10 +2672,14 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
     }
 }
 
+@Serializable
 data class TransferReceiverRequestPayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("batch_data")
     var `batchData`: kotlin.String?,
     var `t2`: kotlin.String,
+	@SerialName("auth_sig")
     var `authSig`: kotlin.String,
 ) {
     companion object
@@ -2665,10 +2714,43 @@ public object FfiConverterTypeTransferReceiverRequestPayload : FfiConverterRustB
     }
 }
 
+@Serializable
+data class TransferReceiverResponsePayload(
+	@SerialName("server_pubkey")
+    var `serverPubkey`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverResponsePayload : FfiConverterRustBuffer<TransferReceiverResponsePayload> {
+    override fun read(buf: ByteBuffer): TransferReceiverResponsePayload {
+        return TransferReceiverResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferReceiverResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubkey`)
+        )
+
+    override fun write(
+        value: TransferReceiverResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubkey`, buf)
+    }
+}
+
+@Serializable
 data class TransferSenderRequestPayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("auth_sig")
     var `authSig`: kotlin.String,
+	@SerialName("new_user_auth_key")
     var `newUserAuthKey`: kotlin.String,
+	@SerialName("batch_id")
     var `batchId`: kotlin.String?,
 ) {
     companion object
@@ -2703,6 +2785,7 @@ public object FfiConverterTypeTransferSenderRequestPayload : FfiConverterRustBuf
     }
 }
 
+@Serializable
 data class TransferSenderResponsePayload(
     var `x1`: kotlin.String,
 ) {
@@ -2729,10 +2812,15 @@ public object FfiConverterTypeTransferSenderResponsePayload : FfiConverterRustBu
     }
 }
 
+@Serializable
 data class TransferUpdateMsgRequestPayload(
+	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
+	@SerialName("auth_sig")
     var `authSig`: kotlin.String,
+	@SerialName("new_user_auth_key")
     var `newUserAuthKey`: kotlin.String,
+	@SerialName("enc_transfer_msg")
     var `encTransferMsg`: kotlin.String,
 ) {
     companion object
@@ -2797,6 +2885,7 @@ public object FfiConverterTypeTxOutpoint : FfiConverterRustBuffer<TxOutpoint> {
     }
 }
 
+@Serializable
 data class Wallet(
     var `name`: kotlin.String,
     var `mnemonic`: kotlin.String,
