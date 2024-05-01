@@ -3,6 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
+package com.mercurylayer
 
 // Common helper code.
 //
@@ -22,8 +23,6 @@ import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
 import com.sun.jna.ptr.*
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerialName
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.CharBuffer
@@ -786,6 +785,42 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_ffi_verify_transfer_signature(
+        `newUserPubkey`: RustBuffer.ByValue,
+        `tx0Outpoint`: RustBuffer.ByValue,
+        `ffiTransferMsg`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
+    fun uniffi_mercurylib_fn_func_fii_create_transfer_receiver_request_payload(
+        `statechainInfo`: RustBuffer.ByValue,
+        `ffiTransferMsg`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_fii_decrypt_transfer_msg(
+        `encryptedMessage`: RustBuffer.ByValue,
+        `privateKeyWif`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_fii_validate_tx0_output_pubkey(
+        `enclavePublicKey`: RustBuffer.ByValue,
+        `ffiTransferMsg`: RustBuffer.ByValue,
+        `tx0Outpoint`: RustBuffer.ByValue,
+        `tx0Hex`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
+    fun uniffi_mercurylib_fn_func_fii_verify_latest_backup_tx_pays_to_user_pubkey(
+        `ffiTransferMsg`: RustBuffer.ByValue,
+        `clientPubkeyShare`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
     fun uniffi_mercurylib_fn_func_generate_mnemonic(uniffi_out_err: UniffiRustCallStatus): RustBuffer.ByValue
 
     fun uniffi_mercurylib_fn_func_get_blockheight(
@@ -795,6 +830,23 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_fn_func_get_new_coin(
         `wallet`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_new_key_info(
+        `serverPublicKeyHex`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        `statechainId`: RustBuffer.ByValue,
+        `tx0Outpoint`: RustBuffer.ByValue,
+        `tx0Hex`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_output_address_from_tx0(
+        `tx0Outpoint`: RustBuffer.ByValue,
+        `tx0Hex`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
@@ -808,6 +860,11 @@ internal interface UniffiLib : Library {
         `toAddress`: RustBuffer.ByValue,
         `network`: RustBuffer.ByValue,
         `isWithdrawal`: Byte,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_get_tx0_outpoint(
+        `backupTransactions`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
@@ -834,6 +891,21 @@ internal interface UniffiLib : Library {
         `network`: RustBuffer.ByValue,
         uniffi_out_err: UniffiRustCallStatus,
     ): Byte
+
+    fun uniffi_mercurylib_fn_func_verify_blinded_musig_scheme(
+        `backupTx`: RustBuffer.ByValue,
+        `tx0Hex`: RustBuffer.ByValue,
+        `statechainInfo`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
+
+    fun uniffi_mercurylib_fn_func_verify_transaction_signature(
+        `txNHex`: RustBuffer.ByValue,
+        `tx0Hex`: RustBuffer.ByValue,
+        `feeRateTolerance`: Int,
+        `currentFeeRateSatsPerByte`: Int,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Unit
 
     fun ffi_mercurylib_rustbuffer_alloc(
         `size`: Long,
@@ -1067,13 +1139,29 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_decode_statechain_address(): Short
 
+    fun uniffi_mercurylib_checksum_func_ffi_verify_transfer_signature(): Short
+
+    fun uniffi_mercurylib_checksum_func_fii_create_transfer_receiver_request_payload(): Short
+
+    fun uniffi_mercurylib_checksum_func_fii_decrypt_transfer_msg(): Short
+
+    fun uniffi_mercurylib_checksum_func_fii_validate_tx0_output_pubkey(): Short
+
+    fun uniffi_mercurylib_checksum_func_fii_verify_latest_backup_tx_pays_to_user_pubkey(): Short
+
     fun uniffi_mercurylib_checksum_func_generate_mnemonic(): Short
 
     fun uniffi_mercurylib_checksum_func_get_blockheight(): Short
 
     fun uniffi_mercurylib_checksum_func_get_new_coin(): Short
 
+    fun uniffi_mercurylib_checksum_func_get_new_key_info(): Short
+
+    fun uniffi_mercurylib_checksum_func_get_output_address_from_tx0(): Short
+
     fun uniffi_mercurylib_checksum_func_get_partial_sig_request(): Short
+
+    fun uniffi_mercurylib_checksum_func_get_tx0_outpoint(): Short
 
     fun uniffi_mercurylib_checksum_func_get_user_backup_address(): Short
 
@@ -1082,6 +1170,10 @@ internal interface UniffiLib : Library {
     fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
     fun uniffi_mercurylib_checksum_func_validate_address(): Short
+
+    fun uniffi_mercurylib_checksum_func_verify_blinded_musig_scheme(): Short
+
+    fun uniffi_mercurylib_checksum_func_verify_transaction_signature(): Short
 
     fun ffi_mercurylib_uniffi_contract_version(): Int
 }
@@ -1122,6 +1214,21 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_mercurylib_checksum_func_decode_statechain_address() != 7125.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_mercurylib_checksum_func_ffi_verify_transfer_signature() != 18534.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_fii_create_transfer_receiver_request_payload() != 58308.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_fii_decrypt_transfer_msg() != 44515.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_fii_validate_tx0_output_pubkey() != 51706.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_fii_verify_latest_backup_tx_pays_to_user_pubkey() != 46083.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_generate_mnemonic() != 62910.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1131,7 +1238,16 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_mercurylib_checksum_func_get_new_coin() != 45841.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_mercurylib_checksum_func_get_new_key_info() != 64987.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_get_output_address_from_tx0() != 62309.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_mercurylib_checksum_func_get_partial_sig_request() != 13111.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_get_tx0_outpoint() != 21467.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_get_user_backup_address() != 29075.toShort()) {
@@ -1144,6 +1260,12 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_validate_address() != 16334.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_verify_blinded_musig_scheme() != 42963.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_verify_transaction_signature() != 32006.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1335,7 +1457,27 @@ public object FfiConverterString : FfiConverter<String, RustBuffer.ByValue> {
     }
 }
 
-@Serializable
+public object FfiConverterByteArray : FfiConverterRustBuffer<ByteArray> {
+    override fun read(buf: ByteBuffer): ByteArray {
+        val len = buf.getInt()
+        val byteArr = ByteArray(len)
+        buf.get(byteArr)
+        return byteArr
+    }
+
+    override fun allocationSize(value: ByteArray): ULong {
+        return 4UL + value.size.toULong()
+    }
+
+    override fun write(
+        value: ByteArray,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.size)
+        buf.put(value)
+    }
+}
+
 data class Activity(
     var `utxo`: kotlin.String,
     var `amount`: kotlin.UInt,
@@ -1374,7 +1516,6 @@ public object FfiConverterTypeActivity : FfiConverterRustBuffer<Activity> {
     }
 }
 
-@Serializable
 data class AggregatedPublicKey(
     var `aggregatePubkey`: kotlin.String,
     var `aggregateAddress`: kotlin.String,
@@ -1405,7 +1546,6 @@ public object FfiConverterTypeAggregatedPublicKey : FfiConverterRustBuffer<Aggre
     }
 }
 
-@Serializable
 data class BackupTx(
     var `txN`: kotlin.UInt,
     var `tx`: kotlin.String,
@@ -1456,7 +1596,6 @@ public object FfiConverterTypeBackupTx : FfiConverterRustBuffer<BackupTx> {
     }
 }
 
-@Serializable
 data class Coin(
     var `index`: kotlin.UInt,
     var `userPrivkey`: kotlin.String,
@@ -1692,7 +1831,6 @@ public object FfiConverterTypeDecodedSCAddress : FfiConverterRustBuffer<DecodedS
     }
 }
 
-@Serializable
 data class DepositInitResult(
     var `serverPubkey`: kotlin.String,
     var `statechainId`: kotlin.String,
@@ -1727,13 +1865,9 @@ public object FfiConverterTypeDepositInitResult : FfiConverterRustBuffer<Deposit
     }
 }
 
-@Serializable
 data class DepositMsg1(
-	@SerialName("auth_key")
     var `authKey`: kotlin.String,
-	@SerialName("token_id")
     var `tokenId`: kotlin.String,
-	@SerialName("signed_token_id")
     var `signedTokenId`: kotlin.String,
 ) {
     companion object
@@ -1765,11 +1899,8 @@ public object FfiConverterTypeDepositMsg1 : FfiConverterRustBuffer<DepositMsg1> 
     }
 }
 
-@Serializable
 data class DepositMsg1Response(
-	@SerialName("server_pubkey")
     var `serverPubkey`: kotlin.String,
-	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
 ) {
     companion object
@@ -1795,6 +1926,74 @@ public object FfiConverterTypeDepositMsg1Response : FfiConverterRustBuffer<Depos
     ) {
         FfiConverterString.write(value.`serverPubkey`, buf)
         FfiConverterString.write(value.`statechainId`, buf)
+    }
+}
+
+data class FfiTransferMsg(
+    var `statechainId`: kotlin.String,
+    var `transferSignature`: kotlin.String,
+    var `backupTransactions`: List<BackupTx>,
+    var `t1`: kotlin.ByteArray,
+    var `userPublicKey`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeFFITransferMsg : FfiConverterRustBuffer<FfiTransferMsg> {
+    override fun read(buf: ByteBuffer): FfiTransferMsg {
+        return FfiTransferMsg(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeBackupTx.read(buf),
+            FfiConverterByteArray.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiTransferMsg) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`transferSignature`) +
+                FfiConverterSequenceTypeBackupTx.allocationSize(value.`backupTransactions`) +
+                FfiConverterByteArray.allocationSize(value.`t1`) +
+                FfiConverterString.allocationSize(value.`userPublicKey`)
+        )
+
+    override fun write(
+        value: FfiTransferMsg,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`transferSignature`, buf)
+        FfiConverterSequenceTypeBackupTx.write(value.`backupTransactions`, buf)
+        FfiConverterByteArray.write(value.`t1`, buf)
+        FfiConverterString.write(value.`userPublicKey`, buf)
+    }
+}
+
+data class GetMsgAddrResponsePayload(
+    var `listEncTransferMsg`: List<kotlin.String>,
+) {
+    companion object
+}
+
+public object FfiConverterTypeGetMsgAddrResponsePayload : FfiConverterRustBuffer<GetMsgAddrResponsePayload> {
+    override fun read(buf: ByteBuffer): GetMsgAddrResponsePayload {
+        return GetMsgAddrResponsePayload(
+            FfiConverterSequenceString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GetMsgAddrResponsePayload) =
+        (
+            FfiConverterSequenceString.allocationSize(value.`listEncTransferMsg`)
+        )
+
+    override fun write(
+        value: GetMsgAddrResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterSequenceString.write(value.`listEncTransferMsg`, buf)
     }
 }
 
@@ -1858,6 +2057,78 @@ public object FfiConverterTypeKeyListResponsePayload : FfiConverterRustBuffer<Ke
     }
 }
 
+data class KeyUpdateResponsePayload(
+    var `statechainId`: kotlin.String,
+    var `t2`: kotlin.String,
+    var `x1`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeKeyUpdateResponsePayload : FfiConverterRustBuffer<KeyUpdateResponsePayload> {
+    override fun read(buf: ByteBuffer): KeyUpdateResponsePayload {
+        return KeyUpdateResponsePayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: KeyUpdateResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`t2`) +
+                FfiConverterString.allocationSize(value.`x1`)
+        )
+
+    override fun write(
+        value: KeyUpdateResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`t2`, buf)
+        FfiConverterString.write(value.`x1`, buf)
+    }
+}
+
+data class NewKeyInfo(
+    var `aggregatePubkey`: kotlin.String,
+    var `aggregateAddress`: kotlin.String,
+    var `signedStatechainId`: kotlin.String,
+    var `amount`: kotlin.UInt,
+) {
+    companion object
+}
+
+public object FfiConverterTypeNewKeyInfo : FfiConverterRustBuffer<NewKeyInfo> {
+    override fun read(buf: ByteBuffer): NewKeyInfo {
+        return NewKeyInfo(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NewKeyInfo) =
+        (
+            FfiConverterString.allocationSize(value.`aggregatePubkey`) +
+                FfiConverterString.allocationSize(value.`aggregateAddress`) +
+                FfiConverterString.allocationSize(value.`signedStatechainId`) +
+                FfiConverterUInt.allocationSize(value.`amount`)
+        )
+
+    override fun write(
+        value: NewKeyInfo,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`aggregatePubkey`, buf)
+        FfiConverterString.write(value.`aggregateAddress`, buf)
+        FfiConverterString.write(value.`signedStatechainId`, buf)
+        FfiConverterUInt.write(value.`amount`, buf)
+    }
+}
+
 data class PartialSignatureMsg1(
     var `msg`: kotlin.String,
     var `outputPubkey`: kotlin.String,
@@ -1904,16 +2175,11 @@ public object FfiConverterTypePartialSignatureMsg1 : FfiConverterRustBuffer<Part
     }
 }
 
-@Serializable
 data class PartialSignatureRequestPayload(
-	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
-	@SerialName("negate_seckey")
     var `negateSeckey`: kotlin.UByte,
     var `session`: kotlin.String,
-	@SerialName("signed_statechain_id")
     var `signedStatechainId`: kotlin.String,
-	@SerialName("server_pub_nonce")
     var `serverPubNonce`: kotlin.String,
 ) {
     companion object
@@ -1951,9 +2217,7 @@ public object FfiConverterTypePartialSignatureRequestPayload : FfiConverterRustB
     }
 }
 
-@Serializable
 data class PartialSignatureResponsePayload(
-	@SerialName("partial_sig")
     var `partialSig`: kotlin.String,
 ) {
     companion object
@@ -2013,7 +2277,6 @@ public object FfiConverterTypePubKeyInfo : FfiConverterRustBuffer<PubKeyInfo> {
     }
 }
 
-@Serializable
 data class ServerConfig(
     var `initlock`: kotlin.UInt,
     var `interval`: kotlin.UInt,
@@ -2070,7 +2333,6 @@ public object FfiConverterTypeServerPublicNonceResponsePayload : FfiConverterRus
     }
 }
 
-@Serializable
 data class Settings(
     var `network`: kotlin.String,
     var `blockExplorerUrl`: kotlin.String?,
@@ -2149,11 +2411,8 @@ public object FfiConverterTypeSettings : FfiConverterRustBuffer<Settings> {
     }
 }
 
-@Serializable
 data class SignFirstRequestPayload(
-	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
-	@SerialName("signed_statechain_id")
     var `signedStatechainId`: kotlin.String,
 ) {
     companion object
@@ -2182,9 +2441,7 @@ public object FfiConverterTypeSignFirstRequestPayload : FfiConverterRustBuffer<S
     }
 }
 
-@Serializable
 data class SignFirstResponsePayload(
-	@SerialName("server_pubnonce")
     var `serverPubnonce`: kotlin.String,
 ) {
     companion object
@@ -2240,16 +2497,87 @@ public object FfiConverterTypeStatechainBackupTxs : FfiConverterRustBuffer<State
     }
 }
 
-@Serializable
+data class StatechainInfo(
+    var `statechainId`: kotlin.String,
+    var `serverPubnonce`: kotlin.String,
+    var `challenge`: kotlin.String,
+    var `txN`: kotlin.UInt,
+) {
+    companion object
+}
+
+public object FfiConverterTypeStatechainInfo : FfiConverterRustBuffer<StatechainInfo> {
+    override fun read(buf: ByteBuffer): StatechainInfo {
+        return StatechainInfo(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: StatechainInfo) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`serverPubnonce`) +
+                FfiConverterString.allocationSize(value.`challenge`) +
+                FfiConverterUInt.allocationSize(value.`txN`)
+        )
+
+    override fun write(
+        value: StatechainInfo,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`serverPubnonce`, buf)
+        FfiConverterString.write(value.`challenge`, buf)
+        FfiConverterUInt.write(value.`txN`, buf)
+    }
+}
+
+data class StatechainInfoResponsePayload(
+    var `enclavePublicKey`: kotlin.String,
+    var `numSigs`: kotlin.UInt,
+    var `statechainInfo`: List<StatechainInfo>,
+    var `x1Pub`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeStatechainInfoResponsePayload : FfiConverterRustBuffer<StatechainInfoResponsePayload> {
+    override fun read(buf: ByteBuffer): StatechainInfoResponsePayload {
+        return StatechainInfoResponsePayload(
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterSequenceTypeStatechainInfo.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: StatechainInfoResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`enclavePublicKey`) +
+                FfiConverterUInt.allocationSize(value.`numSigs`) +
+                FfiConverterSequenceTypeStatechainInfo.allocationSize(value.`statechainInfo`) +
+                FfiConverterString.allocationSize(value.`x1Pub`)
+        )
+
+    override fun write(
+        value: StatechainInfoResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`enclavePublicKey`, buf)
+        FfiConverterUInt.write(value.`numSigs`, buf)
+        FfiConverterSequenceTypeStatechainInfo.write(value.`statechainInfo`, buf)
+        FfiConverterString.write(value.`x1Pub`, buf)
+    }
+}
+
 data class Token(
-	@SerialName("btc_payment_address")
     var `btcPaymentAddress`: kotlin.String,
     var `fee`: kotlin.String,
-	@SerialName("lightning_invoice")
     var `lightningInvoice`: kotlin.String,
-	@SerialName("processor_id")
     var `processorId`: kotlin.String,
-	@SerialName("token_id")
     var `tokenId`: kotlin.String,
     var `confirmed`: kotlin.Boolean,
     var `spent`: kotlin.Boolean,
@@ -2299,15 +2627,48 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
     }
 }
 
-@Serializable
-data class TransferSenderRequestPayload(
-	@SerialName("statechain_id")
+data class TransferReceiverRequestPayload(
     var `statechainId`: kotlin.String,
-	@SerialName("auth_sig")
+    var `batchData`: kotlin.String?,
+    var `t2`: kotlin.String,
     var `authSig`: kotlin.String,
-	@SerialName("new_user_auth_key")
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverRequestPayload : FfiConverterRustBuffer<TransferReceiverRequestPayload> {
+    override fun read(buf: ByteBuffer): TransferReceiverRequestPayload {
+        return TransferReceiverRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferReceiverRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterOptionalString.allocationSize(value.`batchData`) +
+                FfiConverterString.allocationSize(value.`t2`) +
+                FfiConverterString.allocationSize(value.`authSig`)
+        )
+
+    override fun write(
+        value: TransferReceiverRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterOptionalString.write(value.`batchData`, buf)
+        FfiConverterString.write(value.`t2`, buf)
+        FfiConverterString.write(value.`authSig`, buf)
+    }
+}
+
+data class TransferSenderRequestPayload(
+    var `statechainId`: kotlin.String,
+    var `authSig`: kotlin.String,
     var `newUserAuthKey`: kotlin.String,
-	@SerialName("batch_id")
     var `batchId`: kotlin.String?,
 ) {
     companion object
@@ -2342,7 +2703,6 @@ public object FfiConverterTypeTransferSenderRequestPayload : FfiConverterRustBuf
     }
 }
 
-@Serializable
 data class TransferSenderResponsePayload(
     var `x1`: kotlin.String,
 ) {
@@ -2369,15 +2729,10 @@ public object FfiConverterTypeTransferSenderResponsePayload : FfiConverterRustBu
     }
 }
 
-@Serializable
 data class TransferUpdateMsgRequestPayload(
-	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
-	@SerialName("auth_sig")
     var `authSig`: kotlin.String,
-	@SerialName("new_user_auth_key")
     var `newUserAuthKey`: kotlin.String,
-	@SerialName("enc_transfer_msg")
     var `encTransferMsg`: kotlin.String,
 ) {
     companion object
@@ -2412,7 +2767,36 @@ public object FfiConverterTypeTransferUpdateMsgRequestPayload : FfiConverterRust
     }
 }
 
-@Serializable
+data class TxOutpoint(
+    var `txid`: kotlin.String,
+    var `vout`: kotlin.UInt,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTxOutpoint : FfiConverterRustBuffer<TxOutpoint> {
+    override fun read(buf: ByteBuffer): TxOutpoint {
+        return TxOutpoint(
+            FfiConverterString.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TxOutpoint) =
+        (
+            FfiConverterString.allocationSize(value.`txid`) +
+                FfiConverterUInt.allocationSize(value.`vout`)
+        )
+
+    override fun write(
+        value: TxOutpoint,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`txid`, buf)
+        FfiConverterUInt.write(value.`vout`, buf)
+    }
+}
+
 data class Wallet(
     var `name`: kotlin.String,
     var `mnemonic`: kotlin.String,
@@ -2655,6 +3039,11 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class FeeTooLow() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     class OutOfRangeException() : MercuryException() {
         override val message
             get() = ""
@@ -2666,6 +3055,51 @@ sealed class MercuryException : Exception() {
     }
 
     class SecpException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class NoBackupTransactionFound() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class Tx1HasMoreThanOneInput() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class InvalidSignature() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class EmptyWitness() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class EmptyWitnessData() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class IncorrectChallenge() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class InvalidT1() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class IncorrectAggregatedPublicKey() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class T1MustBeExactly32BytesException() : MercuryException() {
         override val message
             get() = ""
     }
@@ -2705,9 +3139,19 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             25 -> MercuryException.UnkownNetwork()
             26 -> MercuryException.BackupTransactionDoesNotPayUser()
             27 -> MercuryException.FeeTooHigh()
-            28 -> MercuryException.OutOfRangeException()
-            29 -> MercuryException.SerdeJsonException()
-            30 -> MercuryException.SecpException()
+            28 -> MercuryException.FeeTooLow()
+            29 -> MercuryException.OutOfRangeException()
+            30 -> MercuryException.SerdeJsonException()
+            31 -> MercuryException.SecpException()
+            32 -> MercuryException.NoBackupTransactionFound()
+            33 -> MercuryException.Tx1HasMoreThanOneInput()
+            34 -> MercuryException.InvalidSignature()
+            35 -> MercuryException.EmptyWitness()
+            36 -> MercuryException.EmptyWitnessData()
+            37 -> MercuryException.IncorrectChallenge()
+            38 -> MercuryException.InvalidT1()
+            39 -> MercuryException.IncorrectAggregatedPublicKey()
+            40 -> MercuryException.T1MustBeExactly32BytesException()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -2822,6 +3266,10 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
+            is MercuryException.FeeTooLow -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
             is MercuryException.OutOfRangeException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
@@ -2831,6 +3279,42 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.SecpException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.NoBackupTransactionFound -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.Tx1HasMoreThanOneInput -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.InvalidSignature -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.EmptyWitness -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.EmptyWitnessData -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.IncorrectChallenge -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.InvalidT1 -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.IncorrectAggregatedPublicKey -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.T1MustBeExactly32BytesException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -2950,16 +3434,56 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 buf.putInt(27)
                 Unit
             }
-            is MercuryException.OutOfRangeException -> {
+            is MercuryException.FeeTooLow -> {
                 buf.putInt(28)
                 Unit
             }
-            is MercuryException.SerdeJsonException -> {
+            is MercuryException.OutOfRangeException -> {
                 buf.putInt(29)
                 Unit
             }
-            is MercuryException.SecpException -> {
+            is MercuryException.SerdeJsonException -> {
                 buf.putInt(30)
+                Unit
+            }
+            is MercuryException.SecpException -> {
+                buf.putInt(31)
+                Unit
+            }
+            is MercuryException.NoBackupTransactionFound -> {
+                buf.putInt(32)
+                Unit
+            }
+            is MercuryException.Tx1HasMoreThanOneInput -> {
+                buf.putInt(33)
+                Unit
+            }
+            is MercuryException.InvalidSignature -> {
+                buf.putInt(34)
+                Unit
+            }
+            is MercuryException.EmptyWitness -> {
+                buf.putInt(35)
+                Unit
+            }
+            is MercuryException.EmptyWitnessData -> {
+                buf.putInt(36)
+                Unit
+            }
+            is MercuryException.IncorrectChallenge -> {
+                buf.putInt(37)
+                Unit
+            }
+            is MercuryException.InvalidT1 -> {
+                buf.putInt(38)
+                Unit
+            }
+            is MercuryException.IncorrectAggregatedPublicKey -> {
+                buf.putInt(39)
+                Unit
+            }
+            is MercuryException.T1MustBeExactly32BytesException -> {
+                buf.putInt(40)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -3020,6 +3544,31 @@ public object FfiConverterOptionalString : FfiConverterRustBuffer<kotlin.String?
         } else {
             buf.put(1)
             FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+public object FfiConverterSequenceString : FfiConverterRustBuffer<List<kotlin.String>> {
+    override fun read(buf: ByteBuffer): List<kotlin.String> {
+        val len = buf.getInt()
+        return List<kotlin.String>(len) {
+            FfiConverterString.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.String>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(
+        value: List<kotlin.String>,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterString.write(it, buf)
         }
     }
 }
@@ -3120,6 +3669,31 @@ public object FfiConverterSequenceTypePubKeyInfo : FfiConverterRustBuffer<List<P
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypePubKeyInfo.write(it, buf)
+        }
+    }
+}
+
+public object FfiConverterSequenceTypeStatechainInfo : FfiConverterRustBuffer<List<StatechainInfo>> {
+    override fun read(buf: ByteBuffer): List<StatechainInfo> {
+        val len = buf.getInt()
+        return List<StatechainInfo>(len) {
+            FfiConverterTypeStatechainInfo.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<StatechainInfo>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeStatechainInfo.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(
+        value: List<StatechainInfo>,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeStatechainInfo.write(it, buf)
         }
     }
 }
@@ -3292,6 +3866,98 @@ fun `decodeStatechainAddress`(`scAddress`: kotlin.String): DecodedScAddress {
 }
 
 @Throws(MercuryException::class)
+fun `ffiVerifyTransferSignature`(
+    `newUserPubkey`: kotlin.String,
+    `tx0Outpoint`: TxOutpoint,
+    `ffiTransferMsg`: FfiTransferMsg,
+): kotlin.Boolean {
+    return FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_ffi_verify_transfer_signature(
+                FfiConverterString.lower(`newUserPubkey`),
+                FfiConverterTypeTxOutpoint.lower(`tx0Outpoint`),
+                FfiConverterTypeFFITransferMsg.lower(`ffiTransferMsg`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `fiiCreateTransferReceiverRequestPayload`(
+    `statechainInfo`: StatechainInfoResponsePayload,
+    `ffiTransferMsg`: FfiTransferMsg,
+    `coin`: Coin,
+): TransferReceiverRequestPayload {
+    return FfiConverterTypeTransferReceiverRequestPayload.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_fii_create_transfer_receiver_request_payload(
+                FfiConverterTypeStatechainInfoResponsePayload.lower(`statechainInfo`),
+                FfiConverterTypeFFITransferMsg.lower(`ffiTransferMsg`),
+                FfiConverterTypeCoin.lower(`coin`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `fiiDecryptTransferMsg`(
+    `encryptedMessage`: kotlin.String,
+    `privateKeyWif`: kotlin.String,
+): FfiTransferMsg {
+    return FfiConverterTypeFFITransferMsg.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_fii_decrypt_transfer_msg(
+                FfiConverterString.lower(`encryptedMessage`),
+                FfiConverterString.lower(`privateKeyWif`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `fiiValidateTx0OutputPubkey`(
+    `enclavePublicKey`: kotlin.String,
+    `ffiTransferMsg`: FfiTransferMsg,
+    `tx0Outpoint`: TxOutpoint,
+    `tx0Hex`: kotlin.String,
+    `network`: kotlin.String,
+): kotlin.Boolean {
+    return FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_fii_validate_tx0_output_pubkey(
+                FfiConverterString.lower(`enclavePublicKey`),
+                FfiConverterTypeFFITransferMsg.lower(`ffiTransferMsg`),
+                FfiConverterTypeTxOutpoint.lower(`tx0Outpoint`),
+                FfiConverterString.lower(`tx0Hex`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `fiiVerifyLatestBackupTxPaysToUserPubkey`(
+    `ffiTransferMsg`: FfiTransferMsg,
+    `clientPubkeyShare`: kotlin.String,
+    `network`: kotlin.String,
+): kotlin.Boolean {
+    return FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_fii_verify_latest_backup_tx_pays_to_user_pubkey(
+                FfiConverterTypeFFITransferMsg.lower(`ffiTransferMsg`),
+                FfiConverterString.lower(`clientPubkeyShare`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `generateMnemonic`(): kotlin.String {
     return FfiConverterString.lift(
         uniffiRustCallWithError(MercuryException) { _status ->
@@ -3327,6 +3993,48 @@ fun `getNewCoin`(`wallet`: Wallet): Coin {
 }
 
 @Throws(MercuryException::class)
+fun `getNewKeyInfo`(
+    `serverPublicKeyHex`: kotlin.String,
+    `coin`: Coin,
+    `statechainId`: kotlin.String,
+    `tx0Outpoint`: TxOutpoint,
+    `tx0Hex`: kotlin.String,
+    `network`: kotlin.String,
+): NewKeyInfo {
+    return FfiConverterTypeNewKeyInfo.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_new_key_info(
+                FfiConverterString.lower(`serverPublicKeyHex`),
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`statechainId`),
+                FfiConverterTypeTxOutpoint.lower(`tx0Outpoint`),
+                FfiConverterString.lower(`tx0Hex`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `getOutputAddressFromTx0`(
+    `tx0Outpoint`: TxOutpoint,
+    `tx0Hex`: kotlin.String,
+    `network`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_output_address_from_tx0(
+                FfiConverterTypeTxOutpoint.lower(`tx0Outpoint`),
+                FfiConverterString.lower(`tx0Hex`),
+                FfiConverterString.lower(`network`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
 fun `getPartialSigRequest`(
     `coin`: Coin,
     `blockHeight`: kotlin.UInt,
@@ -3350,6 +4058,18 @@ fun `getPartialSigRequest`(
                 FfiConverterString.lower(`toAddress`),
                 FfiConverterString.lower(`network`),
                 FfiConverterBoolean.lower(`isWithdrawal`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `getTx0Outpoint`(`backupTransactions`: List<BackupTx>): TxOutpoint {
+    return FfiConverterTypeTxOutpoint.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_get_tx0_outpoint(
+                FfiConverterSequenceTypeBackupTx.lower(`backupTransactions`),
                 _status,
             )
         },
@@ -3417,5 +4137,35 @@ fun `validateAddress`(
                 _status,
             )
         },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `verifyBlindedMusigScheme`(
+    `backupTx`: BackupTx,
+    `tx0Hex`: kotlin.String,
+    `statechainInfo`: StatechainInfo,
+) = uniffiRustCallWithError(MercuryException) { _status ->
+    UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_verify_blinded_musig_scheme(
+        FfiConverterTypeBackupTx.lower(`backupTx`),
+        FfiConverterString.lower(`tx0Hex`),
+        FfiConverterTypeStatechainInfo.lower(`statechainInfo`),
+        _status,
+    )
+}
+
+@Throws(MercuryException::class)
+fun `verifyTransactionSignature`(
+    `txNHex`: kotlin.String,
+    `tx0Hex`: kotlin.String,
+    `feeRateTolerance`: kotlin.UInt,
+    `currentFeeRateSatsPerByte`: kotlin.UInt,
+) = uniffiRustCallWithError(MercuryException) { _status ->
+    UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_verify_transaction_signature(
+        FfiConverterString.lower(`txNHex`),
+        FfiConverterString.lower(`tx0Hex`),
+        FfiConverterUInt.lower(`feeRateTolerance`),
+        FfiConverterUInt.lower(`currentFeeRateSatsPerByte`),
+        _status,
     )
 }

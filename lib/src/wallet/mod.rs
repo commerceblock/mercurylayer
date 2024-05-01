@@ -6,7 +6,6 @@ use std::{fmt, str::FromStr};
 use bip39::{Mnemonic, Language};
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
-use anyhow::Result;
 
 use crate::{utils::ServerConfig, MercuryError};
 

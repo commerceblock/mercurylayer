@@ -3,13 +3,13 @@ use std::str::FromStr;
 use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut, taproot::TapTweakHash};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
-use anyhow::{Result, anyhow};
 
-use crate::{wallet::{BackupTx, Coin}, utils::get_network};
+use crate::{error::MercuryError, utils::get_network, wallet::{BackupTx, Coin}};
 
 use super::TransferMsg;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferReceiverRequestPayload { 
     pub statechain_id: String,
     pub batch_data: Option<String>,
@@ -18,6 +18,7 @@ pub struct TransferReceiverRequestPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct KeyUpdateResponsePayload { 
     pub statechain_id: String,
     pub t2: String,
@@ -25,11 +26,13 @@ pub struct KeyUpdateResponsePayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct GetMsgAddrResponsePayload {
     pub list_enc_transfer_msg: Vec<String>,
 }
  
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct StatechainInfo {
     pub statechain_id: String,
     pub server_pubnonce: String,
@@ -38,6 +41,7 @@ pub struct StatechainInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct StatechainInfoResponsePayload {
     pub enclave_public_key: String,
     pub num_sigs: u32,
@@ -46,12 +50,14 @@ pub struct StatechainInfoResponsePayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TxOutpoint {
     pub txid: String,
     pub vout: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct NewKeyInfo {
     pub aggregate_pubkey: String,
     pub aggregate_address: String,
@@ -59,7 +65,7 @@ pub struct NewKeyInfo {
     pub amount: u32,
 }
 
-pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg> {
+pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg, MercuryError> {
 
     let client_auth_key = PrivateKey::from_wif(private_key_wif)?.inner;
 
@@ -74,22 +80,23 @@ pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> R
     Ok(transfer_msg)
 }
 
-pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoint> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoint, MercuryError> {
 
     let mut backup_transactions = backup_transactions.clone();
 
     backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
 
-    let bkp_tx1 = backup_transactions.first().ok_or(anyhow!("No backup transaction found"))?;
+    let bkp_tx1 = backup_transactions.first().ok_or(MercuryError::NoBackupTransactionFound)?;
 
     let tx1: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&bkp_tx1.tx)?)?;
 
     if tx1.input.len() > 1 {
-        return Err(anyhow!("tx1 has more than one input"));
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
     }
 
     if tx1.output.len() > 1 {
-        return Err(anyhow!("tx1 has more than one output"));
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
     }
 
     let tx0_txid = tx1.input[0].previous_output.txid;
@@ -98,7 +105,7 @@ pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoin
     Ok(TxOutpoint{ txid: tx0_txid.to_string(), vout: tx0_vout })
 }
 
-pub fn verify_transfer_signature(new_user_pubkey: &str, tx0_outpoint: &TxOutpoint, transfer_msg: &TransferMsg) -> Result<bool> {
+pub fn verify_transfer_signature(new_user_pubkey: &str, tx0_outpoint: &TxOutpoint, transfer_msg: &TransferMsg) -> Result<bool, MercuryError> {
 
     let new_user_pubkey = PublicKey::from_str(new_user_pubkey)?;
     let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key)?.x_only_public_key().0;
@@ -120,7 +127,7 @@ pub fn verify_transfer_signature(new_user_pubkey: &str, tx0_outpoint: &TxOutpoin
     Ok(secp.verify_schnorr(&signature, &msg, &sender_public_key).is_ok())
 }
 
-pub fn validate_tx0_output_pubkey(enclave_public_key: &str, transfer_msg: &TransferMsg, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<bool> {
+pub fn validate_tx0_output_pubkey(enclave_public_key: &str, transfer_msg: &TransferMsg, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<bool, MercuryError> {
 
     let network = get_network(&network)?;
 
@@ -145,7 +152,7 @@ pub fn validate_tx0_output_pubkey(enclave_public_key: &str, transfer_msg: &Trans
     Ok(transfer_aggregate_xonly_pubkey == tx0_output_xonly_pubkey)
 }
 
-pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &str, network: &str) -> Result<bool> {
+pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, client_pubkey_share: &str, network: &str) -> Result<bool, MercuryError> {
 
     let client_pubkey_share = PublicKey::from_str(&client_pubkey_share)?;
     
@@ -154,7 +161,7 @@ pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, c
     let last_bkp_tx = transfer_msg.backup_transactions.last();
 
     if last_bkp_tx.is_none() {
-        return Err(anyhow!("No backup transaction found"));
+        return Err(MercuryError::NoBackupTransactionFound);
     }
 
     let last_bkp_tx = last_bkp_tx.unwrap();
@@ -168,7 +175,8 @@ pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, c
     Ok(output.script_pubkey == aggregate_address.script_pubkey())
 }
 
-pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<String> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<String, MercuryError> {
 
     let network = get_network(&network)?;
 
@@ -183,7 +191,8 @@ pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, net
     Ok(address.to_string())
 }
 
-pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> Result<()> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> Result<(), MercuryError> {
 
     let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
 
@@ -221,27 +230,28 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
     let fee_rate = fee / tx_n.vsize() as u64;
 
     if (fee_rate as i64 + fee_rate_tolerance as i64) < current_fee_rate_sats_per_byte as i64 {
-        return Err(anyhow!("Fee rate too low".to_string()));
+        return Err(MercuryError::FeeTooLow);
     }
 
     if (fee_rate as i64 - fee_rate_tolerance as i64) > current_fee_rate_sats_per_byte as i64 {
-        return Err(anyhow!("Fee rate too high".to_string()));
+        return Err(MercuryError::FeeTooHigh);
     }
 
     if !Secp256k1::new().verify_schnorr(&signature, &msg, &xonly_pubkey).is_ok() {
-        return Err(anyhow!("Invalid signature".to_string()));
+        return Err(MercuryError::InvalidSignature);
     }
 
     Ok(())
 
 }
 
-fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message> {
+
+fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message, MercuryError> {
 
     let witness = tx_n.input[0].witness.clone();
 
     if witness.nth(0).is_none() {
-        return Err(anyhow!("Empty witness"));
+        return Err(MercuryError::EmptyWitness);
     }
 
     let witness_data = witness.nth(0).unwrap();
@@ -251,7 +261,7 @@ fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message> {
     let tx_0_output = tx_0.output[vout].clone();
 
     if witness_data.last().is_none() {
-        return Err(anyhow!("Empty witness data"));
+        return Err(MercuryError::EmptyWitnessData);
     }
 
     let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned())?;
@@ -270,7 +280,8 @@ fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message> {
     Ok(msg)
 }
 
-pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statechain_info: &StatechainInfo) -> Result<()> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statechain_info: &StatechainInfo) -> Result<(), MercuryError> {
 
     let client_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.client_public_nonce)?.as_slice())?;
 
@@ -316,13 +327,13 @@ pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statecha
     let challenge = hex::encode(challenge);
 
     if statechain_info.challenge != challenge {
-        return Err(anyhow!("challenge is not correct".to_string()));
+        return Err(MercuryError::IncorrectChallenge);
     }
 
     Ok(())
 }
 
-fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicKey) -> Result<bool> {
+fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicKey) -> Result<bool, MercuryError> {
 
     let secret_t1 = SecretKey::from_slice(t1)?;
     let public_t1 = secret_t1.public_key(&Secp256k1::new());
@@ -332,7 +343,7 @@ fn validate_t1pub(t1: &[u8; 32], x1_pub: &PublicKey, sender_public_key: &PublicK
     Ok(result_pubkey == public_t1)
 }
 
-fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) -> Result<SecretKey> {
+fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) -> Result<SecretKey, MercuryError> {
 
     let t1 = Scalar::from_be_bytes(transfer_msg.t1)?;
 
@@ -343,7 +354,7 @@ fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) ->
     Ok(t2)
 }
 
-pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload> {
+pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload, MercuryError> {
 
     let x1_pub = PublicKey::from_str(&statechain_info.x1_pub)?;
 
@@ -354,7 +365,7 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
     let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
 
     if !validate_t1pub(&transfer_msg.t1, &x1_pub, &sender_public_key)? {
-        return Err(anyhow!("Invalid t1"));
+        return Err(MercuryError::InvalidT1);
     }
 
     let t2 = calculate_t2(&transfer_msg, &client_seckey_share)?;
@@ -378,7 +389,8 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 
 }
 
-pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id: &str, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<NewKeyInfo> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id: &str, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str) -> Result<NewKeyInfo, MercuryError> {
     
     let network = get_network(&network)?;
 
@@ -405,7 +417,7 @@ pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id:
     let tx0_output_xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
 
     if tx0_output_xonly_pubkey != xonly_pubkey {
-        return Err(anyhow!("Aggregated public key is not correct".to_string()));
+        return Err(MercuryError::IncorrectAggregatedPublicKey);
     }
 
     let p2tr_agg_address = Address::p2tr(&secp, aggregated_xonly_pubkey, None, network);

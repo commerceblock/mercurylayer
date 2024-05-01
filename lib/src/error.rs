@@ -63,9 +63,19 @@ pub enum MercuryError {
     UnkownNetwork,
     BackupTransactionDoesNotPayUser,
     FeeTooHigh,
+    FeeTooLow,
     OutOfRangeError,
     SerdeJsonError,
     SecpError,
+    NoBackupTransactionFound,
+    Tx1HasMoreThanOneInput,
+    InvalidSignature,
+    EmptyWitness,
+    EmptyWitnessData,
+    IncorrectChallenge,
+    InvalidT1,
+    IncorrectAggregatedPublicKey,
+    T1MustBeExactly32BytesError,
 }
 
 impl core::fmt::Display for MercuryError {
