@@ -39,7 +39,7 @@ fi
 echo "Keylist $KEYLIST_HASH attestation completed successfully!"
 
 # Connect to the database and save the keylist JSON
-PG_COMMAND="PGPASSWORD=mercurypass@12345 psql -h vultr-prod-e795780f-1f41-4d13-978d-5fd624923873-vultr-prod-86c1.vultrdb.com -p 16751 -d defaultdb -U mercury -c \"CREATE TABLE IF NOT EXISTS keylist_info ( json_data TEXT NOT NULL, keylist_hash TEXT NOT NULL ); INSERT INTO keylist_info (json_data, keylist_hash) VALUES ('$KEYLIST_JSON', '$KEYLIST_HASH');\""
+PG_COMMAND="PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -d $DB_NAME -U $DB_USER -c \"CREATE TABLE IF NOT EXISTS keylist_info ( json_data TEXT NOT NULL, keylist_hash TEXT NOT NULL ); INSERT INTO keylist_info (json_data, keylist_hash) VALUES ('$KEYLIST_JSON', '$KEYLIST_HASH');\""
 
 echo "PG_COMMAND $PG_COMMAND"
 # Execute the PostgreSQL command
