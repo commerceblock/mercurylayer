@@ -764,6 +764,28 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_create_transfer_signature(
+        `recipientAddress`: RustBuffer.ByValue,
+        `inputTxid`: RustBuffer.ByValue,
+        `inputVout`: Int,
+        `clientSeckey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_create_transfer_update_msg(
+        `x1`: RustBuffer.ByValue,
+        `recipientAddress`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        `transferSignature`: RustBuffer.ByValue,
+        `backupTransactions`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
+    fun uniffi_mercurylib_fn_func_decode_statechain_address(
+        `scAddress`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_generate_mnemonic(uniffi_out_err: UniffiRustCallStatus): RustBuffer.ByValue
 
     fun uniffi_mercurylib_fn_func_get_blockheight(
@@ -1039,6 +1061,12 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_create_signature(): Short
 
+    fun uniffi_mercurylib_checksum_func_create_transfer_signature(): Short
+
+    fun uniffi_mercurylib_checksum_func_create_transfer_update_msg(): Short
+
+    fun uniffi_mercurylib_checksum_func_decode_statechain_address(): Short
+
     fun uniffi_mercurylib_checksum_func_generate_mnemonic(): Short
 
     fun uniffi_mercurylib_checksum_func_get_blockheight(): Short
@@ -1083,6 +1111,15 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_create_signature() != 53021.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_create_transfer_signature() != 61677.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_create_transfer_update_msg() != 6918.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_decode_statechain_address() != 7125.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_generate_mnemonic() != 62910.toShort()) {
@@ -1618,6 +1655,40 @@ public object FfiConverterTypeCoinStatusParseError : FfiConverterRustBuffer<Coin
         value: CoinStatusParseError,
         buf: ByteBuffer,
     ) {
+    }
+}
+
+data class DecodedScAddress(
+    var `version`: kotlin.UByte,
+    var `userPubkey`: kotlin.String,
+    var `authPubkey`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeDecodedSCAddress : FfiConverterRustBuffer<DecodedScAddress> {
+    override fun read(buf: ByteBuffer): DecodedScAddress {
+        return DecodedScAddress(
+            FfiConverterUByte.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DecodedScAddress) =
+        (
+            FfiConverterUByte.allocationSize(value.`version`) +
+                FfiConverterString.allocationSize(value.`userPubkey`) +
+                FfiConverterString.allocationSize(value.`authPubkey`)
+        )
+
+    override fun write(
+        value: DecodedScAddress,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterUByte.write(value.`version`, buf)
+        FfiConverterString.write(value.`userPubkey`, buf)
+        FfiConverterString.write(value.`authPubkey`, buf)
     }
 }
 
@@ -2229,6 +2300,119 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
 }
 
 @Serializable
+data class TransferSenderRequestPayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("auth_sig")
+    var `authSig`: kotlin.String,
+	@SerialName("new_user_auth_key")
+    var `newUserAuthKey`: kotlin.String,
+	@SerialName("batch_id")
+    var `batchId`: kotlin.String?,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferSenderRequestPayload : FfiConverterRustBuffer<TransferSenderRequestPayload> {
+    override fun read(buf: ByteBuffer): TransferSenderRequestPayload {
+        return TransferSenderRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferSenderRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`authSig`) +
+                FfiConverterString.allocationSize(value.`newUserAuthKey`) +
+                FfiConverterOptionalString.allocationSize(value.`batchId`)
+        )
+
+    override fun write(
+        value: TransferSenderRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`authSig`, buf)
+        FfiConverterString.write(value.`newUserAuthKey`, buf)
+        FfiConverterOptionalString.write(value.`batchId`, buf)
+    }
+}
+
+@Serializable
+data class TransferSenderResponsePayload(
+    var `x1`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferSenderResponsePayload : FfiConverterRustBuffer<TransferSenderResponsePayload> {
+    override fun read(buf: ByteBuffer): TransferSenderResponsePayload {
+        return TransferSenderResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferSenderResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`x1`)
+        )
+
+    override fun write(
+        value: TransferSenderResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`x1`, buf)
+    }
+}
+
+@Serializable
+data class TransferUpdateMsgRequestPayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("auth_sig")
+    var `authSig`: kotlin.String,
+	@SerialName("new_user_auth_key")
+    var `newUserAuthKey`: kotlin.String,
+	@SerialName("enc_transfer_msg")
+    var `encTransferMsg`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferUpdateMsgRequestPayload : FfiConverterRustBuffer<TransferUpdateMsgRequestPayload> {
+    override fun read(buf: ByteBuffer): TransferUpdateMsgRequestPayload {
+        return TransferUpdateMsgRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferUpdateMsgRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`authSig`) +
+                FfiConverterString.allocationSize(value.`newUserAuthKey`) +
+                FfiConverterString.allocationSize(value.`encTransferMsg`)
+        )
+
+    override fun write(
+        value: TransferUpdateMsgRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`authSig`, buf)
+        FfiConverterString.write(value.`newUserAuthKey`, buf)
+        FfiConverterString.write(value.`encTransferMsg`, buf)
+    }
+}
+
+@Serializable
 data class Wallet(
     var `name`: kotlin.String,
     var `mnemonic`: kotlin.String,
@@ -2471,6 +2655,21 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class OutOfRangeException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class SerdeJsonException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class SecpException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -2506,6 +2705,9 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             25 -> MercuryException.UnkownNetwork()
             26 -> MercuryException.BackupTransactionDoesNotPayUser()
             27 -> MercuryException.FeeTooHigh()
+            28 -> MercuryException.OutOfRangeException()
+            29 -> MercuryException.SerdeJsonException()
+            30 -> MercuryException.SecpException()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -2617,6 +2819,18 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.FeeTooHigh -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.OutOfRangeException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.SerdeJsonException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.SecpException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -2734,6 +2948,18 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             }
             is MercuryException.FeeTooHigh -> {
                 buf.putInt(27)
+                Unit
+            }
+            is MercuryException.OutOfRangeException -> {
+                buf.putInt(28)
+                Unit
+            }
+            is MercuryException.SerdeJsonException -> {
+                buf.putInt(29)
+                Unit
+            }
+            is MercuryException.SecpException -> {
+                buf.putInt(30)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -3005,6 +3231,60 @@ fun `createSignature`(
                 FfiConverterString.lower(`serverPartialSigHex`),
                 FfiConverterString.lower(`sessionHex`),
                 FfiConverterString.lower(`outputPubkeyHex`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `createTransferSignature`(
+    `recipientAddress`: kotlin.String,
+    `inputTxid`: kotlin.String,
+    `inputVout`: kotlin.UInt,
+    `clientSeckey`: kotlin.String,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_transfer_signature(
+                FfiConverterString.lower(`recipientAddress`),
+                FfiConverterString.lower(`inputTxid`),
+                FfiConverterUInt.lower(`inputVout`),
+                FfiConverterString.lower(`clientSeckey`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `createTransferUpdateMsg`(
+    `x1`: kotlin.String,
+    `recipientAddress`: kotlin.String,
+    `coin`: Coin,
+    `transferSignature`: kotlin.String,
+    `backupTransactions`: List<BackupTx>,
+): TransferUpdateMsgRequestPayload {
+    return FfiConverterTypeTransferUpdateMsgRequestPayload.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_create_transfer_update_msg(
+                FfiConverterString.lower(`x1`),
+                FfiConverterString.lower(`recipientAddress`),
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`transferSignature`),
+                FfiConverterSequenceTypeBackupTx.lower(`backupTransactions`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `decodeStatechainAddress`(`scAddress`: kotlin.String): DecodedScAddress {
+    return FfiConverterTypeDecodedSCAddress.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_decode_statechain_address(
+                FfiConverterString.lower(`scAddress`),
                 _status,
             )
         },

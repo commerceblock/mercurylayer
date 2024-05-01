@@ -6,3 +6,5 @@
 ./modify_sh/modify_sign_first_response_payload.sh
 ./modify_sh/modify_partial_signature_request_payload.sh
 ./modify_sh/modify_partial_signature_response_payload.sh
+./modify_sh/modify_transfer_sender_request_payload.sh
+./modify_sh/modify_transfer_update_msg_request_payload.sh
