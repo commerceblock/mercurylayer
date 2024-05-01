@@ -2673,6 +2673,34 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
 }
 
 @Serializable
+data class TransferReceiverGetResponsePayload(
+	@SerialName("transfer_complete")
+    var `transferComplete`: kotlin.Boolean,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverGetResponsePayload : FfiConverterRustBuffer<TransferReceiverGetResponsePayload> {
+    override fun read(buf: ByteBuffer): TransferReceiverGetResponsePayload {
+        return TransferReceiverGetResponsePayload(
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferReceiverGetResponsePayload) =
+        (
+            FfiConverterBoolean.allocationSize(value.`transferComplete`)
+        )
+
+    override fun write(
+        value: TransferReceiverGetResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterBoolean.write(value.`transferComplete`, buf)
+    }
+}
+
+@Serializable
 data class TransferReceiverRequestPayload(
 	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
