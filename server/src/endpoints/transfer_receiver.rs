@@ -1,10 +1,9 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo, TransferReceiverResponsePayload};
+use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfo, TransferReceiverGetResponsePayload, TransferReceiverPostResponsePayload};
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
-use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use sqlx::Row;
 
@@ -282,7 +281,7 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         },
     };
 
-    let response: TransferReceiverResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
+    let response: TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
     let mut server_pubkey_hex = response.server_pubkey.clone();
 
@@ -294,8 +293,8 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     update_statechain(&statechain_entity.pool, &auth_pubkey, &server_pubkey, &statechain_id).await;
 
-    let response_body = json!({
-        "server_pubkey": server_pubkey.to_string(),
+    let response_body = json!(TransferReceiverPostResponsePayload {
+        server_pubkey: server_pubkey.to_string(),
     });
 
     status::Custom(Status::Ok, Json(response_body))
@@ -306,8 +305,8 @@ pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, s
 
     let transfer_complete = is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
 
-    let response_body = json!({
-        "transfer_complete": transfer_complete,
+    let response_body = json!(TransferReceiverGetResponsePayload {
+        transfer_complete: transfer_complete,
     });
 
     status::Custom(Status::Ok, Json(response_body))

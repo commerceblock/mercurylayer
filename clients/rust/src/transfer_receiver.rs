@@ -5,8 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{transfer::receiver::{GetMsgAddrResponsePayload, verify_transfer_signature, StatechainInfoResponsePayload, validate_tx0_output_pubkey, verify_latest_backup_tx_pays_to_user_pubkey, TxOutpoint, verify_transaction_signature, verify_blinded_musig_scheme, create_transfer_receiver_request_payload, TransferReceiverRequestPayload, get_new_key_info}, wallet::{Coin, Activity, CoinStatus}, utils::{get_network, InfoConfig, get_blockheight}};
-use serde_json::Value;
+use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponsePayload, StatechainInfoResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
 
@@ -291,9 +290,7 @@ async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, tr
 
     let value = request.json(&transfer_receiver_request_payload).send().await?.text().await?;
 
-    let response: Value = serde_json::from_str(value.as_str())?;
+    let response: TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str())?;
 
-    let server_public_key_hex = response.get("server_pubkey").unwrap().as_str().unwrap();
-
-    Ok(server_public_key_hex.to_string())    
+    Ok(response.server_pubkey)
 }

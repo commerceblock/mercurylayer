@@ -2701,6 +2701,34 @@ public object FfiConverterTypeTransferReceiverGetResponsePayload : FfiConverterR
 }
 
 @Serializable
+data class TransferReceiverPostResponsePayload(
+	@SerialName("server_pubkey")
+    var `serverPubkey`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverPostResponsePayload : FfiConverterRustBuffer<TransferReceiverPostResponsePayload> {
+    override fun read(buf: ByteBuffer): TransferReceiverPostResponsePayload {
+        return TransferReceiverPostResponsePayload(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferReceiverPostResponsePayload) =
+        (
+            FfiConverterString.allocationSize(value.`serverPubkey`)
+        )
+
+    override fun write(
+        value: TransferReceiverPostResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`serverPubkey`, buf)
+    }
+}
+
+@Serializable
 data class TransferReceiverRequestPayload(
 	@SerialName("statechain_id")
     var `statechainId`: kotlin.String,
@@ -2739,34 +2767,6 @@ public object FfiConverterTypeTransferReceiverRequestPayload : FfiConverterRustB
         FfiConverterOptionalString.write(value.`batchData`, buf)
         FfiConverterString.write(value.`t2`, buf)
         FfiConverterString.write(value.`authSig`, buf)
-    }
-}
-
-@Serializable
-data class TransferReceiverResponsePayload(
-	@SerialName("server_pubkey")
-    var `serverPubkey`: kotlin.String,
-) {
-    companion object
-}
-
-public object FfiConverterTypeTransferReceiverResponsePayload : FfiConverterRustBuffer<TransferReceiverResponsePayload> {
-    override fun read(buf: ByteBuffer): TransferReceiverResponsePayload {
-        return TransferReceiverResponsePayload(
-            FfiConverterString.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: TransferReceiverResponsePayload) =
-        (
-            FfiConverterString.allocationSize(value.`serverPubkey`)
-        )
-
-    override fun write(
-        value: TransferReceiverResponsePayload,
-        buf: ByteBuffer,
-    ) {
-        FfiConverterString.write(value.`serverPubkey`, buf)
     }
 }
 

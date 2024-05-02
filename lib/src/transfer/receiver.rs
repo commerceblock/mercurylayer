@@ -19,7 +19,7 @@ pub struct TransferReceiverRequestPayload {
 
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct TransferReceiverResponsePayload {
+pub struct TransferReceiverPostResponsePayload {
     pub server_pubkey: String,
 }
 

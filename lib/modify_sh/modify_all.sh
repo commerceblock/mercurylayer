@@ -13,5 +13,5 @@
 ./modify_sh/modify_statechain_info.sh
 ./modify_sh/modify_statechainInfo_response_payload.sh
 ./modify_sh/modify_transfer_receiver_request_payload.sh
-./modify_sh/modify_transfer_receiver_response_payload.sh
+./modify_sh/modify_transfer_receiver_post_response_payload.sh
 ./modify_sh/modify_transfer_receiver_get_response_payload.sh

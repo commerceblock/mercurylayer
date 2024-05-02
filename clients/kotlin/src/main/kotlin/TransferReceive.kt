@@ -36,7 +36,7 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
         val url = "${appContext.clientConfig.statechainEntity}/transfer/receiver"
 
-        val transferReceiverResponsePayload : TransferReceiverResponsePayload = httpClient.post(url) {
+        val transferReceiverResponsePayload : TransferReceiverPostResponsePayload = httpClient.post(url) {
             contentType(ContentType.Application.Json)
             setBody(transferReceiverRequestPayload)
         }.body()
