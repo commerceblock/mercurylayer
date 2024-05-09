@@ -3,3 +3,4 @@ network = "testnet"
 lockheight_init = 1000
 lh_decrement = 10
 connection_string = "postgresql://postgres:postgres@localhost/mercury"
+batch_timeout = 120 # seconds

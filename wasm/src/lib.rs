@@ -422,6 +422,16 @@ pub fn validateAddress(address: String, network: String) -> bool {
 }
 
 #[wasm_bindgen]
+pub fn signMessage(statechain_id: String, coin: JsValue) -> String {
+
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    let signature = mercurylib::transfer::receiver::sign_message(&statechain_id, &coin).unwrap();
+
+    signature
+}
+
+#[wasm_bindgen]
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
         Token {

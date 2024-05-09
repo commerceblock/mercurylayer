@@ -8,6 +8,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
@@ -36,18 +37,36 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
         val url = "${appContext.clientConfig.statechainEntity}/transfer/receiver"
 
-        val transferReceiverResponsePayload : TransferReceiverPostResponsePayload = httpClient.post(url) {
-            contentType(ContentType.Application.Json)
-            setBody(transferReceiverRequestPayload)
-        }.body()
+        while (true) {
+            val response = httpClient.post(url) {
+                contentType(ContentType.Application.Json)
+                setBody(transferReceiverRequestPayload)
+            }
 
-        httpClient.close()
+            if (response.status == HttpStatusCode.BadRequest) {
 
-        return transferReceiverResponsePayload.serverPubkey
+                val transferReceiverErrorResponsePayload : TransferReceiverErrorResponsePayload = response.body()
+
+                if (transferReceiverErrorResponsePayload.code == TransferReceiverError.EXPIRED_BATCH_TIME_ERROR) {
+                    throw Exception(transferReceiverErrorResponsePayload.message)
+                } else if (transferReceiverErrorResponsePayload.code == TransferReceiverError.STATECOIN_BATCH_LOCKED_ERROR) {
+                    println("Statecoin batch still locked. Waiting until expiration or unlock.")
+                    delay(5000)
+                    continue
+                }
+            }
+
+            if (response.status == HttpStatusCode.OK) {
+                val transferReceiverPostResponsePayload : TransferReceiverPostResponsePayload = response.body()
+                return transferReceiverPostResponsePayload.serverPubkey
+            } else {
+                throw Exception("Failed to update transfer message")
+            }
+        }
     }
 
     private fun verifyTx0OutputIsUnspentAndConfirmed(
-        coin: Coin, tx0Outpoint: TxOutpoint, tx0Hex: String, walletNetwork: String) : Boolean
+        coin: Coin, tx0Outpoint: TxOutpoint, tx0Hex: String, walletNetwork: String) : Pair<Boolean, CoinStatus>
     {
         val tx0outputAddress = getOutputAddressFromTx0(tx0Outpoint, tx0Hex, walletNetwork)
 
@@ -60,6 +79,8 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
         val responseEntries: List<BlockchainScripthashListUnspentResponseEntry> =
             electrumClient.blockchainScripthashListUnspent(scripthash)
 
+        var status = CoinStatus.UNCONFIRMED;
+
         responseEntries.forEach { entry ->
             if (entry.txHash == tx0Outpoint.txid && entry.txPos == tx0Outpoint.vout.toLong()) {
                 val blockHeader = electrumClient.blockchainHeadersSubscribe()
@@ -67,17 +88,42 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
                 val confirmations = blockheight - entry.height + 1
 
-                coin.status = CoinStatus.UNCONFIRMED;
-
                 if (confirmations >= appContext.clientConfig.confirmationTarget) {
-                    coin.status = CoinStatus.CONFIRMED;
+                    status = CoinStatus.CONFIRMED;
                 }
 
-                return true
+                return Pair(true, status)
             }
         }
 
-        return false
+        return Pair(false, status)
+    }
+
+    private suspend fun unlockStatecoin(statechainId: String, signedStatechainId: String, authPubkey: String) {
+        val url = "${appContext.clientConfig.statechainEntity}/transfer/unlock"
+
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val transferUnlockRequestPayload = TransferUnlockRequestPayload (
+            statechainId,
+            signedStatechainId,
+            authPubkey
+        )
+
+        val response = httpClient.post(url) {
+            contentType(ContentType.Application.Json)
+            setBody(transferUnlockRequestPayload)
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            throw Exception("Failed to unlock transfer message")
+        }
+
+        httpClient.close()
     }
 
     private suspend fun getStatechainInfo(statechainId: String): StatechainInfoResponsePayload {
@@ -152,7 +198,7 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
             }
 
             val isTx0OutputUnspent = verifyTx0OutputIsUnspentAndConfirmed(coin, tx0Outpoint, tx0Hex, wallet.network);
-            if (!isTx0OutputUnspent) {
+            if (!isTx0OutputUnspent.first) {
                 println("tx0 output is spent or not confirmed")
                 return@forEach
             }
@@ -196,12 +242,23 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
             if (!sigSchemeValidation) {
                 println("Signature scheme validation failed")
-                return@forEach;
+                return@forEach
             }
 
             val transferReceiverRequestPayload = fiiCreateTransferReceiverRequestPayload(statechainInfo, transferMsg, coin)
 
-            val serverPublicKeyHex = sendTransferReceiverRequestPayload(transferReceiverRequestPayload)
+            val signedStatechainIdForUnlock = signMessage(transferMsg.statechainId, coin)
+
+            unlockStatecoin(transferMsg.statechainId, signedStatechainIdForUnlock, coin.authPubkey)
+
+            var serverPublicKeyHex = ""
+
+            try {
+                serverPublicKeyHex = sendTransferReceiverRequestPayload(transferReceiverRequestPayload)
+            } catch (e: Exception) {
+                println("Error: ${e.message}");
+                return@forEach
+            }
 
             val newKeyInfo = getNewKeyInfo(serverPublicKeyHex, coin, transferMsg.statechainId, tx0Outpoint, tx0Hex, wallet.network)
 
@@ -214,6 +271,7 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
             coin.utxoTxid = tx0Outpoint.txid
             coin.utxoVout = tx0Outpoint.vout
             coin.locktime = previousLockTime
+            coin.status = isTx0OutputUnspent.second
 
             val utxo = "${tx0Outpoint.txid}:${tx0Outpoint.vout}"
 

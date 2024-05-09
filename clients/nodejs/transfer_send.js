@@ -6,7 +6,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { CoinStatus } = require('./coin_enum');
 const config = require('config');
 
-const execute = async (electrumClient, db, walletName, statechainId, toAddress)  => {
+const execute = async (electrumClient, db, walletName, statechainId, toAddress, batchId)  => {
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
@@ -31,9 +31,23 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
-    if (coin.status != CoinStatus.CONFIRMED) {
-        throw new Error(`Coin status must be CONFIRMED to transfer it. The current status is ${coin.status}`);
+    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
     }
+
+    if (coin.locktime == null) {
+        throw new Error("Coin.locktime is null");
+    }
+
+    const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const currentBlockheight = blockHeader.height;
+
+    if (currentBlockheight > coin.locktime)  {
+        throw new Error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
+    }
+
+    const statechain_id = coin.statechain_id;
+    const signed_statechain_id = coin.signed_statechain_id;
 
     const isWithdrawal = false;
     const qtBackupTx = backupTxs.length;
@@ -44,15 +58,12 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
 
     const block_height = mercury_wasm.getBlockheight(bkp_tx1);
 
-    const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
-
-    const statechain_id = coin.statechain_id;
-    const signed_statechain_id = coin.signed_statechain_id;
-
     const decodedTransferAddress = mercury_wasm.decodeTransferAddress(toAddress);
     const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
 
-    const new_x1 = await get_new_x1(statechain_id, signed_statechain_id, new_auth_pubkey);
+    const new_x1 = await get_new_x1(statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
+
+    const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
 
     const backup_tx = {
         tx_n: new_tx_n,
@@ -63,6 +74,8 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
         server_public_key: coin.server_pubkey,
         blinding_factor: coin.blinding_factor
     };
+
+    coin.locktime = mercury_wasm.getBlockheight(backup_tx);
 
     backupTxs.push(backup_tx);
 
@@ -112,7 +125,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress) 
     return coin;
 }
 
-const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) => {
+const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey, batchId) => {
 
     const statechain_entity_url = config.get('statechainEntity');
     const path = "transfer/sender";
@@ -122,7 +135,7 @@ const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey) 
         statechain_id: statechain_id,
         auth_sig: signed_statechain_id,
         new_user_auth_key: new_auth_pubkey,
-        batch_id: null,
+        batch_id: batchId,
     };
 
     const torProxy = config.get('torProxy');

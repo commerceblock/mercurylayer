@@ -887,6 +887,12 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_sign_message(
+        `message`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_validate_address(
         `address`: RustBuffer.ByValue,
         `network`: RustBuffer.ByValue,
@@ -1170,6 +1176,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
+    fun uniffi_mercurylib_checksum_func_sign_message(): Short
+
     fun uniffi_mercurylib_checksum_func_validate_address(): Short
 
     fun uniffi_mercurylib_checksum_func_verify_blinded_musig_scheme(): Short
@@ -1258,6 +1266,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_new_backup_transaction() != 56642.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_sign_message() != 9994.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_validate_address() != 16334.toShort()) {
@@ -2673,6 +2684,37 @@ public object FfiConverterTypeToken : FfiConverterRustBuffer<Token> {
 }
 
 @Serializable
+data class TransferReceiverErrorResponsePayload(
+    var `code`: TransferReceiverError,
+    var `message`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverErrorResponsePayload : FfiConverterRustBuffer<TransferReceiverErrorResponsePayload> {
+    override fun read(buf: ByteBuffer): TransferReceiverErrorResponsePayload {
+        return TransferReceiverErrorResponsePayload(
+            FfiConverterTypeTransferReceiverError.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferReceiverErrorResponsePayload) =
+        (
+            FfiConverterTypeTransferReceiverError.allocationSize(value.`code`) +
+                FfiConverterString.allocationSize(value.`message`)
+        )
+
+    override fun write(
+        value: TransferReceiverErrorResponsePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterTypeTransferReceiverError.write(value.`code`, buf)
+        FfiConverterString.write(value.`message`, buf)
+    }
+}
+
+@Serializable
 data class TransferReceiverGetResponsePayload(
 	@SerialName("transfer_complete")
     var `transferComplete`: kotlin.Boolean,
@@ -2837,6 +2879,44 @@ public object FfiConverterTypeTransferSenderResponsePayload : FfiConverterRustBu
         buf: ByteBuffer,
     ) {
         FfiConverterString.write(value.`x1`, buf)
+    }
+}
+
+@Serializable
+data class TransferUnlockRequestPayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("auth_sig")
+    var `authSig`: kotlin.String,
+	@SerialName("auth_pub_key")
+    var `authPubKey`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeTransferUnlockRequestPayload : FfiConverterRustBuffer<TransferUnlockRequestPayload> {
+    override fun read(buf: ByteBuffer): TransferUnlockRequestPayload {
+        return TransferUnlockRequestPayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: TransferUnlockRequestPayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`authSig`) +
+                FfiConverterString.allocationSize(value.`authPubKey`)
+        )
+
+    override fun write(
+        value: TransferUnlockRequestPayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`authSig`, buf)
+        FfiConverterString.write(value.`authPubKey`, buf)
     }
 }
 
@@ -3607,6 +3687,35 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
     }
 }
 
+@Serializable
+enum class TransferReceiverError {
+	@SerialName("StatecoinBatchLockedError")
+    STATECOIN_BATCH_LOCKED_ERROR,
+	@SerialName("ExpiredBatchTimeError")
+    EXPIRED_BATCH_TIME_ERROR,
+    ;
+
+    companion object
+}
+
+public object FfiConverterTypeTransferReceiverError : FfiConverterRustBuffer<TransferReceiverError> {
+    override fun read(buf: ByteBuffer) =
+        try {
+            TransferReceiverError.values()[buf.getInt() - 1]
+        } catch (e: IndexOutOfBoundsException) {
+            throw RuntimeException("invalid enum value, something is very wrong!!", e)
+        }
+
+    override fun allocationSize(value: TransferReceiverError) = 4UL
+
+    override fun write(
+        value: TransferReceiverError,
+        buf: ByteBuffer,
+    ) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
 public object FfiConverterOptionalUInt : FfiConverterRustBuffer<kotlin.UInt?> {
     override fun read(buf: ByteBuffer): kotlin.UInt? {
         if (buf.get().toInt() == 0) {
@@ -4235,6 +4344,22 @@ fun `newBackupTransaction`(
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_new_backup_transaction(
                 FfiConverterString.lower(`encodedUnsignedTx`),
                 FfiConverterString.lower(`signatureHex`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `signMessage`(
+    `message`: kotlin.String,
+    `coin`: Coin,
+): kotlin.String {
+    return FfiConverterString.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_sign_message(
+                FfiConverterString.lower(`message`),
+                FfiConverterTypeCoin.lower(`coin`),
                 _status,
             )
         },

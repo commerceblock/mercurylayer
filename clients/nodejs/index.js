@@ -16,6 +16,8 @@ const sqlite3 = require('sqlite3').verbose();
 
 const sqlite_manager = require('./sqlite_manager');
 
+const { v4: uuidv4 } = require('uuid');
+
 const wallet_manager = require('./wallet');
 
 const config = require('config');
@@ -127,7 +129,8 @@ async function main() {
           statechain_id: coin.statechain_id,
           amount: coin.amount,
           status: coin.status,
-          adress: coin.address
+          adress: coin.address,
+          locktime: coin.locktime
         }));
         
         console.log(JSON.stringify(coins, null, 2));
@@ -160,10 +163,18 @@ async function main() {
     program.command('new-transfer-address')
       .description('New transfer address for a statecoin') 
       .argument('<wallet_name>', 'name of the wallet')
-      .action(async (wallet_name) => {
+      .option('-b, --generate-batch-id', 'optional batch id for the transaction')
+      .action(async (wallet_name, options) => {
 
         const addr = await transfer_receive.newTransferAddress(db, wallet_name)
-        console.log(JSON.stringify({transfer_receive: addr}, null, 2));
+        let res = {transfer_receive: addr};
+
+        if (options.generateBatchId) {
+          const batchId = uuidv4();
+          res.batch_id = batchId;
+        }
+
+        console.log(JSON.stringify(res, null, 2));
 
         electrumClient.close();
         db.close();
@@ -174,11 +185,14 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .argument('<statechain_id>', 'statechain id of the coin')
       .argument('<to_address>', 'recipient bitcoin address')
+      .option('-b, --batch-id <batch_id>', 'optional batch id for the transaction')
       .action(async (wallet_name, statechain_id, to_address, options) => {
+
+        let batchId = options.batchId  || null;
 
         await coin_status.updateCoins(electrumClient, db, wallet_name);
 
-        let coin = await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address);
+        let coin = await transfer_send.execute(electrumClient, db, wallet_name, statechain_id, to_address, batchId);
 
         console.log(JSON.stringify(coin, null, 2));
 

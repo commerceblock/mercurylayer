@@ -15,3 +15,5 @@
 ./modify_sh/modify_transfer_receiver_request_payload.sh
 ./modify_sh/modify_transfer_receiver_post_response_payload.sh
 ./modify_sh/modify_transfer_receiver_get_response_payload.sh
+./modify_sh/modify_transfer_receiver_error.sh
+./modify_sh/modify_transfer_unlock_request_payload.sh

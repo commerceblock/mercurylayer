@@ -15,6 +15,8 @@ pub struct ServerConfig {
     pub lh_decrement: u32,
     /// Postgres connection string
     pub connection_string: String,
+    /// Batch timeout
+    pub batch_timeout: u32,
 }
 
 impl ServerConfig {
@@ -35,6 +37,7 @@ impl ServerConfig {
             lockheight_init: get_env_or_config("lockheight_init", "LOCKHEIGHT_INIT").parse::<u32>().unwrap(),
             lh_decrement: get_env_or_config("lh_decrement", "LH_DECREMENT").parse::<u32>().unwrap(),
             connection_string: get_env_or_config("connection_string", "DATABASE_CONNECTION_STRING"),
+            batch_timeout: get_env_or_config("batch_timeout", "BATCH_TIMEOUT").parse::<u32>().unwrap(),
         }
     }
 }

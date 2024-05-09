@@ -1,5 +1,6 @@
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.option
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -21,19 +22,21 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
 
     private val toAddress: String by argument(help = "Address to send the funds")
 
+    private val batchId: String? by option("-b", "--generate-batch-id", help = "Optional batch ID for the transaction")
+
     private val appContext: AppContext by lazy {
         requireNotNull(currentContext.findObject() as? AppContext) {
             "ClientConfig not found in context"
         }
     }
 
-    private suspend fun getNewX1(statechainId: String, signedStatechainId: String, newAuthPubkey: String): String {
+    private suspend fun getNewX1(statechainId: String, signedStatechainId: String, newAuthPubkey: String, batchId: String?): String {
 
         val transferSenderRequestPayload = TransferSenderRequestPayload(
             statechainId,
             signedStatechainId,
             newAuthPubkey,
-            null
+            batchId
         )
 
         val url = "${appContext.clientConfig.statechainEntity}/transfer/sender"
@@ -83,9 +86,27 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
         val coin = coinsWithStatechainId.minByOrNull { it.locktime!! }
             ?: throw Exception("No coins available after sorting by locktime")
 
-        if (coin.status != CoinStatus.CONFIRMED) {
-            throw Exception("Coin status must be CONFIRMED to transfer it. The current status is ${coin.status}")
+        if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+            throw Exception("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}")
         }
+
+        if (coin.locktime == null) {
+            throw Exception("Coin.locktime is null");
+        }
+
+        val electrumClient = getElectrumClient(appContext.clientConfig)
+
+        val blockHeader = electrumClient.blockchainHeadersSubscribe()
+        val currentBlockheight = blockHeader.height.toUInt()
+
+        electrumClient.closeConnection()
+
+        if (currentBlockheight > coin.locktime!!)  {
+            throw Exception("The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is $currentBlockheight");
+        }
+
+        val statechainId = coin.statechainId
+        val signedStatechainId = coin.signedStatechainId
 
         val isWithdrawal = false
         val qtBackupTx = backupTxs.size
@@ -96,6 +117,11 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
         val bkpTx1 = backupTxs.firstOrNull() ?: throw Exception("No backup transactions available")
 
         val blockHeight = getBlockheight(bkpTx1)
+
+        val decodedTransferAddress = decodeStatechainAddress(toAddress)
+        val newAuthPubkey = decodedTransferAddress.authPubkey
+
+        val newX1 = getNewX1(statechainId!!, signedStatechainId!!, newAuthPubkey, batchId)
 
         val signedTx = Transaction.create(
             coin,
@@ -108,14 +134,6 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
             null
         )
 
-        val statechainId = coin.statechainId
-        val signedStatechainId = coin.signedStatechainId
-
-        val decodedTransferAddress = decodeStatechainAddress(toAddress)
-        val newAuthPubkey = decodedTransferAddress.authPubkey
-
-        val newX1 = getNewX1(statechainId!!, signedStatechainId!!, newAuthPubkey)
-
         val backupTx = BackupTx(
             txN = newTxN.toUInt(),
             tx = signedTx,
@@ -125,6 +143,8 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
             serverPublicKey = coin.serverPubkey ?: throw Exception("serverPubkey is null"),
             blindingFactor = coin.blindingFactor ?: throw Exception("blindingFactor is null")
         )
+
+        coin.locktime = getBlockheight(backupTx);
 
         backupTxs = backupTxs.plus(backupTx)
 

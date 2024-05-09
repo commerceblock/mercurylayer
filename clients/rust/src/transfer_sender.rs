@@ -2,8 +2,15 @@ use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use electrum_client::ElectrumApi;
 
-pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wallet_name: &str, statechain_id: &str) -> Result<()> {
+pub async fn execute(
+    client_config: &ClientConfig, 
+    recipient_address: &str, 
+    wallet_name: &str, 
+    statechain_id: &str, 
+    batch_id: Option<String>) -> Result<()> 
+{
 
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
@@ -42,19 +49,30 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
-    if coin.status != CoinStatus::CONFIRMED {
-        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to transfer it. The current status is {}", coin.status));
+    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", coin.status));
     }
 
-    let bkp_tx1 = &backup_transactions[0];
+    if coin.locktime.is_none() {
+        return Err(anyhow::anyhow!("coin.locktime is None"));
+    }
 
-    let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
+    let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
+    let current_blockheight = block_header.height as u32;
+
+    if current_blockheight > coin.locktime.unwrap()  {
+        return Err(anyhow::anyhow!("The coin is expired. Coin locktime is {} and current blockheight is {}", coin.locktime.unwrap(), current_blockheight));
+    }
 
     let statechain_id = coin.statechain_id.as_ref().unwrap();
     let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
-    let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string()).await?;
+    let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
+
+    let bkp_tx1 = &backup_transactions[0];
+
+    let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
 
     let backup_tx = BackupTx {
         tx_n: new_tx_n,
@@ -65,6 +83,8 @@ pub async fn execute(client_config: &ClientConfig, recipient_address: &str, wall
         server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
+
+    coin.locktime = Some(get_blockheight(&backup_tx)?);
 
     backup_transactions.push(backup_tx);
 
@@ -120,7 +140,7 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
     Ok(signed_tx)
 }
 
-async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, recipient_auth_pubkey: &str) -> Result<String> {
+async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, recipient_auth_pubkey: &str, batch_id: Option<String>) -> Result<String> {
     
     let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/sender";
@@ -132,7 +152,7 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
         new_user_auth_key: recipient_auth_pubkey.to_string(),
-        batch_id: None,
+        batch_id,
     };
 
     let value = match request.json(&transfer_sender_request_payload).send().await {
@@ -153,8 +173,6 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
     };
 
     let response: TransferSenderResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
-
-    // let x1 = hex::decode(response.x1).unwrap();
 
     Ok(response.x1)
 }

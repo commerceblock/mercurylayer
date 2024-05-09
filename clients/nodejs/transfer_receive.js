@@ -117,8 +117,8 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
             continue;
         }
         
-        let isTx0OutputUnspent = await verifyTx0OutputIsUnspentAndConfirmed(electrumClient, coin, tx0Outpoint, tx0Hex, network);
-        if (!isTx0OutputUnspent) {
+        let isTx0OutputUnspent = await verifyTx0OutputIsUnspentAndConfirmed(electrumClient, tx0Outpoint, tx0Hex, network);
+        if (!isTx0OutputUnspent.result) {
             console.error("tx0 output is spent or not confirmed");
             continue;
         }
@@ -170,7 +170,18 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
 
         const transferReceiverRequestPayload = mercury_wasm.createTransferReceiverRequestPayload(statechainInfo, transferMsg, coin);
 
-        let serverPublicKeyHex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+        let signedStatechainIdForUnlock = mercury_wasm.signMessage(transferMsg.statechain_id, coin);
+
+        await unlockStatecoin(transferMsg.statechain_id, signedStatechainIdForUnlock, coin.auth_pubkey);
+
+        let serverPublicKeyHex = "";
+
+        try {
+            serverPublicKeyHex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+        } catch (error) {
+            console.error(error);
+            continue;
+        }
 
         let newKeyInfo = mercury_wasm.getNewKeyInfo(serverPublicKeyHex, coin, transferMsg.statechain_id, tx0Outpoint, tx0Hex, network);
 
@@ -183,6 +194,7 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
         coin.utxo_txid = tx0Outpoint.txid;
         coin.utxo_vout = tx0Outpoint.vout;
         coin.locktime = previousLockTime;
+        coin.status = isTx0OutputUnspent.status;
 
         let utxo = `${tx0Outpoint.txid}:${tx0Outpoint.vout}`;
 
@@ -225,7 +237,7 @@ const getStatechainInfo = async (statechain_id) => {
     return response.data;
 }
 
-const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, coin, tx0Outpoint, tx0Hex, wallet_network) => {
+const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {
 
     let tx0outputAddress = mercury_wasm.getOutputAddressFromTx0(tx0Outpoint, tx0Hex, wallet_network);
 
@@ -240,6 +252,8 @@ const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, coin, tx0Out
 
     let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
 
+    let status = CoinStatus.UNCONFIRMED;
+
     for (let unspent of utxo_list) {
         if (unspent.tx_hash === tx0Outpoint.txid && unspent.tx_pos === tx0Outpoint.vout) {
 
@@ -250,17 +264,46 @@ const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, coin, tx0Out
 
             const confirmationTarget = config.get('confirmationTarget');
 
-            coin.status = CoinStatus.UNCONFIRMED;
-
             if (confirmations >= confirmationTarget) {
-                coin.status = CoinStatus.CONFIRMED;
+                status = CoinStatus.CONFIRMED;
             }
             
-            return true;
+            return { result: true, status };
         }
     }
 
-    return false;
+    return { result: false, status };
+}
+
+const unlockStatecoin = async (statechainId, signedStatechainId, authPubkey) => {
+
+    const statechain_entity_url = config.get('statechainEntity');
+    const path = "transfer/unlock";
+    const url = statechain_entity_url + '/' + path;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let transferUnlockRequestPayload = {
+        statechain_id: statechainId,
+        auth_sig: signedStatechainId,
+        auth_pub_key: authPubkey,
+    };
+
+    const response = await axios.post(url, transferUnlockRequestPayload, socksAgent);
+
+    if (response.status != 200) {
+        throw new Error(`Failed to unlock transfer message`);
+    }
+}
+
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload) => {
@@ -277,9 +320,27 @@ const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    const response = await axios.post(url, transferReceiverRequestPayload, socksAgent);
+    while(true) {
 
-    return response.data.server_pubkey;
+        try {
+            const response = await axios.post(url, transferReceiverRequestPayload, socksAgent);
+            return response.data.server_pubkey;
+        }
+        catch (error) {
+
+            if (error.response.status == 400) {
+                if (error.response.data.code == 'ExpiredBatchTimeError') {
+                    throw new Error(`Failed to update transfer message ${error.response.data.message}`);
+                } else  if (error.response.data.code == 'StatecoinBatchLockedError') {
+                    console.log("Statecoin batch still locked. Waiting until expiration or unlock.");
+                    await sleep(5000);
+                    continue;
+                }
+            } else {
+                throw new Error(`Failed to update transfer message ${JSON.stringify(error.response.data)}`);
+            }
+        }
+    }
 }
 
 module.exports = { newTransferAddress, execute };

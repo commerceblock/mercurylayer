@@ -17,6 +17,7 @@
     "mercury-wasm": "file:../../wasm/node_pkg/debug",
     "socks-proxy-agent": "^8.0.2",
     "sqlite3": "^5.1.6",
-    "tiny-secp256k1": "^2.2.3"
+    "tiny-secp256k1": "^2.2.3",
+    "uuid": "^9.0.1"
   }
 }

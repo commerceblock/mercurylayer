@@ -10,11 +10,33 @@ use super::TransferMsg;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct TransferUnlockRequestPayload { 
+    pub statechain_id: String,
+    pub auth_sig: String, // signed_statechain_id
+    pub auth_pub_key: String, // public key for verification
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferReceiverRequestPayload { 
     pub statechain_id: String,
     pub batch_data: Option<String>,
     pub t2: String,
     pub auth_sig: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Enum))]
+pub enum TransferReceiverError {
+    StatecoinBatchLockedError,
+    ExpiredBatchTimeError,
+}
+
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct TransferReceiverErrorResponsePayload {
+    pub code: TransferReceiverError,
+    pub message: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -399,6 +421,20 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 
     Ok(transfer_receiver_request_payload)
 
+}
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn sign_message(message: &str, coin: &Coin) -> Result<String, MercuryError> {
+
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+
+    let secp = Secp256k1::new();
+
+    let client_auth_keypair = KeyPair::from_seckey_slice(&secp, client_auth_key.as_ref())?;
+    let hashed_msg = Message::from_hashed_data::<sha256::Hash>(message.to_string().as_bytes());
+    let signed_message = secp.sign_schnorr(&hashed_msg, &client_auth_keypair);
+
+    Ok(signed_message.to_string())
 }
 
 #[cfg_attr(feature = "bindings", uniffi::export)]

@@ -32,6 +32,17 @@ async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str)
 
 }
 
+pub async fn validate_signature_given_public_key(signed_message_hex: &str, statechain_id: &str, auth_key: &str) -> bool {
+
+    let auth_key = PublicKey::from_str(auth_key).unwrap().x_only_public_key().0;
+
+    let signed_message = Signature::from_str(signed_message_hex).unwrap();
+    let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
+
+    let secp = Secp256k1::new();
+    secp.verify_schnorr(&signed_message, &msg, &auth_key).is_ok()
+}
+
 pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, statechain_id: &str) -> bool {
 
     let auth_key = get_auth_key_by_statechain_id(pool, statechain_id).await.unwrap();

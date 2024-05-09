@@ -1,6 +1,7 @@
 mod endpoints;
 mod server_config;
 mod server;
+mod database;
 
 #[macro_use] extern crate rocket;
 
@@ -48,9 +49,10 @@ async fn main() {
             endpoints::transfer_sender::transfer_update_msg,
             endpoints::transfer_receiver::get_msg_addr,
             endpoints::transfer_receiver::statechain_info,
+            endpoints::transfer_receiver::transfer_unlock,
             endpoints::transfer_receiver::transfer_receiver,
             endpoints::transfer_receiver::get_transfer_receive,
-            endpoints::withdraw::delete_statechain,
+            // endpoints::withdraw::withdraw_complete,
             utils::info_config,
             utils::info_keylist,
         ])
