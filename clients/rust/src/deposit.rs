@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result, Ok};
-use mercury_lib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, CoinStatus, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
+use mercurylib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, CoinStatus, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
 
 use crate::{sqlite_manager::update_wallet, get_wallet, client_config::ClientConfig, transaction::new_transaction};
 
@@ -39,7 +39,7 @@ pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_ne
 
     let to_address = get_user_backup_address(&coin, wallet_netwotk.to_string())?;
 
-    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, wallet_netwotk).await?;
+    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, wallet_netwotk, None).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));
@@ -98,13 +98,13 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
 
     let value = response.text().await?;
 
-    let deposit_msg_1_response: mercury_lib::deposit::DepositMsg1Response = serde_json::from_str(value.as_str())?;
+    let deposit_msg_1_response: mercurylib::deposit::DepositMsg1Response = serde_json::from_str(value.as_str())?;
 
     // println!("value: {:?}", value);
 
     // println!("response: {:?}", deposit_msg_1_response);
 
-    let deposit_init_result = mercury_lib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response)?;
+    let deposit_init_result = mercurylib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response)?;
 
     let coin = wallet.coins.last_mut().unwrap();
 
@@ -134,7 +134,7 @@ pub async fn get_token(client_config: &ClientConfig) -> Result<String> {
 
     let value = response.text().await?;
 
-    let token: mercury_lib::deposit::TokenID = serde_json::from_str(value.as_str())?;
+    let token: mercurylib::deposit::TokenID = serde_json::from_str(value.as_str())?;
 
     return Ok(token.token_id);
 }

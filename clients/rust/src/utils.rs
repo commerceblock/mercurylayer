@@ -1,7 +1,7 @@
 
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
+use mercurylib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
 use anyhow::{Result, Ok};
 
 use crate::client_config::ClientConfig;
@@ -29,8 +29,6 @@ pub async fn info_config(client_config: &ClientConfig) -> Result<InfoConfig>{
     }
 
     let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
-
-    println!("fee_rate_sats_per_byte: {}", fee_rate_sats_per_byte);
 
     Ok(InfoConfig {    
         initlock,

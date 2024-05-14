@@ -2,9 +2,7 @@
 
 mod utils;
 
-use std::str::FromStr;
-
-use mercury_lib::{wallet::{Wallet, Token, Coin, Activity, BackupTx, CoinStatus}, utils::ServerConfig, deposit::DepositMsg1Response, transaction::get_partial_sig_request, transfer::{sender::create_transfer_signature, receiver::{decrypt_transfer_msg, TxOutpoint, StatechainInfo, StatechainInfoResponsePayload, create_transfer_receiver_request_payload, get_new_key_info}, TransferMsg}, decode_transfer_address};
+use mercurylib::{decode_transfer_address, deposit::DepositMsg1Response, transfer::{receiver::{create_transfer_receiver_request_payload, decrypt_transfer_msg, get_new_key_info, StatechainInfo, StatechainInfoResponsePayload, TxOutpoint}, sender::create_transfer_signature, TransferMsg}, utils::ServerConfig, wallet::{Activity, BackupTx, Coin, Settings, Token, Wallet}};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;
@@ -23,8 +21,6 @@ pub struct DepositMsg2 {
 
 #[derive(Serialize, Deserialize)]
 pub struct DepositMsg3 {
-    r2_commitment: String,
-    blind_commitment: String,
     statechain_id: String,
     auth_sig: String,
 }
@@ -52,7 +48,7 @@ pub fn setConfig(config_json: JsValue, wallet_json: JsValue) -> JsValue {
     let mut wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
     let config: ServerConfig = serde_wasm_bindgen::from_value(config_json).unwrap();
 
-    mercury_lib::wallet::set_config(&mut wallet, &config);
+    mercurylib::wallet::set_config(&mut wallet, &config);
 
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
@@ -100,9 +96,9 @@ pub fn getBalance(wallet_json: JsValue) -> u32 {
 }
 
 #[wasm_bindgen]
-pub fn getSCAddress(wallet_json: JsValue, index: u32) -> String {
+pub fn getSCAddress(wallet_json: JsValue, index: u32, network: String) -> String {
     let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
-    let address = mercury_lib::get_sc_address(&wallet.mnemonic, index);
+    let address = mercurylib::get_sc_address(&wallet.mnemonic, index, &network).unwrap();
     address.to_string()
 }
 
@@ -116,19 +112,38 @@ pub fn generateMnemonic() -> String {
 
 #[wasm_bindgen]
 pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
+
+    let settings = Settings {
+        network: String::from("signet"),
+        block_explorerURL: None,
+        torProxyHost: None,
+        torProxyPort: None,
+        torProxyControlPassword: None,
+        torProxyControlPort: None,
+        statechainEntityApi: String::from("http://127.0.0.1:8000"),
+        torStatechainEntityApi: None,
+        electrumProtocol: String::from("tcp"),
+        electrumHost: String::from("signet-electrumx.wakiyamap.dev"),
+        electrumPort: String::from("50001"),
+        electrumType: String::from("electrs"),
+        notifications: false,
+        tutorials: false
+    };
+
     let mut wallet = Wallet {
-        name: name,
-        mnemonic: mnemonic,
+        name,
+        mnemonic,
         version: String::from("0.1.0"),
-        state_entity_endpoint: String::from(""),
-        electrum_endpoint: String::from(""),
-        network: String::from("testnet"),
+        state_entity_endpoint: String::from("http://127.0.0.1:8000"),
+        electrum_endpoint: String::from("tcp://signet-electrumx.wakiyamap.dev:50001"),
+        network: String::from("signet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
         tokens: Vec::new(),
         activities: Vec::new(),
-        coins: Vec::new()
+        coins: Vec::new(),
+        settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
@@ -155,7 +170,7 @@ pub fn getNewCoin(wallet_json: JsValue) -> JsValue {
 #[wasm_bindgen]
 pub fn createDepositMsg1(coin_json: JsValue, token_id: String) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
-    let deposit_msg_1 = mercury_lib::deposit::create_deposit_msg1(&coin, &token_id).unwrap();
+    let deposit_msg_1 = mercurylib::deposit::create_deposit_msg1(&coin, &token_id).unwrap();
     serde_wasm_bindgen::to_value(&deposit_msg_1).unwrap()
 }
 
@@ -163,28 +178,28 @@ pub fn createDepositMsg1(coin_json: JsValue, token_id: String) -> JsValue {
 pub fn handleDepositMsg1Response(coin_json: JsValue, deposit_msg_1_response_json: JsValue) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let deposit_msg_1_response: DepositMsg1Response = serde_wasm_bindgen::from_value(deposit_msg_1_response_json).unwrap();
-    let deposit_init_result = mercury_lib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response).unwrap();
+    let deposit_init_result = mercurylib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response).unwrap();
     serde_wasm_bindgen::to_value(&deposit_init_result).unwrap()
 }
 
 #[wasm_bindgen]
 pub fn createAggregatedAddress(coin_json: JsValue, network: String) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
-    let aggregated_public_key = mercury_lib::deposit::create_aggregated_address(&coin, network).unwrap();
+    let aggregated_public_key = mercurylib::deposit::create_aggregated_address(&coin, network).unwrap();
     serde_wasm_bindgen::to_value(&aggregated_public_key).unwrap()
 }
 
 #[wasm_bindgen]
 pub fn createAndCommitNonces(coin_json: JsValue) -> JsValue {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
-    let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin).unwrap();
+    let coin_nonce = mercurylib::transaction::create_and_commit_nonces(&coin).unwrap();
     serde_wasm_bindgen::to_value(&coin_nonce).unwrap()
 }
 
 #[wasm_bindgen]
 pub fn getUserBackupAddress(coin_json: JsValue, network: String) -> String {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
-    let backup_address = mercury_lib::transaction::get_user_backup_address(&coin, network).unwrap();
+    let backup_address = mercurylib::transaction::get_user_backup_address(&coin, network).unwrap();
     backup_address
 }
 
@@ -202,7 +217,7 @@ pub fn getPartialSigRequest(
 {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
 
-    let partial_sig_request = mercury_lib::transaction::get_partial_sig_request(
+    let partial_sig_request = mercurylib::transaction::get_partial_sig_request(
         &coin, 
         block_height, 
         initlock, 
@@ -224,14 +239,14 @@ pub fn createSignature(
     session_hex: String,
     output_pubkey_hex: String) -> String
 {
-    let signature = mercury_lib::transaction::create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex).unwrap();
+    let signature = mercurylib::transaction::create_signature(msg, client_partial_sig_hex, server_partial_sig_hex, session_hex, output_pubkey_hex).unwrap();
     signature
 }
 
 #[wasm_bindgen]
 pub fn newBackupTransaction(encoded_unsigned_tx: String, signature_hex: String) -> String
 {
-    let backup_tx = mercury_lib::transaction::new_backup_transaction(encoded_unsigned_tx, signature_hex).unwrap();
+    let backup_tx = mercurylib::transaction::new_backup_transaction(encoded_unsigned_tx, signature_hex).unwrap();
     backup_tx
 }
 
@@ -240,7 +255,7 @@ pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: Str
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx_json).unwrap();
 
-    let backup_tx = mercury_lib::wallet::cpfp_tx::create(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
+    let backup_tx = mercurylib::wallet::cpfp_tx::create_cpfp_tx(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
     backup_tx
     // "".to_string()
 }
@@ -256,7 +271,7 @@ pub fn createTransferUpdateMsg(x1: String, recipient_address: String, coin_json:
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let backup_transactions: Vec<BackupTx> = serde_wasm_bindgen::from_value(backup_transactions).unwrap();
 
-    let transfer_update_msg_request_payload = mercury_lib::transfer::sender::create_transfer_update_msg(&x1, &recipient_address, &coin, &transfer_signature, &backup_transactions).unwrap();
+    let transfer_update_msg_request_payload = mercurylib::transfer::sender::create_transfer_update_msg(&x1, &recipient_address, &coin, &transfer_signature, &backup_transactions).unwrap();
 
     serde_wasm_bindgen::to_value(&transfer_update_msg_request_payload).unwrap()
 }
@@ -291,7 +306,7 @@ pub fn decryptTransferMsg(encrypted_message: String, private_key_wif: String) ->
 #[wasm_bindgen]
 pub fn getTx0Outpoint(backup_transactions: JsValue) -> JsValue {
     let backup_transactions: Vec<BackupTx> = serde_wasm_bindgen::from_value(backup_transactions).unwrap();
-    let tx0_outpoint = mercury_lib::transfer::receiver::get_tx0_outpoint(&backup_transactions).unwrap();
+    let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(&backup_transactions).unwrap();
     serde_wasm_bindgen::to_value(&tx0_outpoint).unwrap()
 }
 
@@ -299,7 +314,7 @@ pub fn getTx0Outpoint(backup_transactions: JsValue) -> JsValue {
 pub fn verifyTransferSignature(new_user_pubkey: String, tx0_outpoint: JsValue, transfer_msg: JsValue) -> bool {
     let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
-    let result = mercury_lib::transfer::receiver::verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg).unwrap();
+    let result = mercurylib::transfer::receiver::verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg).unwrap();
     result
 }
 
@@ -307,27 +322,27 @@ pub fn verifyTransferSignature(new_user_pubkey: String, tx0_outpoint: JsValue, t
 pub fn validateTx0OutputPubkey(enclave_public_key: String, transfer_msg: JsValue, tx0_outpoint: JsValue, tx0_hex: String, network: String) -> bool {
     let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
-    let result = mercury_lib::transfer::receiver::validate_tx0_output_pubkey(&enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, &network).unwrap();
+    let result = mercurylib::transfer::receiver::validate_tx0_output_pubkey(&enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, &network).unwrap();
     result
 }
 
 #[wasm_bindgen]
 pub fn verifyLatestBackupTxPaysToUserPubkey(transfer_msg: JsValue, client_pubkey_share: String, network: String) -> bool {
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
-    let result = mercury_lib::transfer::receiver::verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &client_pubkey_share, &network).unwrap();
+    let result = mercurylib::transfer::receiver::verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &client_pubkey_share, &network).unwrap();
     result
 }
 
 #[wasm_bindgen]
 pub fn getOutputAddressFromTx0(tx0_outpoint: JsValue, tx0_hex: String, network: String) -> String {
     let tx0_outpoint: TxOutpoint = serde_wasm_bindgen::from_value(tx0_outpoint).unwrap();
-    let output_address = mercury_lib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network).unwrap();
+    let output_address = mercurylib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network).unwrap();
     output_address
 }
 
 #[wasm_bindgen]
 pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> JsValue {
-    let result = mercury_lib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+    let result = mercurylib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
 
     #[derive(Serialize, Deserialize)]
     struct ValidationResult {
@@ -353,7 +368,7 @@ pub fn verifyBlindedMusigScheme(backup_tx: JsValue, tx0_hex: String, statechain_
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx).unwrap();
     let statechain_info: StatechainInfo = serde_wasm_bindgen::from_value(statechain_info).unwrap();
 
-    let result = mercury_lib::transfer::receiver::verify_blinded_musig_scheme(&backup_tx, &tx0_hex, &statechain_info);
+    let result = mercurylib::transfer::receiver::verify_blinded_musig_scheme(&backup_tx, &tx0_hex, &statechain_info);
     #[derive(Serialize, Deserialize)]
     struct ValidationResult {
         result: bool,
@@ -375,7 +390,7 @@ pub fn verifyBlindedMusigScheme(backup_tx: JsValue, tx0_hex: String, statechain_
 #[wasm_bindgen]
 pub fn getBlockheight(backup_tx: JsValue) -> u32 {
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx).unwrap();
-    let blockheight = mercury_lib::utils::get_blockheight(&backup_tx).unwrap();
+    let blockheight = mercurylib::utils::get_blockheight(&backup_tx).unwrap();
     blockheight
 }
 
@@ -399,31 +414,23 @@ pub fn getNewKeyInfo(server_public_key_hex: String, coin: JsValue, statechain_id
 
     serde_wasm_bindgen::to_value(&new_key_info).unwrap()
 }
-        
-// pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
 
-/*
 #[wasm_bindgen]
-pub fn getCoin(wallet_json: JsValue, statechain_id: String) -> JsValue {
-    let wallet: Wallet = serde_wasm_bindgen::from_value(wallet_json).unwrap();
-    for coin in wallet.coins.iter() {
-        if coin.statechain_id == statechain_id {
-            return serde_wasm_bindgen::to_value(&coin).unwrap();
-        }
-    }
-    serde_wasm_bindgen::to_value(&Coin {
-        utxo: String::from(""),
-        index: 0,
-        address: String::from(""),
-        amount: 0,
-        statechain_id: String::from(""),
-        privkey: String::from(""),
-        auth_key: String::from(""),
-        locktime: 0,
-        status: String::from(""),
-    }).unwrap()
+pub fn validateAddress(address: String, network: String) -> bool {
+    let result = mercurylib::validate_address(&address, &network).unwrap();
+    result
 }
- */
+
+#[wasm_bindgen]
+pub fn signMessage(statechain_id: String, coin: JsValue) -> String {
+
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    let signature = mercurylib::transfer::receiver::sign_message(&statechain_id, &coin).unwrap();
+
+    signature
+}
+
 #[wasm_bindgen]
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
@@ -470,55 +477,37 @@ pub fn getMockWallet() -> JsValue {
         }
     ];
 
-    /*let coins = vec![
-        Coin {
-            utxo: String::from("9ec324592502d377dc92cee0cce84b532ce912e0379bdd3d768339819251cf57:0"),
-            index: 1,
-            address: String::from("sc1qd8tt2cme0heruuf9zlxeygq96lum7qzl4tf32hnkyvlta9gqvumud8su7pvdzelx5ku2hrggwhuv5v3x824re8gcjl7yhq4quhtf5vfgwszp5"),
-            amount: 100,
-            statechain_id: String::from("6bbf638f-107f-4ea0-8e72-1a72b7e8155b"),
-            privkey: String::from("fed3c39e0b1a2cfcd4b71571a10ebf194644c7554793a312ff8970541cbad346"),
-            auth_key: String::from("f5a3717cfff6a03f8f8d8681b34558ac60f706ee3e68b29b6c130acd45c33da1"),
-            locktime: 854231,
-            status: String::from("Confirmed"),
-        },
-        Coin {
-            utxo: String::from("e29e13b48c83b40e1fd81120c55144c5593dca6017f098422983f7dfaeb70913:0"),
-            index: 2,
-            address: String::from("sc1qd8tt2cme0heruuf9zlxeygq96lum7qzl4tf32hnkyvlta9gqvumud8su7pvdzelx5ku2hrggwhuv5v3x824re8gcjl7yhq4quhtf5vfgwszp5"),
-            amount: 200,
-            statechain_id: String::from("aed9a34c-5666-4d83-940f-9b74e16b8672"),
-            privkey: String::from("60e9cec644dc22e0137088729d61372436de6067a7625b3b0733bf0c98ae04a2"),
-            auth_key: String::from("a3e88f9f13ef06cd35ac55d2c34c8ce2e8874cccb50e2545975f046f7acee8f1"),
-            locktime: 845321,
-            status: String::from("Confirmed"),
-        },
-        Coin {
-            utxo: String::from("84fa1bd2ff0fb9bd5ee4256671c4f6a40dca311e5301668b282dbf66a6bedcc6100p:0"),
-            index: 3,
-            address: String::from("sc1qd8tt2cme0heruuf9zlxeygq96lum7qzl4tf32hnkyvlta9gqvumud8su7pvdzelx5ku2hrggwhuv5v3x824re8gcjl7yhq4quhtf5vfgwszp5"),
-            amount: 300,
-            statechain_id: String::from("b94cba9b-93f8-419f-8adb-a943125a20f8"),
-            privkey: String::from("60e9cec644dc22e0137088729d61372436de6067a7625b3b0733bf0c98ae04a2"),
-            auth_key: String::from("a3e88f9f13ef06cd35ac55d2c34c8ce2e8874cccb50e2545975f046f7acee8f1"),
-            locktime: 835321,
-            status: String::from("Confirmed"),
-        }
-    ]; */
+    let settings = Settings {
+        network: String::from("signet"),
+        block_explorerURL: None,
+        torProxyHost: None,
+        torProxyPort: None,
+        torProxyControlPassword: None,
+        torProxyControlPort: None,
+        statechainEntityApi: String::from("http://127.0.0.1:8000"),
+        torStatechainEntityApi: None,
+        electrumProtocol: String::from("tcp"),
+        electrumHost: String::from("signet-electrumx.wakiyamap.dev"),
+        electrumPort: String::from("50001"),
+        electrumType: String::from("electrs"),
+        notifications: false,
+        tutorials: false
+    };
 
     let wallet = Wallet {
         name: String::from("Mock Wallet"),
         mnemonic: String::from("coil knock parade empower divorce scorpion float force carbon side wonder choice"),
         version: String::from("0.1.0"),
-        state_entity_endpoint: String::from(""),
-        electrum_endpoint: String::from(""),
-        network: String::from("testnet"),
+        state_entity_endpoint: String::from("http://127.0.0.1:8000"),
+        electrum_endpoint: String::from("tcp://signet-electrumx.wakiyamap.dev:50001"),
+        network: String::from("signet"),
         blockheight: 0,
         initlock: 100000,
         interval: 10,
         tokens,
         activities: activity,
-        coins: Vec::new() // coins
+        coins: Vec::new(), // coins
+        settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }

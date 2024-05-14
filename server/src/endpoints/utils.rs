@@ -32,6 +32,17 @@ async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str)
 
 }
 
+pub async fn validate_signature_given_public_key(signed_message_hex: &str, statechain_id: &str, auth_key: &str) -> bool {
+
+    let auth_key = PublicKey::from_str(auth_key).unwrap().x_only_public_key().0;
+
+    let signed_message = Signature::from_str(signed_message_hex).unwrap();
+    let msg = Message::from_hashed_data::<sha256::Hash>(statechain_id.to_string().as_bytes());
+
+    let secp = Secp256k1::new();
+    secp.verify_schnorr(&signed_message, &msg, &auth_key).is_ok()
+}
+
 pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, statechain_id: &str) -> bool {
 
     let auth_key = get_auth_key_by_statechain_id(pool, statechain_id).await.unwrap();
@@ -47,7 +58,7 @@ pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, s
 pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
     let statechain_entity = statechain_entity.inner();
 
-    let server_config = mercury_lib::utils::ServerConfig {
+    let server_config = mercurylib::utils::ServerConfig {
         initlock: statechain_entity.config.lockheight_init,
         interval: statechain_entity.config.lh_decrement,
     };
@@ -78,7 +89,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
     .await
     .unwrap();
 
-    let mut result = Vec::<mercury_lib::utils::PubKeyInfo>::new();
+    let mut result = Vec::<mercurylib::utils::PubKeyInfo>::new();
 
     for row in rows {
 
@@ -86,7 +97,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
         let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
         let statechain_id: String = row.get(1);
 
-        let mut keyinfo: mercury_lib::utils::PubKeyInfo = mercury_lib::utils::PubKeyInfo {
+        let mut keyinfo: mercurylib::utils::PubKeyInfo = mercurylib::utils::PubKeyInfo {
             server_pubkey: server_pubkey.to_string(),
             tx_n: 0,
             updated_at: "".to_string(),
@@ -105,7 +116,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
         result.push(keyinfo);
     }
 
-    let key_list_response_payload = mercury_lib::utils::KeyListResponsePayload {
+    let key_list_response_payload = mercurylib::utils::KeyListResponsePayload {
         list_keyinfo:result
     };
 

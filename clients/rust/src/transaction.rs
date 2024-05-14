@@ -1,12 +1,22 @@
 use electrum_client::ElectrumApi;
-use mercury_lib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
+use mercurylib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
 use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
 use crate::{client_config::ClientConfig, utils::info_config};
 
-pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_address: &str, qt_backup_tx: u32, is_withdrawal: bool, block_height: Option<u32>, network: &str) -> Result<String> {
+pub async fn new_transaction(
+    client_config: &ClientConfig, 
+    coin: &mut Coin, 
+    to_address: &str, 
+    qt_backup_tx: u32, 
+    is_withdrawal: bool, 
+    block_height: Option<u32>, 
+    network: &str, 
+    fee_rate: Option<u64>) -> Result<String> {
 
-    let coin_nonce = mercury_lib::transaction::create_and_commit_nonces(&coin)?;
+    // TODO: validate address first
+
+    let coin_nonce = mercurylib::transaction::create_and_commit_nonces(&coin)?;
     coin.secret_nonce = Some(coin_nonce.secret_nonce);
     coin.public_nonce = Some(coin_nonce.public_nonce);
     coin.blinding_factor = Some(coin_nonce.blinding_factor);
@@ -27,7 +37,11 @@ pub async fn new_transaction(client_config: &ClientConfig, coin: &mut Coin, to_a
            
     let initlock = server_info.initlock;
     let interval = server_info.interval;
-    let fee_rate_sats_per_byte = server_info.fee_rate_sats_per_byte as u32;
+
+    let fee_rate_sats_per_byte = match fee_rate {
+        Some(fee_rate) => fee_rate as u32,
+        None => server_info.fee_rate_sats_per_byte as u32,
+    };
 
     let partial_sig_request = get_partial_sig_request(
         &coin, 
@@ -70,7 +84,7 @@ pub async fn sign_first(client_config: &ClientConfig, sign_first_request_payload
 
     let value = request.json(&sign_first_request_payload).send().await?.text().await?;
 
-    let sign_first_response_payload: mercury_lib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str())?;
+    let sign_first_response_payload: mercurylib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str())?;
 
     let mut server_pubnonce_hex = sign_first_response_payload.server_pubnonce.to_string();
 

@@ -1,16 +1,16 @@
 use std::str::FromStr;
 
 use bitcoin::{secp256k1, hashes::sha256, Txid, PrivateKey};
-use secp256k1_zkp::{Secp256k1, Message, PublicKey, Scalar};
+use secp256k1_zkp::{Secp256k1, Message, Scalar};
 use serde::{Serialize, Deserialize};
-use anyhow::{Result, anyhow};
 use serde_json::json;
 
-use crate::{decode_transfer_address, wallet::{Coin, BackupTx}};
+use crate::{decode_transfer_address, error::MercuryError, wallet::{BackupTx, Coin}};
 
 use super::TransferMsg;
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferSenderRequestPayload {
     pub statechain_id: String,
     pub auth_sig: String, // signed_statechain_id
@@ -19,11 +19,13 @@ pub struct TransferSenderRequestPayload {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferSenderResponsePayload {
     pub x1: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferUpdateMsgRequestPayload {
     pub statechain_id: String,
     pub auth_sig: String, // signed_statechain_id
@@ -32,7 +34,8 @@ pub struct TransferUpdateMsgRequestPayload {
 }
 
 // Step 7. Owner 1 then concatinates the Tx0 outpoint with the Owner 2 public key (O2) and signs it with their key o1 to generate SC_sig_1.
-pub fn create_transfer_signature(recipient_address: &str, input_txid: &str, input_vout: u32, client_seckey: &str) ->  Result<String> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_transfer_signature(recipient_address: &str, input_txid: &str, input_vout: u32, client_seckey: &str) ->  Result<String, MercuryError> {
 
     // new_user_pubkey: PublicKey, input_txid: &Txid, input_vout: u32, client_seckey: &SecretKey
 
@@ -55,7 +58,8 @@ pub fn create_transfer_signature(recipient_address: &str, input_txid: &str, inpu
     Ok(signature.to_string())
 }
 
-pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin, transfer_signature: &str, backup_transactions: &Vec<BackupTx>) -> Result<TransferUpdateMsgRequestPayload, MercuryError> {
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
 

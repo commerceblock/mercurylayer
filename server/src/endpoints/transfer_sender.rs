@@ -1,86 +1,120 @@
 use std::str::FromStr;
 
-use mercury_lib::transfer::sender::TransferSenderResponsePayload;
+use bitcoin::network::message_bloom;
+use mercurylib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
-use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
-use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct TransferSenderequestPayload {
-    statechain_id: String,
-    auth_sig: String, // signed_statechain_id
-    new_user_auth_key: String,
-    batch_id: Option<String>,
+use super::is_batch_expired;
+
+/// Enun to represent the possible results of the batch transfer validation
+pub enum BatchTransferValidationResult {
+
+    /// The statecoin batch is locked (not expired yet)
+    StatecoinBatchLockedError (String),
+    /// The batch_id sent by the user is expired
+    ExpiredBatchTimeError (String),
+    /// Success means there is no batch_id for the statecoin, 
+    /// or the batch is complete or expired and the batch_id is different from the new_batch_id (or null)
+    Success,
 }
 
-async fn exists_msg_for_same_statechain_id_and_new_user_auth_key(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, statechain_id: &str) -> bool {
+pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>, statechain_id: &str, new_batch_id: &Option<String>) -> BatchTransferValidationResult {
 
-    let query = "\
-        SELECT COUNT(*) \
-        FROM statechain_transfer \
-        WHERE new_user_auth_public_key = $1 AND statechain_id = $2";
+    // get an extistent batch according to the statecoin, in case the user sent a repeated statecoin
+    let batch_info = crate::database::transfer::get_batch_id_and_time_by_statechain_id(&statechain_entity.pool, &statechain_id).await;
 
-    let row = sqlx::query(query)
-        .bind(&new_user_auth_key.serialize())
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
+    if batch_info.is_some() {
 
-    let count: i64 = row.get(0);
+        let (batch_id, batch_time) = batch_info.unwrap();
 
-    count > 0
-}
+        if !is_batch_expired(&statechain_entity, batch_time) {
+            // the batch time has not expired
+            return BatchTransferValidationResult::StatecoinBatchLockedError("Statecoin batch locked (the batch time has not expired).".to_string())
+        } else {
+            // the batch time has expired
+            if new_batch_id.is_some() && new_batch_id.as_ref().unwrap().to_string() == batch_id {
+                // if the new_batch_id is the same should return error
+                return BatchTransferValidationResult::ExpiredBatchTimeError("Batch time has expired. Try a new batch id.".to_string());
+            } else {
+                // // if the new_batch_id is None or different should return success
+                return BatchTransferValidationResult::Success;
+            }
+        }
+    }
 
-async fn insert_new_transfer(transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>, new_user_auth_key: &PublicKey, x1: &[u8; 32], statechain_id: &String)  {
+    // here the statecoin has no batch_id
+    // then we check if the user sends a existing batch_id, trying to add a new transfer to this batch.
+    if new_batch_id.is_some() {
+        let new_batch_id = new_batch_id.as_ref().unwrap();
+        
+        let batch_time = crate::database::transfer_sender::get_batch_time_by_batch_id(&statechain_entity.pool, new_batch_id).await;
 
-    let query1 = "DELETE FROM statechain_transfer WHERE statechain_id = $1";
+        // if the batch_id exists
+        if batch_time.is_some() {
+            let batch_time = batch_time.unwrap();
 
-    let _ = sqlx::query(query1)
-        .bind(statechain_id)
-        .execute(&mut **transaction)
-        .await
-        .unwrap();
+            if !is_batch_expired(&statechain_entity, batch_time) {
+                // the batch time has not expired. It is possible to add a new coin to the batch.
+                return BatchTransferValidationResult::Success
+            } else {
+                // the batch time has expired. New coins not allowed.
+                return BatchTransferValidationResult::ExpiredBatchTimeError("Batch time has expired. Try a new batch id.".to_string());
+            }
+        }
+    }
 
-    let query2 = "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1) VALUES ($1, $2, $3)";
-
-    let _ = sqlx::query(query2)
-        .bind(statechain_id)
-        .bind(&new_user_auth_key.serialize())
-        .bind(x1)
-        .execute(&mut **transaction)
-        .await
-        .unwrap();    
+    // if the statecoin has no batch_id should return success
+    BatchTransferValidationResult::Success
+    
 }
 
 #[post("/transfer/sender", format = "json", data = "<transfer_sender_request_payload>")]
-pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transfer_sender_request_payload: Json<TransferSenderequestPayload>) -> status::Custom<Json<Value>>  {
+pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transfer_sender_request_payload: Json<TransferSenderRequestPayload>) -> status::Custom<Json<Value>>  {
 
     let statechain_id = transfer_sender_request_payload.0.statechain_id.clone();
     let signed_statechain_id = transfer_sender_request_payload.0.auth_sig.clone();
+    let batch_id = transfer_sender_request_payload.0.batch_id.clone();
 
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
+    let batch_transfer_validation_result = validate_batch_transfer(&statechain_entity, &statechain_id, &batch_id).await;
+
+    match batch_transfer_validation_result {
+        BatchTransferValidationResult::StatecoinBatchLockedError(message) | BatchTransferValidationResult::ExpiredBatchTimeError(message) => {
+            let response_body = json!({
+                "message": message
+            });
+        
+            return status::Custom(Status::BadRequest, Json(response_body));
+        },
+        BatchTransferValidationResult::Success => {
+            // nothing to do. continue.
+        }
+    }
+
     let new_user_auth_key = PublicKey::from_str(&transfer_sender_request_payload.0.new_user_auth_key).unwrap();
 
-    if exists_msg_for_same_statechain_id_and_new_user_auth_key(&statechain_entity.pool, &new_user_auth_key, &statechain_id).await {
+    if crate::database::transfer_sender::exists_msg_for_same_statechain_id_and_new_user_auth_key(&statechain_entity.pool, &new_user_auth_key, &statechain_id, &batch_id).await {
+
+        let message = if batch_id.is_some() {
+            "Transfer message already exists for this statechain_id, new_user_auth_key and batch_id."
+        } else {
+            "Transfer message already exists for this statechain_id and new_user_auth_key."
+        };
 
         let response_body = json!({
-            "error": "Internal Server Error",
-            "message": "Transfer message already exists for this statechain_id and new_user_auth_key."
+            "message": message
         });
     
         return status::Custom(Status::BadRequest, Json(response_body));
@@ -91,11 +125,7 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     let s_x1 = Scalar::from(secret_x1);
     let x1 = s_x1.to_be_bytes();
 
-    let mut transaction = statechain_entity.pool.begin().await.unwrap();
-
-    insert_new_transfer(&mut transaction, &new_user_auth_key, &x1, &statechain_id).await;
-
-    transaction.commit().await.unwrap();
+    crate::database::transfer_sender::insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id).await;
 
     let transfer_sender_response_payload = TransferSenderResponsePayload {
         x1: hex::encode(x1),
@@ -104,34 +134,6 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     let response_body = json!(transfer_sender_response_payload);
 
     return status::Custom(Status::Ok, Json(response_body));
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct TransferUpdateMsgRequestPayload {
-    statechain_id: String,
-    auth_sig: String, // signed_statechain_id
-    new_user_auth_key: String,
-    enc_transfer_msg: String,
-}
-
-async fn update_transfer_msg(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, enc_transfer_msg: &Vec<u8>, statechain_id: &str)  {
-
-    let query = "\
-        UPDATE statechain_transfer \
-        SET encrypted_transfer_msg = $1, updated_at = NOW() \
-        WHERE \
-            statechain_id = $2 AND \
-            new_user_auth_public_key = $3 AND \
-            updated_at = (SELECT MAX(updated_at) FROM statechain_transfer WHERE statechain_id = $2)";
-
-    let _ = sqlx::query(query)
-        .bind(enc_transfer_msg)
-        .bind(statechain_id)
-        .bind(&new_user_auth_key.serialize())
-        .execute(pool)
-        .await
-        .unwrap();
 }
 
 #[post("/transfer/update_msg", format = "json", data = "<transfer_update_msg_request_payload>")]
@@ -154,7 +156,7 @@ pub async fn transfer_update_msg(statechain_entity: &State<StateChainEntity>, tr
     let enc_transfer_msg_hex =  transfer_update_msg_request_payload.0.enc_transfer_msg;
     let enc_transfer_msg = hex::decode(enc_transfer_msg_hex).unwrap();
 
-    update_transfer_msg(&statechain_entity.pool, &new_user_auth_key, &enc_transfer_msg, &statechain_id).await;
+    crate::database::transfer_sender::update_transfer_msg(&statechain_entity.pool, &new_user_auth_key, &enc_transfer_msg, &statechain_id).await;
 
     let response_body = json!({
         "updated": true,

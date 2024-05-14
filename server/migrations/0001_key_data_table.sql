@@ -10,20 +10,21 @@ CREATE TABLE public.statechain_data (
 
 CREATE TABLE public.statechain_transfer (
 	id serial4 NOT NULL,
-	statechain_id varchar,
+	statechain_id varchar UNIQUE,
 	new_user_auth_public_key bytea,
 	x1 bytea,
 	encrypted_transfer_msg bytea NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	key_updated boolean DEFAULT false,
+	batch_id varchar NULL,
+	batch_time TIMESTAMPTZ NULL,
+	locked boolean NOT NULL DEFAULT false,
 	CONSTRAINT statechain_transfer_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE public.statechain_signature_data (
 	id serial4 NOT NULL,
-	r2_commitment varchar NULL,
-	blind_commitment varchar NULL,
 	server_pubnonce varchar NULL,
 	challenge varchar NULL,
 	tx_n integer DEFAULT 0,

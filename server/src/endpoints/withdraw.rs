@@ -28,8 +28,8 @@ async fn delete_statechain_db(pool: &sqlx::PgPool,  statechain_id: &String)  {
     transaction.commit().await.unwrap();
 }
 
-#[delete("/delete_statechain", format = "json", data = "<delete_statechain_payload>")]
-pub async fn delete_statechain(statechain_entity: &State<StateChainEntity>, delete_statechain_payload: Json<mercury_lib::withdraw::DeleteStatechainPayload>) -> status::Custom<Json<Value>>  {
+#[delete("/withdraw/complete", format = "json", data = "<delete_statechain_payload>")]
+pub async fn withdraw_complete(statechain_entity: &State<StateChainEntity>, delete_statechain_payload: Json<mercurylib::withdraw::WithdrawCompletePayload>) -> status::Custom<Json<Value>>  {
 
     let statechain_id = delete_statechain_payload.0.statechain_id.clone();
     let signed_statechain_id = delete_statechain_payload.0.signed_statechain_id.clone();
@@ -37,7 +37,6 @@ pub async fn delete_statechain(statechain_entity: &State<StateChainEntity>, dele
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     

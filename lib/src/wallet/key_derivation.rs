@@ -1,11 +1,10 @@
 use std::str::FromStr;
-use anyhow::Result;
 
 use bip39::Mnemonic;
 use bitcoin::{bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address, PrivateKey};
 use secp256k1_zkp::{SecretKey, PublicKey, ffi::types::AlignedType, Secp256k1};
 
-use crate::{wallet::{Wallet, Coin, CoinStatus}, encode_sc_address, utils::get_network};
+use crate::{encode_sc_address, error::MercuryError, utils::get_network, wallet::{Coin, CoinStatus, Wallet}};
 
 pub struct KeyData {
     pub secret_key: SecretKey,
@@ -18,7 +17,7 @@ pub struct KeyData {
 
 impl Wallet {
 
-    fn get_seed(&self) -> Result<[u8; 64]> {
+    fn get_seed(&self) -> Result<[u8; 64], MercuryError> {
         let seed: [u8; 64] = Mnemonic::from_str(&self.mnemonic)?.to_seed("");
         Ok(seed)
     }
@@ -33,7 +32,7 @@ impl Wallet {
         }
     }
 
-    pub fn generate_new_key(&self, derivation_path: &str, change_index: u32, address_index:u32) -> Result<KeyData> {
+    pub fn generate_new_key(&self, derivation_path: &str, change_index: u32, address_index:u32) -> Result<KeyData, MercuryError> {
 
         let seed= self.get_seed()?;
         let network = get_network(&self.network)?;
@@ -71,7 +70,7 @@ impl Wallet {
         })
     }
 
-    pub fn get_new_coin(&self) -> Result<Coin> {
+    pub fn get_new_coin(&self) -> Result<Coin, MercuryError> {
 
         let network = get_network(&self.network)?;
 
@@ -103,7 +102,7 @@ impl Wallet {
         let user_pubkey = client_secret_key.public_key(&secp).to_string();
         let auth_pubkey = auth_secret.public_key(&secp).to_string();
 
-        let coin_address = encode_sc_address(&client_pubkey_share, &auth_key_data.public_key);
+        let coin_address = encode_sc_address(&client_pubkey_share, &auth_key_data.public_key, network)?;
 
         let coin = Coin {
             index: address_index,

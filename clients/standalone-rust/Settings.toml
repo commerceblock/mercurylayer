@@ -1,6 +1,0 @@
-statechain_entity = "http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion"
-tor_proxy = "socks5h://localhost:9050"
-electrum_server = "tcp://127.0.0.1:50001"
-network = "signet"
-fee_rate_tolerance = 5
-database_file="wallet.db"

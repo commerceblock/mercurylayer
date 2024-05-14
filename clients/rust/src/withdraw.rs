@@ -2,11 +2,17 @@ use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wal
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercury_lib::wallet::{BackupTx, Activity, CoinStatus};
+use mercurylib::wallet::{Activity, BackupTx, CoinStatus};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()>{
 
-    let mut wallet: mercury_lib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let is_address_valid = mercurylib::validate_address(to_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
 
     let mut backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
     
@@ -39,7 +45,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("Coin status must be CONFIRMED to withdraw it. The current status is {}", coin.status));
     }
 
-    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network).await?;
+    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network, fee_rate).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));
@@ -87,7 +93,27 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     wallet.activities.push(activity);
 
+    // let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap().to_string();
+
     update_wallet(&client_config.pool, &wallet).await?;
+
+    /* let endpoint = client_config.statechain_entity.clone();
+    let path = "withdraw/complete";
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.delete(&format!("{}/{}", endpoint, path));
+
+    let delete_statechain_payload = WithdrawCompletePayload {
+        statechain_id: statechain_id.to_string(),
+        signed_statechain_id,
+    };
+
+    let response = request.json(&delete_statechain_payload).send().await?;
+
+    if response.status() != 200 {
+        let response_body = response.text().await?;
+        return Err(anyhow!(response_body));
+    } */
 
     Ok(())
 

@@ -1,92 +1,17 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercury_lib::transfer::receiver::GetMsgAddrResponsePayload;
+use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverGetResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload};
 use rocket::{State, response::status, serde::json::Json, http::Status};
-use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1, XOnlyPublicKey, SecretKey};
-use serde::{Serialize, Deserialize};
+use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1};
 use serde_json::{Value, json};
-use sqlx::Row;
 
 use crate::server::StateChainEntity;
 
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct StatechainInfo {
-    statechain_id: String,
-    r2_commitment: String,
-    blind_commitment: String,
-    server_pubnonce: String,
-    challenge: String,
-    tx_n: u32,
-}
-
-async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Vec::<StatechainInfo> {
-
-    let mut result = Vec::<StatechainInfo>::new();
-
-    let query = "\
-        SELECT statechain_id, r2_commitment, blind_commitment, server_pubnonce, challenge, tx_n \
-        FROM statechain_signature_data \
-        WHERE statechain_id = $1 \
-        ORDER BY created_at ASC";
-
-    let rows = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_all(pool)
-        .await
-        .unwrap();
-
-    for row in rows {
-        let statechain_id: String = row.get(0);
-        let r2_commitment: String = row.get(1);
-        let blind_commitment: String = row.get(2);
-        let server_pubnonce: String = row.get(3);
-        let challenge: String = row.get(4);
-        let tx_n: i32 = row.get(5);
-
-        let statechain_transfer = StatechainInfo {
-            statechain_id,
-            r2_commitment,
-            blind_commitment,
-            server_pubnonce,
-            challenge,
-            tx_n: tx_n as u32,
-        };
-
-        result.push(statechain_transfer);
-    }
-
-    result.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
-
-    result
-}
-
-async fn get_enclave_pubkey_and_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> (PublicKey, PublicKey) {
-
-    let query = "\
-        SELECT std.server_public_key, stt.x1 \
-        FROM statechain_data std INNER JOIN statechain_transfer stt \
-        ON std.statechain_id = stt.statechain_id \
-        WHERE std.statechain_id = $1";
-
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let enclave_public_key_bytes = row.get::<Vec<u8>, _>("server_public_key");
-    let enclave_public_key = PublicKey::from_slice(&enclave_public_key_bytes).unwrap();
-
-    let x1_secret_bytes = row.get::<Vec<u8>, _>("x1");
-    let secret_x1 = SecretKey::from_slice(&x1_secret_bytes).unwrap();
-
-    (enclave_public_key, secret_x1.public_key(&Secp256k1::new()))
-}
+use super::is_batch_expired;
 
 #[get("/info/statechain/<statechain_id>")]
-pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
+pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: &str) -> status::Custom<Json<Value>> {
 
     let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "signature_count";
@@ -112,8 +37,8 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
     let response: Value = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
     let num_sigs = response["sig_count"].as_u64().unwrap();
 
-    let statechain_info = get_statechain_info(&statechain_entity.pool, &statechain_id).await;
-    let (enclave_public_key, x1_pub) = get_enclave_pubkey_and_x1pub(&statechain_entity.pool, &statechain_id).await;
+    let statechain_info = crate::database::transfer_receiver::get_statechain_info(&statechain_entity.pool, &statechain_id).await;
+    let (enclave_public_key, x1_pub) = crate::database::transfer_receiver::get_enclave_pubkey_and_x1pub(&statechain_entity.pool, &statechain_id).await;
 
     let response_body = json!({
         "enclave_public_key": enclave_public_key.to_string(),
@@ -124,31 +49,6 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
 
     return status::Custom(Status::Ok, Json(response_body));
     
-}
-
-async fn get_statechain_transfer_messages(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey) -> Vec::<String> {
-
-    let query = "\
-        SELECT encrypted_transfer_msg \
-        FROM statechain_transfer \
-        WHERE new_user_auth_public_key = $1
-        AND encrypted_transfer_msg IS NOT NULL \
-        ORDER BY updated_at ASC";
-
-    let rows = sqlx::query(query)
-        .bind(new_user_auth_key.serialize())
-        .fetch_all(pool)
-        .await
-        .unwrap();
-
-    let mut result = Vec::<String>::new();
-
-    for row in rows {
-        let encrypted_transfer_msg: Vec<u8> = row.get(0);
-        result.push(hex::encode(encrypted_transfer_msg));
-    }
-
-    result
 }
 
 #[get("/transfer/get_msg_addr/<new_auth_key>")]
@@ -167,7 +67,7 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
 
     let new_user_auth_public_key = new_user_auth_public_key.unwrap();
     
-    let result = get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
+    let result = crate::database::transfer_receiver::get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
 
     let get_msg_addr_response_payload = GetMsgAddrResponsePayload {
         list_enc_transfer_msg:result
@@ -178,41 +78,103 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
     return status::Custom(Status::Ok, Json(response_body));
 }
 
-async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, statechain_id: &str) -> Option<(PublicKey, Vec<u8>)> {
+#[post("/transfer/unlock", format = "json", data = "<transfer_unlock_request_payload>")]
+pub async fn transfer_unlock(statechain_entity: &State<StateChainEntity>, transfer_unlock_request_payload: Json<TransferUnlockRequestPayload>) -> status::Custom<Json<Value>> {
 
-    let query = "\
-        SELECT new_user_auth_public_key, x1 \
-        FROM statechain_transfer \
-        WHERE statechain_id = $1";
+    let statechain_id = transfer_unlock_request_payload.0.statechain_id.clone();
+    let signed_statechain_id = transfer_unlock_request_payload.0.auth_sig.clone();
+    let auth_pub_key = transfer_unlock_request_payload.0.auth_pub_key.clone();
 
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
+    if !crate::endpoints::utils::validate_signature_given_public_key(&signed_statechain_id, &statechain_id, &auth_pub_key).await {
 
-    if row.is_empty() {
-        return None;
+        let response_body = json!({
+            "message": "Signature does not match authentication key."
+        });
+    
+        return status::Custom(Status::Forbidden, Json(response_body));
     }
 
-    let new_user_auth_public_key_bytes = row.get::<Vec<u8>, _>(0);
-    let new_user_auth_public_key = PublicKey::from_slice(&new_user_auth_public_key_bytes).unwrap();
+    crate::database::transfer_receiver::update_unlock_transfer(&statechain_entity.pool, &statechain_id).await;
 
-    let x1_bytes = row.get::<Vec<u8>, _>(1);
+    let response_body = json!({
+        "message": "Success"
+    });
 
-    Some((new_user_auth_public_key, x1_bytes))
+    status::Custom(Status::Ok, Json(response_body))
 }
 
-type TransferReceiverRequestPayload = mercury_lib::transfer::receiver::TransferReceiverRequestPayload;
+pub enum BatchTransferReceiveValidationResult {
+
+    /// The statecoin batch is locked (not expired yet and not all coins are unlocked)
+    StatecoinBatchLockedError (String),
+    /// The batch_id sent by the user is expired
+    ExpiredBatchTimeError (String),
+    /// Success means there is no batch_id for the statecoin or all the coins of the batch are unlocked.
+    Success,
+}
+
+pub async fn validate_batch(statechain_entity: &State<StateChainEntity>, statechain_id: &str)  -> BatchTransferReceiveValidationResult{
+
+    let batch_info = crate::database::transfer::get_batch_id_and_time_by_statechain_id(&statechain_entity.pool, statechain_id).await;
+
+    // batch exists
+    if batch_info.is_some() {
+
+        let (batch_id, batch_time) = batch_info.unwrap();
+
+        if is_batch_expired(&statechain_entity, batch_time) {
+            // the batch time has not expired. It is possible to add a new coin to the batch.
+            return BatchTransferReceiveValidationResult::ExpiredBatchTimeError("Batch time has expired".to_string());
+        } else {
+            
+            // batch not expired. Check if all coins are unlocked.
+            let all_coins_unlocked = crate::database::transfer_receiver::is_all_coins_unlocked(&statechain_entity.pool, &batch_id).await;
+
+            if all_coins_unlocked {
+                return BatchTransferReceiveValidationResult::Success;
+            } else {
+                return BatchTransferReceiveValidationResult::StatecoinBatchLockedError("Statecoin batch is locked".to_string());
+            }
+        }
+    }
+
+    BatchTransferReceiveValidationResult::Success
+}
 
 #[post("/transfer/receiver", format = "json", data = "<transfer_receiver_request_payload>")]
 pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, transfer_receiver_request_payload: Json<TransferReceiverRequestPayload>) -> status::Custom<Json<Value>> {
 
-    let auth_pubkey_x1 = get_auth_pubkey_and_x1(&statechain_entity.pool, &transfer_receiver_request_payload.statechain_id).await;
+    // TODO: check if the statechain_id is within a batch and if it is, check if the batch is still open or expired.
+    // If open, check all coins are unlocked. If not, return 400 error.
+    // If expired, return 400 error.
+    let batch_validation_result = validate_batch(&statechain_entity, &transfer_receiver_request_payload.statechain_id).await;
+
+    match batch_validation_result {
+        BatchTransferReceiveValidationResult::StatecoinBatchLockedError(msg) => {
+
+            let response_body = json!(TransferReceiverErrorResponsePayload {
+                code: TransferReceiverError::StatecoinBatchLockedError,
+                message: msg
+            });
+        
+            return status::Custom(Status::BadRequest, Json(response_body));
+        },
+        BatchTransferReceiveValidationResult::ExpiredBatchTimeError(msg) => {
+            
+            let response_body = json!(TransferReceiverErrorResponsePayload {
+                code: TransferReceiverError::ExpiredBatchTimeError,
+                message: msg
+            });
+        
+            return status::Custom(Status::BadRequest, Json(response_body));
+        },
+        BatchTransferReceiveValidationResult::Success => {},
+    }
+
+    let auth_pubkey_x1 = crate::database::transfer_receiver::get_auth_pubkey_and_x1(&statechain_entity.pool, &transfer_receiver_request_payload.statechain_id).await;
 
     if auth_pubkey_x1.is_none() {
         let response_body = json!({
-            "error": "Not Found",
             "message": "No transfer messages found for this statechain_id"
         });
     
@@ -237,7 +199,6 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
     if !secp.verify_schnorr(&signed_message, &msg, &auth_pubkey).is_ok() {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     
@@ -245,13 +206,12 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     }
 
-    if is_key_already_updated(&statechain_entity.pool, &statechain_id).await {
+    if crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &statechain_id).await {
 
-        let server_public_key = get_server_public_key(&statechain_entity.pool, &statechain_id).await;
+        let server_public_key = crate::database::transfer_receiver::get_server_public_key(&statechain_entity.pool, &statechain_id).await;
 
         if server_public_key.is_none() {
             let response_body = json!({
-                "error": "Internal Server Error",
                 "message": "Server public key not found."
             });
         
@@ -269,7 +229,7 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     let x1_hex = hex::encode(x1);
 
-    let key_update_response_payload = mercury_lib::transfer::receiver::KeyUpdateResponsePayload { 
+    let key_update_response_payload = mercurylib::transfer::receiver::KeyUpdateResponsePayload { 
         statechain_id: statechain_id.clone(),
         t2,
         x1: x1_hex,
@@ -297,14 +257,9 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         },
     };
 
-    #[derive(Serialize, Deserialize)]
-    pub struct TransferReceiverResponsePayload<'r> {
-        server_pubkey: &'r str,
-    }
+    let response: TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    let response: TransferReceiverResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
-
-    let mut server_pubkey_hex = response.server_pubkey.to_string();
+    let mut server_pubkey_hex = response.server_pubkey.clone();
 
     if server_pubkey_hex.starts_with("0x") {
         server_pubkey_hex = server_pubkey_hex[2..].to_string();
@@ -312,10 +267,10 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
-    update_statechain(&statechain_entity.pool, &auth_pubkey, &server_pubkey, &statechain_id).await;
+    crate::database::transfer_receiver::update_statechain(&statechain_entity.pool, &auth_pubkey, &server_pubkey, &statechain_id).await;
 
-    let response_body = json!({
-        "server_pubkey": server_pubkey.to_string(),
+    let response_body = json!(TransferReceiverPostResponsePayload {
+        server_pubkey: server_pubkey.to_string(),
     });
 
     status::Custom(Status::Ok, Json(response_body))
@@ -324,82 +279,12 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 #[get("/transfer/receiver/<statechain_id>")]
 pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
 
-    let transfer_complete = is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
+    let transfer_complete = crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
 
-    let response_body = json!({
-        "transfer_complete": transfer_complete,
+    let response_body = json!(TransferReceiverGetResponsePayload {
+        transfer_complete: transfer_complete,
     });
 
     status::Custom(Status::Ok, Json(response_body))
 }
 
-pub async fn is_key_already_updated(pool: &sqlx::PgPool, statechain_id: &str) -> bool {
-
-    let query = "\
-        SELECT key_updated \
-        FROM statechain_transfer \
-        WHERE statechain_id = $1";
-
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let key_updated: bool = row.get(0);
-
-    key_updated
-}
-
-pub async fn get_server_public_key(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
-
-    let query = "\
-        SELECT server_public_key \
-        FROM statechain_data \
-        WHERE statechain_id = $1";
-
-    let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    let server_public_key_bytes: Vec<u8> = row.get(0);
-
-    if server_public_key_bytes.len() == 0 {
-        return None;
-    }
-
-    let server_public_key = PublicKey::from_slice(&server_public_key_bytes).unwrap();
-
-    Some(server_public_key)
-}
-
-pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &str)  {
-
-    let mut transaction = pool.begin().await.unwrap();
-
-    let query = "UPDATE statechain_data \
-        SET auth_xonly_public_key = $1, server_public_key = $2 \
-        WHERE statechain_id = $3";
-
-    let _ = sqlx::query(query)
-        .bind(&auth_key.serialize())
-        .bind(&server_public_key.serialize())
-        .bind(statechain_id)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    let query = "UPDATE statechain_transfer \
-        SET key_updated = true \
-        WHERE statechain_id = $1";
-
-    let _ = sqlx::query(query)
-        .bind(statechain_id)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    transaction.commit().await.unwrap();
-}

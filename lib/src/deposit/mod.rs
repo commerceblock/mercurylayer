@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
-use crate::{wallet::Coin, utils::get_network};
-use anyhow::Result;
+use crate::{error::MercuryError, utils::get_network, wallet::Coin};
 use bitcoin::{hashes::sha256, PrivateKey, secp256k1, Address};
 use secp256k1_zkp::{Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
@@ -12,6 +11,7 @@ pub struct TokenID {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct DepositMsg1 {
     pub auth_key: String,
     pub token_id: String,
@@ -19,12 +19,14 @@ pub struct DepositMsg1 {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct DepositMsg1Response {
     pub server_pubkey: String,
     pub statechain_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct DepositInitResult {
     pub server_pubkey: String,
     pub statechain_id: String,
@@ -32,12 +34,14 @@ pub struct DepositInitResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct AggregatedPublicKey {
     pub aggregate_pubkey: String,
     pub aggregate_address: String,
 }
 
-pub fn create_deposit_msg1(coin: &Coin, token_id: &str) -> Result<DepositMsg1>{
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_deposit_msg1(coin: &Coin, token_id: &str) -> Result<DepositMsg1, MercuryError>{
     let msg = Message::from_hashed_data::<sha256::Hash>(token_id.to_string().as_bytes());
 
     let secp = Secp256k1::new();
@@ -56,7 +60,8 @@ pub fn create_deposit_msg1(coin: &Coin, token_id: &str) -> Result<DepositMsg1>{
     Ok(deposit_msg_1)
 }
 
-pub fn handle_deposit_msg_1_response(coin: &Coin, deposit_msg_1_response: &DepositMsg1Response) -> Result<DepositInitResult> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn handle_deposit_msg_1_response(coin: &Coin, deposit_msg_1_response: &DepositMsg1Response) -> Result<DepositInitResult, MercuryError> {
 
     let secp = Secp256k1::new();
 
@@ -77,7 +82,8 @@ pub fn handle_deposit_msg_1_response(coin: &Coin, deposit_msg_1_response: &Depos
     })
 }
 
-pub fn create_aggregated_address(coin: &Coin, network: String) -> Result<AggregatedPublicKey> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn create_aggregated_address(coin: &Coin, network: String) -> Result<AggregatedPublicKey, MercuryError> {
 
     let network = get_network(&network)?;
 

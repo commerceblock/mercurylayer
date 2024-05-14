@@ -56,7 +56,7 @@ pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
     transaction.commit().await.unwrap();
 }
 
-pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercury_lib::deposit::DepositMsg1Response> {
+pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercurylib::deposit::DepositMsg1Response> {
 
     let row = sqlx::query(
         "SELECT statechain_id, server_public_key \
@@ -78,7 +78,7 @@ pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) 
     let server_public_key_bytes = row_ur.get::<Vec<u8>, _>(1);
     let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
 
-    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+    let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
         statechain_id: row_ur.get(0),
     };
@@ -103,7 +103,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 
     insert_new_token(&statechain_entity.pool, &token_id).await;
 
-    let token = mercury_lib::deposit::TokenID {
+    let token = mercurylib::deposit::TokenID {
         token_id
     };
 
@@ -112,8 +112,47 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
     return status::Custom(Status::Ok, Json(response_body));
 }
 
+#[get("/tokens/token_init")]
+pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
+
+    if statechain_entity.config.network == "mainnet" {
+        let response_body = json!({
+            "error": "Internal Server Error",
+            "message": "Token generation not supported on mainnet."
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    }
+
+    let btc_payment_address = String::from("tb1qdgjdmmsdp5hkrhwl6cxd3uvt6hvjvlmmzucdca");
+    let fee =  String::from("0.0001");
+    let lightning_invoice =  String::from("lnbc10u1pj3knpdsp5k9f25s2wpzewkf9c78pftkgnkuuz82erkcjml7zkgsp7znyhs5yspp5rxz3tkc7ydgln3u7ez6duhp0g6jpzgtnn7ph5xrjy6muh9xm07wqdp2f9h8vmmfvdjjqen0wgsy6ctfdeehgcteyp6x76m9dcxqyjw5qcqpj9qyysgq6z9whs8am75r6mzcgt76vlwgk5g9yq5g8xefdxx6few6d5why7fs7h5g2dx9hk7s60ywtnkyc0f3p0cha4a9kmgkq5jvu5e7hvsaawqpjtf8p4");
+    let processor_id = uuid::Uuid::new_v4().to_string();
+    let token_id = uuid::Uuid::new_v4().to_string();
+    let confirmed = false;
+    let spent = false;
+    let expiry = String::from("2024-12-26T17:29:50.013Z");
+
+    insert_new_token(&statechain_entity.pool, &token_id).await;
+
+    let token = mercurylib::wallet::Token {
+        btc_payment_address,
+        fee,
+        lightning_invoice,
+        processor_id,
+        token_id,
+        confirmed,
+        spent,
+        expiry
+    };
+
+    let response_body = json!(token);
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
-pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercury_lib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
+pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_msg1: Json<mercurylib::deposit::DepositMsg1>) -> status::Custom<Json<Value>> {
 
     let statechain_entity = statechain_entity.inner();
 
@@ -214,7 +253,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     set_token_spent(&statechain_entity.pool, &token_id).await;
 
-    let deposit_msg1_response = mercury_lib::deposit::DepositMsg1Response {
+    let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
         statechain_id,
     };
