@@ -9,7 +9,7 @@ pub async fn execute(
     recipient_address: &str, 
     wallet_name: &str, 
     statechain_id: &str, 
-    batch_id: Option<String>) -> Result<()> 
+    batch_id: Option<String>) -> Result<String> 
 {
 
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
@@ -68,7 +68,7 @@ pub async fn execute(
     let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
-    let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
+    let (x1, transfer_id) = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
 
     let bkp_tx1 = &backup_transactions[0];
 
@@ -124,10 +124,11 @@ pub async fn execute(
 
     wallet.activities.push(activity);
     coin.status = CoinStatus::IN_TRANSFER;
+    coin.transfer_id = Some(transfer_id.clone());
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    Ok(())
+    Ok(transfer_id)
 }
 
 async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut Coin, bkp_tx1: &BackupTx, recipient_address: &str, qt_backup_tx: u32, network: &str) -> Result<String> {
@@ -140,7 +141,7 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
     Ok(signed_tx)
 }
 
-async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, recipient_auth_pubkey: &str, batch_id: Option<String>) -> Result<String> {
+async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_statechain_id: &str, recipient_auth_pubkey: &str, batch_id: Option<String>) -> Result<(String, String)> {
     
     let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/sender";
@@ -174,7 +175,7 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
 
     let response: TransferSenderResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
-    Ok(response.x1)
+    Ok((response.x1, response.transfer_id))
 }
 
 

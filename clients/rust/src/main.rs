@@ -13,6 +13,7 @@ mod coin_status;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use client_config::ClientConfig;
+use serde_json::json;
 
 use crate::{wallet::create_wallet, sqlite_manager::get_wallet};
 
@@ -91,21 +92,20 @@ async fn main() -> Result<()> {
             sqlite_manager::insert_wallet(&client_config.pool, &wallet).await?;
             println!("Wallet created: {:?}", wallet);
         },
-        /*Commands::Deposit { wallet_name, token_id, amount } => {
-            deposit::execute(&client_config, &wallet_name, &token_id, amount).await?;
-        },*/
         Commands::NewToken { } => {
             let token_id = deposit::get_token(&client_config).await?;
-            println!("{}", token_id);
+
+            let obj = json!({"token": token_id});
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
         Commands::NewDepositAddress { wallet_name, token_id, amount } => {
             let address = deposit::get_deposit_bitcoin_address(&client_config, &wallet_name, &token_id, amount).await?;
-            println!("{}", address);
+
+            let obj = json!({"address": address});
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
-        /* Commands::CreateStatecoin { wallet_name, deposit_address } => {
-            let statecoin = deposit::create_statecoin(&client_config, &wallet_name, &deposit_address).await?;
-            println!("Statecoin created: {:?}", statecoin);
-        }, */
         Commands::BroadcastBackupTransaction { wallet_name, statechain_id, to_address, fee_rate } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
             broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
@@ -114,13 +114,17 @@ async fn main() -> Result<()> {
             coin_status::update_coins(&client_config, &wallet_name).await?;
             let wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
             for coin in wallet.coins.iter() {
-                println!("----\ncoin.user_pubkey: {}", coin.user_pubkey);
-                println!("coin.aggregated_address: {}", coin.aggregated_address.as_ref().unwrap_or(&"".to_string()));
-                println!("coin.address: {}", coin.address);
-                println!("coin.statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));
-                println!("coin.amount: {}", coin.amount.unwrap_or(0));
-                println!("coin.status: {}", coin.status);
-                println!("coin.locktime: {}", coin.locktime.unwrap_or(0));
+                let obj = json!({
+                    "coin.user_pubkey": coin.user_pubkey,
+                    "coin.aggregated_address": coin.aggregated_address.as_ref().unwrap_or(&"".to_string()),
+                    "coin.address": coin.address,
+                    "coin.statechain_id": coin.statechain_id.as_ref().unwrap_or(&"".to_string()),
+                    "coin.amount": coin.amount.unwrap_or(0),
+                    "coin.status": coin.status,
+                    "coin.locktime": coin.locktime.unwrap_or(0),
+                });
+
+                println!("{}", serde_json::to_string_pretty(&obj).unwrap());
             }
         },
         Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
@@ -129,17 +133,25 @@ async fn main() -> Result<()> {
         },
         Commands::NewTransferAddress { wallet_name, generate_batch_id } => {
             let address = transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;
-            println!("New transfer address: {}", address);
+
+            let mut obj = json!({"new_transfer_address:": address});
+
             if generate_batch_id {
                 // Generate a random batch_id
                 let batch_id = Some(uuid::Uuid::new_v4().to_string()).unwrap();
-                println!("Batch Id: {}", batch_id);
+
+                obj["batch_id"] = json!(batch_id);
             }
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
         Commands::TransferSend { wallet_name, statechain_id, to_address, batch_id } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
-            transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, batch_id).await?;
-            println!("Transfer sent");
+            let transfer_id = transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, batch_id).await?;
+
+            let obj = json!({"transfer_id": transfer_id});
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
         Commands::TransferReceive { wallet_name } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;

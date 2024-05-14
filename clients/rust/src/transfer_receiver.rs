@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, sign_message, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponsePayload, StatechainInfoResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
+use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, sign_message, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponseItem, GetMsgAddrResponsePayload, StatechainInfoResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
 use reqwest::StatusCode;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -59,7 +59,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
     Ok(())
 }
 
-async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result<Vec<String>> {
+async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result<Vec<GetMsgAddrResponseItem>> {
 
     let path = format!("transfer/get_msg_addr/{}", auth_pubkey.to_string());
 
@@ -73,14 +73,18 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<()> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<GetMsgAddrResponseItem>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<()> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
 
-    for enc_message in enc_messages {
+    for enc_message_item in enc_messages {
 
-        let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
+        let enc_message = enc_message_item.encrypted_transfer_msg.clone();
+
+        let transfer_id = enc_message_item.transfer_id.clone();
+
+        let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(&enc_message, &client_auth_key)?;
 
         // println!("transfer_msg: {:?}", transfer_msg);
 
@@ -175,7 +179,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
             continue;
         }
 
-        let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
+        let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin, &transfer_id)?;
     
         // unlock the statecoin - it might be part of a batch
 

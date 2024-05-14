@@ -69,11 +69,9 @@ pub async fn get_msg_addr(statechain_entity: &State<StateChainEntity>, new_auth_
     
     let result = crate::database::transfer_receiver::get_statechain_transfer_messages(&statechain_entity.pool, &new_user_auth_public_key).await;
 
-    let get_msg_addr_response_payload = GetMsgAddrResponsePayload {
-        list_enc_transfer_msg:result
-    };
-
-    let response_body = json!(get_msg_addr_response_payload);
+    let response_body = json!(GetMsgAddrResponsePayload {
+        list_enc_transfer_msg: result
+    });
 
     return status::Custom(Status::Ok, Json(response_body));
 }
@@ -171,7 +169,7 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         BatchTransferReceiveValidationResult::Success => {},
     }
 
-    let auth_pubkey_x1 = crate::database::transfer_receiver::get_auth_pubkey_and_x1(&statechain_entity.pool, &transfer_receiver_request_payload.statechain_id).await;
+    let auth_pubkey_x1 = crate::database::transfer_receiver::get_auth_pubkey_and_x1(&statechain_entity.pool, &transfer_receiver_request_payload.transfer_id).await;
 
     if auth_pubkey_x1.is_none() {
         let response_body = json!({
@@ -190,6 +188,7 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
     let statechain_id = transfer_receiver_request_payload.statechain_id.clone();
     let t2 = transfer_receiver_request_payload.t2.clone();
     let auth_sign = transfer_receiver_request_payload.auth_sig.clone();
+    let transfer_id = transfer_receiver_request_payload.transfer_id.clone();
 
     let signed_message = Signature::from_str(&auth_sign).unwrap();
     let msg = Message::from_hashed_data::<sha256::Hash>(t2.as_bytes());
@@ -206,13 +205,23 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     }
 
-    if crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &statechain_id).await {
+    let is_key_already_updated = crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &transfer_id).await;
+
+    if is_key_already_updated.is_none() {
+        let response_body = json!({
+            "message": "Transfer ID not found."
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    }
+
+    if is_key_already_updated.unwrap() {
 
         let server_public_key = crate::database::transfer_receiver::get_server_public_key(&statechain_entity.pool, &statechain_id).await;
 
         if server_public_key.is_none() {
             let response_body = json!({
-                "message": "Server public key not found."
+                "message": "Key already updated."
             });
         
             return status::Custom(Status::InternalServerError, Json(response_body));
@@ -234,7 +243,6 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         t2,
         x1: x1_hex,
     };
-
 
     let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "keyupdate";
@@ -276,13 +284,13 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
     status::Custom(Status::Ok, Json(response_body))
 }
 
-#[get("/transfer/receiver/<statechain_id>")]
-pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
+#[get("/transfer/receiver/<transfer_id>")]
+pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, transfer_id: String) -> status::Custom<Json<Value>> {
 
-    let transfer_complete = crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
+    let is_key_already_updated = crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &transfer_id).await;
 
     let response_body = json!(TransferReceiverGetResponsePayload {
-        transfer_complete: transfer_complete,
+        transfer_complete: is_key_already_updated,
     });
 
     status::Custom(Status::Ok, Json(response_body))

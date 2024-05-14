@@ -92,7 +92,7 @@ pub fn fii_verify_latest_backup_tx_pays_to_user_pubkey(ffi_transfer_msg: &FFITra
 }
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
-pub fn fii_create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, ffi_transfer_msg: &FFITransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload, MercuryError> {
+pub fn fii_create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, ffi_transfer_msg: &FFITransferMsg, coin: &Coin, transfer_id: &str) -> Result<TransferReceiverRequestPayload, MercuryError> {
     let  transfer_msg = ffi_to_transfer_msg(ffi_transfer_msg.clone())?;
-    crate::transfer::receiver::create_transfer_receiver_request_payload(statechain_info, &transfer_msg, coin)
+    crate::transfer::receiver::create_transfer_receiver_request_payload(statechain_info, &transfer_msg, coin, transfer_id)
 }

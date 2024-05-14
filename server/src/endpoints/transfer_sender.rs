@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use bitcoin::network::message_bloom;
 use mercurylib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
@@ -125,10 +124,11 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     let s_x1 = Scalar::from(secret_x1);
     let x1 = s_x1.to_be_bytes();
 
-    crate::database::transfer_sender::insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id).await;
+    let transfer_id = crate::database::transfer_sender::insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id).await;
 
     let transfer_sender_response_payload = TransferSenderResponsePayload {
         x1: hex::encode(x1),
+        transfer_id,
     };
 
     let response_body = json!(transfer_sender_response_payload);

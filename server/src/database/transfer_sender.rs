@@ -63,7 +63,7 @@ pub async fn insert_new_transfer(
     pool: &sqlx::PgPool, 
     new_user_auth_key: &PublicKey, x1: &[u8; 32], 
     statechain_id: &String, 
-    batch_id: &Option<String>)  
+    batch_id: &Option<String>) -> String
 {
 
     let mut transaction = pool.begin().await.unwrap();
@@ -77,14 +77,17 @@ pub async fn insert_new_transfer(
         .unwrap();
 
     let query2 = if batch_id.is_none() {
-        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, locked) VALUES ($1, $2, $3, $4)"
+        "INSERT INTO statechain_transfer (transfer_id, statechain_id, new_user_auth_public_key, x1, locked) VALUES ($1, $2, $3, $4, $5)"
     } else {
-        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, batch_id, batch_time, locked) VALUES ($1, $2, $3, $4, $5, $6)"
+        "INSERT INTO statechain_transfer (transfer_id, statechain_id, new_user_auth_public_key, x1, batch_id, batch_time, locked) VALUES ($1, $2, $3, $4, $5, $6, $7)"
     };
 
     let ser_new_user_auth_key = new_user_auth_key.serialize();
 
+    let transfer_id = uuid::Uuid::new_v4().as_simple().to_string();
+
     let mut ps_query = sqlx::query(query2)
+        .bind(&transfer_id)
         .bind(statechain_id)
         .bind(ser_new_user_auth_key)
         .bind(x1);
@@ -112,6 +115,8 @@ pub async fn insert_new_transfer(
         .unwrap();    
 
     transaction.commit().await.unwrap();
+
+    transfer_id
 }
 
 pub async fn update_transfer_msg(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, enc_transfer_msg: &Vec<u8>, statechain_id: &str)  {

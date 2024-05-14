@@ -100,6 +100,7 @@ pub struct Coin {
     pub public_nonce: Option<String>,
     pub blinding_factor: Option<String>,
     pub server_public_nonce: Option<String>,
+    pub transfer_id: Option<String>,
     pub tx_cpfp: Option<String>,
     pub tx_withdraw: Option<String>,
     pub withdrawal_address: Option<String>,

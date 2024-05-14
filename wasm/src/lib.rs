@@ -395,12 +395,12 @@ pub fn getBlockheight(backup_tx: JsValue) -> u32 {
 }
 
 #[wasm_bindgen]
-pub fn createTransferReceiverRequestPayload(statechain_info: JsValue, transfer_msg: JsValue, coin: JsValue) -> JsValue {
+pub fn createTransferReceiverRequestPayload(statechain_info: JsValue, transfer_msg: JsValue, coin: JsValue, transfer_id: String) -> JsValue {
     let statechain_info: StatechainInfoResponsePayload = serde_wasm_bindgen::from_value(statechain_info).unwrap();
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
     let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
 
-    let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin).unwrap();
+    let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin, &transfer_id).unwrap();
 
     serde_wasm_bindgen::to_value(&transfer_receiver_request_payload).unwrap()
 }

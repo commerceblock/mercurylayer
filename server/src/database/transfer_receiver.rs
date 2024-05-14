@@ -1,4 +1,4 @@
-use mercurylib::transfer::receiver::StatechainInfo;
+use mercurylib::transfer::receiver::{GetMsgAddrResponseItem, StatechainInfo};
 use secp256k1_zkp::{PublicKey, Secp256k1, XOnlyPublicKey, SecretKey};
 
 use sqlx::Row;
@@ -63,10 +63,10 @@ pub async fn get_enclave_pubkey_and_x1pub(pool: &sqlx::PgPool, statechain_id: &s
     (enclave_public_key, secret_x1.public_key(&Secp256k1::new()))
 }
 
-pub async fn get_statechain_transfer_messages(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey) -> Vec::<String> {
+pub async fn get_statechain_transfer_messages(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey) -> Vec::<GetMsgAddrResponseItem> {
 
     let query = "\
-        SELECT encrypted_transfer_msg \
+        SELECT encrypted_transfer_msg, transfer_id \
         FROM statechain_transfer \
         WHERE new_user_auth_public_key = $1
         AND encrypted_transfer_msg IS NOT NULL \
@@ -78,25 +78,29 @@ pub async fn get_statechain_transfer_messages(pool: &sqlx::PgPool, new_user_auth
         .await
         .unwrap();
 
-    let mut result = Vec::<String>::new();
+    let mut result = Vec::<GetMsgAddrResponseItem>::new();
 
     for row in rows {
         let encrypted_transfer_msg: Vec<u8> = row.get(0);
-        result.push(hex::encode(encrypted_transfer_msg));
+        let transfer_id: String =  row.get(1);
+        result.push(GetMsgAddrResponseItem {
+            encrypted_transfer_msg: hex::encode(encrypted_transfer_msg),
+            transfer_id
+        });
     }
 
     result
 }
 
-pub async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, statechain_id: &str) -> Option<(PublicKey, Vec<u8>)> {
+pub async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, transfer_id: &str) -> Option<(PublicKey, Vec<u8>)> {
 
     let query = "\
         SELECT new_user_auth_public_key, x1 \
         FROM statechain_transfer \
-        WHERE statechain_id = $1";
+        WHERE transfer_id = $1";
 
     let row = sqlx::query(query)
-        .bind(statechain_id)
+        .bind(transfer_id)
         .fetch_one(pool)
         .await
         .unwrap();
@@ -113,22 +117,28 @@ pub async fn get_auth_pubkey_and_x1(pool: &sqlx::PgPool, statechain_id: &str) ->
     Some((new_user_auth_public_key, x1_bytes))
 }
 
-pub async fn is_key_already_updated(pool: &sqlx::PgPool, statechain_id: &str) -> bool {
+pub async fn is_key_already_updated(pool: &sqlx::PgPool, transfer_id: &str) -> Option<bool> {
 
     let query = "\
         SELECT key_updated \
         FROM statechain_transfer \
-        WHERE statechain_id = $1";
+        WHERE transfer_id = $1";
 
     let row = sqlx::query(query)
-        .bind(statechain_id)
-        .fetch_one(pool)
+        .bind(transfer_id)
+        .fetch_optional(pool)
         .await
         .unwrap();
 
+    if row.is_none() {
+        return None;
+    }
+
+    let row = row.unwrap();
+
     let key_updated: bool = row.get(0);
 
-    key_updated
+    Some(key_updated)
 }
 
 pub async fn get_server_public_key(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {

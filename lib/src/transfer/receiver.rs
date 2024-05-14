@@ -20,6 +20,7 @@ pub struct TransferUnlockRequestPayload {
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferReceiverRequestPayload { 
     pub statechain_id: String,
+    pub transfer_id: String,
     pub batch_data: Option<String>,
     pub t2: String,
     pub auth_sig: String,
@@ -48,7 +49,7 @@ pub struct TransferReceiverPostResponsePayload {
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferReceiverGetResponsePayload {
-    pub transfer_complete: bool,
+    pub transfer_complete: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,8 +62,15 @@ pub struct KeyUpdateResponsePayload {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct GetMsgAddrResponseItem {
+    pub encrypted_transfer_msg: String,
+    pub transfer_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct GetMsgAddrResponsePayload {
-    pub list_enc_transfer_msg: Vec<String>,
+    pub list_enc_transfer_msg: Vec<GetMsgAddrResponseItem>,
 }
  
 #[derive(Debug, Serialize, Deserialize)]
@@ -388,7 +396,7 @@ fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) ->
     Ok(t2)
 }
 
-pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload, MercuryError> {
+pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin, transfer_id: &str) -> Result<TransferReceiverRequestPayload, MercuryError> {
 
     let x1_pub = PublicKey::from_str(&statechain_info.x1_pub)?;
 
@@ -414,6 +422,7 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 
     let transfer_receiver_request_payload = TransferReceiverRequestPayload {
         statechain_id: transfer_msg.statechain_id.clone(),
+        transfer_id: transfer_id.to_string(),
         batch_data: None,
         t2: t2_hex,
         auth_sig: auth_sig.to_string(),

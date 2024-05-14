@@ -9,7 +9,8 @@ CREATE TABLE public.statechain_data (
 );
 
 CREATE TABLE public.statechain_transfer (
-	id serial4 NOT NULL,
+	id serial4 NOT NULL, -- This is the internal id, used for database reference, required by sqlx
+	transfer_id varchar NULL UNIQUE, -- This is the actual transfer ID, used by the client to refer to the transfer
 	statechain_id varchar UNIQUE,
 	new_user_auth_public_key bytea,
 	x1 bytea,

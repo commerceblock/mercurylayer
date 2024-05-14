@@ -127,6 +127,7 @@ impl Wallet {
             public_nonce: None,
             blinding_factor: None,
             server_public_nonce: None,
+            transfer_id: None,
             tx_cpfp: None,
             tx_withdraw: None,
             withdrawal_address: None,

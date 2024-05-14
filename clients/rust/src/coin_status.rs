@@ -92,10 +92,14 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
         return Err(anyhow!("Coin does not have a statechain ID"));
     }
 
-    let statechain_id = coin.statechain_id.as_ref().unwrap();
+    if coin.transfer_id.is_none() {
+        return Err(anyhow!("Coin does not have a transfer ID"));
+    }
+
+    let transfer_id = coin.transfer_id.as_ref().unwrap();
 
     let endpoint = client_config.statechain_entity.clone();
-    let path = format!("transfer/receiver/{}", statechain_id);
+    let path = format!("transfer/receiver/{}", transfer_id);
 
     let client = client_config.get_reqwest_client()?;
     let request = client.get(&format!("{}/{}", endpoint, path));
@@ -104,7 +108,13 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
 
     let response: TransferReceiverGetResponsePayload = serde_json::from_str(value.as_str())?;
 
-    Ok(response.transfer_complete)
+    if response.transfer_complete.is_none() {
+        // We assume that if the transfer_id was not found, the transfer is complete
+        // Because the transfer_id is deleted from the database when the new owner moves or withdraws the coin
+        return Ok(true);
+    }
+
+    Ok(response.transfer_complete.unwrap())
 }
 
 async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Result<()> {

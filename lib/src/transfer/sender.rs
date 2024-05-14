@@ -22,6 +22,7 @@ pub struct TransferSenderRequestPayload {
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferSenderResponsePayload {
     pub x1: String,
+    pub transfer_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
