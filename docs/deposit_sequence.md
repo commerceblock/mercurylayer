@@ -6,11 +6,11 @@ sequenceDiagram
     participant Server
     participant Client
     Client->>Server: /info/fee
-    Server-->>Client: {backup_fee_rate,initlock,interval}
-    note over Client: Derive privkey, privkey_auth
-    note over Client: Compute user_pubkey, auth_key
-    Client->>Server: /deposit/init/pod {amount, token_id, auth_key}
-    note over Server: Verify mark token_id as spent
+    Server-->>Client: {initlock,interval}
+    note over Client: Derive user_privkey, privkey_auth
+    note over Client: Compute user_pubkey, pubkey_auth
+    Client->>Server: /deposit/init/pod {token_id, auth_key, auth_sig}
+    note over Server: Verify token_id and auth_sig
     Server->>Enclave: /get_public_key
     note over Enclave: Generate statechain_id    
     note over Enclave: Generate enclave_privkey
@@ -19,7 +19,7 @@ sequenceDiagram
     note over Enclave: Save sealed enclave_privkey and sig_count with ID statechain_id
     Enclave-->>Server: {enclave_pubkey, statechain_id}
     note over Server: Save enclave_pubkey and auth_key with ID statechain_id
-    Server-->>Client: {statechain_id, enclave_pubkey}    
+    Server-->>Client: {statechain_id, enclave_pubkey}
     note over Client: Compute pubkey = enclave_pubkey + user_pubkey
     note over Client: [Pay amount to taproot address pubkey: Tx0]
     note over Client: Construct Tx1 spending Tx0 output to user_pubkey

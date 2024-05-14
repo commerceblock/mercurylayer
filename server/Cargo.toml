@@ -10,7 +10,7 @@ bitcoin = { version = "0.30.1", features = ["serde", "base64", "rand-std", "std"
 config = "0.13.1"
 reqwest = { version = "0.11.16", features = ["blocking", "json", "socks"] }
 rocket = { version = "0.5.0", features = ["json"] }
-sqlx = { version = "0.7", features = [ "runtime-tokio", "postgres", "time", "uuid", "tls-rustls" ] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "postgres", "time", "uuid", "chrono" ] }
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 schemars = { version = "0.8.12", features = ["chrono", "uuid"] }
@@ -21,3 +21,4 @@ secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", b
 dotenv = "0.15.0"
 # secp256k1-zkp = { path = "../ss-rust-secp256k1-zkp", features = [ "rand-std", "bitcoin_hashes", "std" ] }
 mercurylib = { path = "../lib" }
+chrono = "0.4.31"

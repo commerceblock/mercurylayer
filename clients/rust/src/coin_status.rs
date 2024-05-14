@@ -4,9 +4,8 @@ use std::str::FromStr;
 
 use bitcoin::Address;
 use electrum_client::{ElectrumApi, ListUnspentRes};
-use mercurylib::wallet::{CoinStatus, Coin, Activity, BackupTx};
+use mercurylib::{transfer::receiver::TransferReceiverGetResponsePayload, wallet::{Activity, BackupTx, Coin, CoinStatus}};
 use anyhow::{anyhow, Result, Ok};
-use serde_json::Value;
 
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet, insert_backup_txs}, deposit::create_tx1};
 
@@ -103,11 +102,9 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
 
     let value = request.send().await?.text().await?;
 
-    let response: Value = serde_json::from_str(value.as_str())?;
+    let response: TransferReceiverGetResponsePayload = serde_json::from_str(value.as_str())?;
 
-    let is_transfer_complete = response.get("transfer_complete").unwrap().as_bool().unwrap();
-
-    Ok(is_transfer_complete)
+    Ok(response.transfer_complete)
 }
 
 async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Result<()> {

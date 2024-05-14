@@ -54,9 +54,23 @@ enum Commands {
         fee_rate: Option<u64>
     },
     /// Generate a transfer address to receive funds
-    NewTransferAddress { wallet_name: String },
+    NewTransferAddress { 
+        wallet_name: String,
+        /// Generate batch id for atomic transfers
+        #[arg(short='b', long)]
+        generate_batch_id: bool,
+    },
     /// Send a statechain coin to a transfer address
-    TransferSend { wallet_name: String, statechain_id: String, to_address: String,  },
+    TransferSend {
+        wallet_name: String, 
+        statechain_id: String, 
+        to_address: String,
+        /// Batch id for atomic transfers
+        batch_id: Option<String>,
+        // Generate batch id for atomic transfers
+        // #[arg(short, long, help = "Optional flag for additional behavior")]
+        // generate_batch_id: bool,
+    },
     /// Send a statechain coin to a transfer address
     TransferReceive { wallet_name: String },
 }
@@ -106,19 +120,25 @@ async fn main() -> Result<()> {
                 println!("coin.statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));
                 println!("coin.amount: {}", coin.amount.unwrap_or(0));
                 println!("coin.status: {}", coin.status);
+                println!("coin.locktime: {}", coin.locktime.unwrap_or(0));
             }
         },
         Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
             withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
         },
-        Commands::NewTransferAddress { wallet_name } => {
+        Commands::NewTransferAddress { wallet_name, generate_batch_id } => {
             let address = transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;
-            println!("{}", address);
+            println!("New transfer address: {}", address);
+            if generate_batch_id {
+                // Generate a random batch_id
+                let batch_id = Some(uuid::Uuid::new_v4().to_string()).unwrap();
+                println!("Batch Id: {}", batch_id);
+            }
         },
-        Commands::TransferSend { wallet_name, statechain_id, to_address } => {
+        Commands::TransferSend { wallet_name, statechain_id, to_address, batch_id } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
-            transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id).await?;
+            transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, batch_id).await?;
             println!("Transfer sent");
         },
         Commands::TransferReceive { wallet_name } => {

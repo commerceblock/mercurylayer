@@ -1,0 +1,17 @@
+{
+  "name": "mercury-wasm",
+  "collaborators": [
+    "ttrevethan"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "mercury_wasm_bg.wasm",
+    "mercury_wasm.js",
+    "mercury_wasm.d.ts"
+  ],
+  "module": "mercury_wasm.js",
+  "types": "mercury_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

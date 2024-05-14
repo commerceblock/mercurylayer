@@ -255,7 +255,7 @@ pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: Str
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx_json).unwrap();
 
-    let backup_tx = mercurylib::wallet::cpfp_tx::create(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
+    let backup_tx = mercurylib::wallet::cpfp_tx::create_cpfp_tx(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
     backup_tx
     // "".to_string()
 }
@@ -419,6 +419,16 @@ pub fn getNewKeyInfo(server_public_key_hex: String, coin: JsValue, statechain_id
 pub fn validateAddress(address: String, network: String) -> bool {
     let result = mercurylib::validate_address(&address, &network).unwrap();
     result
+}
+
+#[wasm_bindgen]
+pub fn signMessage(statechain_id: String, coin: JsValue) -> String {
+
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    let signature = mercurylib::transfer::receiver::sign_message(&statechain_id, &coin).unwrap();
+
+    signature
 }
 
 #[wasm_bindgen]

@@ -4,6 +4,8 @@ pub mod withdraw;
 pub mod wallet;
 pub mod utils;
 pub mod transaction;
+pub mod unifii_interface;
+pub mod error;
 
 use std::str::FromStr;
 
@@ -11,12 +13,15 @@ use bech32::{Variant, ToBase32, FromBase32};
 use bip39::Mnemonic;
 use bitcoin::{bip32::{ChildNumber, DerivationPath, ExtendedPrivKey}, secp256k1::{ffi::types::AlignedType, AllPreallocated, PublicKey, Secp256k1, SecretKey}, Address};
 
-use anyhow::{anyhow, Result};
+use error::MercuryError;
+
+#[cfg(feature = "bindings")]
+uniffi::setup_scaffolding!();
 
 const MAINNET_HRP : &str = "ml";
 const TESTNET_HRP : &str = "tml";
 
-pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, network: bitcoin::Network) -> Result<String> {
+pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, network: bitcoin::Network) -> core::result::Result<String, MercuryError> {
 
     let mut hrp = TESTNET_HRP;
 
@@ -36,15 +41,15 @@ pub fn encode_sc_address(user_pubkey: &PublicKey, auth_pubkey: &PublicKey, netwo
     Ok(encoded)
 }
 
-pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, PublicKey)> {
+pub fn decode_transfer_address(sc_address: &str) -> core::result::Result<(u8, PublicKey, PublicKey), MercuryError> {
     let (hrp, data, variant)  = bech32::decode(sc_address)?;
 
     if hrp != MAINNET_HRP && hrp != TESTNET_HRP {
-        return Err(anyhow!("Invalid SC address".to_string()));
+        return Err(MercuryError::InvalidStatechainAddressError);
     }
 
     if variant != Variant::Bech32m {
-        return Err(anyhow!("Invalid address".to_string()));
+        return Err(MercuryError::InvalidBitcoinAddressError);
     }
 
     let decoded_data = Vec::<u8>::from_base32(&data)?;
@@ -56,7 +61,7 @@ pub fn decode_transfer_address(sc_address: &str) -> Result<(u8, PublicKey, Publi
     Ok((version, user_pubkey, auth_pubkey))
 }
 
-fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivation_path: &str, change_index: u32, address_index:u32) -> Result<SecretKey> {
+fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivation_path: &str, change_index: u32, address_index:u32) -> core::result::Result<SecretKey, MercuryError> {
     // derive child xpub
     let path = DerivationPath::from_str(derivation_path)?;
     let child = root.derive_priv(&secp, &path)?;
@@ -70,7 +75,7 @@ fn get_key(secp: &Secp256k1<AllPreallocated<'_>>, root: ExtendedPrivKey, derivat
     Ok(secret_key)
 }
 
-pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> Result<String> {
+pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> core::result::Result<String, MercuryError> {
 
     let network = utils::get_network(network)?;
 
@@ -99,22 +104,23 @@ pub fn get_sc_address(mnemonic: &str, index: u32, network: &str) -> Result<Strin
     encode_sc_address(&user_pubkey, &auth_pubkey, network)
 }
 
-pub fn validate_address(address: &str, network: &str) -> Result<bool> {
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn validate_address(address: &str, network: &str) -> core::result::Result<bool, MercuryError> {
 
     let network = utils::get_network(network)?;
 
     if address.starts_with(MAINNET_HRP) || address.starts_with(TESTNET_HRP) {
         if address.starts_with(MAINNET_HRP) && network != bitcoin::Network::Bitcoin {
-            return Err(anyhow!("Statechain address does not match the network"));
+            return Err(MercuryError::StatechainAddressMismatchNetworkError);
         }
 
         if address.starts_with(TESTNET_HRP) && network == bitcoin::Network::Bitcoin {
-            return Err(anyhow!("Statechain address does not match the network"));
+            return Err(MercuryError::StatechainAddressMismatchNetworkError);
         }
 
         match decode_transfer_address(address) {
             Ok(_) => Ok(true),
-            Err(_) => Err(anyhow::anyhow!("Invalid statechain address")),
+            Err(_) => Err(MercuryError::InvalidStatechainAddressError),
         }
     }
     else {
@@ -123,10 +129,10 @@ pub fn validate_address(address: &str, network: &str) -> Result<bool> {
 
                 match addr.require_network(network) {
                     Ok(_) => Ok(true),
-                    Err(_) => Err(anyhow::anyhow!("Bitcoin address does not match the network")),
+                    Err(_) => Err(MercuryError::BitcoinAddressMismatchNetworkError),
                 }
             },
-            Err(_) => Err(anyhow::anyhow!("Invalid bitcoin address")),
+            Err(_) => Err(MercuryError::InvalidBitcoinAddressError),
         }
     
     }    

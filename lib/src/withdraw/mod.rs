@@ -18,7 +18,7 @@ pub struct CoinKeyDetails {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct DeleteStatechainPayload {
+pub struct WithdrawCompletePayload {
     pub statechain_id: String,
     pub signed_statechain_id: String,
 }
