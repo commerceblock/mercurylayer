@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use bitcoin::Address;
 use electrum_client::{ElectrumApi, ListUnspentRes};
-use mercurylib::{transfer::receiver::TransferReceiverGetResponsePayload, wallet::{Activity, BackupTx, Coin, CoinStatus}};
+use mercurylib::{utils::is_enclave_pubkey_part_of_coin, wallet::{Activity, BackupTx, Coin, CoinStatus}};
 use anyhow::{anyhow, Result, Ok};
 
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet, insert_backup_txs}, deposit::create_tx1};
@@ -94,17 +94,21 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
 
     let statechain_id = coin.statechain_id.as_ref().unwrap();
 
-    let endpoint = client_config.statechain_entity.clone();
-    let path = format!("transfer/receiver/{}", statechain_id);
+    let statechain_info = crate::utils::get_statechain_info(statechain_id, &client_config).await?;
 
-    let client = client_config.get_reqwest_client()?;
-    let request = client.get(&format!("{}/{}", endpoint, path));
+    // if the statechain info is not found, we assume the coin has been transferred
+    if statechain_info.is_none() {
+        return Ok(true);
+    }
 
-    let value = request.send().await?.text().await?;
+    let statechain_info = statechain_info.unwrap();
 
-    let response: TransferReceiverGetResponsePayload = serde_json::from_str(value.as_str())?;
+    let enclave_public_key = statechain_info.enclave_public_key;
 
-    Ok(response.transfer_complete)
+    // if the enclave's public key is no longer part of the coin, the coin has been transferred
+    let is_transferred = !is_enclave_pubkey_part_of_coin(&coin, &enclave_public_key)?;
+
+    return Ok(is_transferred);
 }
 
 async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Result<()> {

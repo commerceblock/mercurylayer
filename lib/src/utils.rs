@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use bitcoin::Transaction;
 use serde::{Serialize, Deserialize};
 
-use crate::{wallet::BackupTx, MercuryError};
+use crate::{wallet::{BackupTx, Coin}, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -54,4 +56,24 @@ pub fn get_blockheight(bkp_tx: &BackupTx) -> Result<u32, MercuryError> {
     let block_height = lock_time.to_consensus_u32();
 
     Ok(block_height)
+}
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn is_enclave_pubkey_part_of_coin(coin: &Coin, enclave_pubkey: &str) -> Result<bool, MercuryError> {
+
+    if coin.aggregated_pubkey.is_none() {
+        return Err(MercuryError::NoAggregatedPubkeyError);
+    }
+
+    let enclave_pubkey = secp256k1_zkp::PublicKey::from_str(enclave_pubkey)?;
+
+    let user_public_key = secp256k1_zkp::PublicKey::from_str(&coin.user_pubkey)?;
+
+    let aggregate_enclave_pubkey = user_public_key.combine(&enclave_pubkey)?;
+
+    let coin_aggregated_pubkey = coin.aggregated_pubkey.as_ref().unwrap();
+
+    let coin_aggregated_pubkey = secp256k1_zkp::PublicKey::from_str(coin_aggregated_pubkey)?;
+
+    return Ok(aggregate_enclave_pubkey == coin_aggregated_pubkey);
 }

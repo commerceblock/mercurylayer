@@ -61,6 +61,8 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
 
     await sqlite_manager.updateWallet(db, wallet);
 
+    utils.completeWithdraw(coin.statechain_id, coin.signed_statechain_id);
+
     return {
         backupTx: backupTxTxid,
         cpfpTx: cpfpTxTxid

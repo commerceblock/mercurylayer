@@ -8,6 +8,7 @@ const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const deposit = require('./deposit');
 const { CoinStatus } = require('./coin_enum');
+const mercury_wasm = require('mercury-wasm');
 
 const checkDeposit = async (electrumClient, coin, wallet_network) => {
 
@@ -87,29 +88,23 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
 }
 
 const checkTransfer = async (coin) => {
+
     if (!coin.statechain_id) {
         throw new Error(`The coin with the aggregated address ${aggregated_address} does not have a statechain ID`);
     }
 
-    const statechainEntityUrl = config.get('statechainEntity'); // 'http://127.0.0.1:8000';
-    const path = `transfer/receiver/${coin.statechain_id}`;
+    let statechainInfo = await utils.getStatechainInfo(coin.statechain_id);
 
-    const torProxy = config.get('torProxy');
-
-    let socksAgent = undefined;
-
-    if (torProxy) {
-        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    // if the statechain info is not found, we assume the coin has been transferred
+    if (!statechainInfo) {
+        return true;
     }
 
-    let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
+    let enclavePublicKey = statechainInfo.enclave_public_key;
 
-    if (response.status != 200) {
-        // TODO: return false so the process can continue to other coins
-        throw new Error(`Error checking transfer: ${response.data.error}`);
-    }
+    let isTransferred = !mercury_wasm.isEnclavePubkeyPartOfCoin(coin, enclavePublicKey);
 
-    return response.data.transfer_complete;
+    return isTransferred;
 }
 
 const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
