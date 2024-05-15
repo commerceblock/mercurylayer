@@ -126,22 +126,6 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
         httpClient.close()
     }
 
-    private suspend fun getStatechainInfo(statechainId: String): StatechainInfoResponsePayload {
-        val url = "${appContext.clientConfig.statechainEntity}/info/statechain/${statechainId}"
-
-        val httpClient = HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json()
-            }
-        }
-
-        val response: StatechainInfoResponsePayload = httpClient.get(url).body()
-
-        httpClient.close()
-
-        return response
-    }
-
     private fun getTx0(tx0Txid: String) : String {
         val electrumClient = getElectrumClient(appContext.clientConfig)
 
@@ -176,7 +160,12 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
                 return@forEach
             }
 
-            val statechainInfo = getStatechainInfo(transferMsg.statechainId)
+            val statechainInfo = getStatechainInfo(appContext.clientConfig, transferMsg.statechainId)
+
+            if (statechainInfo == null) {
+                println("Statechain info not found")
+                return@forEach
+            }
 
             val isTx0OutputPubkeyValid = fiiValidateTx0OutputPubkey(statechainInfo.enclavePublicKey, transferMsg, tx0Outpoint, tx0Hex, wallet.network)
 

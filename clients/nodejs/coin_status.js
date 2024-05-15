@@ -90,7 +90,7 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
 const checkTransfer = async (coin) => {
 
     if (!coin.statechain_id) {
-        throw new Error(`The coin with the aggregated address ${aggregated_address} does not have a statechain ID`);
+        throw new Error(`The coin with the aggregated address ${coin.aggregated_address} does not have a statechain ID`);
     }
 
     let statechainInfo = await utils.getStatechainInfo(coin.statechain_id);

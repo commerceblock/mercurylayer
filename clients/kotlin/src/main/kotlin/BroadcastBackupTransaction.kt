@@ -76,6 +76,8 @@ class BroadcastBackupTransaction: CliktCommand(help = "Broadcast a backup transa
 
         appContext.sqliteManager.updateWallet(wallet)
 
+        completeWithdraw(appContext.clientConfig, coin.statechainId!!, coin.signedStatechainId!!)
+
         val json = buildJsonObject {
             put("backupTx", backupTxTxid)
             put("cpfpTx", cpfpTxTxid)

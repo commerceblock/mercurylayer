@@ -112,6 +112,8 @@ class Withdraw: CliktCommand(help = "Withdraw funds from a statecoin to a BTC ad
 
         appContext.sqliteManager.updateWallet(wallet)
 
+        completeWithdraw(appContext.clientConfig, coin.statechainId!!, coin.signedStatechainId!!)
+
         val json = buildJsonObject {
             put("txId", txId)
         }

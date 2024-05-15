@@ -34,6 +34,7 @@ FIND_TEXT_TRANSFER_RECEIVER_POST_RESPONSE_PAYLOAD="data class TransferReceiverPo
 FIND_TEXT_TRANSFER_RECEIVER_ERROR="enum class TransferReceiverError {"
 FIND_TEXT_TRANSFER_RECEIVER_ERROR_RESPONSE_PAYLOAD="data class TransferReceiverErrorResponsePayload("
 FIND_TEXT_TRANSFER_UNLOCK_REQUEST_PAYLOAD="data class TransferUnlockRequestPayload("
+FIND_TEXT_TRANSFER_WITHDRAW_COMPLETE_PAYLOAD="data class WithdrawCompletePayload("
 
 # The text to add @Serializable
 ADD_TEXT="@Serializable"
@@ -77,6 +78,7 @@ find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec sed -i \
     -e "/$FIND_TEXT_TRANSFER_RECEIVER_ERROR/i $ADD_TEXT" \
     -e "/$FIND_TEXT_TRANSFER_RECEIVER_ERROR_RESPONSE_PAYLOAD/i $ADD_TEXT" \
     -e "/$FIND_TEXT_TRANSFER_UNLOCK_REQUEST_PAYLOAD/i $ADD_TEXT" \
+    -e "/$FIND_TEXT_TRANSFER_WITHDRAW_COMPLETE_PAYLOAD/i $ADD_TEXT" \
     -e "/$IMPORT_FIND_TEXT$/ {
         n; 
         /$IMPORT_ADD_SERIALIZABLE/!i $IMPORT_ADD_SERIALIZABLE
