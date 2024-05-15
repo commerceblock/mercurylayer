@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, sign_message, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponsePayload, StatechainInfoResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
+use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, sign_message, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
 use reqwest::StatusCode;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -101,7 +101,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
             continue;
         }
 
-        let statechain_info = get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
+        let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
 
         let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
 
@@ -247,28 +247,6 @@ async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> R
     let tx0_hex = hex::encode(&tx_bytes[0]);
 
     Ok(tx0_hex)
-}
-
-async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<StatechainInfoResponsePayload> {
-
-    let path = format!("info/statechain/{}", statechain_id.to_string());
-
-    let client = client_config.get_reqwest_client()?;
-    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
-
-    let value = match request.send().await {
-        Ok(response) => {
-            let text = response.text().await.unwrap();
-            text
-        },
-        Err(err) => {
-            return Err(anyhow!(err.to_string()));
-        },
-    };
-
-    let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str())?;
-
-    Ok(response)
 }
 
 async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str, confirmation_target: u32) -> Result<(bool, CoinStatus)> {

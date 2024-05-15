@@ -76,6 +76,8 @@ pub enum MercuryError {
     InvalidT1,
     IncorrectAggregatedPublicKey,
     T1MustBeExactly32BytesError,
+    NoX1Pub,
+    NoAggregatedPubkeyError,
 }
 
 impl core::fmt::Display for MercuryError {

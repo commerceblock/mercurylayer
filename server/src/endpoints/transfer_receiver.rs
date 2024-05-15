@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use bitcoin::hashes::sha256;
-use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverGetResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload};
+use mercurylib::transfer::receiver::{GetMsgAddrResponsePayload, StatechainInfoResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload};
 use rocket::{State, response::status, serde::json::Json, http::Status};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Message, Secp256k1};
 use serde_json::{Value, json};
@@ -38,14 +38,24 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
     let num_sigs = response["sig_count"].as_u64().unwrap();
 
     let statechain_info = crate::database::transfer_receiver::get_statechain_info(&statechain_entity.pool, &statechain_id).await;
-    let (enclave_public_key, x1_pub) = crate::database::transfer_receiver::get_enclave_pubkey_and_x1pub(&statechain_entity.pool, &statechain_id).await;
 
-    let response_body = json!({
-        "enclave_public_key": enclave_public_key.to_string(),
-        "num_sigs": num_sigs,
-        "statechain_info": statechain_info,
-        "x1_pub": x1_pub.to_string(),
-    });
+    let enclave_public_key = crate::database::transfer_receiver::get_enclave_pubkey(&statechain_entity.pool, &statechain_id).await;
+    let x1_pubkey = crate::database::transfer_receiver::get_x1pub(&statechain_entity.pool, &statechain_id).await;
+
+    let mut x1_pub: Option<String> = None;
+
+    if x1_pubkey.is_some() {
+        x1_pub = Some(x1_pubkey.unwrap().to_string());
+    }
+
+    let statechain_info_response_payload = StatechainInfoResponsePayload {
+        enclave_public_key: enclave_public_key.to_string(),
+        num_sigs: num_sigs as u32,
+        statechain_info,
+        x1_pub,
+    };
+    
+    let response_body = json!(statechain_info_response_payload);
 
     return status::Custom(Status::Ok, Json(response_body));
     
@@ -275,16 +285,3 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
 
     status::Custom(Status::Ok, Json(response_body))
 }
-
-#[get("/transfer/receiver/<statechain_id>")]
-pub async fn get_transfer_receive(statechain_entity: &State<StateChainEntity>, statechain_id: String) -> status::Custom<Json<Value>> {
-
-    let transfer_complete = crate::database::transfer_receiver::is_key_already_updated(&statechain_entity.pool, &statechain_id).await;
-
-    let response_body = json!(TransferReceiverGetResponsePayload {
-        transfer_complete: transfer_complete,
-    });
-
-    status::Custom(Status::Ok, Json(response_body))
-}
-

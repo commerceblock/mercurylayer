@@ -1,9 +1,8 @@
 
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{utils::{ServerConfig, InfoConfig}, wallet::Activity};
-use anyhow::{Result, Ok};
-
+use mercurylib::{transfer::receiver::StatechainInfoResponsePayload, utils::{InfoConfig, ServerConfig}, wallet::Activity};
+use anyhow::{anyhow, Result, Ok};
 use crate::client_config::ClientConfig;
 
 pub async fn info_config(client_config: &ClientConfig) -> Result<InfoConfig>{
@@ -50,4 +49,26 @@ pub fn create_activity(utxo: &str, amount: u32, action: &str) -> Activity {
     };
 
     activity
+}
+
+pub async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<StatechainInfoResponsePayload> {
+
+    let path = format!("info/statechain/{}", statechain_id.to_string());
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
+
+    let value = match request.send().await {
+        std::result::Result::Ok(response) => {
+            let text = response.text().await.unwrap();
+            text
+        },
+        Err(err) => {
+            return Err(anyhow!(err.to_string()));
+        },
+    };
+
+    let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str())?;
+
+    Ok(response)
 }
