@@ -96,7 +96,12 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
             continue;
         }
         
-        const statechainInfo = await getStatechainInfo(transferMsg.statechain_id);
+        const statechainInfo = await utils.getStatechainInfo(transferMsg.statechain_id);
+
+        if (statechainInfo == null) {
+            console.error("Statechain info not found");
+            continue;
+        }
 
         const isTx0OutputPubkeyValid = mercury_wasm.validateTx0OutputPubkey(statechainInfo.enclave_public_key, transferMsg, tx0Outpoint, tx0Hex, network);
 
@@ -217,24 +222,6 @@ const process_encrypted_message = async (electrumClient, db, coin, encMessages, 
 
 const getTx0 = async (electrumClient, tx0_txid) => {
     return await electrumClient.request('blockchain.transaction.get', [tx0_txid]); // request(promise)
-}
-
-const getStatechainInfo = async (statechain_id) => {
-
-    const statechainEntityUrl = config.get('statechainEntity'); // 'http://127.0.0.1:8000';
-    const path = `info/statechain/${statechain_id}`;
-
-    const torProxy = config.get('torProxy');
-
-    let socksAgent = undefined;
-
-    if (torProxy) {
-        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
-    }
-
-    let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
-
-    return response.data;
 }
 
 const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {

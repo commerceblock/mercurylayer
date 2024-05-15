@@ -805,6 +805,18 @@ export function signMessage(statechain_id, coin) {
 }
 
 /**
+* @param {any} coin
+* @param {string} enclave_pubkey
+* @returns {boolean}
+*/
+export function isEnclavePubkeyPartOfCoin(coin, enclave_pubkey) {
+    const ptr0 = passStringToWasm0(enclave_pubkey, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.isEnclavePubkeyPartOfCoin(addHeapObject(coin), ptr0, len0);
+    return ret !== 0;
+}
+
+/**
 * @returns {any}
 */
 export function getMockWallet() {

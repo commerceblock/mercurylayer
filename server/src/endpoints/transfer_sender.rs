@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use bitcoin::network::message_bloom;
 use mercurylib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};

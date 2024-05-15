@@ -245,6 +245,12 @@ export function validateAddress(address: string, network: string): boolean;
 */
 export function signMessage(statechain_id: string, coin: any): string;
 /**
+* @param {any} coin
+* @param {string} enclave_pubkey
+* @returns {boolean}
+*/
+export function isEnclavePubkeyPartOfCoin(coin: any, enclave_pubkey: string): boolean;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;

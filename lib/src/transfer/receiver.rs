@@ -45,12 +45,6 @@ pub struct TransferReceiverPostResponsePayload {
     pub server_pubkey: String,
 }
 
-#[derive(Serialize, Deserialize)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct TransferReceiverGetResponsePayload {
-    pub transfer_complete: bool,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct KeyUpdateResponsePayload { 
@@ -80,7 +74,7 @@ pub struct StatechainInfoResponsePayload {
     pub enclave_public_key: String,
     pub num_sigs: u32,
     pub statechain_info: Vec<StatechainInfo>,
-    pub x1_pub: String,
+    pub x1_pub: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -390,7 +384,13 @@ fn calculate_t2(transfer_msg: &TransferMsg, client_seckey_share: &SecretKey,) ->
 
 pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfoResponsePayload, transfer_msg: &TransferMsg, coin: &Coin) -> Result<TransferReceiverRequestPayload, MercuryError> {
 
-    let x1_pub = PublicKey::from_str(&statechain_info.x1_pub)?;
+    if statechain_info.x1_pub.is_none() {
+        return Err(MercuryError::NoX1Pub);
+    }
+
+    let x1_pub = statechain_info.x1_pub.as_ref().unwrap();
+
+    let x1_pub = PublicKey::from_str(x1_pub)?;
 
     let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key)?;
 

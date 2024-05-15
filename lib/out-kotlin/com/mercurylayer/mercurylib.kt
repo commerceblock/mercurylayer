@@ -881,6 +881,12 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_is_enclave_pubkey_part_of_coin(
+        `coin`: RustBuffer.ByValue,
+        `enclavePubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): Byte
+
     fun uniffi_mercurylib_fn_func_new_backup_transaction(
         `encodedUnsignedTx`: RustBuffer.ByValue,
         `signatureHex`: RustBuffer.ByValue,
@@ -1174,6 +1180,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response(): Short
 
+    fun uniffi_mercurylib_checksum_func_is_enclave_pubkey_part_of_coin(): Short
+
     fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
     fun uniffi_mercurylib_checksum_func_sign_message(): Short
@@ -1263,6 +1271,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_handle_deposit_msg_1_response() != 64110.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_is_enclave_pubkey_part_of_coin() != 37041.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_new_backup_transaction() != 56642.toShort()) {
@@ -2590,7 +2601,7 @@ data class StatechainInfoResponsePayload(
 	@SerialName("statechain_info")
     var `statechainInfo`: List<StatechainInfo>,
 	@SerialName("x1_pub")
-    var `x1Pub`: kotlin.String,
+    var `x1Pub`: kotlin.String?,
 ) {
     companion object
 }
@@ -2601,7 +2612,7 @@ public object FfiConverterTypeStatechainInfoResponsePayload : FfiConverterRustBu
             FfiConverterString.read(buf),
             FfiConverterUInt.read(buf),
             FfiConverterSequenceTypeStatechainInfo.read(buf),
-            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -2610,7 +2621,7 @@ public object FfiConverterTypeStatechainInfoResponsePayload : FfiConverterRustBu
             FfiConverterString.allocationSize(value.`enclavePublicKey`) +
                 FfiConverterUInt.allocationSize(value.`numSigs`) +
                 FfiConverterSequenceTypeStatechainInfo.allocationSize(value.`statechainInfo`) +
-                FfiConverterString.allocationSize(value.`x1Pub`)
+                FfiConverterOptionalString.allocationSize(value.`x1Pub`)
         )
 
     override fun write(
@@ -2620,7 +2631,7 @@ public object FfiConverterTypeStatechainInfoResponsePayload : FfiConverterRustBu
         FfiConverterString.write(value.`enclavePublicKey`, buf)
         FfiConverterUInt.write(value.`numSigs`, buf)
         FfiConverterSequenceTypeStatechainInfo.write(value.`statechainInfo`, buf)
-        FfiConverterString.write(value.`x1Pub`, buf)
+        FfiConverterOptionalString.write(value.`x1Pub`, buf)
     }
 }
 
@@ -2711,34 +2722,6 @@ public object FfiConverterTypeTransferReceiverErrorResponsePayload : FfiConverte
     ) {
         FfiConverterTypeTransferReceiverError.write(value.`code`, buf)
         FfiConverterString.write(value.`message`, buf)
-    }
-}
-
-@Serializable
-data class TransferReceiverGetResponsePayload(
-	@SerialName("transfer_complete")
-    var `transferComplete`: kotlin.Boolean,
-) {
-    companion object
-}
-
-public object FfiConverterTypeTransferReceiverGetResponsePayload : FfiConverterRustBuffer<TransferReceiverGetResponsePayload> {
-    override fun read(buf: ByteBuffer): TransferReceiverGetResponsePayload {
-        return TransferReceiverGetResponsePayload(
-            FfiConverterBoolean.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: TransferReceiverGetResponsePayload) =
-        (
-            FfiConverterBoolean.allocationSize(value.`transferComplete`)
-        )
-
-    override fun write(
-        value: TransferReceiverGetResponsePayload,
-        buf: ByteBuffer,
-    ) {
-        FfiConverterBoolean.write(value.`transferComplete`, buf)
     }
 }
 
@@ -3068,6 +3051,39 @@ public object FfiConverterTypeWallet : FfiConverterRustBuffer<Wallet> {
     }
 }
 
+@Serializable
+data class WithdrawCompletePayload(
+	@SerialName("statechain_id")
+    var `statechainId`: kotlin.String,
+	@SerialName("signed_statechain_id")
+    var `signedStatechainId`: kotlin.String,
+) {
+    companion object
+}
+
+public object FfiConverterTypeWithdrawCompletePayload : FfiConverterRustBuffer<WithdrawCompletePayload> {
+    override fun read(buf: ByteBuffer): WithdrawCompletePayload {
+        return WithdrawCompletePayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: WithdrawCompletePayload) =
+        (
+            FfiConverterString.allocationSize(value.`statechainId`) +
+                FfiConverterString.allocationSize(value.`signedStatechainId`)
+        )
+
+    override fun write(
+        value: WithdrawCompletePayload,
+        buf: ByteBuffer,
+    ) {
+        FfiConverterString.write(value.`statechainId`, buf)
+        FfiConverterString.write(value.`signedStatechainId`, buf)
+    }
+}
+
 enum class CoinStatus {
     INITIALISED,
     IN_MEMPOOL,
@@ -3301,6 +3317,16 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class NoX1Pub() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
+    class NoAggregatedPubkeyException() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -3349,6 +3375,8 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             38 -> MercuryException.InvalidT1()
             39 -> MercuryException.IncorrectAggregatedPublicKey()
             40 -> MercuryException.T1MustBeExactly32BytesException()
+            41 -> MercuryException.NoX1Pub()
+            42 -> MercuryException.NoAggregatedPubkeyException()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -3512,6 +3540,14 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.T1MustBeExactly32BytesException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.NoX1Pub -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.NoAggregatedPubkeyException -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -3681,6 +3717,14 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             }
             is MercuryException.T1MustBeExactly32BytesException -> {
                 buf.putInt(40)
+                Unit
+            }
+            is MercuryException.NoX1Pub -> {
+                buf.putInt(41)
+                Unit
+            }
+            is MercuryException.NoAggregatedPubkeyException -> {
+                buf.putInt(42)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -4328,6 +4372,22 @@ fun `handleDepositMsg1Response`(
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_handle_deposit_msg_1_response(
                 FfiConverterTypeCoin.lower(`coin`),
                 FfiConverterTypeDepositMsg1Response.lower(`depositMsg1Response`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `isEnclavePubkeyPartOfCoin`(
+    `coin`: Coin,
+    `enclavePubkey`: kotlin.String,
+): kotlin.Boolean {
+    return FfiConverterBoolean.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_is_enclave_pubkey_part_of_coin(
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`enclavePubkey`),
                 _status,
             )
         },

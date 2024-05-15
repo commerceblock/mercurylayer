@@ -13,13 +13,16 @@ add_serial_name() {
     awk '
     BEGIN { in_data_class = 0 }
 
-    /data class TransferReceiverGetResponsePayload\(/ { in_data_class = 1 }
+    /data class WithdrawCompletePayload\(/ { in_data_class = 1 }
     /^}/ { if (in_data_class) in_data_class = 0 }
 
-    in_data_class && /var `transferComplete`:/ {
-        print "\t@SerialName(\"transfer_complete\")"
+    in_data_class && /var `statechainId`:/ {
+        print "\t@SerialName(\"statechain_id\")"
     }
-    
+    in_data_class && /var `signedStatechainId`:/ {
+        print "\t@SerialName(\"signed_statechain_id\")"
+    }
+
     { print }
     ' "$file_path" > tmp && mv tmp "$file_path"
 }
@@ -30,4 +33,4 @@ export -f add_serial_name
 # Use find to locate Kotlin files and process them with the add_serial_name function
 find "$SEARCH_DIR" -type f -name "$FILE_PATTERN" -exec bash -c 'add_serial_name "$0"' {} \;
 
-echo "@SerialName annotations added to TransferReceiverGetResponsePayload successfully."
+echo "@SerialName annotations added to WithdrawCompletePayload successfully."
