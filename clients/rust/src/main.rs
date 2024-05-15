@@ -161,7 +161,11 @@ async fn main() -> Result<()> {
         },
         Commands::TransferReceive { wallet_name } => {
             coin_status::update_coins(&client_config, &wallet_name).await?;
-            transfer_receiver::execute(&client_config, &wallet_name).await?;
+            let received_statechain_ids = transfer_receiver::execute(&client_config, &wallet_name).await?;
+
+            let obj = json!(received_statechain_ids);
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
     }
 

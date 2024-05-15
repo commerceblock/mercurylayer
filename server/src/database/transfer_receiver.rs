@@ -40,7 +40,7 @@ pub async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Ve
     result
 }
 
-pub async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> PublicKey {
+pub async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
 
     let query = "SELECT server_public_key \
         FROM statechain_data \
@@ -48,14 +48,20 @@ pub async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> Pub
 
     let row = sqlx::query(query)
         .bind(statechain_id)
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
         .unwrap();
+
+    if row.is_none() {
+        return None;
+    }
+
+    let row = row.unwrap();
 
     let enclave_public_key_bytes = row.get::<Vec<u8>, _>("server_public_key");
     let enclave_public_key = PublicKey::from_slice(&enclave_public_key_bytes).unwrap();
 
-    enclave_public_key
+    Some(enclave_public_key)
 }
 
 pub async fn get_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {

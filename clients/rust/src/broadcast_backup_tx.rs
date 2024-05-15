@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_wallet}};
 use anyhow::{anyhow, Result};
 use electrum_client::ElectrumApi;
-use mercurylib::{wallet::{cpfp_tx, CoinStatus}, withdraw::WithdrawCompletePayload};
+use mercurylib::wallet::{cpfp_tx, CoinStatus};
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()> {
     
@@ -73,23 +73,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    let endpoint = client_config.statechain_entity.clone();
-    let path = "withdraw/complete";
-
-    let client = client_config.get_reqwest_client()?;
-    let request = client.post(&format!("{}/{}", endpoint, path));
-
-    let delete_statechain_payload = WithdrawCompletePayload {
-        statechain_id: statechain_id.to_string(),
-        signed_statechain_id,
-    };
-
-    let response = request.json(&delete_statechain_payload).send().await?;
-
-    if response.status() != 200 {
-        let response_body = response.text().await?;
-        return Err(anyhow!(response_body));
-    }
+    crate::utils::complete_withdraw(statechain_id, &signed_statechain_id, &client_config).await?;
 
     Ok(())
 }

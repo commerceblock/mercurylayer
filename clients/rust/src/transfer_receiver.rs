@@ -23,7 +23,7 @@ pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &st
     Ok(coin.address)
 }
 
-pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<()>{
+pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<Vec<String>>{
 
     let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
@@ -31,17 +31,13 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
     
     let mut activities = wallet.activities.as_mut();
 
+    let mut received_statechain_ids =  Vec::<String>::new();
+
     for coin in wallet.coins.iter_mut() {
 
         if coin.status != CoinStatus::INITIALISED {
             continue;
         }
-
-        println!("----\nuser_pubkey: {}", coin.user_pubkey);
-        println!("auth_pubkey: {}", coin.auth_pubkey);
-        println!("statechain_id: {}", coin.statechain_id.as_ref().unwrap_or(&"".to_string()));
-        println!("coin.amount: {}", coin.amount.unwrap_or(0));
-        println!("coin.status: {}", coin.status);
 
         let enc_messages = get_msg_addr(&coin.auth_pubkey, &client_config).await?;
         if enc_messages.len() == 0 {
@@ -49,14 +45,14 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
             continue;
         }
 
-        println!("enc_messages: {:?}", enc_messages);
+        let statechain_ids_added = process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config, &mut activities).await?;
 
-        process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config, &mut activities).await?;
+        received_statechain_ids.extend(statechain_ids_added.clone());
     }
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    Ok(())
+    Ok(received_statechain_ids)
 }
 
 async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result<Vec<String>> {
@@ -73,28 +69,22 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<()> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<Vec::<String>> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
+
+    let mut statechain_ids_added = Vec::<String>::new();
 
     for enc_message in enc_messages {
 
         let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
 
-        // println!("transfer_msg: {:?}", transfer_msg);
-
         let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
         
-        println!("tx0_outpoint: {:?}", tx0_outpoint);
-
         let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
 
-        println!("tx0_hex: {}", tx0_hex);
-
         let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
-
-        println!("is_transfer_signature_valid: {}", is_transfer_signature_valid);
 
         if !is_transfer_signature_valid {
             println!("Invalid transfer signature");
@@ -102,6 +92,13 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         }
 
         let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
+
+        if statechain_info.is_none() {
+            println!("Statechain info not found");
+            continue;
+        }
+
+        let statechain_info = statechain_info.unwrap();
 
         let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
 
@@ -112,8 +109,6 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
         let latest_backup_tx_pays_to_user_pubkey = verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
     
-        println!("latest_backup_tx_pays_to_user_pubkey: {}", latest_backup_tx_pays_to_user_pubkey);
-
         if !latest_backup_tx_pays_to_user_pubkey {
             println!("Latest Backup Tx does not pay to the expected public key");
             continue;
@@ -227,10 +222,12 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
         activities.push(activity);
 
+        statechain_ids_added.push(transfer_msg.statechain_id.clone());
+
         insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
     }
 
-    Ok(())
+    Ok(statechain_ids_added)
 }
 
 async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> Result<String> {

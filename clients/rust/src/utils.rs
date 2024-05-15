@@ -1,8 +1,9 @@
 
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{transfer::receiver::StatechainInfoResponsePayload, utils::{InfoConfig, ServerConfig}, wallet::Activity};
+use mercurylib::{transfer::receiver::StatechainInfoResponsePayload, utils::{InfoConfig, ServerConfig}, wallet::Activity, withdraw::WithdrawCompletePayload};
 use anyhow::{anyhow, Result, Ok};
+use reqwest::StatusCode;
 use crate::client_config::ClientConfig;
 
 pub async fn info_config(client_config: &ClientConfig) -> Result<InfoConfig>{
@@ -51,24 +52,46 @@ pub fn create_activity(utxo: &str, amount: u32, action: &str) -> Activity {
     activity
 }
 
-pub async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<StatechainInfoResponsePayload> {
+pub async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<Option<StatechainInfoResponsePayload>> {
 
     let path = format!("info/statechain/{}", statechain_id.to_string());
 
     let client = client_config.get_reqwest_client()?;
     let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
 
-    let value = match request.send().await {
-        std::result::Result::Ok(response) => {
-            let text = response.text().await.unwrap();
-            text
-        },
-        Err(err) => {
-            return Err(anyhow!(err.to_string()));
-        },
-    };
+    let response = request.send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+
+    let value = response.text().await?;
 
     let response: StatechainInfoResponsePayload = serde_json::from_str(value.as_str())?;
 
-    Ok(response)
+    Ok(Some(response))
+}
+
+pub async fn complete_withdraw(statechain_id: &str, signed_statechain_id: &str, client_config: &ClientConfig) -> Result<()> {
+
+    let endpoint = client_config.statechain_entity.clone();
+    let path = "withdraw/complete";
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    let delete_statechain_payload = WithdrawCompletePayload {
+        statechain_id: statechain_id.to_string(),
+        signed_statechain_id: signed_statechain_id.to_string(),
+    };
+
+    let response = request.json(&delete_statechain_payload).send().await?;
+
+    if response.status() != 200 {
+        let response_body = response.text().await?;
+        return Err(anyhow!(response_body));
+    }
+
+    Ok(())
+
 }

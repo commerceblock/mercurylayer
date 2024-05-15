@@ -13,6 +13,18 @@ use super::is_batch_expired;
 #[get("/info/statechain/<statechain_id>")]
 pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statechain_id: &str) -> status::Custom<Json<Value>> {
 
+    let enclave_public_key = crate::database::transfer_receiver::get_enclave_pubkey(&statechain_entity.pool, &statechain_id).await;
+
+    if enclave_public_key.is_none() {
+        let response_body = json!({
+            "message": "Statechain Id key not found."
+        });
+    
+        return status::Custom(Status::NotFound, Json(response_body));
+    }
+
+    let enclave_public_key = enclave_public_key.unwrap();
+
     let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
     let path = "signature_count";
 
@@ -39,7 +51,6 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
 
     let statechain_info = crate::database::transfer_receiver::get_statechain_info(&statechain_entity.pool, &statechain_id).await;
 
-    let enclave_public_key = crate::database::transfer_receiver::get_enclave_pubkey(&statechain_entity.pool, &statechain_id).await;
     let x1_pubkey = crate::database::transfer_receiver::get_x1pub(&statechain_entity.pool, &statechain_id).await;
 
     let mut x1_pub: Option<String> = None;

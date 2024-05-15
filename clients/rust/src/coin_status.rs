@@ -96,6 +96,13 @@ async fn check_transfer(client_config: &ClientConfig, coin: &Coin) -> Result<boo
 
     let statechain_info = crate::utils::get_statechain_info(statechain_id, &client_config).await?;
 
+    // if the statechain info is not found, we assume the coin has been transferred
+    if statechain_info.is_none() {
+        return Ok(true);
+    }
+
+    let statechain_info = statechain_info.unwrap();
+
     let enclave_public_key = statechain_info.enclave_public_key;
 
     // if the enclave's public key is no longer part of the coin, the coin has been transferred
