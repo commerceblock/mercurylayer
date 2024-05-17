@@ -21,10 +21,11 @@
 #include "../utils/strencodings.h"
 #include "utilities/utilities.h"
 #include "database/db_manager.h"
-#include "statechain/deposit.h"
-#include "statechain/sign.h"
-#include "statechain/transfer_receiver.h"
 #include "sealing_key_manager/sealing_key_manager.h"
+
+#include "endpoints/deposit.h"
+#include "endpoints/sign.h"
+#include "endpoints/transfer_receiver.h"
 
 #include "App.h"
 #include "Enclave_u.h"
@@ -91,139 +92,27 @@ int SGX_CDECL main(int argc, char *argv[])
 
     CROW_ROUTE(app, "/get_public_key")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
-
-            if (sealing_key_manager.isSeedEmpty()) {
-                return crow::response(500, "Sealing key is empty.");
-            }
-
-            auto req_body = crow::json::load(req.body);
-            if (!req_body)
-                return crow::response(400);
-
-            if (req_body.count("statechain_id") == 0)
-                return crow::response(400, "Invalid parameter. It must be 'statechain_id'.");
-
-            std::string statechain_id = req_body["statechain_id"].s();
-
-            const std::lock_guard<std::mutex> lock(mutex_enclave_id);
-
-            return deposit::get_public_key(enclave_id, statechain_id, sealing_key_manager);
+            return endpoinDeposit::handleGetPublicKey(req, enclave_id, mutex_enclave_id, sealing_key_manager);
     });
 
     CROW_ROUTE(app, "/get_public_nonce")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
-
-            if (sealing_key_manager.isSeedEmpty()) {
-                return crow::response(500, "Sealing key is empty.");
-            }
-
-            auto req_body = crow::json::load(req.body);
-            if (!req_body)
-                return crow::response(400);
-
-            if (req_body.count("statechain_id") == 0) {
-                return crow::response(400, "Invalid parameters. They must be 'statechain_id'.");
-            }
-
-            std::string statechain_id = req_body["statechain_id"].s();
-
-            const std::lock_guard<std::mutex> lock(mutex_enclave_id);
-
-            return signature::get_public_nonce(enclave_id, statechain_id, sealing_key_manager);
+            return endpointSignature::handleGetPublicNonce(req, enclave_id, mutex_enclave_id, sealing_key_manager);            
     });
     
     CROW_ROUTE(app, "/get_partial_signature")
-    .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
-
-            if (sealing_key_manager.isSeedEmpty()) {
-                return crow::response(500, "Sealing key is empty.");
-            }
-
-            auto req_body = crow::json::load(req.body);
-            if (!req_body)
-                return crow::response(400);
-
-            if (req_body.count("statechain_id") == 0 || 
-                req_body.count("negate_seckey") == 0 ||
-                req_body.count("session") == 0) {
-                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 'negate_seckey' and 'session'.");
-            }
-
-            std::string statechain_id = req_body["statechain_id"].s();
-            int64_t negate_seckey = req_body["negate_seckey"].i();
-            std::string session_hex = req_body["session"].s();
-
-
-            if (session_hex.substr(0, 2) == "0x") {
-                session_hex = session_hex.substr(2);
-            }
-
-            std::vector<unsigned char> serialized_session = ParseHex(session_hex);
-
-            if (serialized_session.size() != 133) {
-                return crow::response(400, "Invalid session length. Must be 133 bytes!");
-            }
-
-            const std::lock_guard<std::mutex> lock(mutex_enclave_id);
-            
-            return signature::get_partial_signature(enclave_id, statechain_id, negate_seckey, serialized_session, sealing_key_manager); 
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
+            return endpointSignature::handleGetPartialSignature(req, enclave_id, mutex_enclave_id, sealing_key_manager);
     });
 
     CROW_ROUTE(app,"/signature_count/<string>")
     ([](std::string statechain_id){
-
-        return signature::signature_count(statechain_id);
-
+        return endpointSignature::signatureCount(statechain_id);
     });
 
     CROW_ROUTE(app, "/keyupdate")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
-
-            if (sealing_key_manager.isSeedEmpty()) {
-                return crow::response(500, "Sealing key is empty.");
-            }
-
-            auto req_body = crow::json::load(req.body);
-            if (!req_body)
-                return crow::response(400);
-
-            if (req_body.count("statechain_id") == 0 || 
-                req_body.count("t2") == 0 ||
-                req_body.count("x1") == 0) {
-                return crow::response(400, "Invalid parameters. They must be 'statechain_id', 't2' and 'x1'.");
-            }
-
-            std::string statechain_id = req_body["statechain_id"].s();
-            std::string t2_hex = req_body["t2"].s();
-            std::string x1_hex = req_body["x1"].s();
-
-            if (t2_hex.substr(0, 2) == "0x") {
-                t2_hex = t2_hex.substr(2);
-            }
-
-            std::vector<unsigned char> serialized_t2 = ParseHex(t2_hex);
-
-            if (serialized_t2.size() != 32) {
-                return crow::response(400, "Invalid t2 length. Must be 32 bytes!");
-            }
-
-            if (x1_hex.substr(0, 2) == "0x") {
-                x1_hex = x1_hex.substr(2);
-            }
-
-            std::vector<unsigned char> serialized_x1 = ParseHex(x1_hex);
-
-            if (serialized_x1.size() != 32) {
-                return crow::response(400, "Invalid x1 length. Must be 32 bytes!");
-            }
-
-            return transfer_receiver::keyupdate(
-                enclave_id, 
-                statechain_id, 
-                serialized_t2,
-                serialized_x1,
-                sealing_key_manager
-            );
+            return endpointTransferReceiver::handleKeyUpdate(req, enclave_id, mutex_enclave_id, sealing_key_manager);
     });
 
     CROW_ROUTE(app,"/delete_statechain/<string>")
