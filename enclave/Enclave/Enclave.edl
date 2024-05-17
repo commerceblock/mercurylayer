@@ -67,6 +67,10 @@ enclave {
             [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
         );
 
+        public sgx_status_t generate_node_secret(
+            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
+        ); 
+
     };
 
     untrusted {

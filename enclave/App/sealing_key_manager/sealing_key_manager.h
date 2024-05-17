@@ -39,6 +39,7 @@ namespace sealing_key_manager {
         utils::APIResponse addKeyShare(sgx_enclave_id_t& enclave_id, const SealedKeyShare& key_share, size_t _threshold);
         utils::APIResponse addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, const std::string& password, size_t index, size_t _threshold);
         utils::APIResponse recoverSeed(sgx_enclave_id_t& enclave_id);
+        bool addSecret(sgx_enclave_id_t& enclave_id);
         bool isSeedEmpty();
         bool writeSeedToFile();
         bool readSeedFromFile();

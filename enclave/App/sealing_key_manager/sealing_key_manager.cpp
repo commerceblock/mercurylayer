@@ -208,6 +208,34 @@ namespace sealing_key_manager {
         };
     }
 
+    bool SealingKeyManager::addSecret(sgx_enclave_id_t& enclave_id) {
+
+        if (!isSeedEmpty()) {
+            return false;
+        }
+
+        sealed_seed_size = utils::sgx_calc_sealed_data_size(0U, (uint32_t) SECRET_SIZE);
+        sealed_seed = new char[sealed_seed_size];
+        memset(sealed_seed, 0, sealed_seed_size);
+
+        sgx_status_t ecall_ret;
+        sgx_status_t  status = generate_node_secret(
+            enclave_id, &ecall_ret,
+            sealed_seed, sealed_seed_size);
+
+        if (ecall_ret != SGX_SUCCESS) {
+            throw std::runtime_error("Generate node secret Ecall failed.");
+        }  if (status != SGX_SUCCESS) {
+            throw std::runtime_error("Generate node secret failed.");
+        }
+
+        if (!isSeedEmpty()) {
+            writeSeedToFile();
+        }
+
+        return true;
+    }
+
     bool SealingKeyManager::writeSeedToFile() {
         // Check if the file exists
         const std::string filename = "node.sealed_seed";

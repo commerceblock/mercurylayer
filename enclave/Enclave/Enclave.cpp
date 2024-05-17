@@ -470,8 +470,6 @@ sgx_status_t sealed_key_from_mnemonics(
   unsigned char* password, size_t password_len,
   char* sealed_key_share, size_t sealed_key_share_size) 
 {
-  sgx_status_t ret = SGX_SUCCESS;
-
   // Define the output hash array and size
   uint8_t hash_password[xor_secret_len];  // Output size for 256-bit hash
   size_t hash_password_size = sizeof(hash_password);  // Size of the hash (32 bytes)
@@ -490,8 +488,25 @@ sgx_status_t sealed_key_from_mnemonics(
 //  ocall_print_string(key_share_hex);
 //  ocall_print_string("\n");
 
-  seal_key_share(key_share, key_share_size, sealed_key_share, sealed_key_share_size);
+  return seal_key_share(key_share, key_share_size, sealed_key_share, sealed_key_share_size);
+}
 
-  return ret;
+sgx_status_t generate_node_secret(char* sealed_key_share, size_t sealed_key_share_size) 
+{
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
+    size_t server_privkey_size = 32;
+    unsigned char server_privkey[server_privkey_size];
+    memset(server_privkey, 0, server_privkey_size);
+
+    do {
+        sgx_read_rand(server_privkey, server_privkey_size);
+    } while (!secp256k1_ec_seckey_verify(ctx, server_privkey));
+
+    sgx_status_t ret = seal_key_share(server_privkey, server_privkey_size, sealed_key_share, sealed_key_share_size);
+
+    secp256k1_context_destroy(ctx);
+
+    return ret;
 }
 
