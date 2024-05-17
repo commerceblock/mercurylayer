@@ -24,6 +24,8 @@ services:
       - db_enclave
     environment:
       - ENCLAVE_DATABASE_URL=postgres://postgres:postgres@db_enclave:5432/enclave
+      - ENCLAVE_PORT=18080
+      - SEED_DIR=./seed
     devices:
       - /dev/isgx
     volumes:
