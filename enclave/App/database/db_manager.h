@@ -37,6 +37,8 @@ namespace db_manager {
         unsigned char* server_public_key, size_t server_public_key_size,
         const std::string& statechain_id,
         std::string& error_message);
+
+    bool delete_statechain(const std::string& statechain_id);
 }
 
 #endif // DB_MANAGER_H

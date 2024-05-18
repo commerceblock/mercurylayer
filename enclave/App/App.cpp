@@ -1,3 +1,5 @@
+#include "App.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -11,7 +13,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include <pqxx/pqxx>
 #include <stdio.h>
 #include <string.h>
 #include <sstream>
@@ -27,8 +28,8 @@
 #include "endpoints/secret.h"
 #include "endpoints/sign.h"
 #include "endpoints/transfer_receiver.h"
+#include "endpoints/withdraw.h"
 
-#include "App.h"
 #include "Enclave_u.h"
 #include "sgx_urts.h"
 #include "sgx_tcrypto.h"
@@ -133,30 +134,8 @@ int SGX_CDECL main(int argc, char *argv[])
 
     CROW_ROUTE(app,"/delete_statechain/<string>")
         .methods("DELETE"_method)([](std::string statechain_id){
-
-        auto database_connection_string = getDatabaseConnectionString();
-
-        std::string error_message;
-        pqxx::connection conn(database_connection_string);
-        if (conn.is_open()) {
-
-            std::string delete_comm =
-                "DELETE FROM generated_public_key WHERE statechain_id = $1;";
-            pqxx::work txn2(conn);
-
-            txn2.exec_params(delete_comm, statechain_id);
-            txn2.commit();
-
-            conn.close();
-
-            crow::json::wvalue result({{"message", "Statechain deleted."}});
-            return crow::response{result};
-        } else {
-            return crow::response(500, "Failed to connect to the database!");
-        }
+            return endpointWithdraw::handleWithdraw(statechain_id);
     });
-
-
 
     CROW_ROUTE(app, "/add_mnemonic")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
