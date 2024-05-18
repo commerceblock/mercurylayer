@@ -18,6 +18,8 @@ namespace utils {
 
     void initialize_encrypted_data(chacha20_poly1305_encrypted_data& encrypted_data, size_t data_len);
 
+    uint16_t getEnclavePort();
+
 }
 
 #endif // UTILS_H

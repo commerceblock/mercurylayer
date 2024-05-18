@@ -52,18 +52,6 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
-// TODO: duplicated. Remove this.
-std::string getDatabaseConnectionString() {
-    const char* value = std::getenv("ENCLAVE_DATABASE_URL");
-
-    if (value == nullptr) {
-        auto config = toml::parse_file("Settings.toml");
-        return config["intel_sgx"]["database_connection_string"].as_string()->get();
-    } else {
-        return std::string(value);        
-    }
-}
-
 int SGX_CDECL main(int argc, char *argv[])
 {
     crow::SimpleApp app;
@@ -141,8 +129,17 @@ int SGX_CDECL main(int argc, char *argv[])
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
             return endpointSecret::handleAddMnemonic(req, enclave_id, mutex_enclave_id, sealing_key_manager);
     });
+
+    uint16_t server_port = 0;
+
+    try {
+        server_port = utils::getEnclavePort();
+    } catch (const std::exception& e) {
+        std::cerr << "Error enclave port: " << e.what() << std::endl;
+        return 1;
+    }
     
-    app.port(18080).multithreaded().run();
+    app.port(server_port).multithreaded().run();
 
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
