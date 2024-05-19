@@ -69,7 +69,17 @@ enclave {
 
         public sgx_status_t generate_node_secret(
             [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
-        ); 
+        );
+
+        public sgx_status_t generate_ephemeral_keys(
+            [out, size=sealed_privkey_size] char* sealed_privkey, size_t sealed_privkey_size,
+            [out, size=pubkey_size] unsigned char* pubkey, size_t pubkey_size
+        );
+
+        public sgx_status_t add_secret(
+            [in, size=sealed_ephemeral_privkey_size] char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
+        );
 
     };
 

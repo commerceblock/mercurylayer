@@ -16,6 +16,8 @@
 
 namespace endpointSecret {
     crow::response handleAddMnemonic(const crow::request& req, sgx_enclave_id_t& enclave_id, std::mutex& mutex_enclave_id, sealing_key_manager::SealingKeyManager& sealing_key_manager);
+    crow::response handleAddSecret(const crow::request& req, sgx_enclave_id_t& enclave_id, std::mutex& mutex_enclave_id, sealing_key_manager::SealingKeyManager& sealing_key_manager);
+    crow::response getEphemeralPublicKey(sealing_key_manager::SealingKeyManager& sealing_key_manager);
 } // namespace endpointSecret
 
 #endif // ENDPOINT_SECRET_H

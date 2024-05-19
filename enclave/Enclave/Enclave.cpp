@@ -203,6 +203,7 @@ sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, s
         {
             free(unsealed_data);
         }
+        return ret;
     }
 
     // Step 2: Unseal data.
@@ -213,6 +214,7 @@ sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, s
         {
             free(unsealed_data);
         }
+        return ret;
     }
 
     ret = SGX_SUCCESS;
@@ -510,3 +512,48 @@ sgx_status_t generate_node_secret(char* sealed_key_share, size_t sealed_key_shar
     return ret;
 }
 
+sgx_status_t generate_ephemeral_keys(
+    char* sealed_privkey, size_t sealed_privkey_size,
+    unsigned char* pubkey, size_t pubkey_size) 
+{
+    size_t ephemeral_privkey_size = 32;
+    unsigned char ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    assert(pubkey_size == 32);
+
+    size_t ephemeral_pubkey_size = pubkey_size;
+    unsigned char ephemeral_pubkey[ephemeral_pubkey_size];
+    memset(ephemeral_pubkey, 0, ephemeral_pubkey_size);
+
+    sgx_read_rand(ephemeral_privkey, 32);
+
+    crypto_x25519_public_key(ephemeral_pubkey, ephemeral_privkey);
+
+    memcpy(pubkey, ephemeral_pubkey, ephemeral_pubkey_size);
+
+    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
+    ocall_print_string("ephemeral_privkey:");
+    ocall_print_string(ephemeral_privkey_hex);
+
+    char* ephemeral_pubkey_hex = data_to_hex(ephemeral_pubkey, ephemeral_pubkey_size);
+    ocall_print_string("ephemeral_pubkey:");
+    ocall_print_string(ephemeral_pubkey_hex);
+
+    return seal_key_share(ephemeral_privkey, ephemeral_privkey_size, sealed_privkey, sealed_privkey_size);
+}
+
+sgx_status_t add_secret(
+    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+    char* sealed_key_share, size_t sealed_key_share_size) 
+{
+    size_t ephemeral_privkey_size = 32;
+    uint8_t ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
+
+    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
+    ocall_print_string("ephemeral_privkey:");
+    ocall_print_string(ephemeral_privkey_hex);
+}

@@ -7,6 +7,7 @@
 #include <lib/crow_all.h>
 #pragma GCC diagnostic pop
 
+#include "../../utils/strencodings.h"
 #include "../sealing_key_manager/sealing_key_manager.h"
 
 namespace endpointSecret {
@@ -38,6 +39,38 @@ namespace endpointSecret {
         }
 
         crow::json::wvalue result({{"message", "OK."}});
+        return crow::response{result};
+    }
+
+    crow::response handleAddSecret(const crow::request& req, sgx_enclave_id_t& enclave_id, std::mutex& mutex_enclave_id, sealing_key_manager::SealingKeyManager& sealing_key_manager) {
+
+        auto req_body = crow::json::load(req.body);
+        if (!req_body) {
+            return crow::response(400);
+        }
+
+        if (req_body.count("encrypted_secret_key") == 0 || 
+            req_body.count("sender_public_key") == 0) {
+            return crow::response(400, "Invalid parameters. They must be 'encrypted_secret_key', 'sender_public_key'.");
+        }
+
+        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+
+        auto isKeyAdded = sealing_key_manager.addSecret(enclave_id);
+
+        if (!isKeyAdded) {
+            return crow::response(400, "Seed already exists. Cannot add a new secret.");
+        }
+
+        crow::json::wvalue result({{"message", "Secret added successfully."}});
+        return crow::response{result};
+    }
+
+    crow::response getEphemeralPublicKey(sealing_key_manager::SealingKeyManager& sealing_key_manager) {
+
+        auto public_key_hex = key_to_string(sealing_key_manager.ephemeral_exchange_public_key, sizeof(sealing_key_manager.ephemeral_exchange_public_key));
+
+        crow::json::wvalue result({{"ephemeral_public_key", public_key_hex}});
         return crow::response{result};
     }
 } // namespace endpointSecret

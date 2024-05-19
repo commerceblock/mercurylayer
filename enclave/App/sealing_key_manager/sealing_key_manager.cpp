@@ -1,5 +1,14 @@
 #include "sealing_key_manager.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wconversion"
+#include <lib/crow_all.h>
+#pragma GCC diagnostic pop
+
 #include "../../utils/strencodings.h"
 #include "../database/db_manager.h"
 #include "../Enclave_u.h"
@@ -8,6 +17,7 @@
 #include <algorithm>
 #include <bc-bip39/bc-bip39.h>
 #include <cassert>
+#include <cpr/cpr.h>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -208,7 +218,30 @@ namespace sealing_key_manager {
         };
     }
 
-    bool SealingKeyManager::addSecret(sgx_enclave_id_t& enclave_id) {
+    void SealingKeyManager::generateEphemeralKeys(sgx_enclave_id_t& enclave_id) {
+
+        ephemeral_sealed_exchange_private_key_size = utils::sgx_calc_sealed_data_size(0U, (uint32_t) SECRET_SIZE);
+        ephemeral_sealed_exchange_private_key = new char[ephemeral_sealed_exchange_private_key_size];
+        memset(ephemeral_sealed_exchange_private_key, 0, ephemeral_sealed_exchange_private_key_size);
+
+        sgx_status_t ecall_ret;
+        sgx_status_t  status = generate_ephemeral_keys(
+            enclave_id, &ecall_ret,       
+            ephemeral_sealed_exchange_private_key, ephemeral_sealed_exchange_private_key_size,
+            ephemeral_exchange_public_key, sizeof(ephemeral_exchange_public_key));
+
+        if (ecall_ret != SGX_SUCCESS) {
+            throw std::runtime_error("Generate ephemeral keys Ecall failed.");
+        }  if (status != SGX_SUCCESS) {
+            throw std::runtime_error("Generate ephemeral keys failed.");
+        }
+
+        // print ephemeral_sealed_exchange_private_key
+        std::cout << "ephemeral_sealed_exchange_private_key: " << key_to_string((unsigned char *) ephemeral_sealed_exchange_private_key, ephemeral_sealed_exchange_private_key_size) << std::endl;
+
+    }
+
+    bool SealingKeyManager::generateSecret(sgx_enclave_id_t& enclave_id) {
 
         if (!isSeedEmpty()) {
             return false;
@@ -234,6 +267,66 @@ namespace sealing_key_manager {
         }
 
         return true;
+    }
+
+    void SealingKeyManager::replicateSecret() {
+        cpr::Response r = cpr::Get(cpr::Url{"http://0.0.0.0:18082/get_ephemeral_public_key"});
+
+        if (r.status_code == 200 && r.header["content-type"] == "application/json") {
+            crow::json::rvalue json = crow::json::load(r.text);
+            std::string ephemeral_public_key = json["ephemeral_public_key"].s();
+            std::cout << "ephemeral_public_key: " << ephemeral_public_key << std::endl;
+        } else {
+            std::cout << "[replicateSecret] Error: " << r.status_code << std::endl;
+        }
+    }
+
+
+    bool SealingKeyManager::addSecret(sgx_enclave_id_t& enclave_id) {
+
+        // if (secret.empty()) {
+        //     throw std::runtime_error("Empty secret.");
+        // }
+
+        // std::vector<unsigned char> secret_byte = ParseHex(secret);
+
+        // if (secret_byte.size() != SECRET_SIZE) {
+        //     throw std::runtime_error("Invalid secret length. Must be 32 bytes!");
+        // }
+
+        // sealed_seed_size = utils::sgx_calc_sealed_data_size(0U, (uint32_t) SECRET_SIZE);
+        // sealed_seed = new char[sealed_seed_size];
+        // memset(sealed_seed, 0, sealed_seed_size);
+
+        if (!isSeedEmpty()) {
+            return false;
+        }
+
+
+
+        size_t xxxsealed_seed_size = 0;
+        char* xxxsealed_seed = nullptr;
+
+        xxxsealed_seed_size = utils::sgx_calc_sealed_data_size(0U, (uint32_t) SECRET_SIZE);
+        xxxsealed_seed = new char[xxxsealed_seed_size];
+        memset(xxxsealed_seed, 0, xxxsealed_seed_size);
+
+
+
+        sgx_status_t ecall_ret;
+        sgx_status_t  status = add_secret(
+            enclave_id, &ecall_ret,       
+            ephemeral_sealed_exchange_private_key, ephemeral_sealed_exchange_private_key_size,
+            xxxsealed_seed, sizeof(xxxsealed_seed_size));
+
+        if (ecall_ret != SGX_SUCCESS) {
+            throw std::runtime_error("Generate ephemeral keys Ecall failed.");
+        }  if (status != SGX_SUCCESS) {
+            throw std::runtime_error("Generate ephemeral keys failed.");
+        }
+
+        return true;
+        
     }
 
     bool SealingKeyManager::writeSeedToFile() {

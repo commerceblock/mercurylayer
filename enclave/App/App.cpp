@@ -9,6 +9,7 @@
 #include <lib/crow_all.h>
 #include <lib/toml.hpp>
 #pragma GCC diagnostic pop
+#include <lib/CLI11.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -52,48 +53,9 @@ void ocall_print_hex(const unsigned char** key, const int *keylen)
     printf("%s\n", key_to_string(*key, *keylen).c_str());
 }
 
-int SGX_CDECL main(int argc, char *argv[])
+bool start_server(sgx_enclave_id_t& enclave_id, std::mutex& mutex_enclave_id, sealing_key_manager::SealingKeyManager& sealing_key_manager)
 {
     crow::SimpleApp app;
-
-    sgx_enclave_id_t enclave_id = 0;
-    std::mutex mutex_enclave_id; // protects map_aggregate_key_data
-
-    {
-        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
-
-        // initialize enclave
-        sgx_status_t enclave_created = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &enclave_id, NULL);
-        if (enclave_created != SGX_SUCCESS) {
-            printf("Enclave init error\n");
-            return -1;
-        }
-    }
-
-    sealing_key_manager::SealingKeyManager sealing_key_manager;
-    if (sealing_key_manager.readSeedFromFile()) {
-        std::cout << "Seed loaded" << std::endl;
-    } else {
-        std::cout << "Seed not loaded" << std::endl;
-    }
-
-    if (argc > 1 && (
-        std::strcmp(argv[1], "--generate-new-secret") == 0 || 
-        std::strcmp(argv[1], "-g") == 0 )) 
-    {
-        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
-        
-        try {
-            if (sealing_key_manager.addSecret(enclave_id)) {
-                std::cout << "New secret sucessfully generated." << std::endl;
-            } else {
-                std::cout << "Seed already exists. A new secret won't be generated." << std::endl;
-            }
-        } catch (const std::runtime_error& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
-            return 1;
-        }
-    }
 
     CROW_ROUTE(app, "/get_public_key")
         .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
@@ -130,16 +92,97 @@ int SGX_CDECL main(int argc, char *argv[])
             return endpointSecret::handleAddMnemonic(req, enclave_id, mutex_enclave_id, sealing_key_manager);
     });
 
+    CROW_ROUTE(app, "/get_ephemeral_public_key")
+    ([&sealing_key_manager](){
+        return endpointSecret::getEphemeralPublicKey(sealing_key_manager);
+    });
+
+    CROW_ROUTE(app, "/add_secret")
+        .methods("POST"_method)([&enclave_id, &mutex_enclave_id, &sealing_key_manager](const crow::request& req) {
+            return endpointSecret::handleAddSecret(req, enclave_id, mutex_enclave_id, sealing_key_manager);
+    });
+
     uint16_t server_port = 0;
 
     try {
         server_port = utils::getEnclavePort();
     } catch (const std::exception& e) {
         std::cerr << "Error enclave port: " << e.what() << std::endl;
-        return 1;
+        return false;
     }
     
     app.port(server_port).multithreaded().run();
+
+    return true;
+}
+
+int SGX_CDECL main(int argc, char *argv[])
+{
+    CLI::App app{"Lockbox Server"};
+    app.set_version_flag("--version", std::string("0.0.1"));
+
+    bool replicate_key = false;
+    bool generate_new_secret = false;
+
+    // Add the options to the app
+    app.add_flag("-r,--replicate-key", replicate_key, "Replicate key");
+    app.add_flag("-g,--generate-new-secret", generate_new_secret, "Generate a new secret");
+
+    // Parse the arguments
+    CLI11_PARSE(app, argc, argv);
+
+    sgx_enclave_id_t enclave_id = 0;
+    std::mutex mutex_enclave_id; // protects map_aggregate_key_data
+
+    {
+        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+
+        // initialize enclave
+        sgx_status_t enclave_created = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &enclave_id, NULL);
+        if (enclave_created != SGX_SUCCESS) {
+            printf("Enclave init error\n");
+            return -1;
+        }
+    }
+
+    sealing_key_manager::SealingKeyManager sealing_key_manager;
+    if (sealing_key_manager.readSeedFromFile()) {
+        std::cout << "Seed loaded" << std::endl;
+    } else {
+        std::cout << "Seed not loaded" << std::endl;
+    }
+
+    try {
+        sealing_key_manager.generateEphemeralKeys(enclave_id);
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+
+    if (generate_new_secret) {
+        const std::lock_guard<std::mutex> lock(mutex_enclave_id);
+        
+        try {
+            if (sealing_key_manager.generateSecret(enclave_id)) {
+                std::cout << "New secret sucessfully generated." << std::endl;
+            } else {
+                std::cout << "Seed already exists. A new secret won't be generated." << std::endl;
+            }
+
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 2;
+        }
+    }
+
+    if (replicate_key) {
+        sealing_key_manager.replicateSecret();
+    }
+
+    if (!start_server(enclave_id, mutex_enclave_id, sealing_key_manager)) {
+        std::cerr << "Error starting server." << std::endl;
+        return 3;
+    }
 
     {
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
