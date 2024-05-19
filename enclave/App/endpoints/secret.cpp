@@ -68,6 +68,10 @@ namespace endpointSecret {
 
     crow::response getEphemeralPublicKey(sealing_key_manager::SealingKeyManager& sealing_key_manager) {
 
+        if (!sealing_key_manager.isSeedEmpty()) {
+            return crow::response(401, "Seed already exists. No need for replication.");
+        }
+
         auto public_key_hex = key_to_string(sealing_key_manager.ephemeral_exchange_public_key, sizeof(sealing_key_manager.ephemeral_exchange_public_key));
 
         crow::json::wvalue result({{"ephemeral_public_key", public_key_hex}});

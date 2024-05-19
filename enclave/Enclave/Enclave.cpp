@@ -544,8 +544,11 @@ sgx_status_t generate_ephemeral_keys(
 }
 
 sgx_status_t add_secret(
-    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
-    char* sealed_key_share, size_t sealed_key_share_size) 
+            char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+            char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+            char* sealed_seed, size_t sealed_seed_size,
+            char* cypher_text, size_t cypher_text_size
+        )
 {
     size_t ephemeral_privkey_size = 32;
     uint8_t ephemeral_privkey[ephemeral_privkey_size];
@@ -556,4 +559,15 @@ sgx_status_t add_secret(
     char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
     ocall_print_string("ephemeral_privkey:");
     ocall_print_string(ephemeral_privkey_hex);
+
+    uint8_t their_public_key[32];
+    memset(their_public_key, 0, 32);
+    memcpy(their_public_key, their_ephemeral_public_key, 32);
+
+    uint8_t shared_secret[32];
+    memset(shared_secret, 0, 32);
+
+    crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
+
+   //encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
 }

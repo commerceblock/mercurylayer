@@ -7,6 +7,7 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <lib/crow_all.h>
+#include <lib/toml.hpp>
 #pragma GCC diagnostic pop
 
 #include "../../utils/strencodings.h"
@@ -25,6 +26,28 @@
 #include <iostream>
 
 namespace sealing_key_manager {
+
+    std::string SealingKeyManager::getReplicationServerUrl() {
+        const char* value = std::getenv("REPLICATION_SERVER_URL");
+
+        if (value == nullptr) {
+            auto config = toml::parse_file("Settings.toml");
+            return config["intel_sgx"]["replication_server_url"].as_string()->get();
+        } else {
+            return std::string(value);        
+        }
+    }
+
+    std::string SealingKeyManager::getSeedDir() {
+        const char* value = std::getenv("SEED_DIR");
+
+        if (value == nullptr) {
+            auto config = toml::parse_file("Settings.toml");
+            return config["intel_sgx"]["seed_dir"].as_string()->get();
+        } else {
+            return std::string(value);        
+        }
+    }
 
     utils::APIResponse SealingKeyManager::addKeyShare(sgx_enclave_id_t& enclave_id, const SealedKeyShare& new_key_share, size_t _threshold) {
 
@@ -69,8 +92,18 @@ namespace sealing_key_manager {
             }
         }
 
+        bool seedWritten = true;
+
         if (!isSeedEmpty()) {
-            writeSeedToFile();
+            seedWritten = writeSeedToFile();
+        }
+
+        if (!seedWritten) {
+            return utils::APIResponse {
+                .success = false,
+                .code = 500,
+                .message = "Failed to write seed to file"
+            };
         }
 
         return utils::APIResponse {
@@ -262,23 +295,52 @@ namespace sealing_key_manager {
             throw std::runtime_error("Generate node secret failed.");
         }
 
+        bool seedWritten = true;
+
         if (!isSeedEmpty()) {
-            writeSeedToFile();
+            seedWritten = writeSeedToFile();
+        }
+
+        if (!seedWritten) {
+            throw std::runtime_error("Failed to write seed to file.");
         }
 
         return true;
     }
 
-    void SealingKeyManager::replicateSecret() {
-        cpr::Response r = cpr::Get(cpr::Url{"http://0.0.0.0:18082/get_ephemeral_public_key"});
+    bool SealingKeyManager::replicateSecret() {
 
-        if (r.status_code == 200 && r.header["content-type"] == "application/json") {
-            crow::json::rvalue json = crow::json::load(r.text);
-            std::string ephemeral_public_key = json["ephemeral_public_key"].s();
-            std::cout << "ephemeral_public_key: " << ephemeral_public_key << std::endl;
-        } else {
-            std::cout << "[replicateSecret] Error: " << r.status_code << std::endl;
+        std::string replication_server_url = getReplicationServerUrl()
+
+        cpr::Response r = cpr::Get(cpr::Url{ replication_server_url + "/get_ephemeral_public_key"});
+
+        if (r.status_code == 401) {
+            std::cout << "Unauthorized to retrieve replication server's ephemeral public key.\n"
+                "The replication server must already have the key." << std::endl;
+            return false;
+        } else if (r.status_code != 200) {
+            throw std::runtime_error("Failed to retrieve replication server's ephemeral public key.");
         }
+
+        crow::json::rvalue json = crow::json::load(r.text);
+        std::string ephemeral_public_key_hex = json["ephemeral_public_key"].s();
+        std::cout << "ephemeral_public_key: " << ephemeral_public_key_hex << std::endl;
+
+        // Check if the string starts with 0x and remove it if necessary
+        if (ephemeral_public_key_hex.substr(0, 2) == "0x") {
+            ephemeral_public_key_hex = ephemeral_public_key_hex.substr(2);
+        }
+
+        std::vector<unsigned char> ephemeral_public_key = ParseHex(ephemeral_public_key_hex);
+
+        if (ephemeral_public_key.size() != 32) {
+            throw std::runtime_error("Invalid ephemeral public key length. Must be 32 bytes!");
+        }
+
+        
+
+        return true;
+
     }
 
 
@@ -331,7 +393,13 @@ namespace sealing_key_manager {
 
     bool SealingKeyManager::writeSeedToFile() {
         // Check if the file exists
-        const std::string filename = "node.sealed_seed";
+        auto seed_dir = getSeedDir();
+        const std::string filename = seed_dir + "/node.sealed_seed";
+
+        // Create the directory if it doesn't exist
+        std::filesystem::create_directories(seed_dir);
+
+        // const std::string filename = "node.sealed_seed";
         if (std::filesystem::exists(filename)) {
             return false; // File already exists, so we don't overwrite it
         }
@@ -355,7 +423,9 @@ namespace sealing_key_manager {
     }
 
     bool SealingKeyManager::readSeedFromFile() {
-        const std::string filename = "node.sealed_seed";
+        auto seed_dir = getSeedDir();
+        const std::string filename = seed_dir + "/node.sealed_seed";
+        // const std::string filename = "node.sealed_seed";
 
         // Check if the file exists and is not empty
         if (!std::filesystem::exists(filename) || std::filesystem::is_empty(filename)) {

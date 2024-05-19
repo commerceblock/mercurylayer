@@ -43,12 +43,14 @@ namespace sealing_key_manager {
         size_t sealed_seed_size = 0;
         char* sealed_seed = nullptr;
 
+        std::string getReplicationServerUrl();
+        std::string getSeedDir();
         utils::APIResponse addKeyShare(sgx_enclave_id_t& enclave_id, const SealedKeyShare& key_share, size_t _threshold);
         utils::APIResponse addMnemonic(sgx_enclave_id_t& enclave_id, const std::string& mnemonic, const std::string& password, size_t index, size_t _threshold);
         utils::APIResponse recoverSeed(sgx_enclave_id_t& enclave_id);
         void generateEphemeralKeys(sgx_enclave_id_t& enclave_id);
         bool generateSecret(sgx_enclave_id_t& enclave_id);
-        void replicateSecret();
+        bool replicateSecret();
         bool addSecret(sgx_enclave_id_t& enclave_id);
         bool isSeedEmpty();
         bool writeSeedToFile();

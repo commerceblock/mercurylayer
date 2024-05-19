@@ -78,7 +78,9 @@ enclave {
 
         public sgx_status_t add_secret(
             [in, size=sealed_ephemeral_privkey_size] char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
-            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
+            [in, size=their_ephemeral_public_key_size] unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+            [out, size=sealed_seed_size] char* sealed_seed, size_t sealed_seed_size,
+            [in, out] struct chacha20_poly1305_encrypted_data* encrypted_seed_to_send
         );
 
     };

@@ -176,12 +176,21 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     if (replicate_key) {
-        sealing_key_manager.replicateSecret();
+        try {
+            if (sealing_key_manager.replicateSecret()) {
+                std::cout << "Seed sucessfully replicated." << std::endl;
+            } else {
+                std::cout << "The other server refused replication. The seed must already exist." << std::endl;
+            }
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 3;
+        }
     }
 
     if (!start_server(enclave_id, mutex_enclave_id, sealing_key_manager)) {
         std::cerr << "Error starting server." << std::endl;
-        return 3;
+        return 4;
     }
 
     {
