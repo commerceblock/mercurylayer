@@ -40,27 +40,52 @@ pub async fn get_statechain_info(pool: &sqlx::PgPool, statechain_id: &str) -> Ve
     result
 }
 
-pub async fn get_enclave_pubkey_and_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> (PublicKey, PublicKey) {
+pub async fn get_enclave_pubkey(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
 
-    let query = "\
-        SELECT std.server_public_key, stt.x1 \
-        FROM statechain_data std INNER JOIN statechain_transfer stt \
-        ON std.statechain_id = stt.statechain_id \
-        WHERE std.statechain_id = $1";
+    let query = "SELECT server_public_key \
+        FROM statechain_data \
+        WHERE statechain_id = $1";
 
     let row = sqlx::query(query)
         .bind(statechain_id)
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
         .unwrap();
+
+    if row.is_none() {
+        return None;
+    }
+
+    let row = row.unwrap();
 
     let enclave_public_key_bytes = row.get::<Vec<u8>, _>("server_public_key");
     let enclave_public_key = PublicKey::from_slice(&enclave_public_key_bytes).unwrap();
 
+    Some(enclave_public_key)
+}
+
+pub async fn get_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> Option<PublicKey> {
+
+    let query = "SELECT x1 \
+        FROM statechain_transfer \
+        WHERE statechain_id = $1";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+
+    if row.is_none() {
+        return None;
+    }
+
+    let row = row.unwrap();
+
     let x1_secret_bytes = row.get::<Vec<u8>, _>("x1");
     let secret_x1 = SecretKey::from_slice(&x1_secret_bytes).unwrap();
 
-    (enclave_public_key, secret_x1.public_key(&Secp256k1::new()))
+    Some(secret_x1.public_key(&Secp256k1::new()))
 }
 
 pub async fn get_statechain_transfer_messages(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey) -> Vec::<String> {

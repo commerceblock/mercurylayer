@@ -169,19 +169,18 @@ class CoinUpdate() {
         }
 
         private suspend fun checkTransfer(coin: Coin, clientConfig: ClientConfig): Boolean {
-            val url = "${clientConfig.statechainEntity}/transfer/receiver/${coin.statechainId}"
 
-            val httpClient = HttpClient(CIO) {
-                install(ContentNegotiation) {
-                    json()
-                }
+            if (coin.statechainId == null) {
+                throw Exception("The coin with the aggregated address ${coin.aggregatedAddress} does not have a statechain ID");
             }
 
-            val response: TransferReceiverGetResponsePayload = httpClient.get(url).body()
+            val statechainInfo = getStatechainInfo(clientConfig, coin.statechainId!!) ?: return true
 
-            httpClient.close()
+            val enclavePublicKey = statechainInfo.enclavePublicKey
 
-            return response.transferComplete
+            val isTransferred = !isEnclavePubkeyPartOfCoin(coin, enclavePublicKey)
+
+            return isTransferred
         }
 
         private fun checkWithdrawal(coin: Coin, clientConfig: ClientConfig, walletNetwork: String): Boolean {

@@ -64,4 +64,51 @@ const createActivity = (utxo, amount, action) => {
 
 }
 
-module.exports = { infoConfig, getNetwork, createActivity };
+const getStatechainInfo = async (statechainId) => {
+
+    const statechainEntityUrl = config.get('statechainEntity');
+    const path = `info/statechain/${statechainId}`;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    try {
+        let response = await axios.get(statechainEntityUrl + '/' + path, socksAgent);
+        return response.data;
+    } catch (error) {
+        if (error.response.status == 404) {
+            return null;
+        } else {
+            throw error;
+        }
+    }
+}
+
+const completeWithdraw = async (statechainId, signedStatechainId) => {
+
+    const statechainEntityUrl = config.get('statechainEntity');
+    const path = "withdraw/complete";
+    const url = statechainEntityUrl + '/' + path;
+
+    const torProxy = config.get('torProxy');
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    let deleteStatechainPayload = {
+        statechain_id: statechainId,
+        signed_statechain_id: signedStatechainId
+    };
+
+    await axios.post(url, deleteStatechainPayload, socksAgent);
+}
+
+module.exports = { infoConfig, getNetwork, createActivity, getStatechainInfo, completeWithdraw };

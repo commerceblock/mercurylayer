@@ -67,6 +67,29 @@ enclave {
             [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
         );
 
+        public sgx_status_t generate_node_secret(
+            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
+        );
+
+        public sgx_status_t generate_ephemeral_keys(
+            [out, size=sealed_privkey_size] char* sealed_privkey, size_t sealed_privkey_size,
+            [out, size=pubkey_size] unsigned char* pubkey, size_t pubkey_size
+        );
+
+        public sgx_status_t encrypt_seed(
+            [in, size=sealed_ephemeral_privkey_size] char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+            [in, size=their_ephemeral_public_key_size] unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+            [in, size=sealed_seed_size] char* sealed_seed, size_t sealed_seed_size,
+            [in, out] struct chacha20_poly1305_encrypted_data* encrypted_seed_to_send
+        );
+
+        public sgx_status_t decrypt_seed(
+            [in, size=sealed_ephemeral_privkey_size] char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+            [in, size=their_ephemeral_public_key_size] unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+            [in] struct chacha20_poly1305_encrypted_data *encrypted_seed,
+            [out, size=sealed_key_share_size] char* sealed_key_share, size_t sealed_key_share_size
+        );
+
     };
 
     untrusted {

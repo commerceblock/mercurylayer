@@ -203,6 +203,7 @@ sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, s
         {
             free(unsealed_data);
         }
+        return ret;
     }
 
     // Step 2: Unseal data.
@@ -213,6 +214,7 @@ sgx_status_t unseal(char* sealed, size_t sealed_size, unsigned char *raw_data, s
         {
             free(unsealed_data);
         }
+        return ret;
     }
 
     ret = SGX_SUCCESS;
@@ -470,8 +472,6 @@ sgx_status_t sealed_key_from_mnemonics(
   unsigned char* password, size_t password_len,
   char* sealed_key_share, size_t sealed_key_share_size) 
 {
-  sgx_status_t ret = SGX_SUCCESS;
-
   // Define the output hash array and size
   uint8_t hash_password[xor_secret_len];  // Output size for 256-bit hash
   size_t hash_password_size = sizeof(hash_password);  // Size of the hash (32 bytes)
@@ -490,8 +490,136 @@ sgx_status_t sealed_key_from_mnemonics(
 //  ocall_print_string(key_share_hex);
 //  ocall_print_string("\n");
 
-  seal_key_share(key_share, key_share_size, sealed_key_share, sealed_key_share_size);
-
-  return ret;
+  return seal_key_share(key_share, key_share_size, sealed_key_share, sealed_key_share_size);
 }
 
+sgx_status_t generate_node_secret(char* sealed_key_share, size_t sealed_key_share_size) 
+{
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
+    size_t server_privkey_size = 32;
+    unsigned char server_privkey[server_privkey_size];
+    memset(server_privkey, 0, server_privkey_size);
+
+    do {
+        sgx_read_rand(server_privkey, server_privkey_size);
+    } while (!secp256k1_ec_seckey_verify(ctx, server_privkey));
+
+    sgx_status_t ret = seal_key_share(server_privkey, server_privkey_size, sealed_key_share, sealed_key_share_size);
+
+    secp256k1_context_destroy(ctx);
+
+    return ret;
+}
+
+sgx_status_t generate_ephemeral_keys(
+    char* sealed_privkey, size_t sealed_privkey_size,
+    unsigned char* pubkey, size_t pubkey_size) 
+{
+    size_t ephemeral_privkey_size = 32;
+    unsigned char ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    assert(pubkey_size == 32);
+
+    size_t ephemeral_pubkey_size = pubkey_size;
+    unsigned char ephemeral_pubkey[ephemeral_pubkey_size];
+    memset(ephemeral_pubkey, 0, ephemeral_pubkey_size);
+
+    sgx_read_rand(ephemeral_privkey, 32);
+
+    crypto_x25519_public_key(ephemeral_pubkey, ephemeral_privkey);
+
+    memcpy(pubkey, ephemeral_pubkey, ephemeral_pubkey_size);
+
+    return seal_key_share(ephemeral_privkey, ephemeral_privkey_size, sealed_privkey, sealed_privkey_size);
+}
+
+sgx_status_t encrypt_seed(
+    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+    unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+    char* sealed_seed, size_t sealed_seed_size,
+    chacha20_poly1305_encrypted_data* encrypted_seed_to_send)
+{
+    size_t ephemeral_privkey_size = 32;
+    uint8_t ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    sgx_status_t ret = unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
+
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    assert(their_ephemeral_public_key_size == 32);
+
+    uint8_t their_public_key[their_ephemeral_public_key_size];
+    memset(their_public_key, 0, their_ephemeral_public_key_size);
+    memcpy(their_public_key, their_ephemeral_public_key, 32);
+
+    uint8_t shared_secret[32];
+    memset(shared_secret, 0, 32);
+
+    crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
+
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    ret = unseal(sealed_seed, sealed_seed_size, seed, sizeof(seed));
+
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+
+    sgx_read_rand(encrypted_seed_to_send->nonce, sizeof(encrypted_seed_to_send->nonce));
+
+    assert(encrypted_seed_to_send->data_len == sizeof(seed));
+    crypto_aead_lock(encrypted_seed_to_send->data, encrypted_seed_to_send->mac, shared_secret, encrypted_seed_to_send->nonce, ad, ad_size, seed, sizeof(seed));
+
+    return SGX_SUCCESS;
+}
+
+sgx_status_t decrypt_seed(
+    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+    unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+    chacha20_poly1305_encrypted_data *encrypted_seed,
+    char* sealed_key_share, size_t sealed_key_share_size)
+{
+    size_t ephemeral_privkey_size = 32;
+    uint8_t ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    sgx_status_t ret = unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
+
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    assert(their_ephemeral_public_key_size == 32);
+
+    uint8_t their_public_key[their_ephemeral_public_key_size];
+    memset(their_public_key, 0, their_ephemeral_public_key_size);
+    memcpy(their_public_key, their_ephemeral_public_key, 32);
+
+    uint8_t shared_secret[32];
+    memset(shared_secret, 0, 32);
+
+    crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
+
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+    
+    int status = crypto_aead_unlock(seed, encrypted_seed->mac, shared_secret, encrypted_seed->nonce, ad, ad_size, encrypted_seed->data, encrypted_seed->data_len);
+    if (status != 0) {
+        ocall_print_string("\nDecryption failed\n");
+        return SGX_ERROR_UNEXPECTED;
+    }
+
+    return seal_key_share(seed, sizeof(seed), sealed_key_share, sealed_key_share_size);
+}

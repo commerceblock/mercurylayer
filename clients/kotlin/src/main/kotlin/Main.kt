@@ -7,10 +7,62 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import org.electrumj.ElectrumClient
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+
+suspend fun getStatechainInfo(clientConfig: ClientConfig, statechainId: String): StatechainInfoResponsePayload? {
+    val url = "${clientConfig.statechainEntity}/info/statechain/${statechainId}"
+
+    val httpClient = HttpClient(CIO) {
+        install(ContentNegotiation) {
+            json()
+        }
+    }
+
+    val response = httpClient.get(url)
+
+    if (response.status == HttpStatusCode.NotFound) {
+        return null
+    }
+
+    val payload: StatechainInfoResponsePayload = response.body()
+
+    httpClient.close()
+
+    return payload
+}
+
+suspend fun completeWithdraw(clientConfig: ClientConfig, statechainId: String, signedStatechainId: String) {
+
+     val withdrawCompletePayload = WithdrawCompletePayload(
+        statechainId,
+        signedStatechainId
+    )
+
+     val url = "${clientConfig.statechainEntity}/withdraw/complete"
+
+     val httpClient = HttpClient(CIO) {
+         install(ContentNegotiation) {
+             json()
+         }
+     }
+
+     val response = httpClient.post(url) {
+         contentType(ContentType.Application.Json)
+         setBody(withdrawCompletePayload)
+     }
+
+    if (response.status != HttpStatusCode.OK) {
+        val errorBody: String = response.bodyAsText()
+        throw Exception("Failed to complete withdraw: HTTP ${response.status} - $errorBody")
+    }
+
+     httpClient.close()
+}
 
 fun createActivity(utxo: String, amount: UInt, action: String): Activity {
     val date = ZonedDateTime.now() // This will get the current date and time in UTC

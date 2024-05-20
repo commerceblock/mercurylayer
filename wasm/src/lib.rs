@@ -432,6 +432,14 @@ pub fn signMessage(statechain_id: String, coin: JsValue) -> String {
 }
 
 #[wasm_bindgen]
+pub fn isEnclavePubkeyPartOfCoin(coin: JsValue, enclave_pubkey: String) -> bool {
+
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    mercurylib::utils::is_enclave_pubkey_part_of_coin(&coin, &enclave_pubkey).unwrap()
+}
+
+#[wasm_bindgen]
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
         Token {

@@ -387,4 +387,26 @@ namespace db_manager {
             return false;
         }
     }
+
+    bool delete_statechain(const std::string& statechain_id) {
+        auto database_connection_string = getDatabaseConnectionString();
+
+        std::string error_message;
+        pqxx::connection conn(database_connection_string);
+        if (conn.is_open()) {
+
+            std::string delete_comm =
+                "DELETE FROM generated_public_key WHERE statechain_id = $1;";
+            pqxx::work txn2(conn);
+
+            txn2.exec_params(delete_comm, statechain_id);
+            txn2.commit();
+
+            conn.close();
+
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

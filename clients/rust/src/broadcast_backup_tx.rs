@@ -75,27 +75,11 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     coin.withdrawal_address = Some(to_address.to_string());
     coin.status = CoinStatus::WITHDRAWING;
 
-    // let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap().to_string();
+    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap().to_string();
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    /* let endpoint = client_config.statechain_entity.clone();
-    let path = "withdraw/complete";
-
-    let client = client_config.get_reqwest_client()?;
-    let request = client.delete(&format!("{}/{}", endpoint, path));
-
-    let delete_statechain_payload = WithdrawCompletePayload {
-        statechain_id: statechain_id.to_string(),
-        signed_statechain_id,
-    };
-
-    let response = request.json(&delete_statechain_payload).send().await?;
-
-    if response.status() != 200 {
-        let response_body = response.text().await?;
-        return Err(anyhow!(response_body));
-    } */
+    crate::utils::complete_withdraw(statechain_id, &signed_statechain_id, &client_config).await?;
 
     Ok(())
 }

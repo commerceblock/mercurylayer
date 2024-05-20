@@ -28,7 +28,7 @@ async fn delete_statechain_db(pool: &sqlx::PgPool,  statechain_id: &String)  {
     transaction.commit().await.unwrap();
 }
 
-#[delete("/withdraw/complete", format = "json", data = "<delete_statechain_payload>")]
+#[post("/withdraw/complete", format = "json", data = "<delete_statechain_payload>")]
 pub async fn withdraw_complete(statechain_entity: &State<StateChainEntity>, delete_statechain_payload: Json<mercurylib::withdraw::WithdrawCompletePayload>) -> status::Custom<Json<Value>>  {
 
     let statechain_id = delete_statechain_payload.0.statechain_id.clone();
