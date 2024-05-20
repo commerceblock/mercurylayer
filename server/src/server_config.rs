@@ -27,6 +27,7 @@ impl Default for ServerConfig {
             lockheight_init: 10000,
             lh_decrement: 100,
             connection_string: String::from("postgresql://postgres:postgres@localhost/mercury"),
+            batch_timeout: 120,
         }
     }
 }
@@ -39,6 +40,7 @@ impl From<ConfigRs> for ServerConfig {
             lockheight_init: config.get::<u32>("lockheight_init").unwrap_or(0),
             lh_decrement: config.get::<u32>("lh_decrement").unwrap_or(0),
             connection_string: config.get::<String>("connection_string").unwrap_or_else(|_| String::new()),
+            batch_timeout: config.get::<u32>("batch_timeout").unwrap_or(0),
         }
     }
 }

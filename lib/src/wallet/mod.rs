@@ -49,14 +49,14 @@ pub struct Settings {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct Token {
-    // pub btc_payment_address: String,
-    // pub fee: String,
+    pub btc_payment_address: String,
+    pub fee: String,
     pub lightning_invoice: String,
     pub processor_id: String,
     pub token_id: String,
     pub confirmed: bool,
     pub spent: bool,
-    // pub expiry: String,
+    pub expiry: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
