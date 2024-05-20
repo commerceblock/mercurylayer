@@ -50,8 +50,8 @@ namespace sealing_key_manager {
         utils::APIResponse recoverSeed(sgx_enclave_id_t& enclave_id);
         void generateEphemeralKeys(sgx_enclave_id_t& enclave_id);
         bool generateSecret(sgx_enclave_id_t& enclave_id);
-        bool replicateSecret();
-        bool addSecret(sgx_enclave_id_t& enclave_id);
+        bool replicateSecret(sgx_enclave_id_t& enclave_id);
+        bool addSecret(sgx_enclave_id_t& enclave_id, const std::string& encrypted_secret_key, const std::string& sender_public_key);
         bool isSeedEmpty();
         bool writeSeedToFile();
         bool readSeedFromFile();

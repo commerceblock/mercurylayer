@@ -54,9 +54,19 @@ namespace endpointSecret {
             return crow::response(400, "Invalid parameters. They must be 'encrypted_secret_key', 'sender_public_key'.");
         }
 
+        std::string encrypted_secret_key = req_body["encrypted_secret_key"].s();
+        std::string sender_public_key = req_body["sender_public_key"].s();
+
         const std::lock_guard<std::mutex> lock(mutex_enclave_id);
 
-        auto isKeyAdded = sealing_key_manager.addSecret(enclave_id);
+        auto isKeyAdded = false;
+
+        try {
+            isKeyAdded = sealing_key_manager.addSecret(enclave_id, encrypted_secret_key, sender_public_key);
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to add secret: " << e.what() << std::endl;
+            return crow::response(500, e.what());
+        }
 
         if (!isKeyAdded) {
             return crow::response(400, "Seed already exists. Cannot add a new secret.");

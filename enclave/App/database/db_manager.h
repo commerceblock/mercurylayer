@@ -9,6 +9,10 @@
 
 namespace db_manager {
 
+    void serialize(const chacha20_poly1305_encrypted_data* src, unsigned char* buffer, size_t* serialized_len);
+
+    bool deserialize(const unsigned char* buffer, chacha20_poly1305_encrypted_data* dest);
+
     bool save_generated_public_key(
         const chacha20_poly1305_encrypted_data& encrypted_keypair, 
         unsigned char* server_public_key, size_t server_public_key_size,

@@ -177,7 +177,7 @@ int SGX_CDECL main(int argc, char *argv[])
 
     if (replicate_key) {
         try {
-            if (sealing_key_manager.replicateSecret()) {
+            if (sealing_key_manager.replicateSecret(enclave_id)) {
                 std::cout << "Seed sucessfully replicated." << std::endl;
             } else {
                 std::cout << "The other server refused replication. The seed must already exist." << std::endl;

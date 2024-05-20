@@ -532,42 +532,133 @@ sgx_status_t generate_ephemeral_keys(
 
     memcpy(pubkey, ephemeral_pubkey, ephemeral_pubkey_size);
 
-    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
-    ocall_print_string("ephemeral_privkey:");
-    ocall_print_string(ephemeral_privkey_hex);
-
-    char* ephemeral_pubkey_hex = data_to_hex(ephemeral_pubkey, ephemeral_pubkey_size);
-    ocall_print_string("ephemeral_pubkey:");
-    ocall_print_string(ephemeral_pubkey_hex);
-
     return seal_key_share(ephemeral_privkey, ephemeral_privkey_size, sealed_privkey, sealed_privkey_size);
 }
 
-sgx_status_t add_secret(
-            char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
-            char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
-            char* sealed_seed, size_t sealed_seed_size,
-            char* cypher_text, size_t cypher_text_size
-        )
+sgx_status_t encrypt_seed(
+    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+    unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+    char* sealed_seed, size_t sealed_seed_size,
+    chacha20_poly1305_encrypted_data* encrypted_seed_to_send)
 {
     size_t ephemeral_privkey_size = 32;
     uint8_t ephemeral_privkey[ephemeral_privkey_size];
     memset(ephemeral_privkey, 0, ephemeral_privkey_size);
 
-    unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
+    sgx_status_t ret = unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
 
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    // Print the ephemeral private key
     char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
-    ocall_print_string("ephemeral_privkey:");
+    ocall_print_string("ephemeral_privkey_hex:");
     ocall_print_string(ephemeral_privkey_hex);
 
-    uint8_t their_public_key[32];
-    memset(their_public_key, 0, 32);
+    assert(their_ephemeral_public_key_size == 32);
+
+    uint8_t their_public_key[their_ephemeral_public_key_size];
+    memset(their_public_key, 0, their_ephemeral_public_key_size);
     memcpy(their_public_key, their_ephemeral_public_key, 32);
+
+    // Print their public key
+    char* their_public_key_hex = data_to_hex(their_public_key, their_ephemeral_public_key_size);
+    ocall_print_string("their_public_key_hex:");
+    ocall_print_string(their_public_key_hex);
 
     uint8_t shared_secret[32];
     memset(shared_secret, 0, 32);
 
     crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
 
-   //encrypt_data(encrypted_data, sealed_seed, sealed_seed_len, server_keypair.data, sizeof(secp256k1_keypair::data));
+    // Print the shared secret
+    char* shared_secret_hex = data_to_hex(shared_secret, sizeof(shared_secret));
+    ocall_print_string("shared_secret_hex:");
+    ocall_print_string(shared_secret_hex);
+
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    ret = unseal(sealed_seed, sealed_seed_size, seed, sizeof(seed));
+
+    // Print the raw seed
+    char* seed_hex = data_to_hex(seed, sizeof(seed));
+    ocall_print_string("seed_hex:");
+    ocall_print_string(seed_hex);
+
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+
+    sgx_read_rand(encrypted_seed_to_send->nonce, sizeof(encrypted_seed_to_send->nonce));
+
+    assert(encrypted_seed_to_send->data_len == sizeof(seed));
+    crypto_aead_lock(encrypted_seed_to_send->data, encrypted_seed_to_send->mac, shared_secret, encrypted_seed_to_send->nonce, ad, ad_size, seed, sizeof(seed));
+
+    return SGX_SUCCESS;
+}
+
+sgx_status_t decrypt_seed(
+    char* sealed_ephemeral_privkey, size_t sealed_ephemeral_privkey_size,
+    unsigned char* their_ephemeral_public_key, size_t their_ephemeral_public_key_size,
+    chacha20_poly1305_encrypted_data *encrypted_seed,
+    char* sealed_key_share, size_t sealed_key_share_size)
+{
+    size_t ephemeral_privkey_size = 32;
+    uint8_t ephemeral_privkey[ephemeral_privkey_size];
+    memset(ephemeral_privkey, 0, ephemeral_privkey_size);
+
+    sgx_status_t ret = unseal(sealed_ephemeral_privkey, sealed_ephemeral_privkey_size, ephemeral_privkey, ephemeral_privkey_size);
+
+    if (ret != SGX_SUCCESS) {
+        return ret;
+    }
+
+    // Print the ephemeral private key
+    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
+    ocall_print_string("ephemeral_privkey_hex:");
+    ocall_print_string(ephemeral_privkey_hex);
+
+    assert(their_ephemeral_public_key_size == 32);
+
+    uint8_t their_public_key[their_ephemeral_public_key_size];
+    memset(their_public_key, 0, their_ephemeral_public_key_size);
+    memcpy(their_public_key, their_ephemeral_public_key, 32);
+
+    // Print their public key
+    char* their_public_key_hex = data_to_hex(their_public_key, their_ephemeral_public_key_size);
+    ocall_print_string("their_public_key_hex:");
+    ocall_print_string(their_public_key_hex);
+
+    uint8_t shared_secret[32];
+    memset(shared_secret, 0, 32);
+
+    crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
+
+    // Print the shared secret
+    char* shared_secret_hex = data_to_hex(shared_secret, sizeof(shared_secret));
+    ocall_print_string("shared_secret_hex:");
+    ocall_print_string(shared_secret_hex);
+
+    unsigned char seed[32];
+    memset(seed, 0, 32);
+
+    uint8_t *ad = NULL;
+    size_t ad_size = 0;
+    
+    int status = crypto_aead_unlock(seed, encrypted_seed->mac, shared_secret, encrypted_seed->nonce, ad, ad_size, encrypted_seed->data, encrypted_seed->data_len);
+    if (status != 0) {
+        ocall_print_string("\nDecryption failed\n");
+        return SGX_ERROR_UNEXPECTED;
+    }
+
+    char* seed_hex = data_to_hex(seed, sizeof(seed));
+    ocall_print_string("seed_hex:");
+    ocall_print_string(seed_hex);
+
+    return seal_key_share(seed, sizeof(seed), sealed_key_share, sealed_key_share_size);
 }
