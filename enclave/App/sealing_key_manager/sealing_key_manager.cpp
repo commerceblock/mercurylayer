@@ -320,7 +320,6 @@ namespace sealing_key_manager {
 
         crow::json::rvalue json = crow::json::load(r.text);
         std::string ephemeral_public_key_hex = json["ephemeral_public_key"].s();
-        std::cout << "ephemeral_public_key: " << ephemeral_public_key_hex << std::endl;
 
         // Check if the string starts with 0x and remove it if necessary
         if (ephemeral_public_key_hex.substr(0, 2) == "0x") {
@@ -362,10 +361,7 @@ namespace sealing_key_manager {
         db_manager::serialize(&encrypted_seed, buffer, &serialized_len);
         assert(serialized_len == bufferSize);
 
-        // print buffer
         std::string buffer_hex = key_to_string(buffer, bufferSize);
-        std::cout << "buffer_hex: " << buffer_hex << std::endl;
-        std::cout << "bufferSize: " << bufferSize << std::endl;
 
         auto ephemeral_exchange_public_key_hex = key_to_string(ephemeral_exchange_public_key, sizeof(ephemeral_exchange_public_key));
 
@@ -520,36 +516,4 @@ namespace sealing_key_manager {
         sealed_seed_size = static_cast<size_t>(size);
         return true;
     }
-
-    /* bool SealingKeyManager::testSealedSeed(sgx_enclave_id_t& enclave_id) {
-
-        if (isSeedEmpty()) {
-            std::cout << "[test] seed empty" << std::endl;
-            return false;
-        }
-
-        size_t raw_data_size = SECRET_SIZE;
-        unsigned char* raw_data = new unsigned char[raw_data_size];
-        memset(raw_data, 0, raw_data_size);
-
-        sgx_status_t ecall_ret;
-        sgx_status_t  status = unseal(
-            enclave_id, &ecall_ret,
-            sealed_seed, sealed_seed_size, 
-            raw_data, raw_data_size);
-
-        if (ecall_ret != SGX_SUCCESS) {
-            std::cout <<  "unseal failed " << std::endl;
-        }  if (status != SGX_SUCCESS) {
-            std::cout <<  "unseal failed " << std::endl;
-        }
-
-        std::string raw_data_hex = key_to_string(raw_data, raw_data_size);
-        std::cout << "raw_data_hex: " << raw_data_hex << std::endl;
-
-        delete[] raw_data;
-
-        return true;
-    } */
-
 }

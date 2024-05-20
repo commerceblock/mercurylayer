@@ -551,41 +551,21 @@ sgx_status_t encrypt_seed(
         return ret;
     }
 
-    // Print the ephemeral private key
-    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
-    ocall_print_string("ephemeral_privkey_hex:");
-    ocall_print_string(ephemeral_privkey_hex);
-
     assert(their_ephemeral_public_key_size == 32);
 
     uint8_t their_public_key[their_ephemeral_public_key_size];
     memset(their_public_key, 0, their_ephemeral_public_key_size);
     memcpy(their_public_key, their_ephemeral_public_key, 32);
 
-    // Print their public key
-    char* their_public_key_hex = data_to_hex(their_public_key, their_ephemeral_public_key_size);
-    ocall_print_string("their_public_key_hex:");
-    ocall_print_string(their_public_key_hex);
-
     uint8_t shared_secret[32];
     memset(shared_secret, 0, 32);
 
     crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
 
-    // Print the shared secret
-    char* shared_secret_hex = data_to_hex(shared_secret, sizeof(shared_secret));
-    ocall_print_string("shared_secret_hex:");
-    ocall_print_string(shared_secret_hex);
-
     unsigned char seed[32];
     memset(seed, 0, 32);
 
     ret = unseal(sealed_seed, sealed_seed_size, seed, sizeof(seed));
-
-    // Print the raw seed
-    char* seed_hex = data_to_hex(seed, sizeof(seed));
-    ocall_print_string("seed_hex:");
-    ocall_print_string(seed_hex);
 
     if (ret != SGX_SUCCESS) {
         return ret;
@@ -618,31 +598,16 @@ sgx_status_t decrypt_seed(
         return ret;
     }
 
-    // Print the ephemeral private key
-    char* ephemeral_privkey_hex = data_to_hex(ephemeral_privkey, ephemeral_privkey_size);
-    ocall_print_string("ephemeral_privkey_hex:");
-    ocall_print_string(ephemeral_privkey_hex);
-
     assert(their_ephemeral_public_key_size == 32);
 
     uint8_t their_public_key[their_ephemeral_public_key_size];
     memset(their_public_key, 0, their_ephemeral_public_key_size);
     memcpy(their_public_key, their_ephemeral_public_key, 32);
 
-    // Print their public key
-    char* their_public_key_hex = data_to_hex(their_public_key, their_ephemeral_public_key_size);
-    ocall_print_string("their_public_key_hex:");
-    ocall_print_string(their_public_key_hex);
-
     uint8_t shared_secret[32];
     memset(shared_secret, 0, 32);
 
     crypto_x25519(shared_secret, ephemeral_privkey, their_public_key);
-
-    // Print the shared secret
-    char* shared_secret_hex = data_to_hex(shared_secret, sizeof(shared_secret));
-    ocall_print_string("shared_secret_hex:");
-    ocall_print_string(shared_secret_hex);
 
     unsigned char seed[32];
     memset(seed, 0, 32);
@@ -655,10 +620,6 @@ sgx_status_t decrypt_seed(
         ocall_print_string("\nDecryption failed\n");
         return SGX_ERROR_UNEXPECTED;
     }
-
-    char* seed_hex = data_to_hex(seed, sizeof(seed));
-    ocall_print_string("seed_hex:");
-    ocall_print_string(seed_hex);
 
     return seal_key_share(seed, sizeof(seed), sealed_key_share, sealed_key_share_size);
 }
