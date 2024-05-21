@@ -11,6 +11,7 @@ impl StateChainEntity {
     pub async fn new() -> Self {
 
         let config = ServerConfig::load();
+        println!("Config: {:?}", config);
         
         let pool = 
             PgPoolOptions::new()
