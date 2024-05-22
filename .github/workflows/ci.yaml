@@ -35,7 +35,7 @@ jobs:
             context: .
             file: ./server/Dockerfile
             push: true
-            tags: commerceblockx/mercury-server:latest
+            tags: commerceblockx/mercury-server:${{ env.COMMIT_HASH }}
         -
           name: Build and push for token-server
           uses: docker/build-push-action@v5
