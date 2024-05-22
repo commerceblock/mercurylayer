@@ -20,6 +20,12 @@ pub async fn execute(
         return Err(anyhow!("Invalid address"));
     }
 
+    let is_address_valid = mercurylib::validate_address(recipient_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
     let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {

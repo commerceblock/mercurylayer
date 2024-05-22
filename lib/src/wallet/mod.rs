@@ -24,7 +24,7 @@ pub struct Wallet {
     pub tokens: Vec<Token>,
     pub activities: Vec<Activity>,
     pub coins: Vec<Coin>,
-    pub settings: Settings,
+    // pub settings: Settings,
 }
 
 #[allow(non_snake_case)]

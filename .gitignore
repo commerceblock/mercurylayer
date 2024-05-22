@@ -1,2 +1,4 @@
 /target
+/server/.env
+/token-server/.env
 .vscode

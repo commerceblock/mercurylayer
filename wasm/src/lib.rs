@@ -143,7 +143,7 @@ pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
         tokens: Vec::new(),
         activities: Vec::new(),
         coins: Vec::new(),
-        settings
+        // settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
@@ -530,7 +530,7 @@ pub fn getMockWallet() -> JsValue {
         tokens,
         activities: activity,
         coins: Vec::new(), // coins
-        settings
+        // settings
     };
     serde_wasm_bindgen::to_value(&wallet).unwrap()
 }
