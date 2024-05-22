@@ -47,8 +47,8 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
-    if coin.status != CoinStatus::CONFIRMED {
-        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to withdraw it. The current status is {}", coin.status));
+    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", coin.status));
     }
 
     let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network, fee_rate).await?;
