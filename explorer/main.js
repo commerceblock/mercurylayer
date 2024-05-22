@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Fetch JSON data
-    fetch('https://api.mercurywallet.io/info/keylist')
+    fetch('https://api.mercurylayer.com/info/keylist')
         .then(response => response.json())
         .then(data => {
             // Display JSON data in a <pre> tag

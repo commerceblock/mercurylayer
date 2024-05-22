@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Fetch keylist JSON from the provided URL
-KEYLIST_URL="http://45.76.136.11:8000/info/keylist"
 KEYLIST_JSON=$(curl -sSL "$KEYLIST_URL" | jq -r '.list_keyinfo' | sed 's/"/\\"/g')
 
 # Check if the GET request was successful
@@ -12,13 +11,6 @@ fi
 
 # Calculate SHA256 hash of the keylist JSON
 KEYLIST_HASH=$(echo "$KEYLIST_JSON" | sha256sum | awk '{print $1}')
-
-# Define mainstay slot URL
-MAINSTAY_URL="https://testnet.mainstay.xyz/ctrl/sendcommitment"
-
-# Attestation data
-POSITION="3"
-TOKEN="0972e199-6cf8-4164-8445-235528b6afa5"
 
 # Construct the POST request body
 PAYLOAD="{
