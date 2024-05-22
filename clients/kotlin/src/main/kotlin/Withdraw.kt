@@ -55,8 +55,8 @@ class Withdraw: CliktCommand(help = "Withdraw funds from a statecoin to a BTC ad
             throw Exception("coin.amount is None")
         }
 
-        if (coin.status != CoinStatus.CONFIRMED) {
-            throw Exception("Coin status must be CONFIRMED to withdraw it. The current status is ${coin.status}")
+        if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+            throw Exception("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}");
         }
 
         val signedTx = Transaction.create(

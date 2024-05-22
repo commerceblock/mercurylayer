@@ -887,6 +887,13 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): Byte
 
+    fun uniffi_mercurylib_fn_func_latest_backup_tx_pays_to_user_pubkey(
+        `backupTxs`: RustBuffer.ByValue,
+        `coin`: RustBuffer.ByValue,
+        `network`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_new_backup_transaction(
         `encodedUnsignedTx`: RustBuffer.ByValue,
         `signatureHex`: RustBuffer.ByValue,
@@ -1182,6 +1189,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_is_enclave_pubkey_part_of_coin(): Short
 
+    fun uniffi_mercurylib_checksum_func_latest_backup_tx_pays_to_user_pubkey(): Short
+
     fun uniffi_mercurylib_checksum_func_new_backup_transaction(): Short
 
     fun uniffi_mercurylib_checksum_func_sign_message(): Short
@@ -1274,6 +1283,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_is_enclave_pubkey_part_of_coin() != 37041.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_latest_backup_tx_pays_to_user_pubkey() != 19689.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_new_backup_transaction() != 56642.toShort()) {
@@ -4388,6 +4400,24 @@ fun `isEnclavePubkeyPartOfCoin`(
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_is_enclave_pubkey_part_of_coin(
                 FfiConverterTypeCoin.lower(`coin`),
                 FfiConverterString.lower(`enclavePubkey`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `latestBackupTxPaysToUserPubkey`(
+    `backupTxs`: List<BackupTx>,
+    `coin`: Coin,
+    `network`: kotlin.String,
+): BackupTx {
+    return FfiConverterTypeBackupTx.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_latest_backup_tx_pays_to_user_pubkey(
+                FfiConverterSequenceTypeBackupTx.lower(`backupTxs`),
+                FfiConverterTypeCoin.lower(`coin`),
+                FfiConverterString.lower(`network`),
                 _status,
             )
         },

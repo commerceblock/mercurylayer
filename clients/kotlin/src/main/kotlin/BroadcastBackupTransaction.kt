@@ -35,11 +35,7 @@ class BroadcastBackupTransaction: CliktCommand(help = "Broadcast a backup transa
 
         val backupTxs = appContext.sqliteManager.getBackupTxs(statechainId)
 
-        val backupTx = if (backupTxs.isEmpty()) null else backupTxs.maxByOrNull { it.txN }
-
-        if (backupTx == null) {
-            throw Exception("There is no backup transaction for the statechain id $statechainId")
-        }
+        // val backupTx = if (backupTxs.isEmpty()) null else backupTxs.maxByOrNull { it.txN }
 
         val coinsWithStatechainId = wallet.coins.filter { it.statechainId == statechainId }
 
@@ -49,8 +45,17 @@ class BroadcastBackupTransaction: CliktCommand(help = "Broadcast a backup transa
 
         val coin = coinsWithStatechainId.sortedBy { it.locktime }.first()
 
-        if (coin.status != CoinStatus.CONFIRMED) {
-            throw Exception("Coin status must be CONFIRMED to broadcast the backup transaction. The current status is ${coin.status}")
+        if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+            throw Exception("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}");
+        }
+
+        var backupTx: BackupTx?  = null
+
+        try {
+            backupTx = latestBackupTxPaysToUserPubkey(backupTxs, coin, wallet.network)
+        } catch (e: Exception) {
+            println("Error: ${e.message}")
+            return
         }
 
         var feeRateSatsPerByte = feeRate
