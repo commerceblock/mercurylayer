@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 
 use crate::server_config::ServerConfig;
@@ -15,7 +17,8 @@ impl StateChainEntity {
         
         let pool = 
             PgPoolOptions::new()
-            // .max_connections(5)
+            .max_connections(10)
+            .acquire_timeout(Duration::from_secs(30))  // Increase the timeout duration
             .connect(&config.connection_string)
             .await
             .unwrap();
