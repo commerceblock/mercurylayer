@@ -7,6 +7,42 @@ use bitcoin::{Transaction, Address, TxOut, Txid, OutPoint, TxIn, ScriptBuf, Witn
 use secp256k1_zkp::{Secp256k1, SecretKey, PublicKey, XOnlyPublicKey};
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn latest_backup_tx_pays_to_user_pubkey(backup_txs: &Vec<BackupTx>, coin: &Coin, network: &str) -> Result<BackupTx, MercuryError> {
+
+    let network = get_network(network)?;
+
+    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
+
+    let backup_tx = backup_txs.iter()
+        .filter_map(|bkp_tx| {
+            let tx_bytes = hex::decode(&bkp_tx.tx).ok()?;
+            let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes).ok()?;
+            
+            if tx.output.len() != 1 {
+                return None;
+            }
+
+            let output: &TxOut = tx.output.get(0)?;
+            if backup_address.script_pubkey() == output.script_pubkey {
+                Some(bkp_tx)
+            } else {
+                None
+            }
+        })
+        .max_by_key(|bkp_tx| bkp_tx.tx_n);
+
+    match backup_tx {
+        Some(tx) => {
+            return Ok(tx.clone());
+        },
+        None => {
+            return Err(MercuryError::NoBackupTransactionFound);
+        }
+    }
+}
+
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats_per_byte: u64, network: &str) -> Result<String, MercuryError> {
 
     let network = get_network(network)?;

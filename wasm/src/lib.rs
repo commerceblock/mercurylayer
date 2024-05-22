@@ -440,6 +440,21 @@ pub fn isEnclavePubkeyPartOfCoin(coin: JsValue, enclave_pubkey: String) -> bool 
 }
 
 #[wasm_bindgen]
+pub fn latestBackuptxPaysToUserpubkey(backup_transactions: JsValue, coin: JsValue, network: String) -> JsValue {
+
+    let backup_transactions: Vec<BackupTx> = serde_wasm_bindgen::from_value(backup_transactions).unwrap();
+    let coin: Coin = serde_wasm_bindgen::from_value(coin).unwrap();
+
+    let backup_transaction = mercurylib::wallet::cpfp_tx::latest_backup_tx_pays_to_user_pubkey(&backup_transactions, &coin, &network);
+
+    if backup_transaction.is_err() {
+        return JsValue::NULL;
+    } else {
+        serde_wasm_bindgen::to_value(&backup_transaction.unwrap()).unwrap()
+    }
+}
+
+#[wasm_bindgen]
 pub fn getMockWallet() -> JsValue {
     let tokens = vec![
         Token {

@@ -75,8 +75,6 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
         blinding_factor: coin.blinding_factor
     };
 
-    coin.locktime = mercury_wasm.getBlockheight(backup_tx);
-
     backupTxs.push(backup_tx);
 
     const input_txid = coin.utxo_txid;

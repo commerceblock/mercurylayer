@@ -15,14 +15,6 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
     
-    let backup_tx = backup_txs.iter().max_by_key(|tx| tx.tx_n);
-
-    if backup_tx.is_none() {
-        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
-    }
-
-    let backup_tx = backup_tx.unwrap();
-
     // If the user sends to himself, he will have two coins with same statechain_id
     // In this case, we need to find the one with the lowest locktime
     let coin = wallet.coins
@@ -36,9 +28,11 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let coin = coin.unwrap();
 
-    if coin.status != CoinStatus::CONFIRMED {
-        return Err(anyhow::anyhow!("Coin status must be CONFIRMED to broadcast the backup transaction. The current status is {}", coin.status));
+    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", coin.status));
     }
+
+    let backup_tx = cpfp_tx::latest_backup_tx_pays_to_user_pubkey(&backup_txs, &coin,  &wallet.network)?;
 
     let fee_rate = match fee_rate {
         Some(fee_rate) => fee_rate,

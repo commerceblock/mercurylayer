@@ -794,6 +794,19 @@ module.exports.isEnclavePubkeyPartOfCoin = function(coin, enclave_pubkey) {
 };
 
 /**
+* @param {any} backup_transactions
+* @param {any} coin
+* @param {string} network
+* @returns {any}
+*/
+module.exports.latestBackuptxPaysToUserpubkey = function(backup_transactions, coin, network) {
+    const ptr0 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.latestBackuptxPaysToUserpubkey(addHeapObject(backup_transactions), addHeapObject(coin), ptr0, len0);
+    return takeObject(ret);
+};
+
+/**
 * @returns {any}
 */
 module.exports.getMockWallet = function() {

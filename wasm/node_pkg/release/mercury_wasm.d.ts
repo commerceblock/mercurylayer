@@ -251,6 +251,13 @@ export function signMessage(statechain_id: string, coin: any): string;
 */
 export function isEnclavePubkeyPartOfCoin(coin: any, enclave_pubkey: string): boolean;
 /**
+* @param {any} backup_transactions
+* @param {any} coin
+* @param {string} network
+* @returns {any}
+*/
+export function latestBackuptxPaysToUserpubkey(backup_transactions: any, coin: any, network: string): any;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;

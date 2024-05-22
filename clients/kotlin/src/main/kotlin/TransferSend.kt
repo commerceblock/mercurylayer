@@ -144,8 +144,6 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
             blindingFactor = coin.blindingFactor ?: throw Exception("blindingFactor is null")
         )
 
-        coin.locktime = getBlockheight(backupTx);
-
         backupTxs = backupTxs.plus(backupTx)
 
         val inputTxid = coin.utxoTxid!!

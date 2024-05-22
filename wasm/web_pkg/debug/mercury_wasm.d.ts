@@ -251,6 +251,13 @@ export function signMessage(statechain_id: string, coin: any): string;
 */
 export function isEnclavePubkeyPartOfCoin(coin: any, enclave_pubkey: string): boolean;
 /**
+* @param {any} backup_transactions
+* @param {any} coin
+* @param {string} network
+* @returns {any}
+*/
+export function latestBackuptxPaysToUserpubkey(backup_transactions: any, coin: any, network: string): any;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;
@@ -297,6 +304,7 @@ export interface InitOutput {
   readonly validateAddress: (a: number, b: number, c: number, d: number) => number;
   readonly signMessage: (a: number, b: number, c: number, d: number) => void;
   readonly isEnclavePubkeyPartOfCoin: (a: number, b: number, c: number) => number;
+  readonly latestBackuptxPaysToUserpubkey: (a: number, b: number, c: number, d: number) => number;
   readonly getMockWallet: () => number;
   readonly rustsecp256k1zkp_v0_8_1_default_illegal_callback_fn: (a: number, b: number) => void;
   readonly rustsecp256k1zkp_v0_8_1_default_error_callback_fn: (a: number, b: number) => void;

@@ -37,7 +37,7 @@ pub async fn execute(
     let coin = wallet.coins
         .iter_mut()
         .filter(|tx| tx.statechain_id == Some(statechain_id.to_string())) // Filter coins with the specified statechain_id
-        .min_by_key(|tx| tx.locktime); // Find the one with the lowest locktime
+        .min_by_key(|tx| tx.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
 
     if coin.is_none() {
         return Err(anyhow!("No coins associated with this statechain ID were found"));
@@ -83,8 +83,6 @@ pub async fn execute(
         server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
-
-    coin.locktime = Some(get_blockheight(&backup_tx)?);
 
     backup_transactions.push(backup_tx);
 

@@ -36,8 +36,8 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
-    if (coin.status != CoinStatus.CONFIRMED) {
-        throw new Error(`Coin status must be CONFIRMED to withdraw it. The current status is ${coin.status}`);
+    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
     }
 
     const isWithdrawal = true;

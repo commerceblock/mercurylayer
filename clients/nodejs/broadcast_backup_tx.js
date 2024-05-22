@@ -18,17 +18,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
         feeRate = parseInt(feeRate, 10);
     }
 
-    // console.log("feeRate: ", feeRate);
-
     let backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
-    
-    const backupTx = backupTxs.length === 0 ? null : backupTxs.reduce((prev, current) => (prev.tx_n > current.tx_n) ? prev : current);
-
-    if (!backupTx) {
-        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
-    }
-
-    // console.log("backupTx", backupTx);
 
     let coinsWithStatechainId = wallet.coins.filter(c => {
         return c.statechain_id === statechainId
@@ -43,8 +33,14 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     // Sort the coins by locktime in ascending order and pick the first one
     let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
 
-    if (coin.status != CoinStatus.CONFIRMED) {
-        throw new Error(`Coin status must be CONFIRMED to broadcast the backup transaction. The current status is ${coin.status}`);
+    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
+    }
+
+    const backupTx = mercury_wasm.latestBackuptxPaysToUserpubkey(backupTxs, coin, wallet.network);
+
+    if (!backupTx) {
+        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
     }
 
     const CpfpTx = mercury_wasm.createCpfpTx(backupTx, coin, toAddress, feeRate, wallet.network);
