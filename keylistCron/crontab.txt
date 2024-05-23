@@ -1,1 +1,0 @@
-0 0 * * * /app/send_commitment.sh
