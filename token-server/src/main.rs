@@ -44,7 +44,6 @@ async fn main() {
         .manage(token_server)
         .attach(Cors)
         // .attach(MercuryPgDatabase::fairing())
-        .configure(rocket::Config::figment().merge(("port", 8001)))
         .launch()
         .await;
 }
