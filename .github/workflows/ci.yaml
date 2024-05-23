@@ -25,7 +25,7 @@ jobs:
           name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v3
         -
-          name: Build and push
+          name: Build and push for mercury-server
           uses: docker/build-push-action@v5
           with:
             context: .
@@ -33,7 +33,7 @@ jobs:
             push: true
             tags: commerceblockx/mercury-server:latest
         -
-          name: Build and push
+          name: Build and push for token-server
           uses: docker/build-push-action@v5
           with:
             context: .
@@ -41,10 +41,18 @@ jobs:
             push: true
             tags: commerceblockx/token-server:latest
         -
-          name: Build and push
+          name: Build and pushh for mercury-explorer
           uses: docker/build-push-action@v5
           with:
             context: .
             file: ./explorer/Dockerfile
             push: true
             tags: commerceblockx/mercury-explorer:latest
+        -
+          name: Build and push for keylist-cronjob
+          uses: docker/build-push-action@v5
+          with:
+            context: .
+            file: ./keylistCron/Dockerfile
+            push: true
+            tags: commerceblockx/keylist-cronjob:latest
