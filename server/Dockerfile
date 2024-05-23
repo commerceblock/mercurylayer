@@ -30,4 +30,4 @@ WORKDIR /mercurylayer/server
 RUN CARGO_TARGET_DIR=target  cargo build --release
 
 # # Command to run the server by default when the container starts
-CMD ["/mercurylayer/server/target/release/mercury-server"]
+CMD ["cargo", "run", "--bin", "token-server"]
