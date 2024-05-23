@@ -24,6 +24,10 @@ jobs:
         -
           name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v3
+        - 
+          name: Get last commit hash
+          id: get_commit_hash
+          run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         -
           name: Build and push for mercury-server
           uses: docker/build-push-action@v5
@@ -31,7 +35,7 @@ jobs:
             context: .
             file: ./server/Dockerfile
             push: true
-            tags: commerceblockx/mercury-server:latest
+            tags: commerceblockx/mercury-server:${{ env.COMMIT_HASH }}
         -
           name: Build and push for token-server
           uses: docker/build-push-action@v5
@@ -39,15 +43,15 @@ jobs:
             context: .
             file: ./token-server/Dockerfile
             push: true
-            tags: commerceblockx/token-server:latest
+            tags: commerceblockx/token-server:${{ env.COMMIT_HASH }}
         -
-          name: Build and pushh for mercury-explorer
+          name: Build and push for mercury-explorer
           uses: docker/build-push-action@v5
           with:
             context: .
             file: ./explorer/Dockerfile
             push: true
-            tags: commerceblockx/mercury-explorer:latest
+            tags: commerceblockx/mercury-explorer:${{ env.COMMIT_HASH }}
         -
           name: Build and push for keylist-cronjob
           uses: docker/build-push-action@v5
@@ -55,4 +59,4 @@ jobs:
             context: .
             file: ./keylistCron/Dockerfile
             push: true
-            tags: commerceblockx/keylist-cronjob:latest
+            tags: commerceblockx/keylist-cronjob:${{ env.COMMIT_HASH }}
