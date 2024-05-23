@@ -9,6 +9,6 @@ WORKDIR /app
 COPY . .
 
 RUN cargo build --release
-
+EXPOSE 8001
 # Run the application
-CMD ["cargo", "run"]
+CMD ["cargo", "run", "--bin", "token-server"]
