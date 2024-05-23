@@ -1,5 +1,6 @@
 use config::Config;
 use serde::{Serialize, Deserialize};
+use std::env;
 
 /// Config struct storing all StataChain Entity config
 #[derive(Debug, Serialize, Deserialize)]
