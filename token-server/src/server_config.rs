@@ -22,13 +22,18 @@ impl ServerConfig {
             .add_source(config::File::with_name("Settings"))
             .build()
             .unwrap();
+        
+        // Function to fetch a setting from the environment or fallback to the config file
+        let get_env_or_config = |key: &str, env_var: &str| -> String {
+            env::var(env_var).unwrap_or_else(|_| settings.get_string(key).unwrap())
+        };
 
         ServerConfig {
-            processor_url: settings.get_string("processor_url").unwrap(),
-            api_key: settings.get_string("api_key").unwrap(),
-            fee: settings.get_string("fee").unwrap(),
-            delay: settings.get_int("delay").unwrap() as u64,
-            connection_string: settings.get_string("connection_string").unwrap(),
+            processor_url: get_env_or_config("processor_url", "PROCESSOR_URL"),
+            api_key: get_env_or_config("api_key", "API_KEY"),
+            fee: get_env_or_config("fee", "FEE"),
+            delay: get_env_or_config("delay", "DELAY").parse::<u64>().unwrap(),
+            connection_string: get_env_or_config("connection_string", "CONNECTION_STRING"),
         }
     }
 }
