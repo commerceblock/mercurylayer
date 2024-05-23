@@ -830,6 +830,18 @@ export function latestBackuptxPaysToUserpubkey(backup_transactions, coin, networ
 }
 
 /**
+* @param {any} walletJson
+* @param {string} authPubkey
+* @returns {any}
+*/
+export function duplicateCoinToInitializedState(walletJson, authPubkey) {
+    const ptr0 = passStringToWasm0(authPubkey, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.duplicateCoinToInitializedState(addHeapObject(walletJson), ptr0, len0);
+    return takeObject(ret);
+}
+
+/**
 * @returns {any}
 */
 export function getMockWallet() {

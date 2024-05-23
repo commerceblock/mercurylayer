@@ -1,7 +1,7 @@
 CREATE TABLE public.statechain_data (
 	id serial4 NOT NULL,
 	token_id varchar NULL UNIQUE,
-    auth_xonly_public_key bytea NULL UNIQUE,
+    auth_xonly_public_key bytea NULL,
 	server_public_key bytea NULL UNIQUE,
     statechain_id varchar NULL UNIQUE,
 	CONSTRAINT statechain_data_pkey PRIMARY KEY (id),

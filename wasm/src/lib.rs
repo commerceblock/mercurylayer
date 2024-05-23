@@ -130,7 +130,7 @@ pub fn fromMnemonic(name: String, mnemonic: String) -> JsValue {
         tutorials: false
     };
 
-    let mut wallet = Wallet {
+    let wallet = Wallet {
         name,
         mnemonic,
         version: String::from("0.1.0"),
@@ -451,6 +451,18 @@ pub fn latestBackuptxPaysToUserpubkey(backup_transactions: JsValue, coin: JsValu
         return JsValue::NULL;
     } else {
         serde_wasm_bindgen::to_value(&backup_transaction.unwrap()).unwrap()
+    }
+}
+
+#[wasm_bindgen]
+pub fn duplicateCoinToInitializedState(walletJson: JsValue, authPubkey: String) -> JsValue {
+    let wallet: Wallet = serde_wasm_bindgen::from_value(walletJson).unwrap();
+    let new_coin = mercurylib::transfer::receiver::duplicate_coin_to_initialized_state(&wallet, &authPubkey);
+    
+    if new_coin.is_err() {
+        return JsValue::NULL;
+    } else {
+        serde_wasm_bindgen::to_value(&new_coin.unwrap()).unwrap()
     }
 }
 

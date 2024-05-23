@@ -833,6 +833,18 @@ module.exports.latestBackuptxPaysToUserpubkey = function(backup_transactions, co
 };
 
 /**
+* @param {any} walletJson
+* @param {string} authPubkey
+* @returns {any}
+*/
+module.exports.duplicateCoinToInitializedState = function(walletJson, authPubkey) {
+    const ptr0 = passStringToWasm0(authPubkey, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.duplicateCoinToInitializedState(addHeapObject(walletJson), ptr0, len0);
+    return takeObject(ret);
+};
+
+/**
 * @returns {any}
 */
 module.exports.getMockWallet = function() {

@@ -44,7 +44,7 @@ const getNetwork = (wallet_network) => {
             return bitcoinjs_lib.networks.testnet;
         case "regtest":
             return bitcoinjs_lib.networks.regtest;
-        case "mainnet":
+        case "bitcoin":
             return bitcoinjs_lib.networks.bitcoin;
         default:
             throw new Error("Unknown network");

@@ -258,6 +258,12 @@ export function isEnclavePubkeyPartOfCoin(coin: any, enclave_pubkey: string): bo
 */
 export function latestBackuptxPaysToUserpubkey(backup_transactions: any, coin: any, network: string): any;
 /**
+* @param {any} walletJson
+* @param {string} authPubkey
+* @returns {any}
+*/
+export function duplicateCoinToInitializedState(walletJson: any, authPubkey: string): any;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;

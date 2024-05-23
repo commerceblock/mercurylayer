@@ -138,141 +138,130 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
     private suspend fun processEncryptedMessage(
         coin: Coin,
-        encMessages: List<String>,
+        encMessage: String,
+        network: String,
         serverInfo: InfoConfig,
-        wallet: Wallet) : List<String>
+        activities: MutableList<Activity>) : String
     {
-        val statechainIdsAdded = mutableListOf<String>()
 
         val clientAuthKey = coin.authPrivkey
         val newUserPubkey = coin.userPubkey
 
-        encMessages.forEach { encMessage ->
 
-            val transferMsg = fiiDecryptTransferMsg(encMessage, clientAuthKey)
-            val tx0Outpoint = getTx0Outpoint(transferMsg.backupTransactions)
-            val tx0Hex = getTx0(tx0Outpoint.txid)
+        val transferMsg = fiiDecryptTransferMsg(encMessage, clientAuthKey)
+        val tx0Outpoint = getTx0Outpoint(transferMsg.backupTransactions)
+        val tx0Hex = getTx0(tx0Outpoint.txid)
 
-            val isTransferSignatureValid = ffiVerifyTransferSignature(newUserPubkey, tx0Outpoint, transferMsg)
+        val isTransferSignatureValid = ffiVerifyTransferSignature(newUserPubkey, tx0Outpoint, transferMsg)
 
-            if (!isTransferSignatureValid) {
-                println("Invalid transfer signature")
-                return@forEach
+        if (!isTransferSignatureValid) {
+            throw Exception("Invalid transfer signature")
+        }
+
+        val statechainInfo = getStatechainInfo(appContext.clientConfig, transferMsg.statechainId)
+
+        if (statechainInfo == null) {
+            throw Exception("Statechain info not found")
+        }
+
+        val isTx0OutputPubkeyValid = fiiValidateTx0OutputPubkey(statechainInfo.enclavePublicKey, transferMsg, tx0Outpoint, tx0Hex, network)
+
+        if (!isTx0OutputPubkeyValid) {
+            throw Exception("Invalid tx0 output pubkey")
+        }
+
+        val latestBackupTxPaysToUserPubkey = fiiVerifyLatestBackupTxPaysToUserPubkey(transferMsg, newUserPubkey, network)
+
+        if (!latestBackupTxPaysToUserPubkey) {
+            throw Exception("Latest Backup Tx does not pay to the expected public key")
+        }
+
+        if (statechainInfo.numSigs.toInt() != transferMsg.backupTransactions.size) {
+            throw Exception("num_sigs is not correct")
+        }
+
+        val isTx0OutputUnspent = verifyTx0OutputIsUnspentAndConfirmed(coin, tx0Outpoint, tx0Hex, network);
+        if (!isTx0OutputUnspent.first) {
+            throw Exception("tx0 output is spent or not confirmed")
+        }
+
+        val currentFeeRateSatsPerByte = serverInfo.feeRateSatsPerByte.toUInt()
+
+        val feeRateTolerance = appContext.clientConfig.feeRateTolerance.toUInt()
+
+        var previousLockTime: UInt? = null
+
+        var sigSchemeValidation = true
+
+        for ((index, backupTx) in transferMsg.backupTransactions.withIndex()) {
+
+            try {
+                verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte)
+
+                val currentStatechainInfo = statechainInfo.statechainInfo[index]
+
+                verifyBlindedMusigScheme(
+                    backupTx, tx0Hex, currentStatechainInfo
+                )
+            }
+            catch (e: MercuryException) {
+                println("Invalid signature, ${e.toString()}")
+                sigSchemeValidation = false
+                break
             }
 
-            val statechainInfo = getStatechainInfo(appContext.clientConfig, transferMsg.statechainId)
-
-            if (statechainInfo == null) {
-                println("Statechain info not found")
-                return@forEach
-            }
-
-            val isTx0OutputPubkeyValid = fiiValidateTx0OutputPubkey(statechainInfo.enclavePublicKey, transferMsg, tx0Outpoint, tx0Hex, wallet.network)
-
-            if (!isTx0OutputPubkeyValid) {
-                println("Invalid tx0 output pubkey")
-                return@forEach
-            }
-
-            val latestBackupTxPaysToUserPubkey = fiiVerifyLatestBackupTxPaysToUserPubkey(transferMsg, newUserPubkey, wallet.network)
-
-            if (!latestBackupTxPaysToUserPubkey) {
-                println("Latest Backup Tx does not pay to the expected public key")
-                return@forEach
-            }
-
-            if (statechainInfo.numSigs.toInt() != transferMsg.backupTransactions.size) {
-                println("num_sigs is not correct")
-                return@forEach
-            }
-
-            val isTx0OutputUnspent = verifyTx0OutputIsUnspentAndConfirmed(coin, tx0Outpoint, tx0Hex, wallet.network);
-            if (!isTx0OutputUnspent.first) {
-                println("tx0 output is spent or not confirmed")
-                return@forEach
-            }
-
-            val currentFeeRateSatsPerByte = serverInfo.feeRateSatsPerByte.toUInt()
-
-            val feeRateTolerance = appContext.clientConfig.feeRateTolerance.toUInt()
-
-            var previousLockTime: UInt? = null
-
-            var sigSchemeValidation = true
-
-            for ((index, backupTx) in transferMsg.backupTransactions.withIndex()) {
-
-                try {
-                    verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte)
-
-                    val currentStatechainInfo = statechainInfo.statechainInfo[index]
-
-                    verifyBlindedMusigScheme(
-                        backupTx, tx0Hex, currentStatechainInfo
-                    )
-                }
-                catch (e: MercuryException) {
-                    println("Invalid signature, ${e.toString()}")
+            if (previousLockTime != null) {
+                val currentLockTime = getBlockheight(backupTx)
+                if (previousLockTime - currentLockTime != serverInfo.interval) {
+                    println("Interval is not correct")
                     sigSchemeValidation = false
                     break
                 }
-
-                if (previousLockTime != null) {
-                    val currentLockTime = getBlockheight(backupTx)
-                    if (previousLockTime - currentLockTime != serverInfo.interval) {
-                        println("Interval is not correct")
-                        sigSchemeValidation = false
-                        break
-                    }
-                }
-
-                previousLockTime = getBlockheight(backupTx)
             }
 
-            if (!sigSchemeValidation) {
-                println("Signature scheme validation failed")
-                return@forEach
-            }
-
-            val transferReceiverRequestPayload = fiiCreateTransferReceiverRequestPayload(statechainInfo, transferMsg, coin)
-
-            val signedStatechainIdForUnlock = signMessage(transferMsg.statechainId, coin)
-
-            unlockStatecoin(transferMsg.statechainId, signedStatechainIdForUnlock, coin.authPubkey)
-
-            var serverPublicKeyHex = ""
-
-            try {
-                serverPublicKeyHex = sendTransferReceiverRequestPayload(transferReceiverRequestPayload)
-            } catch (e: Exception) {
-                println("Error: ${e.message}");
-                return@forEach
-            }
-
-            val newKeyInfo = getNewKeyInfo(serverPublicKeyHex, coin, transferMsg.statechainId, tx0Outpoint, tx0Hex, wallet.network)
-
-            coin.serverPubkey = serverPublicKeyHex
-            coin.aggregatedPubkey = newKeyInfo.aggregatePubkey
-            coin.aggregatedAddress = newKeyInfo.aggregateAddress
-            coin.statechainId = transferMsg.statechainId
-            coin.signedStatechainId = newKeyInfo.signedStatechainId
-            coin.amount = newKeyInfo.amount
-            coin.utxoTxid = tx0Outpoint.txid
-            coin.utxoVout = tx0Outpoint.vout
-            coin.locktime = previousLockTime
-            coin.status = isTx0OutputUnspent.second
-
-            val utxo = "${tx0Outpoint.txid}:${tx0Outpoint.vout}"
-
-            val activity = createActivity(utxo, newKeyInfo.amount, "Receive")
-            wallet.activities = wallet.activities.plus(activity)
-
-            appContext.sqliteManager.insertOrUpdateBackupTxs(transferMsg.statechainId, transferMsg.backupTransactions)
-
-            statechainIdsAdded.add(transferMsg.statechainId)
+            previousLockTime = getBlockheight(backupTx)
         }
 
-        return statechainIdsAdded
+        if (!sigSchemeValidation) {
+            throw Exception("Signature scheme validation failed")
+        }
+
+        val transferReceiverRequestPayload = fiiCreateTransferReceiverRequestPayload(statechainInfo, transferMsg, coin)
+
+        val signedStatechainIdForUnlock = signMessage(transferMsg.statechainId, coin)
+
+        unlockStatecoin(transferMsg.statechainId, signedStatechainIdForUnlock, coin.authPubkey)
+
+        var serverPublicKeyHex = ""
+
+        try {
+            serverPublicKeyHex = sendTransferReceiverRequestPayload(transferReceiverRequestPayload)
+        } catch (e: Exception) {
+            throw Exception("Error: ${e.message}")
+        }
+
+        val newKeyInfo = getNewKeyInfo(serverPublicKeyHex, coin, transferMsg.statechainId, tx0Outpoint, tx0Hex, network)
+
+        coin.serverPubkey = serverPublicKeyHex
+        coin.aggregatedPubkey = newKeyInfo.aggregatePubkey
+        coin.aggregatedAddress = newKeyInfo.aggregateAddress
+        coin.statechainId = transferMsg.statechainId
+        coin.signedStatechainId = newKeyInfo.signedStatechainId
+        coin.amount = newKeyInfo.amount
+        coin.utxoTxid = tx0Outpoint.txid
+        coin.utxoVout = tx0Outpoint.vout
+        coin.locktime = previousLockTime
+        coin.status = isTx0OutputUnspent.second
+
+        val utxo = "${tx0Outpoint.txid}:${tx0Outpoint.vout}"
+
+        val activity = createActivity(utxo, newKeyInfo.amount, "Receive")
+        activities.add(activity)
+
+        appContext.sqliteManager.insertOrUpdateBackupTxs(transferMsg.statechainId, transferMsg.backupTransactions)
+
+
+        return transferMsg.statechainId
     }
 
     private suspend fun getMsgAddr(authPubkey: String) : List<String> {
@@ -297,9 +286,77 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
         CoinUpdate.execute(wallet, appContext)
 
-        val receivedStatechainIds = mutableListOf<String>()
+
 
         val infoConfig = getInfoConfig(appContext.clientConfig)
+
+        val uniqueAuthPubkeys = mutableSetOf<String>()
+
+        wallet.coins.forEach { coin ->
+            uniqueAuthPubkeys.add(coin.authPubkey)
+        }
+
+        val encMsgsPerAuthPubkey = mutableMapOf<String, List<String>>()
+
+        for (authPubkey in uniqueAuthPubkeys) {
+            try {
+                val encMessages = getMsgAddr(authPubkey)
+                if (encMessages.isEmpty()) {
+                    println("No messages")
+                    continue
+                }
+
+                encMsgsPerAuthPubkey[authPubkey] = encMessages
+            } catch (err: Exception) {
+                err.printStackTrace()
+            }
+        }
+
+        val receivedStatechainIds = mutableListOf<String>()
+
+        val tempCoins = wallet.coins.toMutableList()
+        val tempActivities = wallet.activities.toMutableList()
+
+        for ((authPubkey, encMessages) in encMsgsPerAuthPubkey) {
+            for (encMessage in encMessages) {
+                val coin = tempCoins.find { it.authPubkey == authPubkey && it.status == CoinStatus.INITIALISED }
+
+                if (coin != null) {
+                    try {
+                        val statechainIdAdded = processEncryptedMessage(coin, encMessage, wallet.network, infoConfig, tempActivities)
+                        if (statechainIdAdded != null) {
+                            receivedStatechainIds.add(statechainIdAdded)
+                        }
+                    } catch (error: Exception) {
+                        println("Error: ${error.message}")
+                        continue
+                    }
+                } else {
+                    try {
+                        val newCoin = duplicateCoinToInitializedState(wallet, authPubkey)
+                        if (newCoin != null) {
+                            val statechainIdAdded = processEncryptedMessage(newCoin, encMessage, wallet.network, infoConfig, tempActivities)
+                            if (statechainIdAdded != null) {
+                                tempCoins.add(newCoin)
+                                receivedStatechainIds.add(statechainIdAdded)
+                            }
+                        }
+                    } catch (error: Exception) {
+                        println("Error: ${error.message}")
+                        continue
+                    }
+                }
+            }
+        }
+
+        wallet.coins = tempCoins
+        wallet.activities = tempActivities
+
+
+
+
+
+        /*
 
         wallet.coins.forEach { coin ->
             if (coin.status != CoinStatus.INITIALISED) {
@@ -322,6 +379,9 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
             val statechainIdsAdded = processEncryptedMessage(coin, encMessages, infoConfig, wallet)
             receivedStatechainIds.addAll(statechainIdsAdded)
         }
+
+
+         */
 
         appContext.sqliteManager.updateWallet(wallet)
 

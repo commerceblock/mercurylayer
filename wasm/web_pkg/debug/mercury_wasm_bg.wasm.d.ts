@@ -40,6 +40,7 @@ export function validateAddress(a: number, b: number, c: number, d: number): num
 export function signMessage(a: number, b: number, c: number, d: number): void;
 export function isEnclavePubkeyPartOfCoin(a: number, b: number, c: number): number;
 export function latestBackuptxPaysToUserpubkey(a: number, b: number, c: number, d: number): number;
+export function duplicateCoinToInitializedState(a: number, b: number, c: number): number;
 export function getMockWallet(): number;
 export function rustsecp256k1zkp_v0_8_1_default_illegal_callback_fn(a: number, b: number): void;
 export function rustsecp256k1zkp_v0_8_1_default_error_callback_fn(a: number, b: number): void;
