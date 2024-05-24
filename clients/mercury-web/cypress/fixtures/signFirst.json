@@ -1,0 +1,6 @@
+{
+  "statechain_id": "string",
+  "r2_commitment": "string",
+  "blind_commitment": "string",
+  "signed_statechain_id": "string"
+}
