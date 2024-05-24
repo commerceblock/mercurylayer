@@ -17,6 +17,7 @@ COPY ./Cargo.lock ./Cargo.lock
 # Copy the server source code
 COPY ./server ./server
 COPY ./lib ./lib
+COPY ./Rocket.toml ./Rocket.toml
 
 # Make sure to copy Cargo.lock
 COPY ./server/Cargo.lock ./server/Cargo.lock
@@ -30,4 +31,4 @@ WORKDIR /mercurylayer/server
 RUN CARGO_TARGET_DIR=target  cargo build --release
 
 # # Command to run the server by default when the container starts
-CMD ["/mercurylayer/server/target/release/mercury-server"]
+CMD ["cargo", "run", "--bin", "mercury-server"]
