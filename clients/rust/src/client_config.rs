@@ -66,7 +66,7 @@ impl ClientConfig {
             "signet" => Network::Signet,
             "testnet" => Network::Testnet,
             "regtest" => Network::Regtest,
-            "mainnet" => Network::Bitcoin,
+            "bitcoin" => Network::Bitcoin,
             _ => panic!("Invalid network name"),
         };
 

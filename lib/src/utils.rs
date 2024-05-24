@@ -39,7 +39,7 @@ pub fn get_network(network: &str) -> Result<bitcoin::Network, MercuryError> {
         "signet" => Ok(bitcoin::Network::Signet),
         "testnet" => Ok(bitcoin::Network::Testnet),
         "regtest" => Ok(bitcoin::Network::Regtest),
-        "mainnet" => Ok(bitcoin::Network::Bitcoin),
+        "bitcoin" => Ok(bitcoin::Network::Bitcoin),
         _ => Err(MercuryError::NetworkConversionError)
     }
 }
