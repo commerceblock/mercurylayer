@@ -9,6 +9,8 @@ pub struct ServerConfig {
     pub processor_url: String,
     /// Payment processor API key
     pub api_key: String,
+    /// Token fee unit
+    pub unit: String,
     /// Token fee value (satoshis)
     pub fee: String,
     /// Invoice delay (seconds)
@@ -22,6 +24,7 @@ impl Default for ServerConfig {
         ServerConfig {
             processor_url: String::from("http://0.0.0.0:18080"),
             api_key: String::from("aaaaa"),
+            unit: String::from("BTC"),
             fee: String::from("10000"),
             delay: 3600,
             connection_string: String::from("postgresql://postgres:postgres@localhost/mercury"),
@@ -34,6 +37,7 @@ impl From<ConfigRs> for ServerConfig {
         ServerConfig {
             processor_url: config.get::<String>("processor_url").unwrap_or_else(|_| String::new()),
             api_key: config.get::<String>("api_key").unwrap_or_else(|_| String::new()),
+            unit: config.get::<String>("unit").unwrap_or_else(|_| String::new()),
             fee: config.get::<String>("fee").unwrap_or_else(|_| String::new()),
             delay: config.get::<u64>("delay").unwrap_or(0),
             connection_string: config.get::<String>("connection_string").unwrap_or_else(|_| String::new()),
@@ -65,6 +69,7 @@ impl ServerConfig {
         ServerConfig {
             processor_url: get_env_or_config("processor_url", "PROCESSOR_URL"),
             api_key: get_env_or_config("api_key", "API_KEY"),
+            api_key: get_env_or_config("unit", "UNIT"),
             fee: get_env_or_config("fee", "FEE"),
             delay: get_env_or_config("delay", "DELAY").parse::<u64>().unwrap(),
             connection_string: get_env_or_config("connection_string", "CONNECTION_STRING"),
