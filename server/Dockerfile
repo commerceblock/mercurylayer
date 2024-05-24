@@ -17,6 +17,7 @@ COPY ./Cargo.lock ./Cargo.lock
 # Copy the server source code
 COPY ./server ./server
 COPY ./lib ./lib
+COPY ./Rocket.toml ./Rocket.toml
 
 # Make sure to copy Cargo.lock
 COPY ./server/Cargo.lock ./server/Cargo.lock
