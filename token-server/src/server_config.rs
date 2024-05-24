@@ -1,4 +1,4 @@
-use config::Config;
+use config::{Config as ConfigRs, Environment, File};
 use serde::{Serialize, Deserialize};
 use std::env;
 
@@ -17,10 +17,43 @@ pub struct ServerConfig {
     pub connection_string: String,
 }
 
+impl Default for ServerConfig {
+    fn default() -> ServerConfig {
+        ServerConfig {
+            processor_url: String::from("http://0.0.0.0:18080"),
+            api_key: String::from("aaaaa"),
+            fee: String::from("10000"),
+            delay: 3600,
+            connection_string: String::from("postgresql://postgres:postgres@localhost/mercury"),
+        }
+    }
+}
+
+impl From<ConfigRs> for ServerConfig {
+    fn from(config: ConfigRs) -> Self {
+        ServerConfig {
+            processor_url: config.get::<String>("processor_url").unwrap_or_else(|_| String::new()),
+            api_key: config.get::<String>("api_key").unwrap_or_else(|_| String::new()),
+            fee: config.get::<String>("fee").unwrap_or_else(|_| String::new()),
+            delay: config.get::<u64>("delay").unwrap_or(0),
+            connection_string: config.get::<String>("connection_string").unwrap_or_else(|_| String::new()),
+        }
+    }
+}
+
 impl ServerConfig {
     pub fn load() -> Self {
-        let settings = Config::builder()
-            .add_source(config::File::with_name("Settings"))
+        let mut conf_rs = ConfigRs::default();
+        let _ = conf_rs
+            // First merge struct default config
+            .merge(ConfigRs::try_from(&ServerConfig::default()).unwrap());
+        // Override with settings in file Settings.toml if exists
+        conf_rs.merge(File::with_name("Settings").required(false));
+        // Override with settings in file Rocket.toml if exists
+        conf_rs.merge(File::with_name("Rocket").required(false));
+
+        let settings = ConfigRs::builder()
+            .add_source(File::with_name("Settings"))
             .build()
             .unwrap();
         
