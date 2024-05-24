@@ -8,7 +8,9 @@ pub struct ServerConfig {
     pub processor_url: String,
     /// Payment processor API key
     pub api_key: String,
-    /// Token fee value (satoshis)
+    /// Token fee value
+    pub fee: String,
+    /// Token fee unit
     pub fee: String,
     /// Invoice delay (seconds)
     pub delay: u64,
@@ -27,6 +29,7 @@ impl ServerConfig {
             processor_url: settings.get_string("processor_url").unwrap(),
             api_key: settings.get_string("api_key").unwrap(),
             fee: settings.get_string("fee").unwrap(),
+            unit: settings.get_string("unit").unwrap(),
             delay: settings.get_int("delay").unwrap() as u64,
             connection_string: settings.get_string("connection_string").unwrap(),
         }
