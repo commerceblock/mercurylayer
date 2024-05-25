@@ -1,4 +1,4 @@
-use std::{str::FromStr, thread, time::Duration};
+use std::{collections::{HashMap, HashSet}, str::FromStr, thread, time::Duration};
 
 use crate::{sqlite_manager::{get_wallet, update_wallet, insert_or_update_backup_txs}, client_config::ClientConfig, utils};
 use anyhow::{anyhow, Result};
@@ -28,27 +28,78 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
     let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let info_config = utils::info_config(&client_config).await.unwrap();
+
+    let mut unique_auth_pubkeys: HashSet<String> = HashSet::new();
     
-    let mut activities = wallet.activities.as_mut();
+    for coin in wallet.coins.iter() {
+        unique_auth_pubkeys.insert(coin.auth_pubkey.clone());
+    }
 
-    let mut received_statechain_ids =  Vec::<String>::new();
+    let mut enc_msgs_per_auth_pubkey: HashMap<String, Vec<String>> = HashMap::new();
 
-    for coin in wallet.coins.iter_mut() {
+    for auth_pubkey in unique_auth_pubkeys {
 
-        if coin.status != CoinStatus::INITIALISED {
-            continue;
-        }
-
-        let enc_messages = get_msg_addr(&coin.auth_pubkey, &client_config).await?;
+        let enc_messages = get_msg_addr(&auth_pubkey, &client_config).await?;
         if enc_messages.len() == 0 {
             println!("No messages");
             continue;
         }
 
-        let statechain_ids_added = process_encrypted_message(client_config, coin, &enc_messages, &wallet.network, &info_config, &mut activities).await?;
-
-        received_statechain_ids.extend(statechain_ids_added.clone());
+        enc_msgs_per_auth_pubkey.insert(auth_pubkey.clone(), enc_messages);
     }
+
+    let mut received_statechain_ids =  Vec::<String>::new();
+
+    let mut temp_coins = wallet.coins.clone();
+    let mut temp_activities = wallet.activities.clone();
+
+    for (key, values) in &enc_msgs_per_auth_pubkey {
+
+        let auth_pubkey = key.clone();
+
+        for enc_message in values {
+
+            let coin: Option<&mut Coin> = temp_coins.iter_mut().find(|coin| coin.auth_pubkey == auth_pubkey && coin.status == CoinStatus::INITIALISED);
+
+            if coin.is_some() {
+
+                let mut coin = coin.unwrap();
+
+                let statechain_id_added = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+
+                if statechain_id_added.is_err() {
+                    println!("Error: {}", statechain_id_added.err().unwrap().to_string());
+                    continue;
+                }
+
+                received_statechain_ids.push(statechain_id_added.unwrap());
+
+            } else {
+
+                let new_coin = mercurylib::transfer::receiver::duplicate_coin_to_initialized_state(&wallet, &auth_pubkey);
+
+                if new_coin.is_err() {
+                    println!("Error: {}", new_coin.err().unwrap().to_string());
+                    continue;
+                }
+
+                let mut new_coin = new_coin.unwrap();
+
+                let statechain_id_added = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+
+                if statechain_id_added.is_err() {
+                    println!("Error: {}", statechain_id_added.err().unwrap().to_string());
+                    continue;
+                }
+
+                temp_coins.push(new_coin);
+                received_statechain_ids.push(statechain_id_added.unwrap());
+            }
+        }
+    }
+
+    wallet.coins = temp_coins.clone();
+    wallet.activities = temp_activities.clone();
 
     update_wallet(&client_config.pool, &wallet).await?;
 
@@ -69,165 +120,149 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_messages: &Vec<String>, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<Vec::<String>> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<String> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
 
-    let mut statechain_ids_added = Vec::<String>::new();
+    let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
 
-    for enc_message in enc_messages {
-
-        let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
-
-        let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
-        
-        let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
-
-        let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
-
-        if !is_transfer_signature_valid {
-            println!("Invalid transfer signature");
-            continue;
-        }
-
-        let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
-
-        if statechain_info.is_none() {
-            println!("Statechain info not found");
-            continue;
-        }
-
-        let statechain_info = statechain_info.unwrap();
-
-        let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
-
-        if !is_tx0_output_pubkey_valid {
-            println!("Invalid tx0 output pubkey");
-            continue;
-        }
-
-        let latest_backup_tx_pays_to_user_pubkey = verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
+    let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(&transfer_msg.backup_transactions)?;
     
-        if !latest_backup_tx_pays_to_user_pubkey {
-            println!("Latest Backup Tx does not pay to the expected public key");
-            continue;
-        }
+    let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
 
-        if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
-            println!("num_sigs is not correct");
-            continue;
-        }
+    let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
 
-        let (is_tx0_output_unspent, tx0_status) = verify_tx0_output_is_unspent_and_confirmed(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network, client_config.confirmation_target).await?;
-
-        if !is_tx0_output_unspent {
-            println!("tx0 output is spent or not confirmed.");
-            continue;
-        }
-
-        let current_fee_rate_sats_per_byte = info_config.fee_rate_sats_per_byte as u32;
-
-        let fee_rate_tolerance = client_config.fee_rate_tolerance;
-
-        let mut previous_lock_time: Option<u32> = None;
-
-        let mut sig_scheme_validation = true;
-
-        for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
-
-            let statechain_info = statechain_info.statechain_info.get(index).unwrap();
-
-            let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
-            if is_signature_valid.is_err() {
-                println!("{}", is_signature_valid.err().unwrap().to_string());
-                sig_scheme_validation = false;
-                break;
-            }
-
-            let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
-            if is_blinded_musig_scheme_valid.is_err() {
-                println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
-                sig_scheme_validation = false;
-                break;
-            }
-
-            if previous_lock_time.is_some() {
-                let prev_lock_time = previous_lock_time.unwrap();
-                let current_lock_time = get_blockheight(&backup_tx)?;
-                if (prev_lock_time - current_lock_time) as i32 != info_config.interval as i32 {
-                    println!("interval is not correct");
-                    sig_scheme_validation = false;
-                    break;
-                }
-            }
-
-            previous_lock_time = Some(get_blockheight(&backup_tx)?);
-        }
-
-        if !sig_scheme_validation {
-            println!("Signature scheme validation failed");
-            continue;
-        }
-
-        let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
-    
-        // unlock the statecoin - it might be part of a batch
-
-        // the pub_auth_key has not been updated yet in the server (it will be updated after the transfer/receive call)
-        // So we need to manually sign the statechain_id with the client_auth_key
-        let signed_statechain_id_for_unlock = sign_message(&transfer_msg.statechain_id, &coin)?;
-
-        unlock_statecoin(&client_config, &transfer_msg.statechain_id, &signed_statechain_id_for_unlock, &coin.auth_pubkey).await?;
-
-        // let server_public_key_hex = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await?;
-
-        let transfer_receiver_result = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await;
-
-        let server_public_key_hex = match transfer_receiver_result {
-            Ok(server_public_key_hex) => server_public_key_hex,
-            Err(err) => {
-                println!("Error: {}", err.to_string());
-                continue;
-            }
-        };
-    
-        let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
-
-        if previous_lock_time.is_none() {
-            println!("previous_lock_time is None");
-            continue;
-        }
-
-        coin.server_pubkey = Some(server_public_key_hex);
-        coin.aggregated_pubkey = Some(new_key_info.aggregate_pubkey);
-        coin.aggregated_address = Some(new_key_info.aggregate_address);
-        coin.statechain_id = Some(transfer_msg.statechain_id.clone());
-        coin.signed_statechain_id = Some(new_key_info.signed_statechain_id.clone());
-        coin.amount = Some(new_key_info.amount);
-        coin.utxo_txid = Some(tx0_outpoint.txid.clone());
-        coin.utxo_vout = Some(tx0_outpoint.vout);
-        coin.locktime = Some(previous_lock_time.unwrap());
-        coin.status = tx0_status;
-
-        let date = Utc::now(); // This will get the current date and time in UTC
-        let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
-
-        let activity = Activity {
-            utxo: tx0_outpoint.txid.clone(),
-            amount: new_key_info.amount,
-            action: "Receive".to_string(),
-            date: iso_string
-        };
-
-        activities.push(activity);
-
-        statechain_ids_added.push(transfer_msg.statechain_id.clone());
-
-        insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
+    if !is_transfer_signature_valid {
+        return Err(anyhow::anyhow!("Invalid transfer signature".to_string()));
     }
 
-    Ok(statechain_ids_added)
+    let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
+
+    if statechain_info.is_none() {
+        return Err(anyhow::anyhow!("Statechain info not found".to_string()));
+    }
+
+    let statechain_info = statechain_info.unwrap();
+
+    let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
+
+    if !is_tx0_output_pubkey_valid {
+        return Err(anyhow::anyhow!("Invalid tx0 output pubkey".to_string()));
+    }
+
+    let latest_backup_tx_pays_to_user_pubkey = verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
+
+    if !latest_backup_tx_pays_to_user_pubkey {
+        return Err(anyhow::anyhow!("Latest Backup Tx does not pay to the expected public key".to_string()));
+    }
+
+    if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
+        return Err(anyhow::anyhow!("num_sigs is not correct".to_string()));
+    }
+
+    let (is_tx0_output_unspent, tx0_status) = verify_tx0_output_is_unspent_and_confirmed(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network, client_config.confirmation_target).await?;
+
+    if !is_tx0_output_unspent {
+        return Err(anyhow::anyhow!("tx0 output is spent or not confirmed".to_string()));
+    }
+
+    let current_fee_rate_sats_per_byte = info_config.fee_rate_sats_per_byte as u32;
+
+    let fee_rate_tolerance = client_config.fee_rate_tolerance;
+
+    let mut previous_lock_time: Option<u32> = None;
+
+    let mut sig_scheme_validation = true;
+
+    for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
+
+        let statechain_info = statechain_info.statechain_info.get(index).unwrap();
+
+        let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+        if is_signature_valid.is_err() {
+            println!("{}", is_signature_valid.err().unwrap().to_string());
+            sig_scheme_validation = false;
+            break;
+        }
+
+        let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
+        if is_blinded_musig_scheme_valid.is_err() {
+            println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if previous_lock_time.is_some() {
+            let prev_lock_time = previous_lock_time.unwrap();
+            let current_lock_time = get_blockheight(&backup_tx)?;
+            if (prev_lock_time - current_lock_time) as i32 != info_config.interval as i32 {
+                println!("interval is not correct");
+                sig_scheme_validation = false;
+                break;
+            }
+        }
+
+        previous_lock_time = Some(get_blockheight(&backup_tx)?);
+    }
+
+    if !sig_scheme_validation {
+        return Err(anyhow::anyhow!("Signature scheme validation failed".to_string()));
+    }
+
+    let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
+
+    // unlock the statecoin - it might be part of a batch
+
+    // the pub_auth_key has not been updated yet in the server (it will be updated after the transfer/receive call)
+    // So we need to manually sign the statechain_id with the client_auth_key
+    let signed_statechain_id_for_unlock = sign_message(&transfer_msg.statechain_id, &coin)?;
+
+    unlock_statecoin(&client_config, &transfer_msg.statechain_id, &signed_statechain_id_for_unlock, &coin.auth_pubkey).await?;
+
+    // let server_public_key_hex = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await?;
+
+    let transfer_receiver_result = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await;
+
+    let server_public_key_hex = match transfer_receiver_result {
+        Ok(server_public_key_hex) => server_public_key_hex,
+        Err(err) => {
+            return Err(anyhow::anyhow!("Error: {}", err.to_string()));
+        }
+    };
+
+    let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
+
+    if previous_lock_time.is_none() {
+        return Err(anyhow::anyhow!("previous_lock_time is None".to_string()));
+    }
+
+    coin.server_pubkey = Some(server_public_key_hex);
+    coin.aggregated_pubkey = Some(new_key_info.aggregate_pubkey);
+    coin.aggregated_address = Some(new_key_info.aggregate_address);
+    coin.statechain_id = Some(transfer_msg.statechain_id.clone());
+    coin.signed_statechain_id = Some(new_key_info.signed_statechain_id.clone());
+    coin.amount = Some(new_key_info.amount);
+    coin.utxo_txid = Some(tx0_outpoint.txid.clone());
+    coin.utxo_vout = Some(tx0_outpoint.vout);
+    coin.locktime = Some(previous_lock_time.unwrap());
+    coin.status = tx0_status;
+
+    let date = Utc::now(); // This will get the current date and time in UTC
+    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
+
+    let activity = Activity {
+        utxo: tx0_outpoint.txid.clone(),
+        amount: new_key_info.amount,
+        action: "Receive".to_string(),
+        date: iso_string
+    };
+
+    activities.push(activity);
+
+    insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
+
+    Ok(transfer_msg.statechain_id.clone())
 }
 
 async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> Result<String> {

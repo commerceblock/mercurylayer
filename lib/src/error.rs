@@ -78,6 +78,7 @@ pub enum MercuryError {
     T1MustBeExactly32BytesError,
     NoX1Pub,
     NoAggregatedPubkeyError,
+    CoinNotFound,
 }
 
 impl core::fmt::Display for MercuryError {

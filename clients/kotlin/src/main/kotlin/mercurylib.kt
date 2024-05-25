@@ -786,6 +786,12 @@ internal interface UniffiLib : Library {
         uniffi_out_err: UniffiRustCallStatus,
     ): RustBuffer.ByValue
 
+    fun uniffi_mercurylib_fn_func_duplicate_coin_to_initialized_state(
+        `wallet`: RustBuffer.ByValue,
+        `authPubkey`: RustBuffer.ByValue,
+        uniffi_out_err: UniffiRustCallStatus,
+    ): RustBuffer.ByValue
+
     fun uniffi_mercurylib_fn_func_ffi_verify_transfer_signature(
         `newUserPubkey`: RustBuffer.ByValue,
         `tx0Outpoint`: RustBuffer.ByValue,
@@ -1159,6 +1165,8 @@ internal interface UniffiLib : Library {
 
     fun uniffi_mercurylib_checksum_func_decode_statechain_address(): Short
 
+    fun uniffi_mercurylib_checksum_func_duplicate_coin_to_initialized_state(): Short
+
     fun uniffi_mercurylib_checksum_func_ffi_verify_transfer_signature(): Short
 
     fun uniffi_mercurylib_checksum_func_fii_create_transfer_receiver_request_payload(): Short
@@ -1238,6 +1246,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_decode_statechain_address() != 7125.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_mercurylib_checksum_func_duplicate_coin_to_initialized_state() != 30591.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_mercurylib_checksum_func_ffi_verify_transfer_signature() != 18534.toShort()) {
@@ -3339,6 +3350,11 @@ sealed class MercuryException : Exception() {
             get() = ""
     }
 
+    class CoinNotFound() : MercuryException() {
+        override val message
+            get() = ""
+    }
+
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MercuryException> {
         override fun lift(error_buf: RustBuffer.ByValue): MercuryException = FfiConverterTypeMercuryError.lift(error_buf)
     }
@@ -3389,6 +3405,7 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             40 -> MercuryException.T1MustBeExactly32BytesException()
             41 -> MercuryException.NoX1Pub()
             42 -> MercuryException.NoAggregatedPubkeyException()
+            43 -> MercuryException.CoinNotFound()
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -3560,6 +3577,10 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
                 4UL
             )
             is MercuryException.NoAggregatedPubkeyException -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+            )
+            is MercuryException.CoinNotFound -> (
                 // Add the size for the Int that specifies the variant plus the size needed for all fields
                 4UL
             )
@@ -3737,6 +3758,10 @@ public object FfiConverterTypeMercuryError : FfiConverterRustBuffer<MercuryExcep
             }
             is MercuryException.NoAggregatedPubkeyException -> {
                 buf.putInt(42)
+                Unit
+            }
+            is MercuryException.CoinNotFound -> {
+                buf.putInt(43)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -4141,6 +4166,22 @@ fun `decodeStatechainAddress`(`scAddress`: kotlin.String): DecodedScAddress {
         uniffiRustCallWithError(MercuryException) { _status ->
             UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_decode_statechain_address(
                 FfiConverterString.lower(`scAddress`),
+                _status,
+            )
+        },
+    )
+}
+
+@Throws(MercuryException::class)
+fun `duplicateCoinToInitializedState`(
+    `wallet`: Wallet,
+    `authPubkey`: kotlin.String,
+): Coin {
+    return FfiConverterTypeCoin.lift(
+        uniffiRustCallWithError(MercuryException) { _status ->
+            UniffiLib.INSTANCE.uniffi_mercurylib_fn_func_duplicate_coin_to_initialized_state(
+                FfiConverterTypeWallet.lower(`wallet`),
+                FfiConverterString.lower(`authPubkey`),
                 _status,
             )
         },

@@ -5,87 +5,7 @@ use rocket::{serde::json::Json, response::status, State, http::Status};
 use secp256k1_zkp::{XOnlyPublicKey, schnorr::Signature, Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
-use sqlx::Row;
-
 use crate::server::StateChainEntity;
-
-
-pub async fn get_token_status(pool: &sqlx::PgPool, token_id: &str) -> Option<bool> {
-
-    let row = sqlx::query(
-        "SELECT confirmed, spent \
-        FROM public.tokens \
-        WHERE token_id = $1")
-        .bind(&token_id)
-        .fetch_one(pool)
-        .await;
-
-    if row.is_err() {
-        match row.err().unwrap() {
-            sqlx::Error::RowNotFound => return None,
-            _ => return None, // this case should be treated as unexpected error
-        }
-    }
-
-    let row = row.unwrap();
-
-    let confirmed: bool = row.get(0);
-    let spent: bool = row.get(1);
-    if confirmed && !spent {
-        return Some(true);
-    } else {
-        return Some(false);
-    }
-
-}
-
-pub async fn set_token_spent(pool: &sqlx::PgPool, token_id: &str)  {
-
-    let mut transaction = pool.begin().await.unwrap();
-
-    let query = "UPDATE tokens \
-        SET spent = true \
-        WHERE token_id = $1";
-
-    let _ = sqlx::query(query)
-        .bind(token_id)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    transaction.commit().await.unwrap();
-}
-
-pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) -> Option<mercurylib::deposit::DepositMsg1Response> {
-
-    let row = sqlx::query(
-        "SELECT statechain_id, server_public_key \
-        FROM statechain_data \
-        WHERE auth_xonly_public_key = $1")
-        .bind(&auth_key.serialize())
-        .fetch_one(pool)
-        .await;
-
-    if row.is_err() {
-        match row.err().unwrap() {
-            sqlx::Error::RowNotFound => return None,
-            _ => return None
-        }
-    }
-
-    let row_ur = row.unwrap();
-
-    let server_public_key_bytes = row_ur.get::<Vec<u8>, _>(1);
-    let server_pubkey = PublicKey::from_slice(&server_public_key_bytes).unwrap();
-
-    let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
-        server_pubkey: server_pubkey.to_string(),
-        statechain_id: row_ur.get(0),
-    };
-
-    return Some(deposit_msg1_response);
-
-}
 
 #[get("/deposit/get_token")]
 pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
@@ -101,7 +21,7 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 
     let token_id = uuid::Uuid::new_v4().to_string();   
 
-    insert_new_token(&statechain_entity.pool, &token_id).await;
+    crate::database::deposit::insert_new_token(&statechain_entity.pool, &token_id).await;
 
     let token = mercurylib::deposit::TokenID {
         token_id
@@ -133,7 +53,7 @@ pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::
     let spent = false;
     let expiry = String::from("2024-12-26T17:29:50.013Z");
 
-    insert_new_token(&statechain_entity.pool, &token_id).await;
+    crate::database::deposit::insert_new_token(&statechain_entity.pool, &token_id).await;
 
     let token = mercurylib::wallet::Token {
         btc_payment_address,
@@ -166,7 +86,6 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     if !secp.verify_schnorr(&signed_token_id, &msg, &auth_key).is_ok() {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     
@@ -174,15 +93,17 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     }
 
-    let existing_key = check_existing_key(&statechain_entity.pool, &auth_key).await;
+    let is_existing_key = crate::database::deposit::check_existing_key(&statechain_entity.pool, &auth_key).await;
 
-    if !existing_key.is_none() {
-        let response_body = json!(existing_key.unwrap());
+    if is_existing_key {
+        let response_body = json!({
+            "message": "The authentication key is already assigned to a statecoin."
+        });
     
-        return status::Custom(Status::Ok, Json(response_body));
+        return status::Custom(Status::BadRequest, Json(response_body));
     }
 
-    let valid_token =  get_token_status(&statechain_entity.pool, &token_id).await;
+    let valid_token =  crate::database::deposit::get_token_status(&statechain_entity.pool, &token_id).await;
 
     if valid_token.is_none() {
         let response_body = json!({
@@ -249,9 +170,9 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
-    insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, &statechain_id).await;
+    crate::database::deposit::insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, &statechain_id).await;
 
-    set_token_spent(&statechain_entity.pool, &token_id).await;
+    crate::database::deposit::set_token_spent(&statechain_entity.pool, &token_id).await;
 
     let deposit_msg1_response = mercurylib::deposit::DepositMsg1Response {
         server_pubkey: server_pubkey.to_string(),
@@ -261,31 +182,4 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
     let response_body = json!(deposit_msg1_response);
 
     status::Custom(Status::Ok, Json(response_body))
-}
-
-pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &String)  {
-
-    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id) VALUES ($1, $2, $3, $4)";
-
-    let _ = sqlx::query(query)
-        .bind(token_id)
-        .bind(&auth_key.serialize())
-        .bind(&server_public_key.serialize())
-        .bind(statechain_id)
-        .execute(pool)
-        .await
-        .unwrap();
-}
-
-pub async fn insert_new_token(pool: &sqlx::PgPool, token_id: &str)  {
-
-    let query = "INSERT INTO tokens (token_id, confirmed, spent) VALUES ($1, $2, $3)";
-
-    let _ = sqlx::query(query)
-        .bind(token_id)
-        .bind(true)
-        .bind(false)
-        .execute(pool)
-        .await
-        .unwrap();
 }

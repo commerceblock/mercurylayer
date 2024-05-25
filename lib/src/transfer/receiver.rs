@@ -4,7 +4,7 @@ use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, si
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 
-use crate::{error::MercuryError, utils::get_network, wallet::{BackupTx, Coin}};
+use crate::{error::MercuryError, utils::get_network, wallet::{BackupTx, Coin, CoinStatus, Wallet}};
 
 use super::TransferMsg;
 
@@ -92,6 +92,47 @@ pub struct NewKeyInfo {
     pub signed_statechain_id: String,
     pub amount: u32,
 }
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn duplicate_coin_to_initialized_state(wallet: &Wallet, auth_pubkey: &str) -> Result<Coin, MercuryError> {
+    // wallet.coins.iter().filter(|coin| coin.status == CoinStatus::INITIALISED).cloned().collect()
+    let coin = wallet.coins.iter().find(|coin| coin.auth_pubkey == auth_pubkey.to_string());
+
+    if coin.is_none() {
+        return Err(MercuryError::CoinNotFound);
+    }
+
+    let coin = coin.unwrap();
+
+    Ok(Coin {
+        index: coin.index,
+        user_privkey: coin.user_privkey.clone(),
+        user_pubkey: coin.user_pubkey.clone(),
+        auth_privkey: coin.auth_privkey.clone(),
+        auth_pubkey: coin.auth_pubkey.clone(),
+        derivation_path: coin.derivation_path.clone(),
+        fingerprint: coin.fingerprint.clone(),
+        address: coin.address.clone(),
+        backup_address: coin. backup_address.clone(),
+        server_pubkey: None,
+        aggregated_pubkey: None,
+        aggregated_address: None,
+        utxo_txid: None,
+        utxo_vout: None,
+        amount: None,
+        statechain_id: None,
+        signed_statechain_id: None,
+        locktime: None,
+        secret_nonce: None,
+        public_nonce: None,
+        blinding_factor: None,
+        server_public_nonce: None,
+        tx_cpfp: None,
+        tx_withdraw: None,
+        withdrawal_address: None,
+        status: CoinStatus::INITIALISED,
+    })
+}   
 
 pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg, MercuryError> {
 
