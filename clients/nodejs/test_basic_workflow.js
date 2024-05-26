@@ -1,7 +1,7 @@
 const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
 const assert = require('node:assert/strict');
-const { CoinStatus } = require('./coin_enum');
+const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const c = require('config');
 
 async function lsExample() {
@@ -105,6 +105,7 @@ async function walletTransfersToItselfAndWithdraw(wallet_name) {
 
     assert(usedToken.spent);
 
+    deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
 
     let coin = undefined;
@@ -171,6 +172,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(wallet_1_name, wall
 
     const deposit_info = await getDepositBitcoinAddress(wallet_1_name, amount);
 
+    deposit_info["amount"] = amount;
     console.log("deposit_info w1: ", deposit_info);
 
     let tokenList = await listTokens(wallet_1_name);

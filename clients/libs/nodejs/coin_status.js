@@ -1,8 +1,5 @@
 
-const config = require('config');
 const sqlite_manager = require('./sqlite_manager');
-const axios = require('axios').default;
-const { SocksProxyAgent } = require('socks-proxy-agent');
 const utils = require('./utils');
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
@@ -10,7 +7,7 @@ const deposit = require('./deposit');
 const { CoinStatus } = require('./coin_enum');
 const mercury_wasm = require('mercury-wasm');
 
-const checkDeposit = async (electrumClient, coin, wallet_network) => {
+const checkDeposit = async (clientConfig, electrumClient, coin, wallet_network) => {
 
     if (!coin.statechain_id && !coin.utxo_txid && !coin.utxo_vout) {
         if (coin.status != CoinStatus.INITIALISED) {
@@ -56,7 +53,7 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
         const utxo_txid = utxo.tx_hash;
         const utxo_vout = utxo.tx_pos;
 
-        const backup_tx = await deposit.createTx1(electrumClient, coin, wallet_network, utxo_txid, utxo_vout);
+        const backup_tx = await deposit.createTx1(clientConfig, electrumClient, coin, wallet_network, utxo_txid, utxo_vout);
 
         const activity_utxo = `${utxo_txid}:${utxo_vout}`;
 
@@ -75,7 +72,7 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
 
         const confirmations = blockheight - utxo.height + 1;
 
-        const confirmationTarget = config.get('confirmationTarget');
+        const confirmationTarget = clientConfig.confirmationTarget;
 
         coin.status = CoinStatus.UNCONFIRMED;
 
@@ -87,13 +84,13 @@ const checkDeposit = async (electrumClient, coin, wallet_network) => {
     return depositResult;
 }
 
-const checkTransfer = async (coin) => {
+const checkTransfer = async (clientConfig, coin) => {
 
     if (!coin.statechain_id) {
         throw new Error(`The coin with the aggregated address ${coin.aggregated_address} does not have a statechain ID`);
     }
 
-    let statechainInfo = await utils.getStatechainInfo(coin.statechain_id);
+    let statechainInfo = await utils.getStatechainInfo(clientConfig, coin.statechain_id);
 
     // if the statechain info is not found, we assume the coin has been transferred
     if (!statechainInfo) {
@@ -107,7 +104,7 @@ const checkTransfer = async (coin) => {
     return isTransferred;
 }
 
-const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
+const checkWithdrawal = async (clientConfig, electrumClient, coin, wallet_network) => {
 
     let txid = undefined;
 
@@ -162,7 +159,7 @@ const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
 
         const confirmations = blockheight - utxo.height + 1;
 
-        const confirmationTarget = config.get('confirmationTarget');
+        const confirmationTarget = clientConfig.confirmationTarget;
 
         return confirmations >= confirmationTarget;
     }
@@ -170,7 +167,7 @@ const checkWithdrawal = async (electrumClient, coin, wallet_network) => {
     return false;
 }
 
-const updateCoins  = async (electrumClient, db, wallet_name) => {
+const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
@@ -181,20 +178,20 @@ const updateCoins  = async (electrumClient, db, wallet_name) => {
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
 
-            let depositResult = await checkDeposit(electrumClient, coin, network);
+            let depositResult = await checkDeposit(clientConfig, electrumClient, coin, network);
 
             if (depositResult) {
                 wallet.activities.push(depositResult.activity);
                 await sqlite_manager.insertTransaction(db, coin.statechain_id, [depositResult.backup_tx]);
             }
         } else if (coin.status === CoinStatus.IN_TRANSFER) {
-            let is_transferred = await checkTransfer(coin);
+            let is_transferred = await checkTransfer(clientConfig, coin);
 
             if (is_transferred) {
                 coin.status = CoinStatus.TRANSFERRED;
             }
         } else if (coin.status == CoinStatus.WITHDRAWING) {
-            let is_withdrawn = await checkWithdrawal(electrumClient, coin, network);
+            let is_withdrawn = await checkWithdrawal(clientConfig, electrumClient, coin, network);
 
             if (is_withdrawn) {
                 coin.status = CoinStatus.WITHDRAWN;

@@ -5,7 +5,6 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const bitcoinjs = require("bitcoinjs-lib");
 const ecc = require("tiny-secp256k1");
 const utils = require('./utils');
-const config = require('config');
 const { CoinStatus } = require('./coin_enum');
 
 const newTransferAddress = async (db, wallet_name) => {
@@ -21,11 +20,11 @@ const newTransferAddress = async (db, wallet_name) => {
     return coin.address;
 }
 
-const execute = async (electrumClient, db, wallet_name) => {
+const execute = async (clientConfig, electrumClient, db, wallet_name) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
-    const serverInfo = await utils.infoConfig(electrumClient);
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
     let uniqueAuthPubkeys = new Set();
 
@@ -37,15 +36,15 @@ const execute = async (electrumClient, db, wallet_name) => {
 
     for (let authPubkey of uniqueAuthPubkeys) {
         try {
-            let encMessages = await getMsgAddr(authPubkey);
+            let encMessages = await getMsgAddr(clientConfig, authPubkey);
             if (encMessages.length === 0) {
-                console.log("No messages");
+               // console.log("No messages");
                 continue;
             }
 
             encMsgsPerAuthPubkey.set(authPubkey, encMessages);
         } catch (err) {
-            console.error(err);
+            // console.error(err);
         }
     }
 
@@ -62,13 +61,13 @@ const execute = async (electrumClient, db, wallet_name) => {
 
             if (coin) {
                 try {
-                    let statechainIdAdded = await processEncryptedMessage(electrumClient, db, coin, encMessage, wallet.network, serverInfo, tempActivities);
+                    let statechainIdAdded = await processEncryptedMessage(clientConfig, electrumClient, db, coin, encMessage, wallet.network, serverInfo, tempActivities);
 
                     if (statechainIdAdded) {
                         receivedStatechainIds.push(statechainIdAdded);
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                   // console.error(`Error: ${error.message}`);
                     continue;
                 }
 
@@ -77,7 +76,7 @@ const execute = async (electrumClient, db, wallet_name) => {
                     let newCoin = await mercury_wasm.duplicateCoinToInitializedState(wallet, authPubkey);
 
                     if (newCoin) {
-                        let statechainIdAdded = await processEncryptedMessage(electrumClient, db, newCoin, encMessage, wallet.network, serverInfo, tempActivities);
+                        let statechainIdAdded = await processEncryptedMessage(clientConfig, electrumClient, db, newCoin, encMessage, wallet.network, serverInfo, tempActivities);
 
                         if (statechainIdAdded) {
                             tempCoins.push(newCoin);
@@ -85,7 +84,7 @@ const execute = async (electrumClient, db, wallet_name) => {
                         }
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                   // console.error(`Error: ${error.message}`);
                     continue;
                 }
             }
@@ -100,13 +99,13 @@ const execute = async (electrumClient, db, wallet_name) => {
     return receivedStatechainIds;
 }
 
-const getMsgAddr = async (auth_pubkey) => {
+const getMsgAddr = async (clientConfig, auth_pubkey) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "transfer/get_msg_addr/";
     const url = statechain_entity_url + '/' + path + auth_pubkey;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -119,7 +118,7 @@ const getMsgAddr = async (auth_pubkey) => {
     return response.data.list_enc_transfer_msg;
 }
 
-const processEncryptedMessage = async (electrumClient, db, coin, encMessage, network, serverInfo, activities) => {
+const processEncryptedMessage = async (clientConfig, electrumClient, db, coin, encMessage, network, serverInfo, activities) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
 
@@ -135,7 +134,7 @@ const processEncryptedMessage = async (electrumClient, db, coin, encMessage, net
         throw new Error("Invalid transfer signature");
     }
     
-    const statechainInfo = await utils.getStatechainInfo(transferMsg.statechain_id);
+    const statechainInfo = await utils.getStatechainInfo(clientConfig, transferMsg.statechain_id);
 
     if (statechainInfo == null) {
         throw new Error("Statechain info not found");
@@ -157,14 +156,14 @@ const processEncryptedMessage = async (electrumClient, db, coin, encMessage, net
         throw new Error("num_sigs is not correct");
     }
     
-    let isTx0OutputUnspent = await verifyTx0OutputIsUnspentAndConfirmed(electrumClient, tx0Outpoint, tx0Hex, network);
+    let isTx0OutputUnspent = await verifyTx0OutputIsUnspentAndConfirmed(clientConfig, electrumClient, tx0Outpoint, tx0Hex, network);
     if (!isTx0OutputUnspent.result) {
         throw new Error("tx0 output is spent or not confirmed");
     }
 
     const currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
 
-    const feeRateTolerance = config.get('feeRateTolerance');
+    const feeRateTolerance = clientConfig.feeRateTolerance;
 
     let previousLockTime = null;
 
@@ -210,12 +209,12 @@ const processEncryptedMessage = async (electrumClient, db, coin, encMessage, net
 
     let signedStatechainIdForUnlock = mercury_wasm.signMessage(transferMsg.statechain_id, coin);
 
-    await unlockStatecoin(transferMsg.statechain_id, signedStatechainIdForUnlock, coin.auth_pubkey);
+    await unlockStatecoin(clientConfig, transferMsg.statechain_id, signedStatechainIdForUnlock, coin.auth_pubkey);
 
     let serverPublicKeyHex = "";
 
     try {
-        serverPublicKeyHex = await sendTransferReceiverRequestPayload(transferReceiverRequestPayload);
+        serverPublicKeyHex = await sendTransferReceiverRequestPayload(clientConfig, transferReceiverRequestPayload);
     } catch (error) {
         throw new Error(error);
     }
@@ -253,7 +252,7 @@ const getTx0 = async (electrumClient, tx0_txid) => {
     return await electrumClient.request('blockchain.transaction.get', [tx0_txid]); // request(promise)
 }
 
-const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {
+const verifyTx0OutputIsUnspentAndConfirmed = async (clientConfig, electrumClient, tx0Outpoint, tx0Hex, wallet_network) => {
 
     let tx0outputAddress = mercury_wasm.getOutputAddressFromTx0(tx0Outpoint, tx0Hex, wallet_network);
 
@@ -278,7 +277,7 @@ const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, tx0Outpoint,
 
             const confirmations = blockheight - unspent.height + 1;
 
-            const confirmationTarget = config.get('confirmationTarget');
+            const confirmationTarget = clientConfig.confirmationTarget;
 
             if (confirmations >= confirmationTarget) {
                 status = CoinStatus.CONFIRMED;
@@ -291,13 +290,13 @@ const verifyTx0OutputIsUnspentAndConfirmed = async (electrumClient, tx0Outpoint,
     return { result: false, status };
 }
 
-const unlockStatecoin = async (statechainId, signedStatechainId, authPubkey) => {
+const unlockStatecoin = async (clientConfig, statechainId, signedStatechainId, authPubkey) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "transfer/unlock";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -322,13 +321,13 @@ const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const sendTransferReceiverRequestPayload = async (transferReceiverRequestPayload) => {
+const sendTransferReceiverRequestPayload = async (clientConfig, transferReceiverRequestPayload) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "transfer/receiver";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 

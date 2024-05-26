@@ -4,9 +4,8 @@ const transaction = require('./transaction');
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { CoinStatus } = require('./coin_enum');
-const config = require('config');
 
-const execute = async (electrumClient, db, walletName, statechainId, toAddress, batchId)  => {
+const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId)  => {
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
@@ -61,9 +60,9 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     const decodedTransferAddress = mercury_wasm.decodeTransferAddress(toAddress);
     const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
 
-    const new_x1 = await get_new_x1(statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
+    const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    const signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
 
     const backup_tx = {
         tx_n: new_tx_n,
@@ -86,11 +85,11 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
 
     const transferUpdateMsgRequestPayload = mercury_wasm.createTransferUpdateMsg(new_x1, recipient_address, coin, transfer_signature, backupTxs);
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "transfer/update_msg";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -123,9 +122,9 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     return coin;
 }
 
-const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey, batchId) => {
+const get_new_x1 = async (clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "transfer/sender";
     const url = statechain_entity_url + '/' + path;
 
@@ -136,7 +135,7 @@ const get_new_x1 = async (statechain_id, signed_statechain_id, new_auth_pubkey, 
         batch_id: batchId,
     };
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 

@@ -1,10 +1,9 @@
-const mercury_wasm = require('mercury-wasm');
 const sqlite_manager = require('./sqlite_manager');
 const utils = require('./utils');
 const transaction = require('./transaction');
 const { CoinStatus } = require('./coin_enum');
 
-const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
+const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
     const backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
@@ -16,7 +15,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     const new_tx_n = backupTxs.length + 1;
 
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(electrumClient);
+        const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
         const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
         feeRate = feeRateSatsPerByte;
     } else {
@@ -43,7 +42,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;
 
-    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
+    let signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
 
     let backup_tx = {
         tx_n: new_tx_n,
@@ -76,7 +75,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    utils.completeWithdraw(coin.statechain_id, coin.signed_statechain_id);
+    utils.completeWithdraw(clientConfig, coin.statechain_id, coin.signed_statechain_id);
 
     return txid;
 }
