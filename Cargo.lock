@@ -564,7 +564,7 @@ dependencies = [
  "config",
  "electrum-client",
  "hex",
- "mercurylib",
+ "mercuryrustlib",
  "rand",
  "reqwest",
  "schemars",
@@ -1624,6 +1624,31 @@ dependencies = [
  "serde_json",
  "thiserror",
  "uniffi",
+]
+
+[[package]]
+name = "mercuryrustlib"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bech32",
+ "bip39",
+ "bitcoin",
+ "chrono",
+ "clap",
+ "config",
+ "electrum-client",
+ "hex",
+ "mercurylib",
+ "rand",
+ "reqwest",
+ "schemars",
+ "secp256k1-zkp",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid 1.4.1",
 ]
 
 [[package]]

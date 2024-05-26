@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result, Ok};
 use mercurylib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, CoinStatus, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
 
-use crate::{sqlite_manager::update_wallet, get_wallet, client_config::ClientConfig, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet}, transaction::new_transaction};
 
 pub async fn get_deposit_bitcoin_address(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<String> {
 
@@ -99,10 +99,6 @@ pub async fn init(client_config: &ClientConfig, wallet: &Wallet, token_id: uuid:
     let value = response.text().await?;
 
     let deposit_msg_1_response: mercurylib::deposit::DepositMsg1Response = serde_json::from_str(value.as_str())?;
-
-    // println!("value: {:?}", value);
-
-    // println!("response: {:?}", deposit_msg_1_response);
 
     let deposit_init_result = mercurylib::deposit::handle_deposit_msg_1_response(&coin, &deposit_msg_1_response)?;
 

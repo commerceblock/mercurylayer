@@ -101,3 +101,8 @@ impl ClientConfig {
         }
     }
 }
+
+pub async fn load() -> ClientConfig {
+    let client_config = ClientConfig::load().await;
+    client_config
+}

@@ -31,6 +31,9 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
         let (batch_id, batch_time) = batch_info.unwrap();
 
         if !is_batch_expired(&statechain_entity, batch_time) {
+
+            // TODO: check if the batch is complete. If complete, should return success.
+
             // the batch time has not expired
             return BatchTransferValidationResult::StatecoinBatchLockedError("Statecoin batch locked (the batch time has not expired).".to_string())
         } else {
