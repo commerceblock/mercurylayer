@@ -1,13 +1,6 @@
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const bitcoinjs = require("bitcoinjs-lib");
-const ecc = require("tiny-secp256k1");
-const utils = require('./utils');
 const transaction = require('./transaction');
-const config = require('config');
-
-// used only for random token. Can be removed later
-// const crypto = require('crypto');
 
 const mercury_wasm = require('mercury-wasm');
 
@@ -15,7 +8,7 @@ const sqlite_manager = require('./sqlite_manager');
 
 const { CoinStatus } = require('./coin_enum');
 
-const getDepositBitcoinAddress = async (db, wallet_name, amount) => {
+const getDepositBitcoinAddress = async (clientConfig, db, wallet_name, amount) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
 
@@ -25,7 +18,7 @@ const getDepositBitcoinAddress = async (db, wallet_name, amount) => {
         throw new Error(`There is no token available`);
     }
 
-    await init(db, wallet, foundToken.token_id);
+    await init(clientConfig, db, wallet, foundToken.token_id);
 
     let coin = wallet.coins[wallet.coins.length - 1];
 
@@ -42,7 +35,7 @@ const getDepositBitcoinAddress = async (db, wallet_name, amount) => {
     return { "deposit_address":  coin.aggregated_address, "statechain_id": coin.statechain_id };
 }
 
-const createTx1 = async (electrumClient, coin, wallet_network, tx0_hash, tx0_vout) => {
+const createTx1 = async (clientConfig, electrumClient, coin, wallet_network, tx0_hash, tx0_vout) => {
 
     if (coin.status !== CoinStatus.INITIALISED) {
         throw new Error(`The coin with the aggregated address ${aggregated_address} is not in the INITIALISED state`);
@@ -60,7 +53,7 @@ const createTx1 = async (electrumClient, coin, wallet_network, tx0_hash, tx0_vou
     const isWithdrawal = false;
     const qtBackupTx = 0;
 
-    let signed_tx = await transaction.new_transaction(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet_network);
+    let signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet_network);
 
     let backup_tx = {
         tx_n: 1,
@@ -77,7 +70,7 @@ const createTx1 = async (electrumClient, coin, wallet_network, tx0_hash, tx0_vou
     return backup_tx;
 }
 
-const init = async (db, wallet, token_id) => {
+const init = async (clientConfig, db, wallet, token_id) => {
 
     let coin = mercury_wasm.getNewCoin(wallet);
 
@@ -89,11 +82,11 @@ const init = async (db, wallet, token_id) => {
 
     let depositMsg1 = mercury_wasm.createDepositMsg1(coin, token_id);
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "deposit/init/pod";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -119,13 +112,13 @@ const init = async (db, wallet, token_id) => {
     await sqlite_manager.updateWallet(db, wallet);
 }
 
-const getTokenFromServer = async () => {
+const getTokenFromServer = async (clientConfig) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "tokens/token_init";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -144,11 +137,11 @@ const getTokenFromServer = async () => {
     return token;
 }
 
-const getToken = async (db, walletName) => {
+const getToken = async (clientConfig, db, walletName) => {
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
     
-    let token = await getTokenFromServer();
+    let token = await getTokenFromServer(clientConfig);
 
     // for dev purposes
     token.confirmed = true;
@@ -160,4 +153,4 @@ const getToken = async (db, walletName) => {
     return token;
 }
 
-module.exports = { /*execute, createStatecoin,*/ getDepositBitcoinAddress, createTx1, getToken };
+module.exports = { getDepositBitcoinAddress, createTx1, getToken };
