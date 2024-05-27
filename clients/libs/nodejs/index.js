@@ -16,18 +16,16 @@ const { v4: uuidv4 } = require('uuid');
 
 const wallet_manager = require('./wallet');
 
-const config = require('config');
-
-const getDatabase = async () => {
-    const databaseFile = config.get('databaseFile');
+const getDatabase = async (clientConfig) => {
+    const databaseFile = clientConfig.databaseFile;
     const db = new sqlite3.Database(databaseFile);
     await sqlite_manager.createTables(db);
     return db;
 }
 
-const getElectrumClient = async () => {
+const getElectrumClient = async (clientConfig) => {
 
-    const urlElectrum = config.get('electrumServer');
+    const urlElectrum = clientConfig.electrumServer;
     const urlElectrumObject = new URL(urlElectrum);
 
     const electrumPort = parseInt(urlElectrumObject.port, 10);
@@ -40,15 +38,13 @@ const getElectrumClient = async () => {
     return electrumClient;
 }
 
-const createWallet = async (walletName) => {
+const createWallet = async (clientConfig, walletName) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    await sqlite_manager.createTables(db);
+    const electrumClient = await getElectrumClient(clientConfig);
 
-    const electrumClient = await getElectrumClient();
-
-    let wallet = await wallet_manager.createWallet(walletName, config, electrumClient);
+    let wallet = await wallet_manager.createWallet(walletName, clientConfig, electrumClient);
 
     await sqlite_manager.insertWallet(db, wallet);
 
@@ -57,36 +53,36 @@ const createWallet = async (walletName) => {
 
 }
 
-const newToken = async (walletName) => {
-    const db = await getDatabase();
-    const token = await deposit.getToken(db, walletName);
+const newToken = async (clientConfig, walletName) => {
+    const db = await getDatabase(clientConfig);
+    const token = await deposit.getToken(clientConfig, db, walletName);
     db.close();
     return token;
 }
 
-const getDepositBitcoinAddress = async (walletName, amount) => {
-    const db = await getDatabase();
-    const address_info = await deposit.getDepositBitcoinAddress(db, walletName, amount);
+const getDepositBitcoinAddress = async (clientConfig, walletName, amount) => {
+    const db = await getDatabase(clientConfig);
+    const address_info = await deposit.getDepositBitcoinAddress(clientConfig, db, walletName, amount);
     db.close();
     return address_info;
 }
 
-const getWalletTokens = async (walletName) => {
-    const db = await getDatabase();
+const getWalletTokens = async (clientConfig, walletName) => {
+    const db = await getDatabase(clientConfig);
     let wallet = await sqlite_manager.getWallet(db, walletName);
     db.close();
     return wallet.tokens;
 }
 
-const broadcastBackupTransaction = async (walletName, statechainId, toAddress, options) => {
+const broadcastBackupTransaction = async (clientConfig, walletName, statechainId, toAddress, options) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    const electrumClient = await getElectrumClient();
+    const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(electrumClient, db, walletName);
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let txIds = await broadcast_backup_tx.execute(electrumClient, db, walletName, statechainId, toAddress, options.fee_rate);
+    let txIds = await broadcast_backup_tx.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, options.fee_rate);
 
     electrumClient.close();
     db.close();
@@ -94,13 +90,13 @@ const broadcastBackupTransaction = async (walletName, statechainId, toAddress, o
     return txIds;
 }
 
-const listStatecoins = async (walletName) => {
+const listStatecoins = async (clientConfig, walletName) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    const electrumClient = await getElectrumClient();
+    const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(electrumClient, db, walletName);
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
@@ -118,15 +114,15 @@ const listStatecoins = async (walletName) => {
     return coins;
 }
 
-const withdrawCoin = async (walletName, statechainId, toAddress, options) => {
+const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, options) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    const electrumClient = await getElectrumClient();
+    const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(electrumClient, db, walletName);
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    const txId = await withdraw.execute(electrumClient, db, walletName, statechainId, toAddress, options.fee_rate);
+    const txId = await withdraw.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, options.fee_rate);
 
     electrumClient.close();
     db.close();
@@ -134,9 +130,9 @@ const withdrawCoin = async (walletName, statechainId, toAddress, options) => {
     return txId;
 }
 
-const newTransferAddress = async (walletName, options) => {
+const newTransferAddress = async (clientConfig, walletName, options) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
     const addr = await transfer_receive.newTransferAddress(db, walletName)
     let res = {transfer_receive: addr};
@@ -151,33 +147,31 @@ const newTransferAddress = async (walletName, options) => {
     return res;
 }
 
-const transferSend = async (walletName, statechainId, toAddress, options) => {
+const transferSend = async (clientConfig, walletName, statechainId, toAddress, options) => {
 
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    const electrumClient = await getElectrumClient();
+    const electrumClient = await getElectrumClient(clientConfig);
 
     let batchId = options.batchId  || null;
 
-    await coin_status.updateCoins(electrumClient, db, walletName);
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let coin = await transfer_send.execute(electrumClient, db, walletName, statechainId, toAddress, batchId);
+    await transfer_send.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId);
 
     electrumClient.close();
     db.close();
-
-    return coin;
 }
 
-const transferReceive = async (walletName) => {
+const transferReceive = async (clientConfig, walletName) => {
     
-    const db = await getDatabase();
+    const db = await getDatabase(clientConfig);
 
-    const electrumClient = await getElectrumClient();
+    const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(electrumClient, db, walletName);
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let received_statechain_ids = await transfer_receive.execute(electrumClient, db, walletName);
+    let received_statechain_ids = await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
 
     electrumClient.close();
     db.close();

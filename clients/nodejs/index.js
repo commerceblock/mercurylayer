@@ -1,7 +1,7 @@
 const { Command } = require('commander');
 const program = new Command();
 
-const ml_lib = require('./ml_lib');
+const mercurynodejslib = require('mercurynodejslib');
 const client_config = require('./client_config');
 
 async function main() {
@@ -18,7 +18,7 @@ async function main() {
     .argument('<name>', 'name of the wallet')
     .action(async (name) => {
 
-      await ml_lib.createWallet(clientConfig, name);
+      await mercurynodejslib.createWallet(clientConfig, name);
 
       console.log(JSON.stringify(
         {
@@ -32,7 +32,7 @@ async function main() {
     .argument('<wallet_name>', 'name of the wallet')
     .action(async (wallet_name) => {
 
-      const token = await ml_lib.newToken(clientConfig, wallet_name);
+      const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
       console.log(JSON.stringify(token, null, 2));
 
     });
@@ -42,7 +42,7 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
     
-        let wallet = await ml_lib.getWalletTokens(clientConfig, wallet_name);
+        let wallet = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
 
         console.log(JSON.stringify(wallet.tokens, null, 2));
 
@@ -54,7 +54,7 @@ async function main() {
     .argument('<amount>', 'amount to deposit')
     .action(async (wallet_name, amount) => {
 
-      const address_info = await ml_lib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
+      const address_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
 
       console.log(JSON.stringify(address_info, null, 2));
     });
@@ -67,7 +67,7 @@ async function main() {
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-       let tx_ids = await ml_lib.broadcastBackupTransaction(clientConfig, wallet_name, statechain_id, to_address, options);
+       let tx_ids = await mercurynodejslib.broadcastBackupTransaction(clientConfig, wallet_name, statechain_id, to_address, options);
 
        console.log(JSON.stringify(tx_ids, null, 2));
     });
@@ -77,7 +77,7 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
-        let coins = await ml_lib.listStatecoins(clientConfig, wallet_name);
+        let coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
         
         console.log(JSON.stringify(coins, null, 2));
     });
@@ -90,7 +90,7 @@ async function main() {
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        const txid = await ml_lib.withdrawCoin(clientConfig, wallet_name, statechain_id, to_address, options);
+        const txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, statechain_id, to_address, options);
 
         console.log(JSON.stringify({
           txid
@@ -103,7 +103,7 @@ async function main() {
       .option('-b, --generate-batch-id', 'optional batch id for the transaction')
       .action(async (wallet_name, options) => {
 
-        let res = await ml_lib.newTransferAddress(clientConfig, wallet_name, options);
+        let res = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, options);
 
         console.log(JSON.stringify(res, null, 2));
     });
@@ -116,7 +116,7 @@ async function main() {
       .option('-b, --batch-id <batch_id>', 'optional batch id for the transaction')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        await ml_lib.transferSend(clientConfig, wallet_name, statechain_id, to_address, options);
+        await mercurynodejslib.transferSend(clientConfig, wallet_name, statechain_id, to_address, options);
 
         console.log(JSON.stringify({
           "result": "Coin has been sent successfully."
@@ -128,7 +128,7 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
-        let received_statechain_ids = await ml_lib.transferReceive(clientConfig, wallet_name);
+        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
 
         console.log(JSON.stringify(received_statechain_ids, null, 2));
     });

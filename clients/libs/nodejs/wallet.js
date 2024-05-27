@@ -2,9 +2,9 @@ const utils = require('./utils');
 
 const mercury_wasm = require('mercury-wasm');
 
-const createWallet = async (name, config, electrumClient) => {
+const createWallet = async (name, clientConfig, electrumClient) => {
 
-    const urlElectrum = config.get('electrumServer');
+    const urlElectrum = clientConfig.electrumServer;
     const urlElectrumObject = new URL(urlElectrum);
 
     const electrumPort = urlElectrumObject.port;
@@ -12,14 +12,14 @@ const createWallet = async (name, config, electrumClient) => {
     const electrumProtocol = urlElectrumObject.protocol.slice(0, -1);
 
     const electrumEndpoint = urlElectrum;
-    const statechainEntityEndpoint = config.get('statechainEntity');
-    const network = config.get('network');
-    const electrumType = config.get('electrumType');
+    const statechainEntityEndpoint = clientConfig.statechainEntity;
+    const network = clientConfig.network;
+    const electrumType = clientConfig.electrumType;
 
     let block_header = await electrumClient.request('blockchain.headers.subscribe');
     let blockheight = block_header.height;
 
-    let serverInfo = await utils.infoConfig(electrumClient);
+    let serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
     let mnemonic = mercury_wasm.generateMnemonic();
 

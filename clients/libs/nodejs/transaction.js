@@ -2,19 +2,18 @@ const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const mercury_wasm = require('mercury-wasm');
 const utils = require('./utils');
-const config = require('config');
 
-const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
+const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
-    let server_pubnonce = await signFirst(coin_nonce.sign_first_request_payload);
+    let server_pubnonce = await signFirst(clientConfig, coin_nonce.sign_first_request_payload);
 
     coin.secret_nonce = coin_nonce.secret_nonce;
     coin.public_nonce = coin_nonce.public_nonce;
     coin.server_public_nonce = server_pubnonce;
     coin.blinding_factor = coin_nonce.blinding_factor;
 
-    const serverInfo = await utils.infoConfig(electrumClient);
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
     let new_block_height = 0;
     if (block_height == null) {
@@ -41,7 +40,7 @@ const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtB
 
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
-    const serverPartialSig = await signSecond(serverPartialSigRequest);
+    const serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
 
     const clientPartialSig = partialSigRequest.client_partial_sig;
     const msg = partialSigRequest.msg;
@@ -57,13 +56,13 @@ const new_transaction = async(electrumClient, coin, toAddress, isWithdrawal, qtB
     return signed_tx;
 }
 
-const signFirst = async (signFirstRequestPayload) => {
+const signFirst = async (clientConfig, signFirstRequestPayload) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "sign/first";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -82,13 +81,13 @@ const signFirst = async (signFirstRequestPayload) => {
     return server_pubnonce_hex;
 }
 
-const signSecond = async (partialSigRequest) => {
+const signSecond = async (clientConfig, partialSigRequest) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "sign/second";
     const url = statechain_entity_url + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 

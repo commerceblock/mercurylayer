@@ -6,12 +6,12 @@ const utils = require('./utils');
 
 const { CoinStatus } = require('./coin_enum');
 
-const execute = async (electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
+const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
 
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(electrumClient);
+        const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
         const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
         feeRate = feeRateSatsPerByte;
     } else {
@@ -57,7 +57,7 @@ const execute = async (electrumClient, db, walletName, statechainId, toAddress, 
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    utils.completeWithdraw(coin.statechain_id, coin.signed_statechain_id);
+    utils.completeWithdraw(clientConfig, coin.statechain_id, coin.signed_statechain_id);
 
     return {
         backupTx: backupTxTxid,
