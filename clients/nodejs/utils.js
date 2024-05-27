@@ -1,11 +1,10 @@
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const bitcoinjs_lib = require("bitcoinjs-lib");
-const config = require('config');
 
-const infoConfig = async (ecl) => {
+const infoConfig = async (clientConfig, ecl) => {
 
-    const statechain_entity_url = config.get('statechainEntity');
+    const statechain_entity_url = clientConfig.statechainEntity;
     const path = "info/config";
 
     let fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
@@ -20,7 +19,7 @@ const infoConfig = async (ecl) => {
 
     // console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -64,12 +63,12 @@ const createActivity = (utxo, amount, action) => {
 
 }
 
-const getStatechainInfo = async (statechainId) => {
+const getStatechainInfo = async (clientConfig, statechainId) => {
 
-    const statechainEntityUrl = config.get('statechainEntity');
+    const statechainEntityUrl = clientConfig.statechainEntity;
     const path = `info/statechain/${statechainId}`;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
@@ -89,13 +88,13 @@ const getStatechainInfo = async (statechainId) => {
     }
 }
 
-const completeWithdraw = async (statechainId, signedStatechainId) => {
+const completeWithdraw = async (clientConfig, statechainId, signedStatechainId) => {
 
-    const statechainEntityUrl = config.get('statechainEntity');
+    const statechainEntityUrl = clientConfig.statechainEntity;
     const path = "withdraw/complete";
     const url = statechainEntityUrl + '/' + path;
 
-    const torProxy = config.get('torProxy');
+    const torProxy = clientConfig.torProxy;
 
     let socksAgent = undefined;
 
