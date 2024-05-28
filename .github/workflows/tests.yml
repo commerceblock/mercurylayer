@@ -1,0 +1,60 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - dev
+      - dev2
+  pull_request:
+    branches:
+      - dev
+      - dev2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:19.03.12
+        options: --privileged
+        ports:
+          - 5432:5432
+          - 18443:18443
+          - 50001:50001
+          - 8080:8080
+          - 18080:18080
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Compose
+        run: |
+          docker-compose -f docker-compose-test.yml up --build -d
+
+      - name: Wait for services to be ready
+        run: |
+          sleep 30 # Adjust time as necessary for services to initialize
+
+      - name: Add Mnemonic
+        run: |
+          docker exec -it $(docker ps -qf "name=enclave") \
+          curl -X POST http://0.0.0.0:18080/add_mnemonic \
+          -H "Content-Type: application/json" \
+          -d '{
+            "mnemonic": "achieve merry hidden lyrics element brand student armed dismiss vague fury avocado grief crazy garlic gallery blur spider bag bless motor crawl surround copper",
+            "password": "b1gHKyfXTzs6",
+            "index": 0,
+            "threshold": 2
+          }'
+
+      - name: Run Integration Tests
+        run: |
+          docker-compose exec mercury /path/to/your/test/script.sh
+
+      - name: Tear Down
+        run: |
+          docker-compose down

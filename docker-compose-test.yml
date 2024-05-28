@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: pgpassword
+    ports:
+      - "5432:5432"
+
+  bitcoin:
+    image: ruimarinho/bitcoin-core:latest
+    command: ["-regtest", "-server", "-rpcallowip=::/0", "-rpcbind=0.0.0.0", "-rpcuser=user", "-rpcpassword=pass"]
+    ports:
+      - "18443:18443"
+    volumes:
+      - bitcoin_data:/root/.bitcoin
+
+  electrumx:
+    image: lukechilds/electrumx:latest
+    environment:
+      DAEMON_URL: http://user:pass@bitcoin:18443/
+      COIN: BitcoinSegwit
+      NET: regtest
+    ports:
+      - "50001:50001"
+
+  enclave-sgx:
+    build:
+      context: enclave
+      dockerfile: Dockerfiles/SIM/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      ENCLAVE_DATABASE_URL: postgres://postgres:pgpassword@postgres:5432/postgres
+      ENCLAVE_PORT: 18080
+      SEED_DIR: ./seed
+
+  mercury:
+    image: commerceblockx/mercury-server:3a686af
+    environment:
+      LOCKBOX: http://enclave-sgx:18080
+      NETWORK: regtest
+      LOCKHEIGHT_INIT: 1000
+      LH_DECREMENT: 10
+      CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  bitcoin_data:
