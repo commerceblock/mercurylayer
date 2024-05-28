@@ -41,7 +41,7 @@ jobs:
 
       - name: Add Mnemonic
         run: |
-          docker exec -it $(docker ps -qf "name=enclave") \
+          docker exec $(docker ps -qf "name=enclave") \
           curl -X POST http://0.0.0.0:18080/add_mnemonic \
           -H "Content-Type: application/json" \
           -d '{
