@@ -2,7 +2,6 @@ const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
 const assert = require('node:assert/strict');
 const { CoinStatus } = require('./coin_enum');
-const c = require('config');
 
 async function lsExample() {
     const { stdout, stderr } = await exec('ls');
