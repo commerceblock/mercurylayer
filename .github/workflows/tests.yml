@@ -73,7 +73,8 @@ jobs:
 
       - name: Run Client-Side Tests
         run: |
-          node clients/libs/nodejs/test_basic_workflow.js
+          cd clients/libs/nodejs
+          node test_basic_workflow.js
 
       - name: Tear Down
         run: |
