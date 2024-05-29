@@ -38,13 +38,13 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
         try {
             let encMessages = await getMsgAddr(clientConfig, authPubkey);
             if (encMessages.length === 0) {
-                console.log("No messages");
+               // console.log("No messages");
                 continue;
             }
 
             encMsgsPerAuthPubkey.set(authPubkey, encMessages);
         } catch (err) {
-            console.error(err);
+            // console.error(err);
         }
     }
 
@@ -67,7 +67,7 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
                         receivedStatechainIds.push(statechainIdAdded);
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                   // console.error(`Error: ${error.message}`);
                     continue;
                 }
 
@@ -84,7 +84,7 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
                         }
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                   // console.error(`Error: ${error.message}`);
                     continue;
                 }
             }

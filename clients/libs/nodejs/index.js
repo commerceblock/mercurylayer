@@ -51,6 +51,10 @@ const createWallet = async (clientConfig, walletName) => {
     electrumClient.close();
     db.close();
 
+<<<<<<< HEAD
+=======
+    return wallet;
+>>>>>>> cb11d64a91166ea76dd5c0afa3a63a657578fdfb
 }
 
 const newToken = async (clientConfig, walletName) => {
@@ -157,10 +161,19 @@ const transferSend = async (clientConfig, walletName, statechainId, toAddress, o
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
+<<<<<<< HEAD
     await transfer_send.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId);
 
     electrumClient.close();
     db.close();
+=======
+    let coin = await transfer_send.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId);
+
+    electrumClient.close();
+    db.close();
+
+    return coin;
+>>>>>>> cb11d64a91166ea76dd5c0afa3a63a657578fdfb
 }
 
 const transferReceive = async (clientConfig, walletName) => {

@@ -18,12 +18,9 @@ async function main() {
     .argument('<name>', 'name of the wallet')
     .action(async (name) => {
 
-      await mercurynodejslib.createWallet(clientConfig, name);
+      let wallet = await mercurynodejslib.createWallet(clientConfig, name);
 
-      console.log(JSON.stringify(
-        {
-          result: `Wallet ${name} has been created successfully.`
-        }, null, 2));
+      console.log(JSON.stringify(wallet, null, 2));
 
     });
 
@@ -42,9 +39,9 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
     
-        let wallet = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
+        let tokens = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
 
-        console.log(JSON.stringify(wallet.tokens, null, 2));
+        console.log(JSON.stringify(tokens, null, 2));
 
     });
 
@@ -116,11 +113,9 @@ async function main() {
       .option('-b, --batch-id <batch_id>', 'optional batch id for the transaction')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        await mercurynodejslib.transferSend(clientConfig, wallet_name, statechain_id, to_address, options);
+        let coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, statechain_id, to_address, options);
 
-        console.log(JSON.stringify({
-          "result": "Coin has been sent successfully."
-        }, null, 2));
+        console.log(JSON.stringify(coin, null, 2));
       });
 
     program.command('transfer-receive')
