@@ -51,9 +51,29 @@ jobs:
             "threshold": 2
           }'
 
-      - name: Run Integration Tests
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install Node.js dependencies
         run: |
-          docker-compose exec mercury /path/to/your/test/script.sh
+          cd clients/nodejs
+          npm install
+
+      - name: Run npm link
+        run: |
+          cd clients/libs/nodejs
+          npm link
+      
+      - name: Link mercurynodejslib
+        run: |
+          cd clients/nodejs
+          npm link mercurynodejslib
+
+      - name: Run Client-Side Tests
+        run: |
+          node clients/libs/nodejs/test_basic_workflow.js
 
       - name: Tear Down
         run: |
