@@ -20,33 +20,33 @@ async function removeDatabase() {
 }
 
 async function createWallet(wallet_name) {
-    const { stdout, stderr } = await exec(`node index.js create-wallet ${wallet_name}`);
+    const { stdout, stderr } = await exec(`node ./index.js create-wallet ${wallet_name}`);
     let wallet = JSON.parse(stdout);
     assert.equal(wallet.name, wallet_name);
     // console.log('wallet:', wallet);
 }
 
 async function newToken(wallet_name) {
-    const { stdout, stderr } = await exec(`node index.js new-token ${wallet_name}`);
+    const { stdout, stderr } = await exec(`node ./index.js new-token ${wallet_name}`);
     let json = JSON.parse(stdout);
     return json;
 }
 
 async function listTokens(wallet_name) {
-    const { stdout, stderr } = await exec(`node index.js list-tokens ${wallet_name}`);
+    const { stdout, stderr } = await exec(`node ./index.js list-tokens ${wallet_name}`);
     let json = JSON.parse(stdout);
     return json;
 }
 
 async function getDepositBitcoinAddress(wallet_name, token_id, amount) {
-    const { stdout, stderr } = await exec(`node index.js new-deposit-address ${wallet_name} ${token_id} ${amount}`);
+    const { stdout, stderr } = await exec(`node ./index.js new-deposit-address ${wallet_name} ${token_id} ${amount}`);
     let json = JSON.parse(stdout);
     return json;
 }
 
 async function listStatecoins(wallet_name) {
     try {
-        const { stdout, stderr } = await exec(`node index.js list-statecoins ${wallet_name}`);
+        const { stdout, stderr } = await exec(`node ./index.js list-statecoins ${wallet_name}`);
         let json = JSON.parse(stdout);
         return json;
     } catch (e) {
@@ -56,31 +56,31 @@ async function listStatecoins(wallet_name) {
 }
 
 async function newTransferAddress(wallet_name) {
-    const { stdout, stderr } = await exec(`node index.js new-transfer-address ${wallet_name}`);
+    const { stdout, stderr } = await exec(`node ./index.js new-transfer-address ${wallet_name}`);
     let json = JSON.parse(stdout);
     return json.transfer_receive;
 }
 
 async function transferSend(wallet_name, statechain_id, to_address) {
-    const { stdout, stderr } = await exec(`node index.js transfer-send ${wallet_name} ${statechain_id} ${to_address}`);
+    const { stdout, stderr } = await exec(`node ./index.js transfer-send ${wallet_name} ${statechain_id} ${to_address}`);
     let json = JSON.parse(stdout);
     return json;
 }
 
 async function transferReceive(wallet_name) {
-    const { stdout, stderr } = await exec(`node index.js transfer-receive ${wallet_name}`);
+    const { stdout, stderr } = await exec(`node ./index.js transfer-receive ${wallet_name}`);
     let json = JSON.parse(stdout);
     return json;
 }
 
 async function withdraw(wallet_name, statechain_id, to_address) {
-    const { stdout, stderr } = await exec(`node index.js withdraw ${wallet_name} ${statechain_id} ${to_address}`);
+    const { stdout, stderr } = await exec(`node ./index.js withdraw ${wallet_name} ${statechain_id} ${to_address}`);
     let json = JSON.parse(stdout);
     return json.txid;
 }
 
 async function broadcastBackupTransaction(wallet_name, statechain_id, to_address) {
-    const { stdout, stderr } = await exec(`node index.js broadcast-backup-transaction ${wallet_name} ${statechain_id} ${to_address}`);
+    const { stdout, stderr } = await exec(`node ./index.js broadcast-backup-transaction ${wallet_name} ${statechain_id} ${to_address}`);
     let json = JSON.parse(stdout);
     return json;
 }
