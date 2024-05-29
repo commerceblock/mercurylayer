@@ -56,9 +56,14 @@ jobs:
         with:
           node-version: '20.12.2'
 
-      - name: Install Node.js dependencies
+      - name: Install Node.js dependencies for client
         run: |
           cd clients/nodejs
+          npm install
+
+      - name: Install Node.js dependencies for lib
+        run: |
+          cd clients/libs/nodejs
           npm install
 
       - name: Run npm link
@@ -74,7 +79,7 @@ jobs:
       - name: Run Client-Side Tests
         run: |
           cd clients/libs/nodejs
-          node index.js create-wallet w1
+          node test_basic_workflow.js
 
       - name: Tear Down
         run: |
