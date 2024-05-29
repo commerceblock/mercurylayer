@@ -74,7 +74,7 @@ jobs:
       - name: Run Client-Side Tests
         run: |
           cd clients/libs/nodejs
-          node test_basic_workflow.js
+          node index.js create-wallet w1
 
       - name: Tear Down
         run: |
