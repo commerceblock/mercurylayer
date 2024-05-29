@@ -51,10 +51,7 @@ const createWallet = async (clientConfig, walletName) => {
     electrumClient.close();
     db.close();
 
-<<<<<<< HEAD
-=======
     return wallet;
->>>>>>> cb11d64a91166ea76dd5c0afa3a63a657578fdfb
 }
 
 const newToken = async (clientConfig, walletName) => {
