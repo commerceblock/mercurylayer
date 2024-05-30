@@ -59,11 +59,11 @@ jobs:
             sleep 5
           done
           # Check Enclave
-          until nc -z -v -w30 127.0.0.1 18080
-          do
-            echo "Waiting for Enclave..."
-            sleep 5
-          done
+          # until nc -z -v -w30 127.0.0.1 18080
+          # do
+          #   echo "Waiting for Enclave..."
+          #   sleep 5
+          # done
           # Check Mercury
           until nc -z -v -w30 0.0.0.0 8000
           do
