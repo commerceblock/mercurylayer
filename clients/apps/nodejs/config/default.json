@@ -1,5 +1,5 @@
 {
-    "statechainEntity": "http://0.0.0.0:8000",
+    "statechainEntity": "http://api.mercurylayer.com/info/config",
     "__statechainEntity": "http://j23wevaeducxuy3zahd6bpn4x76cymwz2j3bdixv7ow4awjrg5p6jaid.onion",
     "_statechainEntity": "http://45.76.136.11:8500/",
     "__electrumServer": "tcp://signet-electrumx.wakiyamap.dev:50001",

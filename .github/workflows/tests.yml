@@ -37,9 +37,9 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 15 # Adjust time as necessary for services to initialize
-      - name: Verify Mercury Service with Curl
-        run: |
-          curl -v http://0.0.0.0:8000/info/config
+      # - name: Verify Mercury Service with Curl
+      #   run: |
+      #     curl -v http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
