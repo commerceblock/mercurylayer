@@ -64,11 +64,11 @@ jobs:
       - name: Run npm link
         run: |
           cd clients/libs/nodejs
-          npm link
+          npm link --save
       
       - name: Link mercurynodejslib
         run: |
-          cd clients/libs/nodejs
+          cd clients/apps/nodejs
           npm link mercurynodejslib
       - name: Run Client-Side Tests
         run: |
