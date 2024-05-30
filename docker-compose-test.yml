@@ -45,7 +45,7 @@ services:
       LH_DECREMENT: 10
       CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       - postgres
 

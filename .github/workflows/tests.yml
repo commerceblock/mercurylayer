@@ -22,7 +22,7 @@ jobs:
           - 5432:5432
           - 18443:18443
           - 50001:50001
-          - 8080:8080
+          - 8000:8000
           - 18080:18080
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
