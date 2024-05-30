@@ -37,7 +37,7 @@ jobs:
 
       - name: Wait for services to be ready
         run: |
-          sleep 30 # Adjust time as necessary for services to initialize
+          sleep 5 # Adjust time as necessary for services to initialize
 
       - name: Add Mnemonic
         run: |
@@ -78,8 +78,8 @@ jobs:
 
       - name: Run Client-Side Tests
         run: |
-          cd clients/libs/nodejs
-          node test_basic_workflow.js
+          cd clients/apps/nodejs
+          node test_basic_workflow2.js
 
       - name: Tear Down
         run: |
