@@ -53,6 +53,10 @@ jobs:
         with:
           node-version: '20.12.2'
 
+      - name: Install Node.js dependencies for client
+        run: |
+          cd clients/apps/nodejs
+          npm install
       - name: Install Node.js dependencies for lib
         run: |
           cd clients/libs/nodejs
@@ -64,7 +68,7 @@ jobs:
       
       - name: Link mercurynodejslib
         run: |
-          cd clients/nodejs
+          cd clients/libs/nodejs
           npm link mercurynodejslib
       - name: Run Client-Side Tests
         run: |
