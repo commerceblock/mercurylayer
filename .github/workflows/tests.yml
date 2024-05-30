@@ -37,39 +37,9 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 15 # Adjust time as necessary for services to initialize
-      - name: Health check for services
+      - name: Verify Mercury Service with Curl
         run: |
-          echo "Checking if services are up and running..."
-          # Check PostgreSQL
-          until nc -z -v -w30 127.0.0.1 5432
-          do
-            echo "Waiting for PostgreSQL..."
-            sleep 5
-          done
-          # Check Bitcoin
-          until nc -z -v -w30 127.0.0.1 18443
-          do
-            echo "Waiting for Bitcoin..."
-            sleep 5
-          done
-          # Check ElectrumX
-          until nc -z -v -w30 127.0.0.1 50001
-          do
-            echo "Waiting for ElectrumX..."
-            sleep 5
-          done
-          # Check Enclave
-          # until nc -z -v -w30 127.0.0.1 18080
-          # do
-          #   echo "Waiting for Enclave..."
-          #   sleep 5
-          # done
-          # Check Mercury
-          until nc -z -v -w30 0.0.0.0 8000
-          do
-            echo "Waiting for Mercury..."
-            sleep 5
-          done
+          docker exec $(docker ps -qf "name=mercury-server") curl -v http://0.0.0.1:8000/info/config
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
