@@ -36,10 +36,14 @@ jobs:
           docker-compose -f docker-compose-test.yml up --build -d
       - name: Wait for services to be ready
         run: |
-          sleep 15 # Adjust time as necessary for services to initialize
-      # - name: Verify Mercury Service with Curl
-      #   run: |
-      #     curl -v http://0.0.0.0:8000/info/config
+          sleep 120 # Adjust time as necessary for services to initialize
+      - name: Check Mercury Service Logs
+        run: |
+          docker-compose logs $(docker ps -qf "name=commerceblockx/mercury-server")
+
+      - name: Verify Mercury Service with Curl
+        run: |
+          curl -v http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
