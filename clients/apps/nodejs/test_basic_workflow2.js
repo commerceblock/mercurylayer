@@ -93,6 +93,80 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
 }
 
+async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name) {
+    const amount = 10000;
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
+    const tokenId = token.token_id;
+
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+
+    deposit_info["amount"] = amount;
+    console.log("deposit_coin: ", deposit_info);
+
+    let coin = undefined;
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    let block_header = client_config.electrum_client.block_headers_subscribe_raw();
+    let currentBlockHeight = block_header.height;
+    console.log("Current block height: ", currentBlockHeight);
+
+    while (coin.locktime < currentBlockHeight) {
+        let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
+
+        console.log("transfer_address: ", transfer_address);
+
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
+
+        console.log("coin transferSend: ", coin);
+
+        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+
+        console.log("received_statechain_ids: ", received_statechain_ids);
+
+        assert(received_statechain_ids.length > 0);
+        assert(received_statechain_ids[0] == coin.statechain_id);
+
+        // Fetch the coin again to get the updated locktime
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
+        coin = list_coins.find(c => c.statechain_id === coin.statechain_id);
+
+        console.log("Updated coin: ", coin);
+    }
+
+    let withdraw_address = "tb1qwrujs6f4gyexsextpf9p50smjtht7p7ypknteu";
+
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
+
+    console.log("txid: ", txid);
+}
+
 async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name) {
 
     const amount = 10000;
@@ -169,6 +243,21 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
     await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
 
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
+
+    await removeDatabase();
+})();
+
+// Deposit, iterative self transfer
+(async () => {
+
+    const clientConfig = client_config.load();
+
+    let wallet_1_name = "w1";
+
+    await removeDatabase();
+    await createWallet(clientConfig, wallet_1_name);
+
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
 
     await removeDatabase();
 })();
