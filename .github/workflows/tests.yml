@@ -39,7 +39,8 @@ jobs:
           sleep 30 # Adjust time as necessary for services to initialize
       - name: Verify Mercury Service with Curl
         run: |
-          container_id=$(docker ps -qf "ancestor=commerceblockx/mercury-server")
+          container_id=$(docker ps -qf "name=mercury")
+           echo "Container ID: $container_id"
           docker exec $container_id curl http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
         run: |
