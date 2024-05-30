@@ -39,7 +39,7 @@ jobs:
           sleep 15 # Adjust time as necessary for services to initialize
       - name: Verify Mercury Service with Curl
         run: |
-          docker exec $(docker ps -qf "name=mercury-server") curl -v http://0.0.0.1:8000/info/config
+          docker exec $(docker ps -qf "name=mercury-server") curl -v http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
