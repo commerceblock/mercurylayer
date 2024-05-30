@@ -53,10 +53,6 @@ jobs:
         with:
           node-version: '20.12.2'
 
-      - name: Install Node.js dependencies for client
-        run: |
-          cd clients/nodejs
-          npm install
       - name: Install Node.js dependencies for lib
         run: |
           cd clients/libs/nodejs
