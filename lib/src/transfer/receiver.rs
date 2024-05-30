@@ -95,7 +95,7 @@ pub struct NewKeyInfo {
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn duplicate_coin_to_initialized_state(wallet: &Wallet, auth_pubkey: &str) -> Result<Coin, MercuryError> {
-    // wallet.coins.iter().filter(|coin| coin.status == CoinStatus::INITIALISED).cloned().collect()
+
     let coin = wallet.coins.iter().find(|coin| coin.auth_pubkey == auth_pubkey.to_string());
 
     if coin.is_none() {

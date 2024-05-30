@@ -26,7 +26,6 @@ pub enum MercuryError {
  */
 
 use bitcoin::{bip32, sighash::SighashTypeParseError};
-use ecies::SecpError;
 use secp256k1_zkp::{musig::{MusigNonceGenError, MusigSignError, ParseError}, scalar::OutOfRangeError, UpstreamError};
 
 // TODO: UniFFI apparently does not support adding fields to the error enum variants.
@@ -192,11 +191,5 @@ impl From<OutOfRangeError> for MercuryError {
 impl From<serde_json::Error> for MercuryError {
     fn from(_: serde_json::Error) -> Self {
         MercuryError::SerdeJsonError
-    }
-}
-
-impl From<SecpError> for MercuryError {
-    fn from(_: SecpError) -> Self {
-        MercuryError::SecpError
     }
 }

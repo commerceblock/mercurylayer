@@ -90,7 +90,13 @@ pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin
     let msg = transfer_msg_json_str.as_bytes();
 
     let serialized_new_auth_pubkey = &recipient_auth_pubkey.serialize();
-    let encrypted_msg = ecies::encrypt(serialized_new_auth_pubkey, msg)?;
+    let encrypted_msg = ecies::encrypt(serialized_new_auth_pubkey, msg);
+
+    if encrypted_msg.is_err() {
+        return Err(MercuryError::SecpError);
+    }
+
+    let encrypted_msg = encrypted_msg.unwrap();
 
     let encrypted_msg_string = hex::encode(&encrypted_msg);
 
