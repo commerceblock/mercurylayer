@@ -37,6 +37,9 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 30 # Adjust time as necessary for services to initialize
+      - name: List all running containers
+        run: |
+          docker ps -a
       - name: Verify Mercury Service with Curl
         run: |
           container_id=$(docker ps -qf "ancestor=commerceblockx/mercury-server" -q | head -n 1)
