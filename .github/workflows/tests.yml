@@ -61,6 +61,11 @@ jobs:
           container_id=$(docker ps -qf "name=mercurylayer_electrumx_1")
           echo "Container ID: $container_id"
           docker logs $container_id
+      - name: Verify Enclave Service with Curl
+        run: |
+          container_id=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
+          echo "Container ID: $container_id"
+          docker logs $container_id
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
