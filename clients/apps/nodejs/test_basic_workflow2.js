@@ -248,16 +248,16 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 })();
 
 // Deposit, iterative self transfer
-// (async () => {
+(async () => {
 
-//     const clientConfig = client_config.load();
+    const clientConfig = client_config.load();
 
-//     let wallet_1_name = "w1";
+    let wallet_name = "w3";
 
-//     await removeDatabase();
-//     await createWallet(clientConfig, wallet_1_name);
+    await removeDatabase();
+    await createWallet(clientConfig, wallet_name);
 
-//     await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name);
 
-//     await removeDatabase();
-// })();
+    await removeDatabase();
+})();
