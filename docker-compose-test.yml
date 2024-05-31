@@ -10,7 +10,15 @@ services:
 
   bitcoin:
     image: ruimarinho/bitcoin-core:latest
-    command: ["-regtest", "-server", "-rpcallowip=::/0", "-rpcbind=0.0.0.0", "-rpcuser=user", "-rpcpassword=pass"]
+    command:
+      -printtoconsole
+      -regtest=1
+      -rpcallowip=0.0.0.0/0
+      -rpcbind=0.0.0.0
+      -rpcuser=user
+      -rpcpassword=pass
+      -txindex=1
+      -server=1
     ports:
       - "18443:18443"
     volumes:
