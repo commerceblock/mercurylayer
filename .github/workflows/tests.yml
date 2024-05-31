@@ -37,7 +37,7 @@ jobs:
           docker-compose -f docker-compose-test.yml up --build -d
       - name: Wait for services to be ready
         run: |
-          sleep 100 # Adjust time as necessary for services to initialize
+          sleep 90 # Adjust time as necessary for services to initialize
       - name: Verify Mercury Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
@@ -51,6 +51,11 @@ jobs:
             "token_id": "616f505d-b94c-45cf-b251-833e4fa14fa1",
             "signed_token_id": "7401ac1f792f56d5357997f9846b5045656758f4afece4c51b73472bd338e97da3d167733502cf62d77c1169bd89bfaa0c9c5fcc26d75190e7a3a3fd2f83ae0a"
           }'
+      - name: Verify ElectrumX Service with Curl
+        run: |
+          container_id=$(docker ps -qf "name=mercurylayer_electrumx_1")
+          echo "Container ID: $container_id"
+          docker logs $container_id
       - name: Add Mnemonic
         run: |
           docker exec $(docker ps -qf "name=enclave") \
