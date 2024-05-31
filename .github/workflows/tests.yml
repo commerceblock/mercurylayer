@@ -42,7 +42,7 @@ jobs:
           docker ps -a
       - name: Verify Mercury Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=commerceblockx/mercury-server:3a686af")
+          container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
            echo "Container ID: $container_id"
           docker exec $container_id curl http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
