@@ -37,7 +37,7 @@ jobs:
           docker-compose -f docker-compose-test.yml up --build -d
       - name: Wait for services to be ready
         run: |
-          sleep 90 # Adjust time as necessary for services to initialize
+          sleep 200 # Adjust time as necessary for services to initialize
       - name: Verify Mercury Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
