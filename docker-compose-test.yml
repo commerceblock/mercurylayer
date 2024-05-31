@@ -23,6 +23,7 @@ services:
       COIN: BitcoinSegwit
       NET: regtest
     ports:
+      - "50002:50002"
       - "50001:50001"
 
   enclave-sgx:
