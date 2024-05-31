@@ -44,6 +44,7 @@ jobs:
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
            echo "Container ID: $container_id"
+          docker logs $container_id
           docker exec $container_id curl http://0.0.0.0:8000/info/config
       - name: Add Mnemonic
         run: |
