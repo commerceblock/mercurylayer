@@ -44,6 +44,8 @@ services:
       ENCLAVE_DATABASE_URL: postgres://postgres:pgpassword@postgres:5432/postgres
       ENCLAVE_PORT: 18080
       SEED_DIR: ./seed
+    ports:
+      - "18080:18080"
 
   mercury:
     image: commerceblockx/mercury-server:3a686af
