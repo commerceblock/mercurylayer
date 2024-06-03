@@ -77,6 +77,11 @@ jobs:
             "index": 0,
             "threshold": 2
           }'
+      - name: Wait for setting up mnemonic
+        run: |
+          sleep 10 # Adjust time as necessary for services to initialize
+      - name: Get Public Key
+        run: |
           docker exec $(docker ps -qf "name=enclave") \
           curl -X POST http://0.0.0.0:18080/get_public_key \
           -H "Content-Type: application/json" \
