@@ -50,7 +50,7 @@ services:
   mercury:
     image: commerceblockx/mercury-server:3a686af
     environment:
-      LOCKBOX: http://enclave-sgx:18080
+      LOCKBOX: http://209.250.247.84:18080
       NETWORK: regtest
       LOCKHEIGHT_INIT: 1000
       LH_DECREMENT: 10

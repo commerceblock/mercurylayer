@@ -228,6 +228,63 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
     console.log("txid: ", txid);
 }
 
+async function depositAndRepeatSend(clientConfig, wallet_1_name) {
+    const amount = 10000;
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+
+    deposit_info["amount"] = amount;
+    console.log("deposit_coin: ", deposit_info);
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    for (let i = 0; i < 1000; i++) {
+        let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+
+        assert(received_statechain_ids.length > 0);
+        assert(received_statechain_ids[0] == coin.statechain_id);
+    }
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+}
 
 (async () => {
 
@@ -258,6 +315,24 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 //     await createWallet(clientConfig, wallet_name);
 
 //     await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name);
+
+//     await removeDatabase();
+// })();
+
+// Deposit, repeat send
+// (async () => {
+//     const clientConfig = client_config.load();
+
+//     let wallet_1_name = "w1";
+//     let wallet_2_name = "w2";
+
+//     await removeDatabase();
+//     await createWallet(clientConfig, wallet_1_name);
+//     await createWallet(clientConfig, wallet_2_name);
+
+//     await depositAndRepeatSend(clientConfig, wallet_1_name);
+
+//     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 //     await removeDatabase();
 // })();
