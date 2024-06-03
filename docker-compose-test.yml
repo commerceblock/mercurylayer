@@ -36,8 +36,8 @@ services:
 
   enclave-sgx:
     build:
-      context: .
-      dockerfile: ./enclave/Dockerfiles/SIM/Dockerfile
+      context: enclave
+      dockerfile: Dockerfiles/SIM/Dockerfile
     depends_on:
       - postgres
     environment:
