@@ -48,7 +48,9 @@ services:
       - "18080:18080"
 
   mercury:
-    image: commerceblockx/mercury-server:3a686af
+    build:
+      context: server
+      dockerfile: Dockerfile
     environment:
       LOCKBOX: http://mercurylayer_enclave-sgx_1:18080
       NETWORK: regtest
