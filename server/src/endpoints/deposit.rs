@@ -148,7 +148,8 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
         Err(err) => {
             let response_body = json!({
                 "error": "Internal Server Error",
-                "message": err.to_string()
+                "message": err.to_string(),
+                "payload": statechain_id.clone(),
             });
         
             return status::Custom(Status::InternalServerError, Json(response_body));
