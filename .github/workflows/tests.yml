@@ -66,20 +66,6 @@ jobs:
           container_id=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
           echo "Container ID: $container_id"
           docker logs $container_id
-      - name: Add Mnemonic
-        run: |
-          docker exec $(docker ps -qf "name=enclave") \
-          curl -X POST http://0.0.0.0:18080/add_mnemonic \
-          -H "Content-Type: application/json" \
-          -d '{
-            "mnemonic": "achieve merry hidden lyrics element brand student armed dismiss vague fury avocado grief crazy garlic gallery blur spider bag bless motor crawl surround copper",
-            "password": "b1gHKyfXTzs6",
-            "index": 0,
-            "threshold": 2
-          }'
-      - name: Wait for setting up mnemonic
-        run: |
-          sleep 10 # Adjust time as necessary for services to initialize
       - name: Get Public Key
         run: |
           docker exec $(docker ps -qf "name=enclave") \

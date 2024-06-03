@@ -45,6 +45,13 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
 
+    const amountInBtc = 0.0001;
+
+    // Sending Bitcoin using bitcoin-cli
+    const sendBitcoinCommand = `bitcoin-cli sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+    const execSync = require('child_process').execSync;
+    execSync(sendBitcoinCommand);
+
     let coin = undefined;
 
     while (!coin) {
