@@ -36,8 +36,8 @@ services:
 
   enclave-sgx:
     build:
-      context: enclave
-      dockerfile: Dockerfiles/SIM/Dockerfile
+      context: .
+      dockerfile: ./enclave/Dockerfiles/SIM/Dockerfile
     depends_on:
       - postgres
     environment:
@@ -49,8 +49,8 @@ services:
 
   mercury:
     build:
-      context: server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./server/Dockerfile
     environment:
       LOCKBOX: http://mercurylayer_enclave-sgx_1:18080
       NETWORK: regtest
