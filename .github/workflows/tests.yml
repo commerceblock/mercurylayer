@@ -86,6 +86,7 @@ jobs:
           curl -X POST http://0.0.0.0:18080/get_public_key \
           -H "Content-Type: application/json" \
           -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
+          docker logs $(docker ps -qf "name=enclave")
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -112,6 +113,13 @@ jobs:
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
+      - name: Get Public Key
+        run: |
+          docker exec $(docker ps -qf "name=enclave") \
+          curl -X POST http://0.0.0.0:18080/get_public_key \
+          -H "Content-Type: application/json" \
+          -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
+          docker logs $(docker ps -qf "name=enclave")
       - name: Tear Down
         run: |
           docker-compose down
