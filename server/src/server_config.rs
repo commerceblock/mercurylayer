@@ -67,7 +67,7 @@ impl ServerConfig {
         };
 
         ServerConfig {
-            lockbox: Some(get_env_or_config("lockbox", "LOCKBOX_URL")),
+            lockbox: Some(get_env_or_config("lockbox", "LOCKBOX")),
             network: get_env_or_config("network", "BITCOIN_NETWORK"),
             lockheight_init: get_env_or_config("lockheight_init", "LOCKHEIGHT_INIT").parse::<u32>().unwrap(),
             lh_decrement: get_env_or_config("lh_decrement", "LH_DECREMENT").parse::<u32>().unwrap(),
