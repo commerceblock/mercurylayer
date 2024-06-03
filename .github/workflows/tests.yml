@@ -87,6 +87,22 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
           docker logs $(docker ps -qf "name=enclave")
+      - name: Check connectivity between containers
+        run: |
+          # Get container IDs
+          enclave_container=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
+          mercury_container=$(docker ps -qf "name=mercurylayer_mercury_1")
+          
+          # Check if mercurylayer_mercury_1 can reach mercurylayer_enclave-sgx_1
+          docker exec $mercury_container curl -v http://mercurylayer_enclave-sgx_1:18080/get_public_key \
+            -H "Content-Type: application/json" \
+            -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
+          
+          # Alternatively, using IP address if service name resolution fails
+          enclave_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $enclave_container)
+          docker exec $mercury_container curl -v http://$enclave_ip:18080/get_public_key \
+            -H "Content-Type: application/json" \
+            -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -113,13 +129,6 @@ jobs:
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
-      - name: Get Public Key
-        run: |
-          docker exec $(docker ps -qf "name=enclave") \
-          curl -X POST http://0.0.0.0:18080/get_public_key \
-          -H "Content-Type: application/json" \
-          -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
-          docker logs $(docker ps -qf "name=enclave")
       - name: Tear Down
         run: |
           docker-compose down
