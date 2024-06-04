@@ -52,7 +52,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 1 "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
         console.log(`Generated a block`);
     } catch (error) {
