@@ -264,6 +264,16 @@ export function latestBackuptxPaysToUserpubkey(backup_transactions: any, coin: a
 */
 export function duplicateCoinToInitializedState(walletJson: any, authPubkey: string): any;
 /**
+* @param {any} transfer_msg
+* @param {any} statechain_info
+* @param {string} tx0_hex
+* @param {number} fee_rate_tolerance
+* @param {number} current_fee_rate_sats_per_byte
+* @param {number} interval
+* @returns {any}
+*/
+export function validateSignatureScheme(transfer_msg: any, statechain_info: any, tx0_hex: string, fee_rate_tolerance: number, current_fee_rate_sats_per_byte: number, interval: number): any;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;
@@ -312,6 +322,7 @@ export interface InitOutput {
   readonly isEnclavePubkeyPartOfCoin: (a: number, b: number, c: number) => number;
   readonly latestBackuptxPaysToUserpubkey: (a: number, b: number, c: number, d: number) => number;
   readonly duplicateCoinToInitializedState: (a: number, b: number, c: number) => number;
+  readonly validateSignatureScheme: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => number;
   readonly getMockWallet: () => number;
   readonly rustsecp256k1zkp_v0_8_1_default_illegal_callback_fn: (a: number, b: number) => void;
   readonly rustsecp256k1zkp_v0_8_1_default_error_callback_fn: (a: number, b: number) => void;
