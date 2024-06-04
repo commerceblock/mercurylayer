@@ -26,7 +26,7 @@ impl Default for ServerConfig {
             network: String::from("regtest"),
             lockheight_init: 10000,
             lh_decrement: 100,
-            connection_string: String::from("postgresql://postgres:postgres@localhost/mercury"),
+            connection_string: String::from("postgres://postgres:postgres@db_server:5432/mercury"),
             batch_timeout: 120,
         }
     }
