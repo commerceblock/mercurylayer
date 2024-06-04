@@ -160,7 +160,7 @@ class CoinUpdate() {
 
                 coin.status = CoinStatus.UNCONFIRMED
 
-                if (confirmations > clientConfig.confirmationTarget.toUInt()) {
+                if (confirmations >= clientConfig.confirmationTarget.toUInt()) {
                     coin.status = CoinStatus.CONFIRMED
                 }
             }

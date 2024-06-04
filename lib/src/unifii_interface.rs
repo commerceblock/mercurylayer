@@ -96,3 +96,16 @@ pub fn fii_create_transfer_receiver_request_payload(statechain_info: &Statechain
     let  transfer_msg = ffi_to_transfer_msg(ffi_transfer_msg.clone())?;
     crate::transfer::receiver::create_transfer_receiver_request_payload(statechain_info, &transfer_msg, coin)
 }
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn ffi_validate_signature_scheme(
+    ffi_transfer_msg: &FFITransferMsg, 
+    statechain_info: &StatechainInfoResponsePayload, 
+    tx0_hex: &str, 
+    fee_rate_tolerance: u32, 
+    current_fee_rate_sats_per_byte: u32,
+    interval: u32) -> Result<u32, MercuryError> {
+
+    let transfer_msg = ffi_to_transfer_msg(ffi_transfer_msg.clone())?;
+    crate::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval)
+}

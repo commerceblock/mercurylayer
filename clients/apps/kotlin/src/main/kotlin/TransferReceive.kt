@@ -189,42 +189,14 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
 
         val feeRateTolerance = appContext.clientConfig.feeRateTolerance.toUInt()
 
-        var previousLockTime: UInt? = null
-
-        var sigSchemeValidation = true
-
-        for ((index, backupTx) in transferMsg.backupTransactions.withIndex()) {
-
-            try {
-                verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte)
-
-                val currentStatechainInfo = statechainInfo.statechainInfo[index]
-
-                verifyBlindedMusigScheme(
-                    backupTx, tx0Hex, currentStatechainInfo
-                )
-            }
-            catch (e: MercuryException) {
-                println("Invalid signature, ${e.toString()}")
-                sigSchemeValidation = false
-                break
-            }
-
-            if (previousLockTime != null) {
-                val currentLockTime = getBlockheight(backupTx)
-                if (previousLockTime - currentLockTime != serverInfo.interval) {
-                    println("Interval is not correct")
-                    sigSchemeValidation = false
-                    break
-                }
-            }
-
-            previousLockTime = getBlockheight(backupTx)
-        }
-
-        if (!sigSchemeValidation) {
-            throw Exception("Signature scheme validation failed")
-        }
+        val previousLockTime: UInt = ffiValidateSignatureScheme(
+            transferMsg,
+            statechainInfo,
+            tx0Hex,
+            feeRateTolerance,
+            currentFeeRateSatsPerByte,
+            serverInfo.interval
+        )
 
         val transferReceiverRequestPayload = fiiCreateTransferReceiverRequestPayload(statechainInfo, transferMsg, coin)
 
