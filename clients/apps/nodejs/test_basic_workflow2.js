@@ -164,7 +164,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
     console.log("coin: ", coin);
 
-    const electrumClient = await getElectrumClient(clientConfig);
+    const electrumClient = await mercurynodejslib.getElectrumClient(clientConfig);
 
     let block_header = await electrumClient.request('blockchain.headers.subscribe');
     let currentBlockHeight = block_header.height;

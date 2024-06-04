@@ -196,5 +196,6 @@ module.exports = {
     withdrawCoin, 
     newTransferAddress, 
     transferSend,
-    transferReceive
+    transferReceive,
+    getElectrumClient
 };
