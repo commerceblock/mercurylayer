@@ -61,7 +61,7 @@ jobs:
           address=$(docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass getnewaddress $wallet_name)
           echo "New Wallet Address: $address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 101 "$address"
-          docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001 -rpcfee=0.00001
+          docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001 -rpcfee=0.001
       - name: Verify ElectrumX Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_electrumx_1")
