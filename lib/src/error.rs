@@ -78,6 +78,8 @@ pub enum MercuryError {
     NoX1Pub,
     NoAggregatedPubkeyError,
     CoinNotFound,
+    SignatureSchemeValidationError,
+    NoPreviousLockTimeError,
 }
 
 impl core::fmt::Display for MercuryError {

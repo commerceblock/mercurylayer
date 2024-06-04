@@ -1,4 +1,4 @@
-use config::{Config as ConfigRs, Environment, File};
+use config::{Config as ConfigRs, File};
 use serde::{Serialize, Deserialize};
 use std::env;
 
