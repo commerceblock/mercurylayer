@@ -6,8 +6,9 @@ const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const client_config = require('./client_config');
 
 async function removeDatabase() {
-    try { 
-        const { stdout, stderr } = await exec(`rm ../../apps/nodejs/${client_config.databaseFile}`);
+    try {
+        const clientConfig = client_config.load(); 
+        const { stdout, stderr } = await exec(`rm ../../apps/nodejs/${clientConfig.databaseFile}`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
