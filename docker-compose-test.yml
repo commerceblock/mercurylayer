@@ -19,6 +19,7 @@ services:
       -rpcpassword=pass
       -txindex=1
       -server=1
+      -fallbackfee=0.0001
     ports:
       - "18443:18443"
     volumes:
