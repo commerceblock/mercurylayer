@@ -383,8 +383,8 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 (async () => {
     const clientConfig = client_config.load();
 
-    let wallet_1_name = "w1";
-    let wallet_2_name = "w2";
+    let wallet_1_name = "w4";
+    let wallet_2_name = "w5";
 
     await removeDatabase();
     await createWallet(clientConfig, wallet_1_name);
