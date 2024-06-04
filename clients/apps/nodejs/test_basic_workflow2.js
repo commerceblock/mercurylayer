@@ -50,7 +50,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
     // Sending Bitcoin using bitcoin-cli
     try {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        execSync(sendBitcoinCommand);
+        exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
