@@ -164,7 +164,9 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
     console.log("coin: ", coin);
 
-    let block_header = client_config.electrum_client.block_headers_subscribe_raw();
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    let block_header = await electrumClient.request('blockchain.headers.subscribe');
     let currentBlockHeight = block_header.height;
     console.log("Current block height: ", currentBlockHeight);
 

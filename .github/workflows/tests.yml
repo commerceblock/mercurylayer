@@ -37,7 +37,7 @@ jobs:
           docker-compose -f docker-compose-test.yml up --build -d
       - name: Wait for services to be ready
         run: |
-          sleep 75 # Adjust time as necessary for services to initialize
+          sleep 80 # Adjust time as necessary for services to initialize
       - name: Verify Bitcoin core Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_bitcoin_1")
