@@ -7,7 +7,7 @@ const client_config = require('./client_config');
 
 async function removeDatabase() {
     try { 
-        const { stdout, stderr } = await exec('rm wallet.db');
+        const { stdout, stderr } = await exec(`rm ../../apps/nodejs/${client_config.databaseFile}`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
@@ -363,7 +363,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     // Deposit, iterative self transfer
     await removeDatabase();
     await createWallet(clientConfig, wallet_1_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
     await removeDatabase();
 
     // Deposit, repeat send
