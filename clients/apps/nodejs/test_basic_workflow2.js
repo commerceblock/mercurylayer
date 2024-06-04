@@ -125,6 +125,21 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
 
+    const amountInBtc = 0.0001;
+
+    // Sending Bitcoin using bitcoin-cli
+    try {
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        exec(sendBitcoinCommand);
+        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        exec(generateBlockCommand);
+        console.log(`Generated a block`);
+    } catch (error) {
+        console.error('Error sending Bitcoin:', error.message);
+        return;
+    }
+
     let coin = undefined;
 
     while (!coin) {
@@ -175,7 +190,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
         console.log("Updated coin: ", coin);
     }
 
-    let withdraw_address = "tb1qwrujs6f4gyexsextpf9p50smjtht7p7ypknteu";
+    let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
     let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
 
@@ -199,6 +214,21 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
+
+    const amountInBtc = 0.0001;
+
+    // Sending Bitcoin using bitcoin-cli
+    try {
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        exec(sendBitcoinCommand);
+        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        exec(generateBlockCommand);
+        console.log(`Generated a block`);
+    } catch (error) {
+        console.error('Error sending Bitcoin:', error.message);
+        return;
+    }
 
     let coin = undefined;
 
@@ -236,7 +266,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
 
-    let withdraw_address = "tb1qwrujs6f4gyexsextpf9p50smjtht7p7ypknteu";
+    let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
     let txid = await mercurynodejslib.broadcastBackupTransaction(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null);
 
@@ -258,6 +288,21 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
+
+    const amountInBtc = 0.0001;
+
+    // Sending Bitcoin using bitcoin-cli
+    try {
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        exec(sendBitcoinCommand);
+        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        exec(generateBlockCommand);
+        console.log(`Generated a block`);
+    } catch (error) {
+        console.error('Error sending Bitcoin:', error.message);
+        return;
+    }
 
     let coin = undefined;
 
