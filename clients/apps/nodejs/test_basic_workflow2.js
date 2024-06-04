@@ -100,7 +100,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
         assert(received_statechain_ids[0] == coin.statechain_id);
     }
 
-    let withdraw_address = "tb1qwrujs6f4gyexsextpf9p50smjtht7p7ypknteu";
+    let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
     let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
 
