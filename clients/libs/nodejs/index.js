@@ -18,6 +18,9 @@ const wallet_manager = require('./wallet');
 
 const getDatabase = async (clientConfig) => {
     const databaseFile = clientConfig.databaseFile;
+    const absolutePath = path.resolve(databaseFile);
+    console.log(`Database file will be created at: ${absolutePath}`);
+
     const db = new sqlite3.Database(databaseFile);
     await sqlite_manager.createTables(db);
     return db;
