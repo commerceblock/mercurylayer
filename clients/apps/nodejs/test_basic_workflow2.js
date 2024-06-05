@@ -361,17 +361,17 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 
-    // // Deposit, iterative self transfer
-    let wallet_3_name = "w3";
-    await createWallet(clientConfig, wallet_3_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_3_name);
-
-
     // Deposit, repeat send
+    let wallet_3_name = "w3";
     let wallet_4_name = "w4";
-    let wallet_5_name = "w5";
+    await createWallet(clientConfig, wallet_3_name);
     await createWallet(clientConfig, wallet_4_name);
+    await depositAndRepeatSend(clientConfig, wallet_3_name);
+    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
+
+
+    // Deposit, iterative self transfer
+    let wallet_5_name = "w5";
     await createWallet(clientConfig, wallet_5_name);
-    await depositAndRepeatSend(clientConfig, wallet_4_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_4_name, wallet_5_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_5_name);
 })();
