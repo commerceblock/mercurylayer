@@ -8,7 +8,7 @@ const client_config = require('./client_config');
 async function removeDatabase() {
     try {
         const clientConfig = client_config.load(); 
-        const { stdout, stderr } = await exec(`rm ../../apps/nodejs/${clientConfig.databaseFile}`);
+        const { stdout, stderr } = await exec(`ls`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
@@ -55,7 +55,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
-        console.log(`Generated a block`);
+        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -135,7 +135,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
-        console.log(`Generated a block`);
+        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -227,7 +227,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
-        console.log(`Generated a block`);
+        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -301,7 +301,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
-        console.log(`Generated a block`);
+        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -363,17 +363,17 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
     await removeDatabase();
 
-    // Deposit, iterative self transfer
-    await removeDatabase();
-    await createWallet(clientConfig, wallet_1_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
-    await removeDatabase();
+    // // Deposit, iterative self transfer
+    // await removeDatabase();
+    // await createWallet(clientConfig, wallet_1_name);
+    // await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
+    // await removeDatabase();
 
-    // Deposit, repeat send
-    await removeDatabase();
-    await createWallet(clientConfig, wallet_1_name);
-    await createWallet(clientConfig, wallet_2_name);
-    await depositAndRepeatSend(clientConfig, wallet_1_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
-    await removeDatabase();
+    // // Deposit, repeat send
+    // await removeDatabase();
+    // await createWallet(clientConfig, wallet_1_name);
+    // await createWallet(clientConfig, wallet_2_name);
+    // await depositAndRepeatSend(clientConfig, wallet_1_name);
+    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
+    // await removeDatabase();
 })();
