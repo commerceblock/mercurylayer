@@ -15,6 +15,7 @@ const sqlite_manager = require('./sqlite_manager');
 const { v4: uuidv4 } = require('uuid');
 
 const wallet_manager = require('./wallet');
+const path = require('path');
 
 const getDatabase = async (clientConfig) => {
     const databaseFile = clientConfig.databaseFile;
