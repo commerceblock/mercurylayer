@@ -8,7 +8,7 @@ const client_config = require('./client_config');
 async function removeDatabase() {
     try {
         const clientConfig = client_config.load(); 
-        const { stdout, stderr } = await exec(`find . -type f -name wallet.db -print -o -path .. -prune -o -print`);
+        const { stdout, stderr } = await exec(`rm ${clientConfig.databaseFile}`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
