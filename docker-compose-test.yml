@@ -55,7 +55,7 @@ services:
     environment:
       LOCKBOX_URL: http://mercurylayer_enclave-sgx_1:18080
       NETWORK: regtest
-      LOCKHEIGHT_INIT: 100
+      LOCKHEIGHT_INIT: 1
       LH_DECREMENT: 10
       CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
     ports:
