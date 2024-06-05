@@ -47,7 +47,7 @@ jobs:
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass createwallet $wallet_name
           address=$(docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass getnewaddress $wallet_name)
           echo "New Wallet Address: $address"
-          docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 100 "$address"
+          docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 101 "$address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
       - name: Verify ElectrumX Service with Curl
         run: |
