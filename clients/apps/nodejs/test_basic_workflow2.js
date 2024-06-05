@@ -8,7 +8,7 @@ const client_config = require('./client_config');
 async function removeDatabase() {
     try {
         const clientConfig = client_config.load(); 
-        const { stdout, stderr } = await exec(`rm ${clientConfig.databaseFile}`);
+        const { stdout, stderr } = await exec(`rm ./${clientConfig.databaseFile}`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
@@ -364,16 +364,19 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     await removeDatabase();
 
     // // Deposit, iterative self transfer
-    // await removeDatabase();
-    // await createWallet(clientConfig, wallet_1_name);
-    // await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_1_name);
-    // await removeDatabase();
+    let wallet_3_name = "w3";
+    await removeDatabase();
+    await createWallet(clientConfig, wallet_3_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_3_name);
+    await removeDatabase();
 
-    // // Deposit, repeat send
-    // await removeDatabase();
-    // await createWallet(clientConfig, wallet_1_name);
-    // await createWallet(clientConfig, wallet_2_name);
-    // await depositAndRepeatSend(clientConfig, wallet_1_name);
-    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
-    // await removeDatabase();
+    // Deposit, repeat send
+    let wallet_4_name = "w4";
+    let wallet_5_name = "w5";
+    await removeDatabase();
+    await createWallet(clientConfig, wallet_4_name);
+    await createWallet(clientConfig, wallet_5_name);
+    await depositAndRepeatSend(clientConfig, wallet_4_name);
+    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_4_name, wallet_5_name);
+    await removeDatabase();
 })();
