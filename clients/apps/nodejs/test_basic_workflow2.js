@@ -4,14 +4,11 @@ const assert = require('node:assert/strict');
 const mercurynodejslib = require('mercurynodejslib');
 const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const client_config = require('./client_config');
-const path = require('path');
 
 async function removeDatabase() {
     try {
-        const clientConfig = client_config.load();
-        const absolutePath = path.resolve(clientConfig.databaseFile);
-        console.log(`Removing database file at: ${absolutePath}`); 
-        const { stdout, stderr } = await exec(`rm ${absolutePath}`);
+        const clientConfig = client_config.load(); 
+        const { stdout, stderr } = await exec(`rm ./${clientConfig.databaseFile}`);
         console.log('stdout:', stdout);
         console.error('stderr:', stderr);
     } catch (e) {  
@@ -173,7 +170,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
     let currentBlockHeight = block_header.height;
     console.log("Current block height: ", currentBlockHeight);
 
-    while (coin.locktime < currentBlockHeight) {
+    while (coin.locktime <= currentBlockHeight) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
         console.log("transfer_address: ", transfer_address);
@@ -358,28 +355,23 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     let wallet_1_name = "w1";
     let wallet_2_name = "w2";
-
-    await removeDatabase();
     await createWallet(clientConfig, wallet_1_name);
     await createWallet(clientConfig, wallet_2_name);
     await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
-    await removeDatabase();
+
 
     // // Deposit, iterative self transfer
     let wallet_3_name = "w3";
-    await removeDatabase();
     await createWallet(clientConfig, wallet_3_name);
     await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_3_name);
-    await removeDatabase();
+
 
     // Deposit, repeat send
     let wallet_4_name = "w4";
     let wallet_5_name = "w5";
-    await removeDatabase();
     await createWallet(clientConfig, wallet_4_name);
     await createWallet(clientConfig, wallet_5_name);
     await depositAndRepeatSend(clientConfig, wallet_4_name);
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_4_name, wallet_5_name);
-    await removeDatabase();
 })();
