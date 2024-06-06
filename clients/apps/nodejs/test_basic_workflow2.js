@@ -408,7 +408,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
 
     const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
 
-    for (const coin of list_coins) {
+    for (let coin of list_coins) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
         console.log("transfer_address: ", transfer_address);
