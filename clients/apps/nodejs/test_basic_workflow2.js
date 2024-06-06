@@ -30,15 +30,6 @@ async function createWallet(clientConfig, walletName) {
 
 async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 
-    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
-    const tokenId = token.token_id;
-
-    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
-
-    let usedToken = tokenList.find(token => token.token_id === tokenId);
-
-    assert(usedToken.spent);
-
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
 
@@ -59,6 +50,15 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 }
 
 async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
 
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
@@ -113,6 +113,15 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 }
 
 async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
     
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
@@ -179,6 +188,15 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
 async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name) {
 
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
     await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
@@ -227,6 +245,15 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 }
 
 async function depositAndRepeatSend(clientConfig, wallet_1_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
     
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
@@ -275,6 +302,15 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 }
 
 async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, wallet_2_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
     
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
@@ -327,6 +363,15 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
 }
 
 async function depositAndTransfer(clientConfig, wallet_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
+    const tokenId = token.token_id;
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
 
     const amount = 10000;
     const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
