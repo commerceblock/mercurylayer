@@ -28,13 +28,10 @@ async function createWallet(clientConfig, walletName) {
     // TODO: add more assertions
 }
 
-async function depositCoin(clientConfig, wallet_name) {
-    const amount = 10000;
+async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 
     const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
     const tokenId = token.token_id;
-
-    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
 
     let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
 
@@ -45,7 +42,7 @@ async function depositCoin(clientConfig, wallet_name) {
     deposit_info["amount"] = amount;
     console.log("deposit_coin: ", deposit_info);
 
-    const amountInBtc = 0.0001;
+    const amountInBtc = amount / 100000000;
 
     // Sending Bitcoin using bitcoin-cli
     try {
@@ -63,7 +60,9 @@ async function depositCoin(clientConfig, wallet_name) {
 
 async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
-    await depositCoin(clientConfig, wallet_name);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
+    await depositCoin(clientConfig, wallet_name, amount, deposit_info);
 
     let coin = undefined;
 
@@ -115,7 +114,9 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
 async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name) {
     
-    await depositCoin(clientConfig, wallet_name);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
+    await depositCoin(clientConfig, wallet_name, amount, deposit_info);
 
     let coin = undefined;
 
@@ -178,7 +179,9 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
 async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name) {
 
-    await depositCoin(clientConfig, wallet_1_name);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
 
     let coin = undefined;
 
@@ -225,7 +228,9 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 
 async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     
-    await depositCoin(clientConfig, wallet_1_name);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
 
     let coin = undefined;
 
@@ -271,7 +276,9 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
 async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, wallet_2_name) {
     
-    await depositCoin(clientConfig, wallet_1_name);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
 
     let coin = undefined;
 
@@ -319,6 +326,56 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
     }
 }
 
+async function depositAndTransfer(clientConfig, wallet_name) {
+
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
+    
+    for (let i = 0; i < 10; i++) {
+        await depositCoin(clientConfig, wallet_name, amount, deposit_info);
+
+        let coin = undefined;
+
+        while (!coin) {
+            const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
+
+            let coinsWithStatechainId = list_coins.filter(c => {
+                return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+            });
+
+            if (coinsWithStatechainId.length === 0) {
+                console.log("Waiting for coin to be confirmed...");
+                console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+                await sleep(5000);
+                continue;
+            }
+
+            coin = coinsWithStatechainId[0];
+
+            break;
+        }
+    }
+
+    const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+    for (const coin of list_coins) {
+        let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
+
+        console.log("transfer_address: ", transfer_address);
+
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
+
+        console.log("coin transferSend: ", coin);
+
+        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+
+        console.log("received_statechain_ids: ", received_statechain_ids);
+
+        assert(received_statechain_ids.length > 0);
+        assert(received_statechain_ids[0] == coin.statechain_id);
+    }
+}
+
 (async () => {
 
     const clientConfig = client_config.load();
@@ -346,8 +403,13 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
     await createWallet(clientConfig, wallet_6_name);
     await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
 
-    // Deposit, iterative self transfer
+    // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
     let wallet_7_name = "w7";
     await createWallet(clientConfig, wallet_7_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_7_name);
+    await depositAndTransfer(clientConfig, wallet_7_name);
+
+    // Deposit, iterative self transfer
+    let wallet_8_name = "w8";
+    await createWallet(clientConfig, wallet_8_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_8_name);
 })();
