@@ -28,8 +28,7 @@ async function createWallet(clientConfig, walletName) {
     // TODO: add more assertions
 }
 
-async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
-
+async function depositCoin(clientConfig, wallet_name) {
     const amount = 10000;
 
     const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
@@ -53,13 +52,18 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget + 1} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
         exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
+        console.log(`Generated ${clientConfig.confirmationTarget + 1} blocks`);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
     }
+}
+
+async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
+
+    await depositCoin(clientConfig, wallet_name);
 
     let coin = undefined;
 
@@ -110,36 +114,8 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 }
 
 async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name) {
-    const amount = 10000;
-
-    const token = await mercurynodejslib.newToken(clientConfig, wallet_name);
-    const tokenId = token.token_id;
-
-    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_name, amount);
-
-    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_name);
-
-    let usedToken = tokenList.find(token => token.token_id === tokenId);
-
-    assert(usedToken.spent);
-
-    deposit_info["amount"] = amount;
-    console.log("deposit_coin: ", deposit_info);
-
-    const amountInBtc = 0.0001;
-
-    // Sending Bitcoin using bitcoin-cli
-    try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
-        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-        exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
-    } catch (error) {
-        console.error('Error sending Bitcoin:', error.message);
-        return;
-    }
+    
+    await depositCoin(clientConfig, wallet_name);
 
     let coin = undefined;
 
@@ -202,36 +178,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
 async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name) {
 
-    const amount = 10000;
-
-    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
-    const tokenId = token.token_id;
-
-    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
-
-    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
-
-    let usedToken = tokenList.find(token => token.token_id === tokenId);
-
-    assert(usedToken.spent);
-
-    deposit_info["amount"] = amount;
-    console.log("deposit_coin: ", deposit_info);
-
-    const amountInBtc = 0.0001;
-
-    // Sending Bitcoin using bitcoin-cli
-    try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
-        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-        exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
-    } catch (error) {
-        console.error('Error sending Bitcoin:', error.message);
-        return;
-    }
+    await depositCoin(clientConfig, wallet_1_name);
 
     let coin = undefined;
 
@@ -277,35 +224,8 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 }
 
 async function depositAndRepeatSend(clientConfig, wallet_1_name) {
-    const amount = 10000;
-
-    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
-    const tokenId = token.token_id;
-
-    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
-
-    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
-    let usedToken = tokenList.find(token => token.token_id === tokenId);
-
-    assert(usedToken.spent);
-
-    deposit_info["amount"] = amount;
-    console.log("deposit_coin: ", deposit_info);
-
-    const amountInBtc = 0.0001;
-
-    // Sending Bitcoin using bitcoin-cli
-    try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
-        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-        exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
-    } catch (error) {
-        console.error('Error sending Bitcoin:', error.message);
-        return;
-    }
+    
+    await depositCoin(clientConfig, wallet_1_name);
 
     let coin = undefined;
 
@@ -350,35 +270,8 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 }
 
 async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, wallet_2_name) {
-    const amount = 10000;
-
-    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
-    const tokenId = token.token_id;
-
-    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
-
-    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
-    let usedToken = tokenList.find(token => token.token_id === tokenId);
-
-    assert(usedToken.spent);
-
-    deposit_info["amount"] = amount;
-    console.log("deposit_coin: ", deposit_info);
-
-    const amountInBtc = 0.0001;
-
-    // Sending Bitcoin using bitcoin-cli
-    try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
-        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-        exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
-    } catch (error) {
-        console.error('Error sending Bitcoin:', error.message);
-        return;
-    }
+    
+    await depositCoin(clientConfig, wallet_1_name);
 
     let coin = undefined;
 
@@ -418,10 +311,11 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
     try {
         transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
         await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
-        assert.fail("Expected error when transferring from wallet_ again, but no error was thrown");
+        assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Expected error message"), "Unexpected error message");
+        assert(error.message.includes("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is TRANSFERRED"),
+        `Unexpected error message: ${error.message}`);
     }
 }
 
