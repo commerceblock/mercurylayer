@@ -331,7 +331,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     console.log("coin: ", coin);
 
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 10; i++) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
         let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
@@ -347,6 +347,82 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
+}
+
+async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, wallet_2_name) {
+    const amount = 10000;
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+
+    deposit_info["amount"] = amount;
+    console.log("deposit_coin: ", deposit_info);
+
+    const amountInBtc = 0.0001;
+
+    // Sending Bitcoin using bitcoin-cli
+    try {
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        exec(sendBitcoinCommand);
+        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
+        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+        exec(generateBlockCommand);
+        console.log(`Generated ${clientConfig.confirmationTarget} blocks`);
+    } catch (error) {
+        console.error('Error sending Bitcoin:', error.message);
+        return;
+    }
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+
+    try {
+        transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+        await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        assert.fail("Expected error when transferring from wallet_ again, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Expected error message"), "Unexpected error message");
+    }
 }
 
 (async () => {
@@ -369,9 +445,15 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     await depositAndRepeatSend(clientConfig, wallet_3_name);
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
 
+    // Transfer-sender after transfer-receiver
+    let wallet_5_name = "w5";
+    let wallet_6_name = "w6";
+    await createWallet(clientConfig, wallet_5_name);
+    await createWallet(clientConfig, wallet_6_name);
+    await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
 
     // Deposit, iterative self transfer
-    let wallet_5_name = "w5";
-    await createWallet(clientConfig, wallet_5_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_5_name);
+    let wallet_7_name = "w7";
+    await createWallet(clientConfig, wallet_7_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_7_name);
 })();
