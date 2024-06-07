@@ -46,7 +46,7 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        await generateBlock(2);
+        await generateBlock(3);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
