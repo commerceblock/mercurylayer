@@ -51,4 +51,21 @@ const completeWithdraw = async (clientConfig, statechainId, signedStatechainId) 
     await axios.post(url, deleteStatechainPayload);
 }
 
-export default { infoConfig, createActivity, completeWithdraw }
+const getStatechainInfo = async (clientConfig, statechainId) => {
+
+    const statechainEntityUrl = clientConfig.statechainEntity;
+    const path = `info/statechain/${statechainId}`;
+
+    try {
+        let response = await axios.get(statechainEntityUrl + '/' + path);
+        return response.data;
+    } catch (error) {
+        if (error.response.status == 404) {
+            return null;
+        } else {
+            throw error;
+        }
+    }
+}
+
+export default { infoConfig, createActivity, completeWithdraw, getStatechainInfo }

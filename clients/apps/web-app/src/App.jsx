@@ -166,6 +166,20 @@ function App() {
     setInputToAddress('');
   };
 
+  const transferReceive = async () => {
+
+    if (inputWallet === '') {
+      console.log('Please enter a wallet name');
+      return;
+    }
+
+    const received_statechain_ids = await mercuryweblib.transferReceive(clientConfig, inputWallet);
+    console.log("received_statechain_ids:");
+    console.log(received_statechain_ids);
+
+    setInputWallet('');
+  };
+
   return (
     <>
       <div>
@@ -241,6 +255,9 @@ function App() {
         </button>
         <button onClick={() => transferSend()} style={{ marginTop: '10px' }}>
           Transfer Send
+        </button>
+        <button onClick={() => transferReceive()} style={{ marginTop: '10px' }}>
+          Transfer Receive
         </button>
         <p>
           Edit <code>src/App.jsx</code> and save to test HMR

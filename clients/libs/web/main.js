@@ -93,6 +93,15 @@ const transferSend = async (clientConfig, walletName, statechainId, toAddress, b
   return coin;
 }
 
+const transferReceive = async (clientConfig, walletName) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  const received_statechain_ids = await transfer_receive.execute(clientConfig, walletName);
+
+  return received_statechain_ids;
+}
+
 export default { 
   greet, 
   createWallet, 
@@ -103,4 +112,5 @@ export default {
   broadcastBackupTransaction,
   newTransferAddress,
   transferSend,
+  transferReceive,
 }

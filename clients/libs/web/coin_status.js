@@ -32,7 +32,6 @@ const checkDeposit = async (clientConfig, coin, walletNetwork) => {
 
     // No deposit found. No change in the coin status
     if (!utxo) {
-        console.log("utxo not found");
         return null;
     }
 
@@ -83,6 +82,26 @@ const checkDeposit = async (clientConfig, coin, walletNetwork) => {
 
     return depositResult;
 
+}
+
+const checkTransfer = async (clientConfig, coin) => {
+
+    if (!coin.statechain_id) {
+        throw new Error(`The coin with the aggregated address ${coin.aggregated_address} does not have a statechain ID`);
+    }
+
+    let statechainInfo = await utils.getStatechainInfo(clientConfig, coin.statechain_id);
+
+    // if the statechain info is not found, we assume the coin has been transferred
+    if (!statechainInfo) {
+        return true;
+    }
+
+    let enclavePublicKey = statechainInfo.enclave_public_key;
+
+    let isTransferred = !mercury_wasm.isEnclavePubkeyPartOfCoin(coin, enclavePublicKey);
+
+    return isTransferred;
 }
 
 const checkWithdrawal = async (clientConfig, coin, wallet_network) => {
@@ -167,6 +186,12 @@ const updateCoins = async (clientConfig, walletName) => {
             if (depositResult) {
                 wallet.activities.push(depositResult.activity);
                 storageManager.setItem(coin.statechain_id, [depositResult.backup_tx], false);
+            }
+        } else if (coin.status === CoinStatus.IN_TRANSFER) {
+            let is_transferred = await checkTransfer(clientConfig, coin);
+
+            if (is_transferred) {
+                coin.status = CoinStatus.TRANSFERRED;
             }
         } else if (coin.status == CoinStatus.WITHDRAWING) {
             let is_withdrawn = await checkWithdrawal(clientConfig, coin, network);
