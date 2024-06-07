@@ -28,6 +28,12 @@ async function createWallet(clientConfig, walletName) {
     // TODO: add more assertions
 }
 
+async function generateBlock(numBlocks) {
+    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+    exec(generateBlockCommand);
+    console.log(`Generated ${numBlocks} blocks`);
+}
+
 async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 
     deposit_info["amount"] = amount;
@@ -40,9 +46,7 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${clientConfig.confirmationTarget + 1} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-        exec(generateBlockCommand);
-        console.log(`Generated ${clientConfig.confirmationTarget + 1} blocks`);
+        generateBlock(2);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -78,6 +82,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -142,6 +147,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -219,6 +225,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -278,6 +285,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -336,6 +344,7 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -397,6 +406,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
                 console.log("Waiting for coin to be confirmed...");
                 console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
                 await sleep(5000);
+                generateBlock(1);
                 continue;
             }
 
@@ -426,6 +436,61 @@ async function depositAndTransfer(clientConfig, wallet_name) {
     }
 }
 
+async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_name) {
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    console.log("Pausing container: mercurylayer_mercury_1");
+    await exec("docker pause mercurylayer_mercury_1");
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+}
+
 (async () => {
 
     const clientConfig = client_config.load();
@@ -445,6 +510,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
     await createWallet(clientConfig, wallet_4_name);
     await depositAndRepeatSend(clientConfig, wallet_3_name);
     await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
+    console.log("Completed test for Deposit, repeat send");
 
     // Transfer-sender after transfer-receiver
     let wallet_5_name = "w5";
@@ -452,14 +518,24 @@ async function depositAndTransfer(clientConfig, wallet_name) {
     await createWallet(clientConfig, wallet_5_name);
     await createWallet(clientConfig, wallet_6_name);
     await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
+    console.log("Completed test for Transfer-sender after transfer-receiver");
 
     // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
     let wallet_7_name = "w7";
     await createWallet(clientConfig, wallet_7_name);
     await depositAndTransfer(clientConfig, wallet_7_name);
+    console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
+
+    // Test for interruption of transferSend before sign first
+    let wallet_8_name = "w8";
+    let wallet_9_name = "w9";
+    await createWallet(clientConfig, wallet_8_name);
+    await createWallet(clientConfig, wallet_9_name);
+    await interruptBeforeSignFirst(clientConfig, wallet_8_name, wallet_9_name);
+    console.log("Completed test for interruption of transferSend before sign first");
 
     // Deposit, iterative self transfer
-    let wallet_8_name = "w8";
-    await createWallet(clientConfig, wallet_8_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_8_name);
+    let wallet_10_name = "w10";
+    await createWallet(clientConfig, wallet_10_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_10_name);
 })();
