@@ -46,7 +46,7 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        generateBlock(2);
+        generateBlock(3);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
         return;
@@ -482,6 +482,9 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     await exec("docker pause mercurylayer_mercury_1");
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    console.log("Unpausing container: mercurylayer_mercury_1");
+    await exec("docker unpause mercurylayer_mercury_1");
 
     let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
