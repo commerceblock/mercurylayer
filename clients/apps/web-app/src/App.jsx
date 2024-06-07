@@ -99,6 +99,73 @@ function App() {
     setInputToAddress('');
   };
 
+  const broadcastBackupTransaction = async () => {
+
+    if (inputWallet === '') {
+      console.log('Please enter a wallet name');
+      return;
+    }
+
+    if (inputStatechainId === '') {
+      console.log('Please enter a statechain id');
+      return;
+    }
+
+    if (inputToAddress === '') {
+      console.log('Please enter a recipient address');
+      return;
+    }
+
+    const txids = await mercuryweblib.broadcastBackupTransaction(clientConfig, inputWallet, inputStatechainId, inputToAddress, null);
+
+    console.log("Txids:");
+    console.log(txids);
+
+    setInputWallet('');
+    setInputStatechainId('');
+    setInputToAddress('');
+  };
+
+  const newTransferAddress = async () => {
+    if (inputWallet === '') {
+      console.log('Please enter a wallet name');
+      return;
+    }
+
+    const transferAddress = await mercuryweblib.newTransferAddress(inputWallet, null);
+
+    console.log(`Transfer address from wallet ${inputWallet}`);
+    console.log(transferAddress);
+
+    setInputWallet('');
+  };
+
+  const transferSend = async () => {
+
+    if (inputWallet === '') {
+      console.log('Please enter a wallet name');
+      return;
+    }
+
+    if (inputStatechainId === '') {
+      console.log('Please enter a statechain id');
+      return;
+    }
+
+    if (inputToAddress === '') {
+      console.log('Please enter a recipient address');
+      return;
+    }
+
+    const coin = await mercuryweblib.transferSend(clientConfig, inputWallet, inputStatechainId, inputToAddress, null);
+    console.log("Coin:");
+    console.log(coin);
+
+    setInputWallet('');
+    setInputStatechainId('');
+    setInputToAddress('');
+  };
+
   return (
     <>
       <div>
@@ -164,6 +231,16 @@ function App() {
         </button>
         <button onClick={() => withdrawCoin()}>
           Withdraw
+        </button>
+        <button onClick={() => broadcastBackupTransaction()}>
+          Broadcast Backup Transaction
+        </button>
+        <br  />
+        <button onClick={() => newTransferAddress()} style={{ marginTop: '10px' }}>
+          New Transfer Address
+        </button>
+        <button onClick={() => transferSend()} style={{ marginTop: '10px' }}>
+          Transfer Send
         </button>
         <p>
           Edit <code>src/App.jsx</code> and save to test HMR

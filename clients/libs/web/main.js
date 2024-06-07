@@ -4,6 +4,9 @@ import storageManager from './storage_manager.js';
 import deposit from './deposit.js';
 import coin_status from './coin_status.js';
 import withdraw from './withdraw.js';
+import broadcast_backup_tx from './broadcast_backup_tx.js';
+import transfer_send from './transfer_send.js';
+import transfer_receive from './transfer_receive.js';
 
 const greet = async () => {
   
@@ -50,11 +53,44 @@ const listStatecoins = async (clientConfig, walletName) => {
   return coins;
 }
 
-const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, fee_rate) => {
+const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
+
   await coin_status.updateCoins(clientConfig, walletName);
 
-  const txId = await withdraw.execute(clientConfig, walletName, statechainId, toAddress, fee_rate);
+  const txId = await withdraw.execute(clientConfig, walletName, statechainId, toAddress, feeRate);
+
   return txId;
+}
+
+const broadcastBackupTransaction = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  let txIds = await broadcast_backup_tx.execute(clientConfig, walletName, statechainId, toAddress, feeRate);
+
+  return txIds;
+}
+
+const newTransferAddress = async (walletName, options) => {
+
+  const addr = await transfer_receive.newTransferAddress(walletName)
+  let res = {transfer_receive: addr};
+
+  if (options && options.generateBatchId) {
+      const batchId = uuidv4();
+      res.batch_id = batchId;
+  }
+
+  return res;
+}
+
+const transferSend = async (clientConfig, walletName, statechainId, toAddress, batchId) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  let coin = await transfer_send.execute(clientConfig, walletName, statechainId, toAddress, batchId);
+
+  return coin;
 }
 
 export default { 
@@ -63,5 +99,8 @@ export default {
   newToken, 
   getDepositBitcoinAddress, 
   listStatecoins,
-  withdrawCoin
+  withdrawCoin,
+  broadcastBackupTransaction,
+  newTransferAddress,
+  transferSend,
 }

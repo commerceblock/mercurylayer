@@ -15,7 +15,7 @@ const infoConfig = async (settings) => {
 
     let response = await axios.get(`${settings.esploraServer}/api/v1/fees/recommended`);
     
-    const feeRateSatsPerByte = response.data.fastestFee;
+    const feeRateSatsPerByte = parseInt(response.data.fastestFee, 10);
 
     response = await axios.get(statechainEntityUrl + '/' + path);
 

@@ -47,9 +47,6 @@ const checkDeposit = async (clientConfig, coin, walletNetwork) => {
         const utxo_txid = utxo.txid;
         const utxo_vout = utxo.vout;
 
-        console.log("utxo_txid: " + utxo_txid);
-        console.log("utxo_vout: " + utxo_vout);
-
         const backup_tx = await deposit.createTx1(clientConfig, coin, walletNetwork, utxo_txid, utxo_vout);
 
         const activity_utxo = `${utxo_txid}:${utxo_vout}`;
@@ -88,6 +85,70 @@ const checkDeposit = async (clientConfig, coin, walletNetwork) => {
 
 }
 
+const checkWithdrawal = async (clientConfig, coin, wallet_network) => {
+
+    let txid = undefined;
+
+    if (coin.tx_withdraw) {
+        txid = coin.tx_withdraw;
+    }
+
+    if (coin.tx_cpfp) {
+        if (txid) {
+            throw new Error(`Coin ${coin.aggregated_address} has both tx_withdraw and tx_cpfp`);
+        }
+        txid = coin.tx_cpfp;
+    }
+
+    if (!txid) {
+        throw new Error(`Coin ${coin.aggregated_address} has neither tx_withdraw nor tx_cpfp`);
+    }
+
+    if (!coin.withdrawal_address) {
+        throw new Error(`Coin ${coin.aggregated_address} has no withdrawal_address`);
+    }
+
+    console.log(`${clientConfig.esploraServer}/api/address/${coin.withdrawal_address}/utxo`);
+
+    let response = await axios.get(`${clientConfig.esploraServer}/api/address/${coin.withdrawal_address}/utxo`);
+
+    let utxo_list = response.data;
+
+    let utxo = null;
+
+    for (let unspent of utxo_list) {
+        if (unspent.txid === txid) {
+            utxo = unspent;
+            break;
+        }
+    }
+
+    if (!utxo) {
+        // sometimes the transaction has not yet been transmitted to the specified Electrum server
+        // throw new Error(`There is no UTXO with the address ${coin.withdrawal_address} and the txid ${txid}`);
+        return false;
+    }
+
+    if (utxo.status.confirmed) {
+
+        const response = await axios.get(`${clientConfig.esploraServer}/api/blocks/tip/height`);
+        const block_header = response.data;
+        const blockheight = parseInt(block_header, 10);
+
+        if (isNaN(blockheight)) {
+            throw new Error(`Invalid block height: ${block_header}`);
+        }
+
+        const confirmations = blockheight - parseInt(utxo.status.block_height, 10) + 1;
+
+        const confirmationTarget = clientConfig.confirmationTarget;
+
+        return confirmations >= confirmationTarget;
+    }
+
+    return false;
+}
+
 const updateCoins = async (clientConfig, walletName) => {
 
     await initWasm(wasmUrl);
@@ -106,6 +167,12 @@ const updateCoins = async (clientConfig, walletName) => {
             if (depositResult) {
                 wallet.activities.push(depositResult.activity);
                 storageManager.setItem(coin.statechain_id, [depositResult.backup_tx], false);
+            }
+        } else if (coin.status == CoinStatus.WITHDRAWING) {
+            let is_withdrawn = await checkWithdrawal(clientConfig, coin, network);
+
+            if (is_withdrawn) {
+                coin.status = CoinStatus.WITHDRAWN;
             }
         }
     }

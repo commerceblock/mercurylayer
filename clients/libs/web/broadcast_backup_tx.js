@@ -1,4 +1,7 @@
 import axios from 'axios';
+import initWasm from 'mercury-wasm';
+import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
+import * as mercury_wasm from 'mercury-wasm';
 import storageManager from './storage_manager.js';
 import utils from './utils.js';
 import CoinStatus from './coin_enum.js';
@@ -6,15 +9,11 @@ import transaction from './transaction.js';
 
 const execute = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
 
+    await initWasm(wasmUrl);
+
     let wallet = storageManager.getItem(walletName);
 
     let backupTxs = storageManager.getItem(statechainId);
-
-    if (backupTxs.length === 0) {
-        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
-    }
-
-    const new_tx_n = backupTxs.length + 1;
 
     if (!feeRate) {
         const serverInfo = await utils.infoConfig(clientConfig);
@@ -41,48 +40,44 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
         throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
     }
 
-    const isWithdrawal = true;
-    const qtBackupTx = backupTxs.length;
+    const backupTx = mercury_wasm.latestBackuptxPaysToUserpubkey(backupTxs, coin, wallet.network);
 
-    let signed_tx = await transaction.newTransaction(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
+    if (!backupTx) {
+        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
+    }
 
-    let backup_tx = {
-        tx_n: new_tx_n,
-        tx: signed_tx,
-        client_public_nonce: coin.public_nonce,
-        server_public_nonce: coin.server_public_nonce,
-        client_public_key: coin.user_pubkey,
-        server_public_key: coin.server_pubkey,
-        blinding_factor: coin.blinding_factor
-    };
-
-    backupTxs.push(backup_tx);
-
-    storageManager.setItem(coin.statechain_id, backupTxs, true);
+    const CpfpTx = mercury_wasm.createCpfpTx(backupTx, coin, toAddress, feeRate, wallet.network);
 
     const url = `${clientConfig.esploraServer}/api/tx`;
 
-    let response = await axios.post(url, signed_tx, {
+    let response = await axios.post(url, backupTx.tx, {
         headers: {
             'Content-Type': 'text/plain'
         }
     });
 
-    let txid = response.data;
+    let backupTxTxid = response.data;
 
-    coin.tx_withdraw = txid;
+    response = await axios.post(url, CpfpTx, {
+        headers: {
+            'Content-Type': 'text/plain'
+        }
+    });
+
+    let cpfpTxTxid = response.data;
+
+    coin.tx_cpfp = cpfpTxTxid;
     coin.withdrawal_address = toAddress;
     coin.status = CoinStatus.WITHDRAWING;
 
-    const activity = utils.createActivity(txid, coin.amount, "Withdraw");
-
-    wallet.activities.push(activity);
-
-    storageManager.setItem(wallet.name, wallet, true);
+    storageManager.setItem(walletName, wallet, true);
 
     utils.completeWithdraw(clientConfig, coin.statechain_id, coin.signed_statechain_id);
 
-    return txid;
+    return {
+        backupTx: backupTxTxid,
+        cpfpTx: cpfpTxTxid
+    };
 }
 
 export default { execute };
