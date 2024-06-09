@@ -1,4 +1,4 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, get_backup_txs, update_wallet, update_backup_txs}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
@@ -132,8 +132,26 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
 
     let block_height = Some(get_blockheight(bkp_tx1)?);
 
+    let server_info = info_config(&client_config).await?;
+
+    let fee_rate = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
+        client_config.max_fee_rate as u32
+    } else {
+        server_info.fee_rate_sats_per_byte as u32
+    };
+
     let is_withdrawal = false;
-    let signed_tx = new_transaction(client_config, coin, recipient_address, qt_backup_tx, is_withdrawal, block_height, network, None).await?;
+    let signed_tx = new_transaction(
+        client_config, 
+        coin, 
+        recipient_address, 
+        qt_backup_tx, 
+        is_withdrawal, 
+        block_height, 
+        network, 
+        fee_rate, 
+        server_info.initlock,
+        server_info.interval).await?;
 
     Ok(signed_tx)
 }

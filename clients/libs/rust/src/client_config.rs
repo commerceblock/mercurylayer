@@ -23,6 +23,8 @@ pub struct ClientConfig {
     pub pool: sqlx::Pool<Sqlite>,
     /// Tor SOCKS5 proxy address
     pub tor_proxy: Option<String>,
+    /// Confirmation target
+    pub max_fee_rate: u32,
 }
 
 impl ClientConfig {
@@ -39,6 +41,7 @@ impl ClientConfig {
         let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as u32;
         let database_file = settings.get_string("database_file").unwrap();
         let confirmation_target = settings.get_int("confirmation_target").unwrap() as u32;
+        let max_fee_rate = settings.get_int("max_fee_rate").unwrap() as u32;
 
         let tor_proxy = match settings.get_string("tor_proxy") {
             Ok(proxy) => Some(proxy.to_string()),
@@ -83,7 +86,8 @@ impl ClientConfig {
             fee_rate_tolerance,
             confirmation_target,
             pool,
-            tor_proxy
+            tor_proxy,
+            max_fee_rate
         }
     }
 

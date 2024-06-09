@@ -45,7 +45,12 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
             }
 
             let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
-            fee_rate_sats_per_byte
+
+            if fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
+                client_config.max_fee_rate as u64
+            } else {
+                fee_rate_sats_per_byte
+            }
         },
     };
 
