@@ -308,7 +308,7 @@ For the purposes of demonstration, use the following `Settings.toml`:
 
 ```
 {
-    "statechainEntity": "http://127.0.0.1:8000](http://test.mercurylayer.com:8500",
+    "statechainEntity": "http://test.mercurylayer.com:8500",
     "electrumServer": "tcp://mutinynet.com:50001",
     "electrumType": "electrs",
     "network": "signet",
