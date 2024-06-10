@@ -5,7 +5,6 @@ import * as mercury_wasm from 'mercury-wasm';
 import storageManager from './storage_manager.js';
 import utils from './utils.js';
 import CoinStatus from './coin_enum.js';
-import transaction from './transaction.js';
 
 const execute = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
 
@@ -16,9 +15,9 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
     let backupTxs = storageManager.getItem(statechainId);
 
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(clientConfig);
-        const feeRateSatsPerByte = serverInfo.feeRateSatsPerByte;
-        feeRate = feeRateSatsPerByte;
+        const response = await axios.get(`${clientConfig.esploraServer}/api/fee-estimates`);
+        const feeRateSatsPerByte = response.data[3];
+        feeRate = (feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: feeRateSatsPerByte;
     } else {
         feeRate = parseInt(feeRate, 10);
     }

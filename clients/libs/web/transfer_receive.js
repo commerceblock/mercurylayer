@@ -5,8 +5,6 @@ import * as mercury_wasm from 'mercury-wasm';
 import storageManager from './storage_manager.js';
 import utils from './utils.js';
 import CoinStatus from './coin_enum.js';
-import transaction from './transaction.js';
-
 
 const newTransferAddress = async (walletName) => {
 
@@ -173,7 +171,7 @@ const processEncryptedMessage = async (clientConfig, coin, encMessage, network, 
         throw new Error("tx0 output is spent or not confirmed");
     }
 
-    const currentFeeRateSatsPerByte = serverInfo.feeRateSatsPerByte;
+    const currentFeeRateSatsPerByte = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
 
     const feeRateTolerance = clientConfig.feeRateTolerance;
 

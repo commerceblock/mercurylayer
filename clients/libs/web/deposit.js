@@ -6,6 +6,7 @@ import * as mercury_wasm from 'mercury-wasm';
 import storageManager from './storage_manager.js';
 import transaction from './transaction.js';
 import CoinStatus from './coin_enum.js';
+import utils from './utils.js';
 
 const getTokenFromServer = async (clientConfig) => {
 
@@ -118,12 +119,27 @@ const createTx1 = async (clientConfig, coin, walletNetwork, tx0Hash, tx0Vout) =>
     const isWithdrawal = false;
     const qtBackupTx = 0;
 
-    let signedTx = await transaction.newTransaction(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, null, walletNetwork);
+    const serverInfo = await utils.infoConfig(clientConfig);
+
+    let feeRateSatsPerByte = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
+
+    let signedTx = await transaction.newTransaction(
+        clientConfig, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        null, 
+        walletNetwork,
+        feeRateSatsPerByte,
+        serverInfo.initlock,
+        serverInfo.interval
+    );
 
     let backupTx = {
         tx_n: 1,
         tx: signedTx,
-        client_public_nonce: coin.public_nonce,
+        client_public_nonce: coin.public_nonce, 
         server_public_nonce: coin.server_public_nonce,
         client_public_key: coin.user_pubkey,
         server_public_key: coin.server_pubkey,

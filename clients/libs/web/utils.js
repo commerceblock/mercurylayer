@@ -1,23 +1,18 @@
 import axios from 'axios';
 
-const infoConfig = async (settings) => {
+const infoConfig = async (clientConfig) => {
 
-    const statechainEntityUrl = settings.statechainEntity;
-    const path = "info/config";
-
-    // Not working very well for signer
-    // TODO: Uncommenting this when changing to mainnet or testnet
-    /* let response = await axios.get(`${settings.esploraServer}/api/fee-estimates`);
+    let response = await axios.get(`${clientConfig.esploraServer}/api/fee-estimates`);
 
     const feeRateSatsPerByte = response.data[3];
 
-    console.log(`feeRateSatsPerByte: ${feeRateSatsPerByte}`) */
+    console.log(`feeRateSatsPerByte: ${feeRateSatsPerByte}`)
 
-    let response = await axios.get(`${settings.esploraServer}/api/v1/fees/recommended`);
+    /* let response = await axios.get(`${clientConfig.esploraServer}/api/v1/fees/recommended`);
     
-    const feeRateSatsPerByte = parseInt(response.data.fastestFee, 10);
+    const feeRateSatsPerByte = parseInt(response.data.fastestFee, 10);*/
 
-    response = await axios.get(statechainEntityUrl + '/' + path);
+    response = await axios.get(`${clientConfig.statechainEntity}/info/config`);
 
     return {    
         initlock: response.data.initlock,

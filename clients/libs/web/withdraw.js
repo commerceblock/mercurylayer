@@ -16,10 +16,10 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
 
     const new_tx_n = backupTxs.length + 1;
 
+    const serverInfo = await utils.infoConfig(clientConfig);
+
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(clientConfig);
-        const feeRateSatsPerByte = serverInfo.feeRateSatsPerByte;
-        feeRate = feeRateSatsPerByte;
+        feeRate = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
     } else {
         feeRate = parseInt(feeRate, 10);
     }
@@ -44,7 +44,17 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;
 
-    let signed_tx = await transaction.newTransaction(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
+    let signed_tx = await transaction.newTransaction(
+        clientConfig, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        null, 
+        wallet.network,
+        feeRate,
+        serverInfo.initlock,
+        serverInfo.interval);
 
     let backup_tx = {
         tx_n: new_tx_n,

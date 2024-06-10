@@ -3,8 +3,6 @@ import axios from 'axios';
 import initWasm from 'mercury-wasm';
 import wasmUrl from 'mercury-wasm/mercury_wasm_bg.wasm?url'
 import * as mercury_wasm from 'mercury-wasm';
-import storageManager from './storage_manager.js';
-import utils from './utils.js';
 
 const signFirst = async (clientConfig, signFirstRequestPayload) => {
 
@@ -36,7 +34,7 @@ const signSecond = async (clientConfig, partialSigRequest) => {
     return serverPartialSigHex;
 }
 
-const newTransaction = async(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
+const newTransaction = async(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network, feeRateSatsPerByte, initlock, interval) => {
 
     await initWasm(wasmUrl);
 
@@ -48,8 +46,6 @@ const newTransaction = async(clientConfig, coin, toAddress, isWithdrawal, qtBack
     coin.public_nonce = coin_nonce.public_nonce;
     coin.server_public_nonce = server_pubnonce;
     coin.blinding_factor = coin_nonce.blinding_factor;
-
-    const serverInfo = await utils.infoConfig(clientConfig);
 
     let new_block_height = 0;
     if (block_height == null) {
@@ -63,10 +59,6 @@ const newTransaction = async(clientConfig, coin, toAddress, isWithdrawal, qtBack
     } else {
         new_block_height = block_height;
     }
-
-    const initlock = serverInfo.initlock;
-    const interval = serverInfo.interval;
-    const feeRateSatsPerByte = serverInfo.feeRateSatsPerByte;
 
     let partialSigRequest = mercury_wasm.getPartialSigRequest(
         coin,

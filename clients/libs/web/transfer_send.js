@@ -71,7 +71,22 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, batchI
 
     const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    const signed_tx = await transaction.newTransaction(clientConfig, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const serverInfo = await utils.infoConfig(clientConfig);
+
+    let feeRateSatsPerByte = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
+
+    const signed_tx = await transaction.newTransaction(
+        clientConfig, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        block_height, 
+        wallet.network,
+        feeRateSatsPerByte,
+        serverInfo.initlock,
+        serverInfo.interval
+    );
 
     const backup_tx = {
         tx_n: new_tx_n,
