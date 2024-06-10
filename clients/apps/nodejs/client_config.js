@@ -9,7 +9,8 @@ const load = () => {
         electrumServer: config.get('electrumServer'),
         feeRateTolerance: config.get('feeRateTolerance'),
         network: config.get('network'),
-        electrumType: config.get('electrumType')
+        electrumType: config.get('electrumType'),
+        maxFeeRate: config.get('maxFeeRate')
     }
 }
 

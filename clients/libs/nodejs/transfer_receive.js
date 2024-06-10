@@ -161,7 +161,7 @@ const processEncryptedMessage = async (clientConfig, electrumClient, db, coin, e
         throw new Error("tx0 output is spent or not confirmed");
     }
 
-    const currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+    let currentFeeRateSatsPerByte = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
 
     const feeRateTolerance = clientConfig.feeRateTolerance;
 

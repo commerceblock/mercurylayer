@@ -18,6 +18,7 @@
     "socks-proxy-agent": "^8.0.2",
     "sqlite3": "^5.1.6",
     "tiny-secp256k1": "^2.2.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "mercurynodejslib": "file:../../libs/nodejs"
   }
 }

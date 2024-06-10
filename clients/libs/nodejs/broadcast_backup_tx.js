@@ -11,9 +11,8 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
-        const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
-        feeRate = feeRateSatsPerByte;
+        const feeRateSatsPerByte = await electrumClient.request('blockchain.estimatefee', [3]);
+        feeRate = (feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: feeRateSatsPerByte;
     } else {
         feeRate = parseInt(feeRate, 10);
     }
