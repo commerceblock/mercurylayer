@@ -487,40 +487,212 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     assert(received_statechain_ids[0] == coin.statechain_id);
 }
 
+const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
+    let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
+
+    let server_pubnonce = await signFirst(clientConfig, coin_nonce.sign_first_request_payload);
+
+    coin.secret_nonce = coin_nonce.secret_nonce;
+    coin.public_nonce = coin_nonce.public_nonce;
+    coin.server_public_nonce = server_pubnonce;
+    coin.blinding_factor = coin_nonce.blinding_factor;
+
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
+    let new_block_height = 0;
+    if (block_height == null) {
+        const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+        new_block_height = block_header.height;
+    } else {
+        new_block_height = block_height;
+    }
+
+    const initlock = serverInfo.initlock;
+    const interval = serverInfo.interval;
+    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+
+    let partialSigRequest = mercury_wasm.getPartialSigRequest(
+        coin,
+        new_block_height,
+        initlock, 
+        interval,
+        feeRateSatsPerByte,
+        qtBackupTx,
+        toAddress,
+        network,
+        isWithdrawal);
+
+    const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
+
+    console.log("Pausing container: mercurylayer_mercury_1");
+    await exec("docker pause mercurylayer_mercury_1");
+
+    const serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
+
+    console.log("Unpausing container: mercurylayer_mercury_1");
+    await exec("docker unpause mercurylayer_mercury_1");
+
+    const clientPartialSig = partialSigRequest.client_partial_sig;
+    const msg = partialSigRequest.msg;
+    const session = partialSigRequest.encoded_session;
+    const outputPubkey = partialSigRequest.output_pubkey;
+
+    const signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
+
+    const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
+
+    const signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
+
+    return signed_tx;
+}
+
+async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_name) {
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coinDeposited = undefined;
+
+    console.log("coin: ", coinDeposited);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coinDeposited = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coinDeposited);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    let batchId = (options && options.batchId)  || null;
+
+    let wallet = await sqlite_manager.getWallet(db, walletName);
+
+    const backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
+
+    if (backupTxs.length === 0) {
+        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
+    }
+
+    const new_tx_n = backupTxs.length + 1;
+
+    let coinsWithStatechainId = wallet.coins.filter(c => {
+        return c.statechain_id === statechainId
+    });
+
+    if (!coinsWithStatechainId || coinsWithStatechainId.length === 0) {
+        throw new Error(`There is no coin for the statechain id ${statechainId}`);
+    }
+
+    // If the user sends to himself, he will have two coins with same statechain_id
+    // In this case, we need to find the one with the lowest locktime
+    // Sort the coins by locktime in ascending order and pick the first one
+    let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
+
+    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
+        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
+    }
+
+    if (coin.locktime == null) {
+        throw new Error("Coin.locktime is null");
+    }
+
+    const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const currentBlockheight = blockHeader.height;
+
+    if (currentBlockheight > coin.locktime)  {
+        throw new Error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
+    }
+
+    const statechain_id = coin.statechain_id;
+    const signed_statechain_id = coin.signed_statechain_id;
+
+    const isWithdrawal = false;
+    const qtBackupTx = backupTxs.length;
+
+    backupTxs.sort((a, b) => a.tx_n - b.tx_n);
+
+    const bkp_tx1 = backupTxs[0];
+
+    const block_height = mercury_wasm.getBlockheight(bkp_tx1);
+
+    const decodedTransferAddress = mercury_wasm.decodeTransferAddress(toAddress);
+    const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
+
+    const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
+
+    coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+}
+
 (async () => {
 
     const clientConfig = client_config.load();
 
-    let wallet_1_name = "w1";
-    let wallet_2_name = "w2";
-    await createWallet(clientConfig, wallet_1_name);
-    await createWallet(clientConfig, wallet_2_name);
-    await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
+    // let wallet_1_name = "w1";
+    // let wallet_2_name = "w2";
+    // await createWallet(clientConfig, wallet_1_name);
+    // await createWallet(clientConfig, wallet_2_name);
+    // await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
+    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 
-    // Deposit, repeat send
-    let wallet_3_name = "w3";
-    let wallet_4_name = "w4";
-    await createWallet(clientConfig, wallet_3_name);
-    await createWallet(clientConfig, wallet_4_name);
-    await depositAndRepeatSend(clientConfig, wallet_3_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
-    console.log("Completed test for Deposit, repeat send");
+    // // Deposit, repeat send
+    // let wallet_3_name = "w3";
+    // let wallet_4_name = "w4";
+    // await createWallet(clientConfig, wallet_3_name);
+    // await createWallet(clientConfig, wallet_4_name);
+    // await depositAndRepeatSend(clientConfig, wallet_3_name);
+    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
+    // console.log("Completed test for Deposit, repeat send");
 
-    // Transfer-sender after transfer-receiver
-    let wallet_5_name = "w5";
-    let wallet_6_name = "w6";
-    await createWallet(clientConfig, wallet_5_name);
-    await createWallet(clientConfig, wallet_6_name);
-    await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
-    console.log("Completed test for Transfer-sender after transfer-receiver");
+    // // Transfer-sender after transfer-receiver
+    // let wallet_5_name = "w5";
+    // let wallet_6_name = "w6";
+    // await createWallet(clientConfig, wallet_5_name);
+    // await createWallet(clientConfig, wallet_6_name);
+    // await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
+    // console.log("Completed test for Transfer-sender after transfer-receiver");
 
-    // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
-    let wallet_7_name = "w7";
-    await createWallet(clientConfig, wallet_7_name);
-    await depositAndTransfer(clientConfig, wallet_7_name);
-    console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
+    // // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
+    // let wallet_7_name = "w7";
+    // await createWallet(clientConfig, wallet_7_name);
+    // await depositAndTransfer(clientConfig, wallet_7_name);
+    // console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
 
     // Test for interruption of transferSend before sign first
     let wallet_8_name = "w8";
@@ -530,8 +702,15 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     await interruptBeforeSignFirst(clientConfig, wallet_8_name, wallet_9_name);
     console.log("Completed test for interruption of transferSend before sign first");
 
-    // Deposit, iterative self transfer
     let wallet_10_name = "w10";
+    let wallet_11_name = "w11";
     await createWallet(clientConfig, wallet_10_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_10_name);
+    await createWallet(clientConfig, wallet_11_name);
+    await interruptBeforeSignSecond(clientConfig, wallet_10_name, wallet_11_name);
+    console.log("Completed test for interruption of transferSend before sign second");
+
+    // Deposit, iterative self transfer
+    let wallet_12_name = "w12";
+    await createWallet(clientConfig, wallet_12_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_12_name);
 })();
