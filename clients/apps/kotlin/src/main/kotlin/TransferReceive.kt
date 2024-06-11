@@ -185,7 +185,11 @@ class TransferReceive: CliktCommand(help = "Retrieve coins from server") {
             throw Exception("tx0 output is spent or not confirmed")
         }
 
-        val currentFeeRateSatsPerByte = serverInfo.feeRateSatsPerByte.toUInt()
+        val currentFeeRateSatsPerByte: UInt = if (serverInfo.feeRateSatsPerByte > appContext.clientConfig.maxFeeRate.toUInt()) {
+            appContext.clientConfig.maxFeeRate.toUInt()
+        } else {
+            serverInfo.feeRateSatsPerByte.toUInt()
+        }
 
         val feeRateTolerance = appContext.clientConfig.feeRateTolerance.toUInt()
 

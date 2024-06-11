@@ -123,6 +123,17 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
 
         val newX1 = getNewX1(statechainId!!, signedStatechainId!!, newAuthPubkey, batchId)
 
+        val infoConfig = getInfoConfig(appContext.clientConfig)
+
+        val initlock = infoConfig.initlock;
+        val interval = infoConfig.interval;
+
+        val feeRateSatsPerByte: UInt = if (infoConfig.feeRateSatsPerByte > appContext.clientConfig.maxFeeRate.toUInt()) {
+            appContext.clientConfig.maxFeeRate.toUInt()
+        } else {
+            infoConfig.feeRateSatsPerByte.toUInt()
+        }
+
         val signedTx = Transaction.create(
             coin,
             appContext.clientConfig,
@@ -131,7 +142,9 @@ class TransferSend: CliktCommand(help = "Send the specified coin to an statechai
             toAddress,
             wallet.network,
             false,
-            null
+            feeRateSatsPerByte,
+            initlock,
+            interval
         )
 
         val backupTx = BackupTx(

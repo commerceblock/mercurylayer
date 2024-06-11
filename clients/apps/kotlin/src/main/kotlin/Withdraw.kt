@@ -59,6 +59,20 @@ class Withdraw: CliktCommand(help = "Withdraw funds from a statecoin to a BTC ad
             throw Exception("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}");
         }
 
+        val infoConfig = getInfoConfig(appContext.clientConfig)
+
+        var feeRateSatsPerByte: UInt = 0u
+
+        if (feeRate == null) {
+            feeRateSatsPerByte = if (infoConfig.feeRateSatsPerByte > appContext.clientConfig.maxFeeRate.toUInt()) {
+                appContext.clientConfig.maxFeeRate.toUInt()
+            } else {
+                infoConfig.feeRateSatsPerByte.toUInt()
+            }
+        } else {
+            feeRateSatsPerByte = feeRate as UInt
+        }
+
         val signedTx = Transaction.create(
             coin,
             appContext.clientConfig,
@@ -67,7 +81,9 @@ class Withdraw: CliktCommand(help = "Withdraw funds from a statecoin to a BTC ad
             toAddress,
             wallet.network,
             false,
-            feeRate
+            feeRateSatsPerByte,
+            infoConfig.initlock,
+            infoConfig.interval
         )
 
         if (coin.publicNonce == null) {

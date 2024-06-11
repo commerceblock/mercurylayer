@@ -23,6 +23,8 @@ data class ConfigData(
     val databaseFile: String,
     @SerialName("confirmation_target")
     val confirmationTarget: Short,
+    @SerialName("max_fee_rate")
+    val maxFeeRate: Short,
 )
 
 class ClientConfig {
@@ -34,6 +36,7 @@ class ClientConfig {
     val feeRateTolerance: Int
     val databaseFile: String
     val confirmationTarget: Int
+    val maxFeeRate: Int
 
     init {
         val file = File("Settings.toml")
@@ -50,5 +53,6 @@ class ClientConfig {
         feeRateTolerance = configData.feeRateTolerance.toInt()
         databaseFile = configData.databaseFile
         confirmationTarget = configData.confirmationTarget.toInt()
+        maxFeeRate = configData.maxFeeRate.toInt()
     }
 }
