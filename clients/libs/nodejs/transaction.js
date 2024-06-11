@@ -84,7 +84,8 @@ const signFirst = async (clientConfig, signFirstRequestPayload) => {
 
     // Check if response or response.data is undefined
     if (!response || !response.data || !response.data.server_pubnonce) {
-        throw new Error('Server public nonce is not available.');
+        console.error('Server public nonce is not available.');
+        return null;
     }
     let server_pubnonce_hex = response.data.server_pubnonce;
 
@@ -123,7 +124,8 @@ const signSecond = async (clientConfig, partialSigRequest) => {
 
     // Check if response or response data is undefined
     if (!response || !response.data || !response.data.partial_sig) {
-        throw new Error('Server partial signature is not available.');
+        console.error('Server partial signature is not available.');
+        return null;
     }
     let server_partial_sig_hex = response.data.partial_sig;
 
