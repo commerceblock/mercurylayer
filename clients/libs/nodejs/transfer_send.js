@@ -143,8 +143,16 @@ const get_new_x1 = async (clientConfig, statechain_id, signed_statechain_id, new
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    const response = await axios.post(url, transferSenderRequestPayload, socksAgent);
-
+    try {
+        const response = await axios.post(url, transferSenderRequestPayload, socksAgent);
+        console.log('Response:', response.data);
+    } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+            console.error('Error: Connection refused. The server at 0.0.0.0:8000 is not available.');
+        } else {
+            console.error('An error occurred:', error.message);
+        }
+    }
     return response.data.x1;
 }
 
