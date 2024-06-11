@@ -471,13 +471,13 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    console.log("Blocking port 8000 of mercurylayer_mercury_1");
-    await exec("docker exec mercurylayer_mercury_1 iptables -A OUTPUT -p tcp --dport 8000 -j DROP");
+    console.log("Disconnect mercurylayer_mercury_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    console.log("Unblocking port 8000 of mercurylayer_mercury_1");
-    await exec("docker exec mercurylayer_mercury_1 iptables -D OUTPUT -p tcp --dport 8000 -j DROP");
+    console.log("Connect mercurylayer_mercury_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
 
     let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
@@ -524,13 +524,13 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
 
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
-    console.log("Blocking port 8000 of mercurylayer_mercury_1");
-    await exec("docker exec mercurylayer_mercury_1 iptables -A OUTPUT -p tcp --dport 8080 -j DROP");
+    console.log("Disconnect mercurylayer_mercury_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
 
     const serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
 
-    console.log("Unblocking port 8000 of mercurylayer_mercury_1");
-    await exec("docker exec mercurylayer_mercury_1 iptables -D OUTPUT -p tcp --dport 8080 -j DROP");
+    console.log("Connect mercurylayer_mercury_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
 
     const clientPartialSig = partialSigRequest.client_partial_sig;
     const msg = partialSigRequest.msg;
