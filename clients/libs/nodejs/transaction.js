@@ -70,8 +70,9 @@ const signFirst = async (clientConfig, signFirstRequestPayload) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
     
+    let response;
     try {
-        let response = await axios.post(url, signFirstRequestPayload, socksAgent);
+        response = await axios.post(url, signFirstRequestPayload, socksAgent);
         console.log('Response:', response.data);
     } catch (error) {
         if (error.code === 'ECONNREFUSED') {
@@ -103,8 +104,9 @@ const signSecond = async (clientConfig, partialSigRequest) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
+    let response;
     try {
-        let response = await axios.post(url, partialSigRequest, socksAgent);
+        response = await axios.post(url, partialSigRequest, socksAgent);
         console.log('Response:', response.data);
     } catch (error) {
         if (error.code === 'ECONNREFUSED') {
