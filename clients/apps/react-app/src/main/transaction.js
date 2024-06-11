@@ -19,16 +19,8 @@ const signFirst = async (signFirstRequestPayload) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
     
-    try {
-        let response = await axios.post(url, signFirstRequestPayload, socksAgent);
-        console.log('Response:', response.data);
-    } catch (error) {
-        if (error.code === 'ECONNREFUSED') {
-            console.error('Error: Connection refused. The server at 0.0.0.0:8000 is not available.');
-        } else {
-            console.error('An error occurred:', error.message);
-        }
-    }
+    let response = await axios.post(url, signFirstRequestPayload, socksAgent);
+
     let server_pubnonce_hex = response.data.server_pubnonce;
 
     return server_pubnonce_hex;
@@ -48,16 +40,8 @@ const signSecond = async (partialSigRequest) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    try {
-        let response = await axios.post(url, partialSigRequest, socksAgent);
-        console.log('Response:', response.data);
-    } catch (error) {
-        if (error.code === 'ECONNREFUSED') {
-            console.error('Error: Connection refused. The server at 0.0.0.0:8000 is not available.');
-        } else {
-            console.error('An error occurred:', error.message);
-        }
-    }
+    let response = await axios.post(url, partialSigRequest, socksAgent);
+
     let server_partial_sig_hex = response.data.partial_sig;
 
     return server_partial_sig_hex;
