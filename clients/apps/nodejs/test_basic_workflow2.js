@@ -746,6 +746,9 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
+    console.log("Disconnect mercurylayer_mercury_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_electrumx_1");
+
     try {
         let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
@@ -754,6 +757,8 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         assert(error.message.includes("Error getting fee rate from electrum server"),   
         `Unexpected error message: ${error.message}`);
     }
+    console.log("Connect mercurylayer_mercury_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_electrumx_1");
 }
 
 async function interruptTransferReceiveWithMercuryServerUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -800,6 +805,9 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
+    console.log("Disconnect mercurylayer_mercury_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+
     try {
         let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
@@ -808,6 +816,8 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         assert(error.message.includes("Failed to get message address from mercury server"),   
         `Unexpected error message: ${error.message}`);
     }
+    console.log("Connect mercurylayer_mercury_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
 }
 
 (async () => {
