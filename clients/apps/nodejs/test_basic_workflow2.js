@@ -474,8 +474,14 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     console.log("Disconnect mercurylayer_mercury_1 from network");
     await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
-
+    try {
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Server public nonce is not available."),   
+        `Unexpected error message: ${error.message}`);
+    }
     console.log("Connect mercurylayer_mercury_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
 
@@ -527,7 +533,16 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     console.log("Disconnect mercurylayer_mercury_1 from network");
     await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
 
-    const serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
+    let serverPartialSig;
+
+    try {
+        serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
+        assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Server partial signature is not available."),   
+        `Unexpected error message: ${error.message}`);
+    }
 
     console.log("Connect mercurylayer_mercury_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
