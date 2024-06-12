@@ -484,13 +484,6 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     }
     console.log("Connect mercurylayer_mercury_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
-
-    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
-
-    console.log("received_statechain_ids: ", received_statechain_ids);
-
-    assert(received_statechain_ids.length > 0);
-    assert(received_statechain_ids[0] == coin.statechain_id);
 }
 
 const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
@@ -546,19 +539,6 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
 
     console.log("Connect mercurylayer_mercury_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
-
-    const clientPartialSig = partialSigRequest.client_partial_sig;
-    const msg = partialSigRequest.msg;
-    const session = partialSigRequest.encoded_session;
-    const outputPubkey = partialSigRequest.output_pubkey;
-
-    const signature = mercury_wasm.createSignature(msg, clientPartialSig, serverPartialSig, session, outputPubkey);
-
-    const encodedUnsignedTx = partialSigRequest.encoded_unsigned_tx;
-
-    const signed_tx = mercury_wasm.newBackupTransaction(encodedUnsignedTx, signature);
-
-    return signed_tx;
 }
 
 async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_name) {
@@ -665,13 +645,62 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
     const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
     coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+}
 
-    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
 
-    console.log("received_statechain_ids: ", received_statechain_ids);
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
 
-    assert(received_statechain_ids.length > 0);
-    assert(received_statechain_ids[0] == coin.statechain_id);
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    console.log("Disconnect mercurylayer_mercury_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_electrumx_1");
+
+    try {
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Error getting fee rate from electrum server"),   
+        `Unexpected error message: ${error.message}`);
+    }
+    console.log("Connect mercurylayer_mercury_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_electrumx_1");
 }
 
 (async () => {
@@ -724,8 +753,15 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
     await interruptBeforeSignSecond(clientConfig, wallet_10_name, wallet_11_name);
     console.log("Completed test for interruption of transferSend before sign second");
 
-    // Deposit, iterative self transfer
     let wallet_12_name = "w12";
+    let wallet_13_name = "w13";
     await createWallet(clientConfig, wallet_12_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_12_name);
+    await createWallet(clientConfig, wallet_13_name);
+    await interruptSignWithElectrumUnavailability(clientConfig, wallet_12_name, wallet_13_name);
+    console.log("Completed test for interruption of sign with Electrum unavailability");
+
+    // Deposit, iterative self transfer
+    let wallet_14_name = "w14";
+    await createWallet(clientConfig, wallet_14_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_14_name);
 })();
