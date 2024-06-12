@@ -850,10 +850,10 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
     // console.log("Completed test for Transfer-sender after transfer-receiver");
 
     // // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
-    // let wallet_7_name = "w7";
-    // await createWallet(clientConfig, wallet_7_name);
-    // await depositAndTransfer(clientConfig, wallet_7_name);
-    // console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
+    let wallet_7_name = "w7";
+    await createWallet(clientConfig, wallet_7_name);
+    await depositAndTransfer(clientConfig, wallet_7_name);
+    console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
 
     // Test for interruption of transferSend before sign first
     let wallet_8_name = "w8";
