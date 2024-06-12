@@ -560,7 +560,7 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     console.log("coin: ", coinDeposited);
 
-    while (!coin) {
+    while (!coinDeposited) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
         let coinsWithStatechainId = list_coins.filter(c => {
@@ -703,6 +703,60 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await exec("docker network connect mercurylayer_default mercurylayer_electrumx_1");
 }
 
+async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    try {
+        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+        assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Error getting fee rate from electrum server"),   
+        `Unexpected error message: ${error.message}`);
+    }
+}
+
 (async () => {
 
     const clientConfig = client_config.load();
@@ -746,6 +800,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await interruptBeforeSignFirst(clientConfig, wallet_8_name, wallet_9_name);
     console.log("Completed test for interruption of transferSend before sign first");
 
+    // Test for interruption of transferSend before sign second
     let wallet_10_name = "w10";
     let wallet_11_name = "w11";
     await createWallet(clientConfig, wallet_10_name);
@@ -753,6 +808,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await interruptBeforeSignSecond(clientConfig, wallet_10_name, wallet_11_name);
     console.log("Completed test for interruption of transferSend before sign second");
 
+    // Test for interruption of sign with Electrum unavailability
     let wallet_12_name = "w12";
     let wallet_13_name = "w13";
     await createWallet(clientConfig, wallet_12_name);
@@ -760,8 +816,16 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await interruptSignWithElectrumUnavailability(clientConfig, wallet_12_name, wallet_13_name);
     console.log("Completed test for interruption of sign with Electrum unavailability");
 
-    // Deposit, iterative self transfer
+    // Test for interruption of transfer receive with mercury server unavailability
     let wallet_14_name = "w14";
+    let wallet_15_name = "w15";
     await createWallet(clientConfig, wallet_14_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_14_name);
+    await createWallet(clientConfig, wallet_15_name);
+    await interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_14_name, wallet_15_name);
+    console.log("Completed test for interruption of transfer receive with mercury server unavailability");
+
+    // Deposit, iterative self transfer
+    let wallet_16_name = "w16";
+    await createWallet(clientConfig, wallet_16_name);
+    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_16_name);
 })();
