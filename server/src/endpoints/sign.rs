@@ -48,15 +48,33 @@ pub async fn insert_new_signature_data(pool: &sqlx::PgPool, server_pubnonce: &st
 #[post("/sign/first", format = "json", data = "<sign_first_request_payload>")]
 pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_request_payload: Json<SignFirstRequestPayload>) -> status::Custom<Json<Value>>  {
 
+    let config = crate::server_config::ServerConfig::load();
+    
+    let statechain_id = sign_first_request_payload.0.statechain_id.clone();
+
     let statechain_entity = statechain_entity.inner();
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let enclave_index = crate::database::utils::get_enclave_index_from_database(&statechain_entity.pool, &statechain_id).await;
+
+    let enclave_index = match enclave_index {
+        Some(index) => index,
+        None => {
+            let response_body = json!({
+                "message": format!("Enclave index for statechain {} ID not found.", statechain_id)
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+    };
+
+    let enclave_index = enclave_index as usize;
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "get_public_nonce";
 
     let client: reqwest::Client = reqwest::Client::new();
     let request = client.post(&format!("{}/{}", lockbox_endpoint, path));
 
-    let statechain_id = sign_first_request_payload.0.statechain_id.clone();
     let signed_statechain_id = sign_first_request_payload.0.signed_statechain_id.clone();
 
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
@@ -128,15 +146,33 @@ pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_non
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
 pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_signature_request_payload: Json<mercurylib::transaction::PartialSignatureRequestPayload>) -> status::Custom<Json<Value>>  {
     
+    let statechain_id = partial_signature_request_payload.0.statechain_id.clone();
+
     let statechain_entity = statechain_entity.inner();
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let config = crate::server_config::ServerConfig::load();
+
+    let enclave_index = crate::database::utils::get_enclave_index_from_database(&statechain_entity.pool, &statechain_id).await;
+
+    let enclave_index = match enclave_index {
+        Some(index) => index,
+        None => {
+            let response_body = json!({
+                "message": format!("Enclave index for statechain {} ID not found.", statechain_id)
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+    };
+
+    let enclave_index = enclave_index as usize;
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "get_partial_signature";
 
     let client: reqwest::Client = reqwest::Client::new();
     let request = client.post(&format!("{}/{}", lockbox_endpoint, path));
 
-    let statechain_id = partial_signature_request_payload.0.statechain_id.clone();
     let signed_statechain_id = partial_signature_request_payload.0.signed_statechain_id.clone();
 
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {

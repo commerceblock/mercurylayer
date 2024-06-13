@@ -43,7 +43,24 @@ pub async fn withdraw_complete(statechain_entity: &State<StateChainEntity>, dele
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let config = crate::server_config::ServerConfig::load();
+
+    let enclave_index = crate::database::utils::get_enclave_index_from_database(&statechain_entity.pool, &statechain_id).await;
+
+    let enclave_index = match enclave_index {
+        Some(index) => index,
+        None => {
+            let response_body = json!({
+                "message": format!("Enclave index for statechain {} ID not found.", statechain_id)
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+    };
+
+    let enclave_index = enclave_index as usize;
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "delete_statechain";
 
     let client: reqwest::Client = reqwest::Client::new();

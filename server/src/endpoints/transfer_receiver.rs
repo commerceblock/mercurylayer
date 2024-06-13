@@ -25,7 +25,24 @@ pub async fn statechain_info(statechain_entity: &State<StateChainEntity>, statec
 
     let enclave_public_key = enclave_public_key.unwrap();
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let config = crate::server_config::ServerConfig::load();
+
+    let enclave_index = crate::database::utils::get_enclave_index_from_database(&statechain_entity.pool, &statechain_id).await;
+
+    let enclave_index = match enclave_index {
+        Some(index) => index,
+        None => {
+            let response_body = json!({
+                "message": format!("Enclave index for statechain {} ID not found.", statechain_id)
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+    };
+
+    let enclave_index = enclave_index as usize;
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "signature_count";
 
     let client: reqwest::Client = reqwest::Client::new();
@@ -143,7 +160,7 @@ pub async fn validate_batch(statechain_entity: &State<StateChainEntity>, statech
 
         let (batch_id, batch_time) = batch_info.unwrap();
 
-        if is_batch_expired(&statechain_entity, batch_time) {
+        if is_batch_expired(batch_time) {
             // the batch time has not expired. It is possible to add a new coin to the batch.
             return BatchTransferReceiveValidationResult::ExpiredBatchTimeError("Batch time has expired".to_string());
         } else {
@@ -256,8 +273,24 @@ pub async fn transfer_receiver(statechain_entity: &State<StateChainEntity>, tran
         x1: x1_hex,
     };
 
+    let config = crate::server_config::ServerConfig::load();
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let enclave_index = crate::database::utils::get_enclave_index_from_database(&statechain_entity.pool, &statechain_id).await;
+
+    let enclave_index = match enclave_index {
+        Some(index) => index,
+        None => {
+            let response_body = json!({
+                "message": format!("Enclave index for statechain {} ID not found.", statechain_id)
+            });
+        
+            return status::Custom(Status::InternalServerError, Json(response_body));
+        }
+    };
+
+    let enclave_index = enclave_index as usize;
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "keyupdate";
 
     let client: reqwest::Client = reqwest::Client::new();
