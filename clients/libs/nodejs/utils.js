@@ -14,7 +14,7 @@ const infoConfig = async (clientConfig, ecl) => {
         throw new Error("Error getting fee rate from electrum server");
     }
 
-    // console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
+    console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
 
     // Why does it happen?
     if (fee_rate_btc_per_kb <= 0) {
@@ -22,7 +22,7 @@ const infoConfig = async (clientConfig, ecl) => {
     }
     const fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0);
 
-    // console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
+    console.log("fee_rate_sats_per_byte: " + fee_rate_sats_per_byte);
 
     const torProxy = clientConfig.torProxy;
 
