@@ -30,7 +30,7 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
 
         let (batch_id, batch_time) = batch_info.unwrap();
 
-        if !is_batch_expired(&statechain_entity, batch_time) {
+        if !is_batch_expired(batch_time) {
 
             // TODO: check if the batch is complete. If complete, should return success.
 
@@ -59,7 +59,7 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
         if batch_time.is_some() {
             let batch_time = batch_time.unwrap();
 
-            if !is_batch_expired(&statechain_entity, batch_time) {
+            if !is_batch_expired(batch_time) {
                 // the batch time has not expired. It is possible to add a new coin to the batch.
                 return BatchTransferValidationResult::Success
             } else {

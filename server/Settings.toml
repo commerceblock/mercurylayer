@@ -1,6 +1,27 @@
-lockbox = "http://0.0.0.0:18080"
 network = "testnet"
 lockheight_init = 1000
 lh_decrement = 10
 connection_string = "postgresql://postgres:postgres@localhost/mercury"
 batch_timeout = 120 # seconds
+
+[[enclaves]]
+url = "http://0.0.0.0:18080"
+allow_deposit = true
+
+[[enclaves]]
+url = "http://0.0.0.0:18080"
+allow_deposit = false
+
+[[enclaves]]
+url = "http://0.0.0.0:18080"
+allow_deposit = true
+
+[[enclaves]]
+url = "http://0.0.0.0:18080"
+allow_deposit = true
+
+[[enclaves]]
+url = "http://0.0.0.0:18080"
+allow_deposit = true
+
+# env var: ENCLAVES='[{"url": "http://0.0.0.0:18080", "allow_deposit": true}, {"url": "http://0.0.0.0:18080", "allow_deposit": false}]'

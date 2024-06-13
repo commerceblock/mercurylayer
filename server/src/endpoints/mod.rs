@@ -1,7 +1,4 @@
 use chrono::{DateTime, Duration, Utc};
-use rocket::State;
-
-use crate::server::StateChainEntity;
 
 pub mod deposit;
 pub mod sign;
@@ -11,8 +8,11 @@ pub mod transfer_receiver;
 pub mod withdraw;
 
 
-fn is_batch_expired(statechain_entity: &State<StateChainEntity>, batch_time: DateTime<Utc>) -> bool {
-    let batch_timeout = statechain_entity.config.batch_timeout;
+fn is_batch_expired(batch_time: DateTime<Utc>) -> bool {
+
+    let config = crate::server_config::ServerConfig::load();
+
+    let batch_timeout = config.batch_timeout;
 
     let expiration_time = batch_time + Duration::seconds(batch_timeout as i64);
 

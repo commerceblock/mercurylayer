@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use bitcoin::hashes::sha256;
+use bitcoin::hashes::{sha256, Hash};
 use rocket::{State, response::status, http::Status, serde::json::Json};
 use secp256k1_zkp::{schnorr::Signature, Message, Secp256k1, XOnlyPublicKey};
 use serde_json::{json, Value};
 use sqlx::Row;
 use secp256k1_zkp::PublicKey;
 
-use crate::server::StateChainEntity;
+use crate::{server::StateChainEntity, server_config::Enclave};
 
 async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str) -> Result<XOnlyPublicKey, sqlx::Error> {
 
@@ -55,12 +55,13 @@ pub async fn validate_signature(pool: &sqlx::PgPool, signed_message_hex: &str, s
 }
 
 #[get("/info/config")]
-pub async fn info_config(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>> {
-    let statechain_entity = statechain_entity.inner();
+pub async fn info_config() -> status::Custom<Json<Value>> {
+
+    let config = crate::server_config::ServerConfig::load();
 
     let server_config = mercurylib::utils::ServerConfig {
-        initlock: statechain_entity.config.lockheight_init,
-        interval: statechain_entity.config.lh_decrement,
+        initlock: config.lockheight_init,
+        interval: config.lh_decrement,
     };
 
     let response_body = json!(server_config);

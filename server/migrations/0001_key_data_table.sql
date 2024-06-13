@@ -4,6 +4,7 @@ CREATE TABLE public.statechain_data (
     auth_xonly_public_key bytea NULL,
 	server_public_key bytea NULL UNIQUE,
     statechain_id varchar NULL UNIQUE,
+	enclave_index integer NOT NULL,
 	CONSTRAINT statechain_data_pkey PRIMARY KEY (id),
 	CONSTRAINT statechain_data_server_public_key_ukey UNIQUE (server_public_key)
 );
