@@ -76,7 +76,7 @@ const checkDeposit = async (clientConfig, electrumClient, coin, wallet_network) 
         console.log("CONFIRMATIONS ", confirmations);
         console.log("CONFIRMATION TARGET ", confirmationTarget);
         console.log("COIN STATUS ", coin.status);
-        console.log("BLOCK HEIGHT ", block_height);
+        console.log("BLOCK HEIGHT ", blockheight);
         console.log("UTXO HEIGHT ", utxo.height);
 
         coin.status = CoinStatus.UNCONFIRMED;
