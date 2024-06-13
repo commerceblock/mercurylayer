@@ -177,7 +177,7 @@ const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
         let coin = wallet.coins[i];
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
-
+            console.log("COIN STATUS ", coin.status);
             let depositResult = await checkDeposit(clientConfig, electrumClient, coin, network);
 
             if (depositResult) {
