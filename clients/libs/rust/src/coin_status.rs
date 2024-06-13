@@ -78,6 +78,11 @@ async fn check_deposit(client_config: &ClientConfig, coin: &mut Coin, wallet_net
 
         coin.status = CoinStatus::UNCONFIRMED;
 
+        console.log("Blockheight ", blockheight);
+        console.log("UTXO height ", utxo.height);
+        console.log("Confirmations ", confirmations);
+        console.log("Confirmation target ", client_config.confirmation_target);
+
         if confirmations as u32 >= client_config.confirmation_target {
             coin.status = CoinStatus::CONFIRMED;
         }
