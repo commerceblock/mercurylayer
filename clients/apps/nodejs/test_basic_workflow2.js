@@ -73,6 +73,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
+        console.log(list_coins);
 
         let coinsWithStatechainId = list_coins.filter(c => {
             return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
