@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const mercurynodejslib = require('mercurynodejslib');
 const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const client_config = require('./client_config');
+const ElectrumCli = require('@mempool/electrum-client');
 
 async function removeDatabase() {
     try {
