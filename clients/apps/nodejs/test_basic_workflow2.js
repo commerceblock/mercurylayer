@@ -32,6 +32,12 @@ async function generateBlock(numBlocks) {
     const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
     exec(generateBlockCommand);
     console.log(`Generated ${numBlocks} blocks`);
+
+    const clientConfig = client_config.load();
+    const electrumClient = await getElectrumClient(clientConfig);
+    const block_header = await electrumClient.request('blockchain.headers.subscribe');
+    const blockheight = block_header.height;
+    console.log("Current block height: ", blockheight);
 }
 
 async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
