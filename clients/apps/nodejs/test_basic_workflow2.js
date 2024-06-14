@@ -28,6 +28,21 @@ async function createWallet(clientConfig, walletName) {
     // TODO: add more assertions
 }
 
+const getElectrumClient = async (clientConfig) => {
+
+    const urlElectrum = clientConfig.electrumServer;
+    const urlElectrumObject = new URL(urlElectrum);
+
+    const electrumPort = parseInt(urlElectrumObject.port, 10);
+    const electrumHostname = urlElectrumObject.hostname;  
+    const electrumProtocol = urlElectrumObject.protocol.slice(0, -1);
+
+    const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol);
+    await electrumClient.connect();
+
+    return electrumClient;
+}
+
 async function generateBlock(numBlocks) {
     const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
     exec(generateBlockCommand);
