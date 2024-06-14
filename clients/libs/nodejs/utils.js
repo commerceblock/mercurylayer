@@ -7,14 +7,12 @@ const infoConfig = async (clientConfig, ecl) => {
     const statechain_entity_url = clientConfig.statechainEntity;
     const path = "info/config";
 
-    let fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
-
-    // let fee_rate_btc_per_kb;
-    // try { 
-    //     fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
-    // } catch (error) {
-    //     throw new Error("Error getting fee rate from electrum server");
-    // }
+    let fee_rate_btc_per_kb;
+    try { 
+        fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
+    } catch (error) {
+        throw new Error("Error getting fee rate from electrum server");
+    }
 
     console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);
 
