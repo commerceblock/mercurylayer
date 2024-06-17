@@ -761,36 +761,36 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     const clientConfig = client_config.load();
 
-    // let wallet_1_name = "w1";
-    // let wallet_2_name = "w2";
-    // await createWallet(clientConfig, wallet_1_name);
-    // await createWallet(clientConfig, wallet_2_name);
-    // await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
-    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
+    let wallet_1_name = "w1";
+    let wallet_2_name = "w2";
+    await createWallet(clientConfig, wallet_1_name);
+    await createWallet(clientConfig, wallet_2_name);
+    await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
+    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 
-    // // Deposit, repeat send
-    // let wallet_3_name = "w3";
-    // let wallet_4_name = "w4";
-    // await createWallet(clientConfig, wallet_3_name);
-    // await createWallet(clientConfig, wallet_4_name);
-    // await depositAndRepeatSend(clientConfig, wallet_3_name);
-    // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
-    // console.log("Completed test for Deposit, repeat send");
+    // Deposit, repeat send
+    let wallet_3_name = "w3";
+    let wallet_4_name = "w4";
+    await createWallet(clientConfig, wallet_3_name);
+    await createWallet(clientConfig, wallet_4_name);
+    await depositAndRepeatSend(clientConfig, wallet_3_name);
+    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
+    console.log("Completed test for Deposit, repeat send");
 
-    // // Transfer-sender after transfer-receiver
-    // let wallet_5_name = "w5";
-    // let wallet_6_name = "w6";
-    // await createWallet(clientConfig, wallet_5_name);
-    // await createWallet(clientConfig, wallet_6_name);
-    // await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
-    // console.log("Completed test for Transfer-sender after transfer-receiver");
+    // Transfer-sender after transfer-receiver
+    let wallet_5_name = "w5";
+    let wallet_6_name = "w6";
+    await createWallet(clientConfig, wallet_5_name);
+    await createWallet(clientConfig, wallet_6_name);
+    await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
+    console.log("Completed test for Transfer-sender after transfer-receiver");
 
-    // // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
-    // let wallet_7_name = "w7";
-    // await createWallet(clientConfig, wallet_7_name);
-    // await depositAndTransfer(clientConfig, wallet_7_name);
-    // console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
+    // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
+    let wallet_7_name = "w7";
+    await createWallet(clientConfig, wallet_7_name);
+    await depositAndTransfer(clientConfig, wallet_7_name);
+    console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
 
     // Test for interruption of transferSend before sign first
     let wallet_8_name = "w8";
