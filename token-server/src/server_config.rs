@@ -69,7 +69,7 @@ impl ServerConfig {
         ServerConfig {
             processor_url: get_env_or_config("processor_url", "PROCESSOR_URL"),
             api_key: get_env_or_config("api_key", "API_KEY"),
-            api_key: get_env_or_config("unit", "UNIT"),
+            unit: get_env_or_config("unit", "UNIT"),
             fee: get_env_or_config("fee", "FEE"),
             delay: get_env_or_config("delay", "DELAY").parse::<u64>().unwrap(),
             connection_string: get_env_or_config("connection_string", "CONNECTION_STRING"),
