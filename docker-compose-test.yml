@@ -72,3 +72,4 @@ services:
 
 volumes:
   bitcoin_data:
+  electrs-data:
