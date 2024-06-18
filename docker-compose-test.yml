@@ -25,15 +25,22 @@ services:
     volumes:
       - bitcoin_data:/root/.bitcoin
 
-  electrumx:
-    image: lukechilds/electrumx:latest
+  electrs:
+    image: getumbrel/electrs:latest
     environment:
-      DAEMON_URL: http://user:pass@bitcoin:18443/
-      COIN: BitcoinSegwit
-      NET: regtest
+      ELECTRS_LOG_FILTERS: "INFO"
+      ELECTRS_NETWORK: "regtest"
+      ELECTRS_DAEMON_RPC_ADDR: "bitcoin:18443"
+      ELECTRS_ELECTRUM_RPC_ADDR: "0.0.0.0:50001"
+      ELECTRS_SERVER_BANNER: "Umbrel Electrs"
+      ELECTRS_COOKIE_FILE: "/root/.bitcoin/.cookie"
+      ELECTRS_DB_PATH: "/data/db"
     ports:
-      - "50002:50002"
       - "50001:50001"
+    volumes:
+      - electrs-data:/data
+      - bitcoin_data:/root/.bitcoin
+    entrypoint: ["/entrypoint.sh"]
 
   enclave-sgx:
     build:
