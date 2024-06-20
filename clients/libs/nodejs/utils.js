@@ -11,7 +11,7 @@ const infoConfig = async (clientConfig, ecl) => {
     try { 
         fee_rate_btc_per_kb = await ecl.request('blockchain.estimatefee', [3]); // request(promise)
     } catch (error) {
-        throw new Error("Error getting fee rate from electrum server");
+        throw new Error("Error getting fee rate from electrs server");
     }
 
     console.log("fee_rate_btc_per_kb:", fee_rate_btc_per_kb);

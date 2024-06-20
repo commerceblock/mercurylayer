@@ -741,7 +741,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         assert.fail("Expected error when transferring from wallet one, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Error getting fee rate from electrum server"),   
+        assert(error.message.includes("Error getting fee rate from electrs server"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
@@ -801,7 +801,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Error getting fee rate from electrum server"),   
+        assert(error.message.includes("Error getting unspent list from electrs server"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
