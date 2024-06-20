@@ -5,6 +5,11 @@ const mercurynodejslib = require('mercurynodejslib');
 const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const client_config = require('./client_config');
 const ElectrumCli = require('@mempool/electrum-client');
+const sqlite3 = require('sqlite3').verbose();
+const sqlite_manager = require('../../libs/nodejs/sqlite_manager');
+const mercury_wasm = require('mercury-wasm');
+const transaction = require('../../libs/nodejs/transaction');
+const utils = require('../../libs/nodejs/utils');
 
 async function removeDatabase() {
     try {
@@ -15,6 +20,13 @@ async function removeDatabase() {
     } catch (e) {  
         console.error(e);
     }
+}
+
+const getDatabase = async (clientConfig) => {
+    const databaseFile = clientConfig.databaseFile;
+    const db = new sqlite3.Database(databaseFile);
+    await sqlite_manager.createTables(db);
+    return db;
 }
 
 const sleep = (ms) => {
@@ -519,7 +531,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
 const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
-    let server_pubnonce = await signFirst(clientConfig, coin_nonce.sign_first_request_payload);
+    let server_pubnonce = await transaction.signFirst(clientConfig, coin_nonce.sign_first_request_payload);
 
     coin.secret_nonce = coin_nonce.secret_nonce;
     coin.public_nonce = coin_nonce.public_nonce;
@@ -559,7 +571,7 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     let serverPartialSig;
 
     try {
-        serverPartialSig = await signSecond(clientConfig, serverPartialSigRequest);
+        serverPartialSig = await transaction.signSecond(clientConfig, serverPartialSigRequest);
         assert.fail("Expected error when signing second transaction, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -617,24 +629,26 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     const electrumClient = await getElectrumClient(clientConfig);
 
+    let options = transfer_address.transfer_receive;
+
     let batchId = (options && options.batchId)  || null;
 
-    let wallet = await sqlite_manager.getWallet(db, walletName);
+    let wallet = await sqlite_manager.getWallet(db, wallet_1_name);
 
-    const backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
+    const backupTxs = await sqlite_manager.getBackupTxs(db, coinDeposited.statechain_id);
 
     if (backupTxs.length === 0) {
-        throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
+        throw new Error(`There is no backup transaction for the statechain id ${coinDeposited.statechain_id}`);
     }
 
     const new_tx_n = backupTxs.length + 1;
 
     let coinsWithStatechainId = wallet.coins.filter(c => {
-        return c.statechain_id === statechainId
+        return c.statechain_id === coinDeposited.statechain_id
     });
 
     if (!coinsWithStatechainId || coinsWithStatechainId.length === 0) {
-        throw new Error(`There is no coin for the statechain id ${statechainId}`);
+        throw new Error(`There is no coin for the statechain id ${coinDeposited.statechain_id}`);
     }
 
     // If the user sends to himself, he will have two coins with same statechain_id
@@ -669,10 +683,10 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     const block_height = mercury_wasm.getBlockheight(bkp_tx1);
 
-    const decodedTransferAddress = mercury_wasm.decodeTransferAddress(toAddress);
+    const decodedTransferAddress = mercury_wasm.decodeTransferAddress(transfer_address.transfer_receive);
     const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
 
-    const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
+    // const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
     coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
 }
@@ -719,8 +733,8 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    console.log("Disconnect mercurylayer_mercury_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_electrumx_1");
+    console.log("Disconnect mercurylayer_electrs_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
 
     try {
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
@@ -730,8 +744,8 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         assert(error.message.includes("Error getting fee rate from electrum server"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_mercury_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_electrumx_1");
+    console.log("Connect mercurylayer_electrs_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
 }
 
 async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -779,8 +793,8 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    console.log("Disconnect mercurylayer_mercury_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_electrumx_1");
+    console.log("Disconnect mercurylayer_electrs_1 from network");
+    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
 
     try {
         let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
@@ -790,8 +804,8 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         assert(error.message.includes("Error getting fee rate from electrum server"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_mercury_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_electrumx_1");
+    console.log("Connect mercurylayer_electrs_1 from network");
+    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
 }
 
 async function interruptTransferReceiveWithMercuryServerUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
