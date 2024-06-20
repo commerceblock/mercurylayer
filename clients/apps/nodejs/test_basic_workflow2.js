@@ -105,6 +105,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -169,6 +170,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -246,6 +248,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -305,6 +308,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -363,6 +367,7 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -424,6 +429,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
                 console.log("Waiting for coin to be confirmed...");
                 console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
                 await sleep(5000);
+                generateBlock(1);
                 continue;
             }
 
@@ -483,6 +489,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -594,6 +601,7 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -699,6 +707,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -756,6 +765,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
@@ -815,6 +825,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
             console.log("Waiting for coin to be confirmed...");
             console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
             await sleep(5000);
+            generateBlock(1);
             continue;
         }
 
