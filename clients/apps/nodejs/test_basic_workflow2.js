@@ -45,7 +45,7 @@ const getElectrumClient = async (clientConfig) => {
 }
 
 async function generateBlock(numBlocks) {
-    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
     exec(generateBlockCommand);
     console.log(`Generated ${numBlocks} blocks`);
 
@@ -65,7 +65,7 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 
     // Sending Bitcoin using bitcoin-cli
     try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoin_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
         console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         await generateBlock(3);

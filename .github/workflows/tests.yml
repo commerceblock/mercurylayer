@@ -40,7 +40,7 @@ jobs:
           sleep 80 # Adjust time as necessary for services to initialize
       - name: Verify Bitcoin core Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_bitcoin_1")
+          container_id=$(docker ps -qf "name=mercurylayer_bitcoind_1")
           echo "Container ID: $container_id"
           docker logs $container_id
           wallet_name="new_wallet"
