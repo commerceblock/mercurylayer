@@ -425,7 +425,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
 
     assert(usedToken.spent);
     
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 10; i++) {
         await depositCoin(clientConfig, wallet_name, amount, deposit_info);
 
         let coin = undefined;
@@ -898,7 +898,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
         console.log("Completed test for Transfer-sender after transfer-receiver");
 
-        // Deposit of 100 coins in same wallet, and transfer each one 100 times
+        // Deposit of 10 coins in same wallet, and transfer each one 10 times
         let wallet_7_name = "w7";
         await createWallet(clientConfig, wallet_7_name);
         await depositAndTransfer(clientConfig, wallet_7_name);

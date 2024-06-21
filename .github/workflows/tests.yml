@@ -110,15 +110,6 @@ jobs:
         run: |
           cd clients/libs/nodejs
           npm install
-      - name: Run npm link
-        run: |
-          cd clients/libs/nodejs
-          npm link --save
-      
-      - name: Link mercurynodejslib
-        run: |
-          cd clients/apps/nodejs
-          npm link mercurynodejslib
       - name: Run Client-Side Tests
         run: |
           cd clients/apps/nodejs
