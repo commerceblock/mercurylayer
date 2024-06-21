@@ -38,7 +38,7 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 80 # Adjust time as necessary for services to initialize
-      - name: Verify Bitcoin core Service with Curl
+      - name: Verify Bitcoin daemon Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_bitcoind_1")
           echo "Container ID: $container_id"
@@ -123,12 +123,6 @@ jobs:
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
-      - name: Print environment variables
-        run: printenv
-      - name: Print working directory
-        run: pwd
-      - name: List files in working directory
-        run: ls -al
       - name: Tear Down
         run: |
-          docker-compose down
+          docker-compose -f docker-compose-test.yml down
