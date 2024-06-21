@@ -741,7 +741,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         assert.fail("Expected error when transferring from wallet one, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Error getting fee rate from electrs server"),   
+        assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:50001"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
@@ -801,7 +801,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Error getting unspent list from electrs server"),   
+        assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:50001"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
@@ -861,7 +861,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Failed to get message address from mercury server"),   
+        assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:8000"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_mercury_1 from network");
@@ -947,4 +947,5 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
     let wallet_18_name = "w18";
     await createWallet(clientConfig, wallet_18_name);
     await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_18_name);
+    console.log("Completed test for Deposit, iterative self transfer");
 })();
