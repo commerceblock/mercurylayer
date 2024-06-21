@@ -1,16 +1,18 @@
 use std::str::FromStr;
 
-use bitcoin::hashes::sha256;
+use bitcoin::hashes::{sha256, Hash};
 use rocket::{serde::json::Json, response::status, State, http::Status};
 use secp256k1_zkp::{XOnlyPublicKey, schnorr::Signature, Message, Secp256k1, PublicKey};
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
-use crate::server::StateChainEntity;
+use crate::{server::StateChainEntity, server_config::Enclave};
 
 #[get("/deposit/get_token")]
 pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
 
-    if statechain_entity.config.network == "mainnet" {
+    let config = crate::server_config::ServerConfig::load();
+
+    if config.network == "mainnet" {
         let response_body = json!({
             "error": "Internal Server Error",
             "message": "Token generation not supported on mainnet."
@@ -35,7 +37,9 @@ pub async fn get_token(statechain_entity: &State<StateChainEntity>) -> status::C
 #[get("/tokens/token_init")]
 pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::Custom<Json<Value>>  {
 
-    if statechain_entity.config.network == "mainnet" {
+    let config = crate::server_config::ServerConfig::load();
+
+    if config.network == "mainnet" {
         let response_body = json!({
             "error": "Internal Server Error",
             "message": "Token generation not supported on mainnet."
@@ -69,6 +73,33 @@ pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::
     let response_body = json!(token);
 
     return status::Custom(Status::Ok, Json(response_body));
+}
+
+fn get_random_enclave_index(statechain_id: &str, enclaves: &Vec<Enclave>) -> Result<usize, String> {
+    let index_from_statechain_id = get_enclave_index_from_statechain_id(statechain_id, enclaves.len() as u32);
+
+    let selected_enclave = enclaves.get(index_from_statechain_id).unwrap();
+    if selected_enclave.allow_deposit {
+        return Ok(index_from_statechain_id);
+    } else {
+        for (i, enclave) in enclaves.iter().enumerate() {
+            if enclave.allow_deposit {
+                return Ok(i);
+            }
+        }
+    }
+
+    Err("No valid enclave found with allow_deposit set to true".to_string())
+}
+
+fn get_enclave_index_from_statechain_id(statechain_id: &str, enclave_array_len: u32) -> usize {
+    let hash = sha256::Hash::hash(statechain_id.as_bytes());
+    let hash_bytes = hash.as_byte_array();
+    let mut bytes = [0u8; 16];
+    bytes.copy_from_slice(&hash_bytes[..16]);
+    let random_number = u128::from_be_bytes(bytes);
+
+    return (random_number % enclave_array_len as u128) as usize;
 }
 
 #[post("/deposit/init/pod", format = "json", data = "<deposit_msg1>")]
@@ -123,14 +154,18 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
         return status::Custom(Status::Gone, Json(response_body));
     }
 
-    let statechain_id = uuid::Uuid::new_v4().as_simple().to_string(); 
-
     #[derive(Debug, Serialize, Deserialize)]
     pub struct GetPublicKeyRequestPayload {
         statechain_id: String,
     }
 
-    let lockbox_endpoint = statechain_entity.config.lockbox.clone().unwrap();
+    let statechain_id = uuid::Uuid::new_v4().as_simple().to_string();
+
+    let config = crate::server_config::ServerConfig::load();
+
+    let enclave_index = get_random_enclave_index(&statechain_id, &config.enclaves).unwrap();
+
+    let lockbox_endpoint = config.enclaves.get(enclave_index).unwrap().url.clone();
     let path = "get_public_key";
 
     let client: reqwest::Client = reqwest::Client::new();
@@ -171,7 +206,7 @@ pub async fn post_deposit(statechain_entity: &State<StateChainEntity>, deposit_m
 
     let server_pubkey = PublicKey::from_str(&server_pubkey_hex).unwrap();
 
-    crate::database::deposit::insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, &statechain_id).await;
+    crate::database::deposit::insert_new_deposit(&statechain_entity.pool, &token_id, &auth_key, &server_pubkey, &statechain_id, enclave_index as i32).await;
 
     crate::database::deposit::set_token_spent(&statechain_entity.pool, &token_id).await;
 

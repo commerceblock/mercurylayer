@@ -110,6 +110,22 @@ fun getElectrumClient(clientConfig: ClientConfig): ElectrumClient{
     return electrumClient;
 }
 
+suspend fun getFeeRateSatsPerByte(clientConfig: ClientConfig): ULong {
+    val electrumClient = getElectrumClient(clientConfig)
+
+    var feeRateBtcPerKb = electrumClient.blockchainEstimatefee(3)
+
+    if (feeRateBtcPerKb <= 0.0) {
+        feeRateBtcPerKb = 0.00001
+    }
+
+    val feeRateSatsPerByte = (feeRateBtcPerKb * 100000.0).toULong()
+
+    electrumClient.closeConnection()
+
+    return feeRateSatsPerByte
+}
+
 suspend fun getInfoConfig(clientConfig: ClientConfig): InfoConfig {
     val endpoint = "info/config"
 
@@ -128,17 +144,7 @@ suspend fun getInfoConfig(clientConfig: ClientConfig): InfoConfig {
 
     httpClient.close()
 
-    val electrumClient = getElectrumClient(clientConfig)
-
-    var feeRateBtcPerKb = electrumClient.blockchainEstimatefee(3);
-
-    if (feeRateBtcPerKb <= 0.0) {
-        feeRateBtcPerKb = 0.00001;
-    }
-
-    val feeRateSatsPerByte = (feeRateBtcPerKb * 100000.0).toULong();
-
-    electrumClient.closeConnection()
+    val feeRateSatsPerByte = getFeeRateSatsPerByte(clientConfig)
 
     return InfoConfig(
         serverConfig.initlock,

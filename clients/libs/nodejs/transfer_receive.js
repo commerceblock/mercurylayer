@@ -166,49 +166,24 @@ const processEncryptedMessage = async (clientConfig, electrumClient, db, coin, e
         throw new Error("tx0 output is spent or not confirmed");
     }
 
-    const currentFeeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
+    let currentFeeRateSatsPerByte = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
 
     const feeRateTolerance = clientConfig.feeRateTolerance;
 
-    let previousLockTime = null;
+    let isSignatureValid = mercury_wasm.validateSignatureScheme(
+        transferMsg,
+        statechainInfo,
+        tx0Hex,
+        feeRateTolerance, 
+        currentFeeRateSatsPerByte,
+        serverInfo.interval
+    )
 
-    let sigSchemeValidation = true;
-
-    for (const [index, backupTx] of transferMsg.backup_transactions.entries()) {
-
-        const isSignatureValid = mercury_wasm.verifyTransactionSignature(backupTx.tx, tx0Hex, feeRateTolerance, currentFeeRateSatsPerByte);
-
-        if (!isSignatureValid.result) {
-            console.error(`Invalid signature, ${isSignatureValid.result.msg}`);
-            sigSchemeValidation = false;
-            break;
-        }
-
-        const currentStatechainInfo = statechainInfo.statechain_info[index];
-
-        const isBlindedMusigSchemeValid = mercury_wasm.verifyBlindedMusigScheme(backupTx, tx0Hex, currentStatechainInfo);
-
-        if (!isBlindedMusigSchemeValid.result) {
-            console.error(`Invalid musig scheme, ${isBlindedMusigSchemeValid.result.msg}`);
-            sigSchemeValidation = false;
-            break;
-        }
-
-        if (previousLockTime != null) {
-            let currentLockTime = mercury_wasm.getBlockheight(backupTx);
-            if ((previousLockTime - currentLockTime) != serverInfo.interval) {
-                console.error("interval is not correct");
-                sigSchemeValidation = false;
-                break;
-            }
-        }
-
-        previousLockTime = mercury_wasm.getBlockheight(backupTx);
+    if (!isSignatureValid.result) {
+        throw new Error(`Invalid signature scheme, ${isSignatureValid.msg}`);
     }
 
-    if (!sigSchemeValidation) {
-        throw new Error("Signature scheme validation failed");
-    }
+    let previousLockTime = isSignatureValid.previousLockTime;
 
     const transferReceiverRequestPayload = mercury_wasm.createTransferReceiverRequestPayload(statechainInfo, transferMsg, coin);
 

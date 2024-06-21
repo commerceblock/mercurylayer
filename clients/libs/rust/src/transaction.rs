@@ -2,7 +2,7 @@ use electrum_client::ElectrumApi;
 use mercurylib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
 use anyhow::Result;
 use secp256k1_zkp::musig::MusigPartialSignature;
-use crate::{client_config::ClientConfig, utils::info_config};
+use crate::client_config::ClientConfig;
 
 pub async fn new_transaction(
     client_config: &ClientConfig, 
@@ -12,7 +12,9 @@ pub async fn new_transaction(
     is_withdrawal: bool, 
     block_height: Option<u32>, 
     network: &str, 
-    fee_rate: Option<u64>) -> Result<String> {
+    fee_rate_sats_per_byte: u32,
+    initlock: u32,
+    interval: u32) -> Result<String> {
 
     // TODO: validate address first
 
@@ -25,22 +27,12 @@ pub async fn new_transaction(
 
     coin.server_public_nonce = Some(server_public_nonce);
 
-    let server_info = info_config(&client_config).await?;
-
     let block_height = match block_height {
         Some(block_height) => block_height,
         None => {
             let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
             block_header.height as u32
         },
-    };
-           
-    let initlock = server_info.initlock;
-    let interval = server_info.interval;
-
-    let fee_rate_sats_per_byte = match fee_rate {
-        Some(fee_rate) => fee_rate as u32,
-        None => server_info.fee_rate_sats_per_byte as u32,
     };
 
     let partial_sig_request = get_partial_sig_request(

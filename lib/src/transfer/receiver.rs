@@ -260,6 +260,60 @@ pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, net
     Ok(address.to_string())
 }
 
+pub fn validate_signature_scheme(
+    transfer_msg: &TransferMsg, 
+    statechain_info: &StatechainInfoResponsePayload, 
+    tx0_hex: &str, 
+    fee_rate_tolerance: u32, 
+    current_fee_rate_sats_per_byte: u32,
+    interval: u32) -> Result<u32, MercuryError> {
+
+    let mut previous_lock_time: Option<u32> = None;
+
+    let mut sig_scheme_validation = true;
+
+    for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
+
+        let statechain_info = statechain_info.statechain_info.get(index).unwrap();
+
+        let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+        if is_signature_valid.is_err() {
+            println!("{}", is_signature_valid.err().unwrap().to_string());
+            sig_scheme_validation = false;
+            break;
+        }
+
+        let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
+        if is_blinded_musig_scheme_valid.is_err() {
+            println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if previous_lock_time.is_some() {
+            let prev_lock_time = previous_lock_time.unwrap();
+            let current_lock_time = crate::utils::get_blockheight(&backup_tx)?;
+            if (prev_lock_time - current_lock_time) as i32 != interval as i32 {
+                println!("interval is not correct");
+                sig_scheme_validation = false;
+                break;
+            }
+        }
+
+        previous_lock_time = Some(crate::utils::get_blockheight(&backup_tx)?);
+    }
+
+    if !sig_scheme_validation {
+        return Err(MercuryError::SignatureSchemeValidationError);
+    }
+
+    if previous_lock_time.is_none() {
+        return Err(MercuryError::NoPreviousLockTimeError);
+    }
+
+    Ok(previous_lock_time.unwrap())
+}
+
 #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> Result<(), MercuryError> {
 

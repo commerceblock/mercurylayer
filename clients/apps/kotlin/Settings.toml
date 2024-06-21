@@ -8,3 +8,4 @@ fee_rate_tolerance = 5
 database_file="wallet.db"
 confirmation_target = 2
 #tor_proxy = "socks5h://localhost:9050"
+max_fee_rate = 1

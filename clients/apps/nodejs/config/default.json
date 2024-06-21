@@ -11,5 +11,6 @@
     "databaseFile": "wallet.db",
     "confirmationTarget": 2,
     "_torProxy": "socks5h://localhost:9050",
-    "torProxy": null
+    "torProxy": null,
+    "maxFeeRate": 1
 }

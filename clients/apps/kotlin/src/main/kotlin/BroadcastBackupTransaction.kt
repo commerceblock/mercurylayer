@@ -58,12 +58,19 @@ class BroadcastBackupTransaction: CliktCommand(help = "Broadcast a backup transa
             return
         }
 
-        var feeRateSatsPerByte = feeRate
+        var feeRateSatsPerByte: UInt = 0u
 
-        if (feeRateSatsPerByte == null) {
-            val infoConfig = getInfoConfig(appContext.clientConfig)
-            feeRateSatsPerByte = infoConfig.feeRateSatsPerByte.toUInt()
+        if (feeRate == null) {
+            val electrumFeeRate = getFeeRateSatsPerByte(appContext.clientConfig)
+            feeRateSatsPerByte = if (electrumFeeRate > appContext.clientConfig.maxFeeRate.toUInt()) {
+                appContext.clientConfig.maxFeeRate.toUInt()
+            } else {
+                electrumFeeRate.toUInt()
+            }
+        } else {
+            feeRateSatsPerByte = feeRate as UInt
         }
+
 
         val cpfpTx = createCpfpTx(backupTx, coin, toAddress, feeRateSatsPerByte.toULong(), wallet.network);
 

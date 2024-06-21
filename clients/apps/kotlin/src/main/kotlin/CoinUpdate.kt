@@ -39,6 +39,17 @@ class CoinUpdate() {
 
             val toAddress = getUserBackupAddress(coin, walletNetwork)
 
+            val infoConfig = getInfoConfig(clientConfig)
+
+            val initlock = infoConfig.initlock;
+            val interval = infoConfig.interval;
+
+            val feeRateSatsPerByte: UInt = if (infoConfig.feeRateSatsPerByte > clientConfig.maxFeeRate.toUInt()) {
+                clientConfig.maxFeeRate.toUInt()
+            } else {
+                infoConfig.feeRateSatsPerByte.toUInt()
+            }
+
             val signedTx = Transaction.create(
                 coin,
                 clientConfig,
@@ -47,7 +58,9 @@ class CoinUpdate() {
                 toAddress,
                 walletNetwork,
                 false,
-                null
+                feeRateSatsPerByte,
+                initlock,
+                interval
             )
 
             if (coin.publicNonce == null) {
@@ -160,7 +173,7 @@ class CoinUpdate() {
 
                 coin.status = CoinStatus.UNCONFIRMED
 
-                if (confirmations > clientConfig.confirmationTarget.toUInt()) {
+                if (confirmations >= clientConfig.confirmationTarget.toUInt()) {
                     coin.status = CoinStatus.CONFIRMED
                 }
             }

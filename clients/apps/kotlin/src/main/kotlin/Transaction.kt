@@ -70,7 +70,9 @@ class Transaction() {
             toAddress: String,
             network: String,
             isWithdrawal: Boolean,
-            feeRate: UInt?
+            feeRateSatsPerByte: UInt,
+            initlock: UInt,
+            interval: UInt
         ) : String {
             val coinNonce = createAndCommitNonces(coin)
             coin.secretNonce = coinNonce.secretNonce
@@ -91,13 +93,6 @@ class Transaction() {
             } else {
                 newBlockHeight = blockHeight
             }
-
-            val infoConfig = getInfoConfig(clientConfig)
-
-            val initlock = infoConfig.initlock;
-            val interval = infoConfig.interval;
-
-            val feeRateSatsPerByte = feeRate ?: infoConfig.feeRateSatsPerByte.toUInt()
 
             val partialSigRequest = getPartialSigRequest(
                 coin,

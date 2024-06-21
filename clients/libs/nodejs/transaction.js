@@ -1,9 +1,8 @@
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const mercury_wasm = require('mercury-wasm');
-const utils = require('./utils');
 
-const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
+const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network, feeRateSatsPerByte, initlock, interval) => {
     let coin_nonce = mercury_wasm.createAndCommitNonces(coin);
 
     let server_pubnonce = await signFirst(clientConfig, coin_nonce.sign_first_request_payload);
@@ -13,8 +12,6 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     coin.server_public_nonce = server_pubnonce;
     coin.blinding_factor = coin_nonce.blinding_factor;
 
-    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
-
     let new_block_height = 0;
     if (block_height == null) {
         const block_header = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
@@ -22,10 +19,6 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     } else {
         new_block_height = block_height;
     }
-
-    const initlock = serverInfo.initlock;
-    const interval = serverInfo.interval;
-    const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
 
     let partialSigRequest = mercury_wasm.getPartialSigRequest(
         coin,

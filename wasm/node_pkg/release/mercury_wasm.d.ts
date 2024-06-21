@@ -264,6 +264,16 @@ export function latestBackuptxPaysToUserpubkey(backup_transactions: any, coin: a
 */
 export function duplicateCoinToInitializedState(walletJson: any, authPubkey: string): any;
 /**
+* @param {any} transfer_msg
+* @param {any} statechain_info
+* @param {string} tx0_hex
+* @param {number} fee_rate_tolerance
+* @param {number} current_fee_rate_sats_per_byte
+* @param {number} interval
+* @returns {any}
+*/
+export function validateSignatureScheme(transfer_msg: any, statechain_info: any, tx0_hex: string, fee_rate_tolerance: number, current_fee_rate_sats_per_byte: number, interval: number): any;
+/**
 * @returns {any}
 */
 export function getMockWallet(): any;

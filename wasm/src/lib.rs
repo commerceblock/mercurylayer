@@ -340,6 +340,7 @@ pub fn getOutputAddressFromTx0(tx0_outpoint: JsValue, tx0_hex: String, network: 
     output_address
 }
 
+//TODO: remove this function
 #[wasm_bindgen]
 pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> JsValue {
     let result = mercurylib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
@@ -463,6 +464,38 @@ pub fn duplicateCoinToInitializedState(walletJson: JsValue, authPubkey: String) 
         return JsValue::NULL;
     } else {
         serde_wasm_bindgen::to_value(&new_coin.unwrap()).unwrap()
+    }
+}
+
+#[wasm_bindgen]
+pub fn validateSignatureScheme(transfer_msg: JsValue, statechain_info: JsValue, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32, interval: u32) -> JsValue {
+
+    let statechain_info: StatechainInfoResponsePayload = serde_wasm_bindgen::from_value(statechain_info).unwrap();
+    let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
+
+    let result = mercurylib::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval);
+
+    #[derive(Serialize, Deserialize)]
+    struct ValidationResult {
+        result: bool,
+        msg: Option<String>,
+        previousLockTime: u32,
+    }
+
+    if result.is_err() {
+        let validation_result = ValidationResult {
+            result: false,
+            msg: Some(result.err().unwrap().to_string()),
+            previousLockTime: 0
+        };
+        return serde_wasm_bindgen::to_value(&validation_result).unwrap();
+    } else {
+        let validation_result = ValidationResult {
+            result: true,
+            msg: None,
+            previousLockTime: result.unwrap()
+        };
+        return serde_wasm_bindgen::to_value(&validation_result).unwrap();
     }
 }
 

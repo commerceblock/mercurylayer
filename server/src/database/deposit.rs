@@ -63,15 +63,16 @@ pub async fn check_existing_key(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey) 
     }
 }
 
-pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &String)  {
+pub async fn insert_new_deposit(pool: &sqlx::PgPool, token_id: &str, auth_key: &XOnlyPublicKey, server_public_key: &PublicKey, statechain_id: &String, enclave_index: i32)  {
 
-    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id) VALUES ($1, $2, $3, $4)";
+    let query = "INSERT INTO statechain_data (token_id, auth_xonly_public_key, server_public_key, statechain_id, enclave_index) VALUES ($1, $2, $3, $4, $5)";
 
     let _ = sqlx::query(query)
         .bind(token_id)
         .bind(&auth_key.serialize())
         .bind(&server_public_key.serialize())
         .bind(statechain_id)
+        .bind(enclave_index)
         .execute(pool)
         .await
         .unwrap();

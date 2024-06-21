@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result, Ok};
 use mercurylib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, CoinStatus, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
 
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet}, transaction::new_transaction, utils::info_config};
 
 pub async fn get_deposit_bitcoin_address(client_config: &ClientConfig, wallet_name: &str, token_id: &str, amount: u32) -> Result<String> {
 
@@ -39,7 +39,26 @@ pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_ne
 
     let to_address = get_user_backup_address(&coin, wallet_netwotk.to_string())?;
 
-    let signed_tx = new_transaction(&client_config, coin, &to_address, 0, false, None, wallet_netwotk, None).await?;
+    let server_info = info_config(&client_config).await?;
+
+    let fee_rate = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
+        client_config.max_fee_rate as u32
+    } else {
+        server_info.fee_rate_sats_per_byte as u32
+    };
+
+    let signed_tx = new_transaction(
+        &client_config, 
+        coin, 
+        &to_address, 
+        0, 
+        false, 
+        None, 
+        wallet_netwotk, 
+        fee_rate, 
+        server_info.initlock,
+        server_info.interval
+    ).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));

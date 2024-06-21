@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{transfer::receiver::{create_transfer_receiver_request_payload, get_new_key_info, sign_message, validate_tx0_output_pubkey, verify_blinded_musig_scheme, verify_latest_backup_tx_pays_to_user_pubkey, verify_transaction_signature, verify_transfer_signature, GetMsgAddrResponsePayload, TransferReceiverError, TransferReceiverErrorResponsePayload, TransferReceiverPostResponsePayload, TransferReceiverRequestPayload, TransferUnlockRequestPayload, TxOutpoint}, utils::{get_blockheight, get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
+use mercurylib::{utils::{get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
 use reqwest::StatusCode;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -115,7 +115,7 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
 
     let value = request.send().await?.text().await?;
 
-    let response: GetMsgAddrResponsePayload = serde_json::from_str(value.as_str())?;
+    let response: mercurylib::transfer::receiver::GetMsgAddrResponsePayload = serde_json::from_str(value.as_str())?;
 
     Ok(response.list_enc_transfer_msg)
 }
@@ -131,7 +131,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
     
     let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
 
-    let is_transfer_signature_valid = verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
+    let is_transfer_signature_valid = mercurylib::transfer::receiver::verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
 
     if !is_transfer_signature_valid {
         return Err(anyhow::anyhow!("Invalid transfer signature".to_string()));
@@ -145,13 +145,13 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
     let statechain_info = statechain_info.unwrap();
 
-    let is_tx0_output_pubkey_valid = validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
+    let is_tx0_output_pubkey_valid = mercurylib::transfer::receiver::validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
 
     if !is_tx0_output_pubkey_valid {
         return Err(anyhow::anyhow!("Invalid tx0 output pubkey".to_string()));
     }
 
-    let latest_backup_tx_pays_to_user_pubkey = verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
+    let latest_backup_tx_pays_to_user_pubkey = mercurylib::transfer::receiver::verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
 
     if !latest_backup_tx_pays_to_user_pubkey {
         return Err(anyhow::anyhow!("Latest Backup Tx does not pay to the expected public key".to_string()));
@@ -167,60 +167,36 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         return Err(anyhow::anyhow!("tx0 output is spent or not confirmed".to_string()));
     }
 
-    let current_fee_rate_sats_per_byte = info_config.fee_rate_sats_per_byte as u32;
+    let current_fee_rate_sats_per_byte = if info_config.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
+        client_config.max_fee_rate as u32
+    } else {
+        info_config.fee_rate_sats_per_byte as u32
+    };
 
-    let fee_rate_tolerance = client_config.fee_rate_tolerance;
+    let previous_lock_time = mercurylib::transfer::receiver::validate_signature_scheme(
+        &transfer_msg, 
+        &statechain_info, 
+        &tx0_hex, 
+        client_config.fee_rate_tolerance, 
+        current_fee_rate_sats_per_byte,
+        info_config.interval);
 
-    let mut previous_lock_time: Option<u32> = None;
-
-    let mut sig_scheme_validation = true;
-
-    for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
-
-        let statechain_info = statechain_info.statechain_info.get(index).unwrap();
-
-        let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
-        if is_signature_valid.is_err() {
-            println!("{}", is_signature_valid.err().unwrap().to_string());
-            sig_scheme_validation = false;
-            break;
-        }
-
-        let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
-        if is_blinded_musig_scheme_valid.is_err() {
-            println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
-            sig_scheme_validation = false;
-            break;
-        }
-
-        if previous_lock_time.is_some() {
-            let prev_lock_time = previous_lock_time.unwrap();
-            let current_lock_time = get_blockheight(&backup_tx)?;
-            if (prev_lock_time - current_lock_time) as i32 != info_config.interval as i32 {
-                println!("interval is not correct");
-                sig_scheme_validation = false;
-                break;
-            }
-        }
-
-        previous_lock_time = Some(get_blockheight(&backup_tx)?);
+    if previous_lock_time.is_err() {
+        let error = previous_lock_time.err().unwrap();
+        return Err(anyhow!("Signature scheme validation failed. Error {}", error.to_string()));
     }
 
-    if !sig_scheme_validation {
-        return Err(anyhow::anyhow!("Signature scheme validation failed".to_string()));
-    }
+    let previous_lock_time = previous_lock_time.unwrap();
 
-    let transfer_receiver_request_payload = create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
+    let transfer_receiver_request_payload = mercurylib::transfer::receiver::create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
 
     // unlock the statecoin - it might be part of a batch
 
     // the pub_auth_key has not been updated yet in the server (it will be updated after the transfer/receive call)
     // So we need to manually sign the statechain_id with the client_auth_key
-    let signed_statechain_id_for_unlock = sign_message(&transfer_msg.statechain_id, &coin)?;
+    let signed_statechain_id_for_unlock = mercurylib::transfer::receiver::sign_message(&transfer_msg.statechain_id, &coin)?;
 
     unlock_statecoin(&client_config, &transfer_msg.statechain_id, &signed_statechain_id_for_unlock, &coin.auth_pubkey).await?;
-
-    // let server_public_key_hex = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await?;
 
     let transfer_receiver_result = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await;
 
@@ -231,11 +207,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         }
     };
 
-    let new_key_info = get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
-
-    if previous_lock_time.is_none() {
-        return Err(anyhow::anyhow!("previous_lock_time is None".to_string()));
-    }
+    let new_key_info = mercurylib::transfer::receiver::get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
 
     coin.server_pubkey = Some(server_public_key_hex);
     coin.aggregated_pubkey = Some(new_key_info.aggregate_pubkey);
@@ -245,7 +217,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
     coin.amount = Some(new_key_info.amount);
     coin.utxo_txid = Some(tx0_outpoint.txid.clone());
     coin.utxo_vout = Some(tx0_outpoint.vout);
-    coin.locktime = Some(previous_lock_time.unwrap());
+    coin.locktime = Some(previous_lock_time);
     coin.status = tx0_status;
 
     let date = Utc::now(); // This will get the current date and time in UTC
@@ -281,7 +253,7 @@ async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> R
     Ok(tx0_hex)
 }
 
-async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_client::Client, tx0_outpoint: &TxOutpoint, tx0_hex: &str, network: &str, confirmation_target: u32) -> Result<(bool, CoinStatus)> {
+async fn verify_tx0_output_is_unspent_and_confirmed(electrum_client: &electrum_client::Client, tx0_outpoint: &mercurylib::transfer::receiver::TxOutpoint, tx0_hex: &str, network: &str, confirmation_target: u32) -> Result<(bool, CoinStatus)> {
     let output_address = mercurylib::transfer::receiver::get_output_address_from_tx0(&tx0_outpoint, &tx0_hex, &network)?;
 
     let network = get_network(&network)?;
@@ -318,7 +290,7 @@ async fn unlock_statecoin(client_config: &ClientConfig, statechain_id: &str, sig
     let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", client_config.statechain_entity, path));
 
-    let transfer_unlock_request_payload = TransferUnlockRequestPayload {
+    let transfer_unlock_request_payload = mercurylib::transfer::receiver::TransferUnlockRequestPayload {
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
         auth_pub_key: auth_pubkey.to_string(),
@@ -333,7 +305,7 @@ async fn unlock_statecoin(client_config: &ClientConfig, statechain_id: &str, sig
     Ok(())
 }
 
-async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, transfer_receiver_request_payload: &TransferReceiverRequestPayload) -> Result<String>{
+async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, transfer_receiver_request_payload: &mercurylib::transfer::receiver::TransferReceiverRequestPayload) -> Result<String>{
 
     let path = "transfer/receiver";
 
@@ -350,13 +322,13 @@ async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, tr
 
         if status == StatusCode::BAD_REQUEST{
 
-            let error: TransferReceiverErrorResponsePayload = serde_json::from_str(value.as_str())?;
+            let error: mercurylib::transfer::receiver::TransferReceiverErrorResponsePayload = serde_json::from_str(value.as_str())?;
 
             match error.code {
-                TransferReceiverError::ExpiredBatchTimeError => {
+                mercurylib::transfer::receiver::TransferReceiverError::ExpiredBatchTimeError => {
                     return Err(anyhow::anyhow!(error.message));
                 },
-                TransferReceiverError::StatecoinBatchLockedError => {
+                mercurylib::transfer::receiver::TransferReceiverError::StatecoinBatchLockedError => {
                     println!("Statecoin batch still locked. Waiting until expiration or unlock.");
                     thread::sleep(Duration::from_secs(5));
                     continue;
@@ -365,7 +337,7 @@ async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, tr
         }
 
         if status == StatusCode::OK {
-            let response: TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str())?;
+            let response: mercurylib::transfer::receiver::TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str())?;
             return Ok(response.server_pubkey);
         } else {
             return Err(anyhow::anyhow!("{}: {}", "Failed to update transfer message".to_string(), value));

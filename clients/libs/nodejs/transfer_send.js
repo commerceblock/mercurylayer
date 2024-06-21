@@ -4,6 +4,7 @@ const transaction = require('./transaction');
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { CoinStatus } = require('./coin_enum');
+const utils = require('./utils');
 
 const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId)  => {
 
@@ -62,7 +63,23 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
 
     const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    const signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
+    let feeRateSatsPerByte = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
+
+    const signed_tx = await transaction.new_transaction(
+        clientConfig, 
+        electrumClient, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        block_height, 
+        wallet.network,
+        feeRateSatsPerByte,
+        serverInfo.initlock,
+        serverInfo.interval
+    );
 
     const backup_tx = {
         tx_n: new_tx_n,

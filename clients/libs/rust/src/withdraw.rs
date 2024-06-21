@@ -1,4 +1,4 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet, get_backup_txs, update_backup_txs}, transaction::new_transaction};
+use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
@@ -45,7 +45,29 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", coin.status));
     }
 
-    let signed_tx = new_transaction(client_config, coin, &to_address, qt_backup_tx, true, None, &wallet.network, fee_rate).await?;
+    let server_info = info_config(&client_config).await?;
+
+    let fee_rate_sats_per_byte = match fee_rate {
+        Some(fee_rate) => fee_rate as u32,
+        None => if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
+            client_config.max_fee_rate as u32
+        } else {
+            server_info.fee_rate_sats_per_byte as u32
+        },
+    };
+
+    let signed_tx = new_transaction(
+        client_config, 
+        coin,
+        &to_address,
+        qt_backup_tx,
+        true,
+        None,
+        &wallet.network,
+        fee_rate_sats_per_byte,
+        server_info.initlock,
+        server_info.interval
+    ).await?;
 
     if coin.public_nonce.is_none() {
         return Err(anyhow::anyhow!("coin.public_nonce is None"));

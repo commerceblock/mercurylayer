@@ -14,10 +14,10 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
 
     const new_tx_n = backupTxs.length + 1;
 
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
     if (!feeRate) {
-        const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
-        const feeRateSatsPerByte = serverInfo.fee_rate_sats_per_byte;
-        feeRate = feeRateSatsPerByte;
+        feeRate = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
     } else {
         feeRate = parseInt(feeRate, 10);
     }
@@ -42,7 +42,19 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     const isWithdrawal = true;
     const qtBackupTx = backupTxs.length;
 
-    let signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet.network);
+    let signed_tx = await transaction.new_transaction(
+        clientConfig, 
+        electrumClient, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        null, 
+        wallet.network,
+        feeRate,
+        serverInfo.initlock,
+        serverInfo.interval
+    );
 
     let backup_tx = {
         tx_n: new_tx_n,

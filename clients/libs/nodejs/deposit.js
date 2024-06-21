@@ -1,12 +1,10 @@
 const axios = require('axios').default;
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const transaction = require('./transaction');
-
 const mercury_wasm = require('mercury-wasm');
-
 const sqlite_manager = require('./sqlite_manager');
-
 const { CoinStatus } = require('./coin_enum');
+const utils = require('./utils');
 
 const getDepositBitcoinAddress = async (clientConfig, db, wallet_name, amount) => {
 
@@ -53,7 +51,23 @@ const createTx1 = async (clientConfig, electrumClient, coin, wallet_network, tx0
     const isWithdrawal = false;
     const qtBackupTx = 0;
 
-    let signed_tx = await transaction.new_transaction(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, null, wallet_network);
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
+    let feeRateSatsPerByte = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
+
+    let signed_tx = await transaction.new_transaction(
+        clientConfig, 
+        electrumClient, 
+        coin, 
+        toAddress, 
+        isWithdrawal, 
+        qtBackupTx, 
+        null, 
+        wallet_network,
+        feeRateSatsPerByte,
+        serverInfo.initlock,
+        serverInfo.interval
+    );
 
     let backup_tx = {
         tx_n: 1,
