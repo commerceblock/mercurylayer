@@ -870,82 +870,89 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
 
 (async () => {
 
-    const clientConfig = client_config.load();
+    try {
+        const clientConfig = client_config.load();
 
-    let wallet_1_name = "w1";
-    let wallet_2_name = "w2";
-    await createWallet(clientConfig, wallet_1_name);
-    await createWallet(clientConfig, wallet_2_name);
-    await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
+        let wallet_1_name = "w1";
+        let wallet_2_name = "w2";
+        await createWallet(clientConfig, wallet_1_name);
+        await createWallet(clientConfig, wallet_2_name);
+        await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
+        await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 
-    // Deposit, repeat send
-    let wallet_3_name = "w3";
-    let wallet_4_name = "w4";
-    await createWallet(clientConfig, wallet_3_name);
-    await createWallet(clientConfig, wallet_4_name);
-    await depositAndRepeatSend(clientConfig, wallet_3_name);
-    await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
-    console.log("Completed test for Deposit, repeat send");
+        // Deposit, repeat send
+        let wallet_3_name = "w3";
+        let wallet_4_name = "w4";
+        await createWallet(clientConfig, wallet_3_name);
+        await createWallet(clientConfig, wallet_4_name);
+        await depositAndRepeatSend(clientConfig, wallet_3_name);
+        await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_3_name, wallet_4_name);
+        console.log("Completed test for Deposit, repeat send");
 
-    // Transfer-sender after transfer-receiver
-    let wallet_5_name = "w5";
-    let wallet_6_name = "w6";
-    await createWallet(clientConfig, wallet_5_name);
-    await createWallet(clientConfig, wallet_6_name);
-    await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
-    console.log("Completed test for Transfer-sender after transfer-receiver");
+        // Transfer-sender after transfer-receiver
+        let wallet_5_name = "w5";
+        let wallet_6_name = "w6";
+        await createWallet(clientConfig, wallet_5_name);
+        await createWallet(clientConfig, wallet_6_name);
+        await transferSenderAfterTransferReceiver(clientConfig, wallet_5_name, wallet_6_name);
+        console.log("Completed test for Transfer-sender after transfer-receiver");
 
-    // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
-    let wallet_7_name = "w7";
-    await createWallet(clientConfig, wallet_7_name);
-    await depositAndTransfer(clientConfig, wallet_7_name);
-    console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
+        // Deposit of 1000 coins in same wallet, and transfer each one 1000 times
+        let wallet_7_name = "w7";
+        await createWallet(clientConfig, wallet_7_name);
+        await depositAndTransfer(clientConfig, wallet_7_name);
+        console.log("Completed test for Deposit of 1000 coins in same wallet, and transfer each one 1000 times");
 
-    // Test for interruption of transferSend before sign first
-    let wallet_8_name = "w8";
-    let wallet_9_name = "w9";
-    await createWallet(clientConfig, wallet_8_name);
-    await createWallet(clientConfig, wallet_9_name);
-    await interruptBeforeSignFirst(clientConfig, wallet_8_name, wallet_9_name);
-    console.log("Completed test for interruption of transferSend before sign first");
+        // Test for interruption of transferSend before sign first
+        let wallet_8_name = "w8";
+        let wallet_9_name = "w9";
+        await createWallet(clientConfig, wallet_8_name);
+        await createWallet(clientConfig, wallet_9_name);
+        await interruptBeforeSignFirst(clientConfig, wallet_8_name, wallet_9_name);
+        console.log("Completed test for interruption of transferSend before sign first");
 
-    // Test for interruption of transferSend before sign second
-    let wallet_10_name = "w10";
-    let wallet_11_name = "w11";
-    await createWallet(clientConfig, wallet_10_name);
-    await createWallet(clientConfig, wallet_11_name);
-    await interruptBeforeSignSecond(clientConfig, wallet_10_name, wallet_11_name);
-    console.log("Completed test for interruption of transferSend before sign second");
+        // Test for interruption of transferSend before sign second
+        let wallet_10_name = "w10";
+        let wallet_11_name = "w11";
+        await createWallet(clientConfig, wallet_10_name);
+        await createWallet(clientConfig, wallet_11_name);
+        await interruptBeforeSignSecond(clientConfig, wallet_10_name, wallet_11_name);
+        console.log("Completed test for interruption of transferSend before sign second");
 
-    // Test for interruption of sign with Electrum unavailability
-    let wallet_12_name = "w12";
-    let wallet_13_name = "w13";
-    await createWallet(clientConfig, wallet_12_name);
-    await createWallet(clientConfig, wallet_13_name);
-    await interruptSignWithElectrumUnavailability(clientConfig, wallet_12_name, wallet_13_name);
-    console.log("Completed test for interruption of sign with Electrum unavailability");
+        // Test for interruption of sign with Electrum unavailability
+        let wallet_12_name = "w12";
+        let wallet_13_name = "w13";
+        await createWallet(clientConfig, wallet_12_name);
+        await createWallet(clientConfig, wallet_13_name);
+        await interruptSignWithElectrumUnavailability(clientConfig, wallet_12_name, wallet_13_name);
+        console.log("Completed test for interruption of sign with Electrum unavailability");
 
-    // Test for interruption of transfer receive with Electrum unavailability
-    let wallet_14_name = "w14";
-    let wallet_15_name = "w15";
-    await createWallet(clientConfig, wallet_14_name);
-    await createWallet(clientConfig, wallet_15_name);
-    await interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_14_name, wallet_15_name);
-    console.log("Completed test for interruption of transfer receive with Electrum unavailability");
+        // Test for interruption of transfer receive with Electrum unavailability
+        let wallet_14_name = "w14";
+        let wallet_15_name = "w15";
+        await createWallet(clientConfig, wallet_14_name);
+        await createWallet(clientConfig, wallet_15_name);
+        await interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_14_name, wallet_15_name);
+        console.log("Completed test for interruption of transfer receive with Electrum unavailability");
 
-    // Test for interruption of transfer receive with mercury server unavailability
-    let wallet_16_name = "w16";
-    let wallet_17_name = "w17";
-    await createWallet(clientConfig, wallet_16_name);
-    await createWallet(clientConfig, wallet_17_name);
-    await interruptTransferReceiveWithMercuryServerUnavailability(clientConfig, wallet_16_name, wallet_17_name);
-    console.log("Completed test for interruption of transfer receive with mercury server unavailability");
+        // Test for interruption of transfer receive with mercury server unavailability
+        let wallet_16_name = "w16";
+        let wallet_17_name = "w17";
+        await createWallet(clientConfig, wallet_16_name);
+        await createWallet(clientConfig, wallet_17_name);
+        await interruptTransferReceiveWithMercuryServerUnavailability(clientConfig, wallet_16_name, wallet_17_name);
+        console.log("Completed test for interruption of transfer receive with mercury server unavailability");
 
-    // Deposit, iterative self transfer
-    let wallet_18_name = "w18";
-    await createWallet(clientConfig, wallet_18_name);
-    await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_18_name);
-    console.log("Completed test for Deposit, iterative self transfer");
+        // Deposit, iterative self transfer
+        let wallet_18_name = "w18";
+        await createWallet(clientConfig, wallet_18_name);
+        await walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_18_name);
+        console.log("Completed test for Deposit, iterative self transfer");
+        
+        process.exit(0); // Exit successfully
+    } catch (error) {
+        console.error("Test encountered an error:", error);
+        process.exit(1); // Exit with failure
+    }
 })();
