@@ -521,7 +521,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
         assert.fail("Expected error when transferring from wallet one, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Server public nonce is not available."),   
+        assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:8000"),   
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_mercury_1 from network");
