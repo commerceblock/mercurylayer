@@ -53,11 +53,11 @@ services:
       context: .
       dockerfile: ./server/Dockerfile
     environment:
-      LOCKBOX_URL: http://mercurylayer_enclave-sgx_1:18080
       NETWORK: regtest
       LOCKHEIGHT_INIT: 1100
       LH_DECREMENT: 1
       CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+      ENCLAVES: '[{"url": "http://mercurylayer_enclave-sgx_1:18080", "allow_deposit": true}]'
     ports:
       - "8000:8000"
     depends_on:
