@@ -203,7 +203,7 @@ pub async fn get_lightning_invoice(token_server: &State<TokenServer>, token_id: 
         title: token_id.clone().to_string(),
         description: "".to_string(),
         amount: token_server.config.fee.clone(),
-        unit: "BTC".to_string(),
+        unit: token_server.config.unit.clone(),
         redirectAfterPaid: "".to_string(),
         email: "".to_string(),
         emailLanguage: "en".to_string(),
