@@ -77,11 +77,6 @@ const checkDeposit = async (clientConfig, electrumClient, coin, wallet_network) 
         const confirmations = blockheight - utxo.height + 1;
 
         const confirmationTarget = clientConfig.confirmationTarget;
-        console.log("CONFIRMATIONS ", confirmations);
-        console.log("CONFIRMATION TARGET ", confirmationTarget);
-        console.log("COIN STATUS ", coin.status);
-        console.log("BLOCK HEIGHT ", blockheight);
-        console.log("UTXO HEIGHT ", utxo.height);
 
         coin.status = CoinStatus.UNCONFIRMED;
 
@@ -186,10 +181,7 @@ const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
         let coin = wallet.coins[i];
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
-            console.log("COIN STATUS ", coin.status);
             let depositResult = await checkDeposit(clientConfig, electrumClient, coin, network);
-
-            console.log("DEPOSIT RESULT ", depositResult);
 
             if (depositResult) {
                 wallet.activities.push(depositResult.activity);
