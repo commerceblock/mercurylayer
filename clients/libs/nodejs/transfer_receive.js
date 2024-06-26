@@ -26,6 +26,14 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
 
     const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
+    let blockHeader = undefined;
+    try { 
+        blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    } catch (error) {
+        throw new Error("Error getting block height from electrs server");
+    }
+    const currentBlockheight = blockHeader.height;
+
     let uniqueAuthPubkeys = new Set();
 
     wallet.coins.forEach(coin => {
@@ -87,6 +95,10 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
                    // console.error(`Error: ${error.message}`);
                     continue;
                 }
+            }
+
+            if (currentBlockheight >= coin.locktime)  {
+                console.error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
             }
         }
     }

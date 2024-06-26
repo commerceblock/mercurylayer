@@ -42,7 +42,7 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     const currentBlockheight = blockHeader.height;
 
-    if (currentBlockheight > coin.locktime)  {
+    if (currentBlockheight >= coin.locktime)  {
         throw new Error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
     }
 
