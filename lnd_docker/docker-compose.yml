@@ -27,20 +27,6 @@ services:
     depends_on:
       - bitcoind
 
-  # alice:
-  #   image: lightninglabs/lnd:v0.18.0-beta
-  #   environment:
-  #       RPCUSER: "user"
-  #       RPCPASS: " pass"
-  #       NETWORK: "bitcoin.regtest"
-  #       CHAIN: "bitcoin.regtest"
-  #       LND_DEBUG: "debug"
-  #       BACKEND: "bitcoind"
-  #   volumes:
-  #       - lnd_data:/root/.lnd
-  #   depends_on:
-  #     - bitcoind
-
   alice:
     image: lightninglabs/lnd:v0.18.0-beta
     user: root

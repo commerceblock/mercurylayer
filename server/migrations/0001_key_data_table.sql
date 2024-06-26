@@ -12,8 +12,8 @@ CREATE TABLE public.statechain_data (
 CREATE TABLE public.statechain_transfer (
 	id serial4 NOT NULL,
 	statechain_id varchar UNIQUE,
-	new_user_auth_public_key bytea,
-	x1 bytea,
+	new_user_auth_public_key bytea NULL,
+	x1 bytea NULL,
 	encrypted_transfer_msg bytea NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -21,6 +21,8 @@ CREATE TABLE public.statechain_transfer (
 	batch_id varchar NULL,
 	batch_time TIMESTAMPTZ NULL,
 	locked boolean NOT NULL DEFAULT false,
+	locked2 boolean NOT NULL DEFAULT false,
+	pre_image varchar NULL,
 	CONSTRAINT statechain_transfer_pkey PRIMARY KEY (id)
 );
 

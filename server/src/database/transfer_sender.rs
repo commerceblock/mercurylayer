@@ -58,6 +58,41 @@ pub async fn get_batch_time_by_batch_id(pool: &sqlx::PgPool, batch_id: &str) -> 
     }
 }
 
+pub async fn insert_paymenthash(
+    pool: &sqlx::PgPool, 
+    statechain_id: &str, 
+    batch_id: &str,
+    pre_image: &str)  
+{
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query1 = "DELETE FROM statechain_transfer WHERE statechain_id = $1";
+
+    let _ = sqlx::query(query1)
+        .bind(statechain_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    let query2 = "INSERT INTO statechain_transfer (statechain_id, batch_id, batch_time, locked, locked2, pre_image) VALUES ($1, $2, $3, $4, $5, $6)";
+
+    let batch_time = Some(Utc::now());
+
+    let _ = sqlx::query(query2)
+        .bind(statechain_id)
+        .bind(batch_id)
+        .bind(batch_time)
+        .bind(true)
+        .bind(true)
+        .bind(pre_image)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
+
+
+}
 
 pub async fn insert_new_transfer(
     pool: &sqlx::PgPool, 

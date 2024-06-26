@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use mercurylib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
+use bitcoin::hashes::Hash;
+use hex::encode;
+use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferSenderRequestPayload, TransferSenderResponsePayload, TransferUpdateMsgRequestPayload};
+use rand::Rng;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::{PublicKey, Scalar, SecretKey};
 use serde_json::{Value, json};
@@ -72,6 +75,55 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
     // if the statecoin has no batch_id should return success
     BatchTransferValidationResult::Success
     
+}
+
+#[post("/transfer/paymenthash", format = "json", data = "<payment_hash_payload>")]
+pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_hash_payload: Json<PaymentHashRequestPayload>) -> status::Custom<Json<Value>>  {
+
+    let statechain_id = payment_hash_payload.0.statechain_id.clone();
+    let signed_statechain_id = payment_hash_payload.0.auth_sig.clone();
+    let batch_id = payment_hash_payload.0.batch_id.clone();
+
+    if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
+
+        let response_body = json!({
+            "message": "Signature does not match authentication key."
+        });
+    
+        return status::Custom(Status::InternalServerError, Json(response_body));
+    }
+
+    let batch_transfer_validation_result = validate_batch_transfer(&statechain_entity, &statechain_id, &Some(batch_id.clone())).await;
+
+    match batch_transfer_validation_result {
+        BatchTransferValidationResult::StatecoinBatchLockedError(message) | BatchTransferValidationResult::ExpiredBatchTimeError(message) => {
+            let response_body = json!({
+                "message": message
+            });
+        
+            return status::Custom(Status::BadRequest, Json(response_body));
+        },
+        BatchTransferValidationResult::Success => {
+            // nothing to do. continue.
+        }
+    }
+
+    let buffer = rand::thread_rng().gen::<[u8; 32]>();
+    let pre_image = encode(&buffer.clone());
+
+    crate::database::transfer_sender::insert_paymenthash(&statechain_entity.pool, &statechain_id, &batch_id, &pre_image).await;
+
+    let result_hash = bitcoin::hashes::sha256::Hash::from_slice(&buffer).unwrap();
+    let hash_bytes = result_hash.as_byte_array();
+    let payment_hash = encode(hash_bytes);
+
+    let payment_hash_response_payload = PaymentHashResponsePayload {
+        hash: payment_hash,
+    };
+
+    let response_body = json!(payment_hash_response_payload);
+
+    return status::Custom(Status::Ok, Json(response_body));
 }
 
 #[post("/transfer/sender", format = "json", data = "<transfer_sender_request_payload>")]
