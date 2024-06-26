@@ -42,6 +42,13 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
         throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
     }
 
+    const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const currentBlockheight = blockHeader.height;
+
+    if (currentBlockheight > coin.locktime)  {
+        throw new Error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
+    }
+
     const backupTx = mercury_wasm.latestBackuptxPaysToUserpubkey(backupTxs, coin, wallet.network);
 
     if (!backupTx) {
