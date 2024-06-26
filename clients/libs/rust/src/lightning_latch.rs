@@ -1,11 +1,18 @@
 use crate::{client_config::ClientConfig, sqlite_manager::get_wallet};
 use anyhow::{anyhow, Result};
 use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub struct CreatePreImageResponse {
+    pub pre_image: String,
+    pub batch_id: String,
+}
 
 pub async fn create_pre_image(
     client_config: &ClientConfig, 
     wallet_name: &str, 
-    statechain_id: &str) -> Result<String> 
+    statechain_id: &str) -> Result<CreatePreImageResponse> 
 {
     let batch_id = Some(uuid::Uuid::new_v4().to_string()).unwrap();
 
@@ -47,5 +54,8 @@ pub async fn create_pre_image(
 
     let payment_hash_response_payload: PaymentHashResponsePayload = serde_json::from_str(value.as_str())?;
 
-    Ok(payment_hash_response_payload.hash)
+    Ok(CreatePreImageResponse {
+        pre_image: payment_hash_response_payload.hash,
+        batch_id,
+    })
 }

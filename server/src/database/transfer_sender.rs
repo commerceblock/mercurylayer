@@ -58,6 +58,28 @@ pub async fn get_batch_time_by_batch_id(pool: &sqlx::PgPool, batch_id: &str) -> 
     }
 }
 
+pub async fn is_lightning_latch(pool: &sqlx::PgPool, statechain_id: &str) -> bool {
+
+    let query = "\
+        SELECT 1 \
+        FROM statechain_transfer \
+        WHERE statechain_id = $1 \
+        AND locked = true \
+        AND locked2 = true \
+        AND pre_image IS NOT NULL \
+        AND encrypted_transfer_msg IS NULL \
+        AND x1 IS NULL \
+        AND new_user_auth_public_key IS NULL";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+
+    row.is_some()
+}
+
 pub async fn insert_paymenthash(
     pool: &sqlx::PgPool, 
     statechain_id: &str, 
@@ -96,7 +118,8 @@ pub async fn insert_paymenthash(
 
 pub async fn insert_new_transfer(
     pool: &sqlx::PgPool, 
-    new_user_auth_key: &PublicKey, x1: &[u8; 32], 
+    new_user_auth_key: &PublicKey, 
+    x1: &[u8; 32], 
     statechain_id: &String, 
     batch_id: &Option<String>)  
 {
@@ -145,6 +168,34 @@ pub async fn insert_new_transfer(
     ps_query.execute(&mut *transaction)
         .await
         .unwrap();    
+
+    transaction.commit().await.unwrap();
+}
+
+pub async fn update_lightning_latch_transfer(
+    pool: &sqlx::PgPool, 
+    new_user_auth_key: &PublicKey, 
+    x1: &[u8; 32], 
+    statechain_id: &str, 
+    batch_id: &str)
+{
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query = "\
+        UPDATE statechain_transfer \
+        SET new_user_auth_public_key = $1, x1 = $2, updated_at = NOW() \
+        WHERE statechain_id = $3 AND batch_id = $4";
+
+    let ser_new_user_auth_key = new_user_auth_key.serialize();
+
+    let _ = sqlx::query(query)
+        .bind(ser_new_user_auth_key)
+        .bind(x1)
+        .bind(statechain_id)
+        .bind(batch_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
 
     transaction.commit().await.unwrap();
 }

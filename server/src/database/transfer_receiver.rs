@@ -222,27 +222,3 @@ pub async fn update_unlock_transfer(pool: &sqlx::PgPool, statechain_id: &str)  {
         .await
         .unwrap();
 }
-
-pub async fn is_all_coins_unlocked(pool: &sqlx::PgPool, batch_id: &str) -> bool {
-
-    let query = "\
-        SELECT locked \
-        FROM statechain_transfer \
-        WHERE batch_id = $1";
-
-    let rows = sqlx::query(query)
-        .bind(batch_id)
-        .fetch_all(pool)
-        .await
-        .unwrap();
-
-    for row in rows {
-        let locked: bool = row.get(0);
-
-        if locked {
-            return false;
-        }
-    }
-
-    true
-}

@@ -35,7 +35,11 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
 
         if !is_batch_expired(batch_time) {
 
-            // TODO: check if the batch is complete. If complete, should return success.
+            let all_coins_unlocked = crate::database::transfer::is_all_coins_unlocked(&statechain_entity.pool, &batch_id).await;
+
+            if all_coins_unlocked {
+                return BatchTransferValidationResult::Success;
+            }
 
             // the batch time has not expired
             return BatchTransferValidationResult::StatecoinBatchLockedError("Statecoin batch locked (the batch time has not expired).".to_string())
@@ -144,8 +148,25 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
 
     let batch_transfer_validation_result = validate_batch_transfer(&statechain_entity, &statechain_id, &batch_id).await;
 
+    let mut is_lightning_latch_transfer = false;
+
     match batch_transfer_validation_result {
-        BatchTransferValidationResult::StatecoinBatchLockedError(message) | BatchTransferValidationResult::ExpiredBatchTimeError(message) => {
+        BatchTransferValidationResult::StatecoinBatchLockedError(message) => {
+
+            is_lightning_latch_transfer = crate::database::transfer_sender::is_lightning_latch(&statechain_entity.pool, &statechain_id).await;
+            
+            if !is_lightning_latch_transfer {
+                let response_body = json!({
+                    "message": message
+                });
+            
+                return status::Custom(Status::BadRequest, Json(response_body));
+            }
+
+            // if it is a lightning latch transfer, continue.
+            // the transfer will be updated later
+        },
+        BatchTransferValidationResult::ExpiredBatchTimeError(message) => {
             let response_body = json!({
                 "message": message
             });
@@ -179,7 +200,12 @@ pub async fn transfer_sender(statechain_entity: &State<StateChainEntity>, transf
     let s_x1 = Scalar::from(secret_x1);
     let x1 = s_x1.to_be_bytes();
 
-    crate::database::transfer_sender::insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id).await;
+    if is_lightning_latch_transfer {
+        assert!(batch_id.is_some(), "Batch ID must be present for lightning latch transfers.");
+        crate::database::transfer_sender::update_lightning_latch_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id.unwrap()).await;
+    } else {
+        crate::database::transfer_sender::insert_new_transfer(&statechain_entity.pool, &new_user_auth_key, &x1, &statechain_id, &batch_id).await;
+    }
 
     let transfer_sender_response_payload = TransferSenderResponsePayload {
         x1: hex::encode(x1),

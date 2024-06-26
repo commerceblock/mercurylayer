@@ -166,7 +166,7 @@ pub async fn validate_batch(statechain_entity: &State<StateChainEntity>, statech
         } else {
             
             // batch not expired. Check if all coins are unlocked.
-            let all_coins_unlocked = crate::database::transfer_receiver::is_all_coins_unlocked(&statechain_entity.pool, &batch_id).await;
+            let all_coins_unlocked = crate::database::transfer::is_all_coins_unlocked(&statechain_entity.pool, &batch_id).await;
 
             if all_coins_unlocked {
                 return BatchTransferReceiveValidationResult::Success;

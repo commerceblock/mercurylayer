@@ -158,9 +158,9 @@ async fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
         Commands::PaymentHash { wallet_name, statechain_id} => {
-            let payment_hash = mercuryrustlib::lightning_latch::create_pre_image(&client_config, &wallet_name, &statechain_id).await?;
+            let response = mercuryrustlib::lightning_latch::create_pre_image(&client_config, &wallet_name, &statechain_id).await?;
 
-            let obj = json!({"payment_hash": payment_hash});
+            let obj = json!(response);
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
