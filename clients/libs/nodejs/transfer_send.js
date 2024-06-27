@@ -42,7 +42,9 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     const currentBlockheight = blockHeader.height;
 
-    if (currentBlockheight >= coin.locktime)  {
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
+    if (currentBlockheight + serverInfo.interval >= coin.locktime)  {
         throw new Error(`The coin is expired. Coin locktime is ${coin.locktime} and current blockheight is ${currentBlockheight}`);
     }
 
@@ -62,8 +64,6 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     const new_auth_pubkey = decodedTransferAddress.auth_pubkey;
 
     const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
-
-    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
     let feeRateSatsPerByte = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
 
