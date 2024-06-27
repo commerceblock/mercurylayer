@@ -1000,6 +1000,69 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
     assert(received_statechain_ids[0] == coin.statechain_id);
 }
 
+async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wallet_2_name) {
+
+    const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    const tokenId = token.token_id;
+
+    const amount = 10000;
+    const deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    let tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    let usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin = undefined;
+
+    console.log("coin: ", coin);
+
+    while (!coin) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin);
+
+    const electrumClient = await mercurynodejslib.getElectrumClient(clientConfig);
+
+    const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
+    const currentBlockheight = blockHeader.height;
+
+    const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
+
+    const blocksToBeGenerated = coin.locktime - currentBlockheight - serverInfo.interval;
+    await generateBlock(blocksToBeGenerated);
+
+    let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    try {
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        assert.fail("Expected error when transferring expired coin, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("The coin is expired."),   
+        `Unexpected error message: ${error.message}`);
+    }
+}
+
 (async () => {
 
     try {
@@ -1111,6 +1174,14 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
         await createWallet(clientConfig, wallet_24_name);
         await transferReceiveAtCoinExpiry(clientConfig, wallet_23_name, wallet_24_name);
         console.log("Completed test for Transfer-receive of coin at expiry");
+
+        // Transfer-sender of coin that will make it expired by sending
+        let wallet_25_name = "w25";
+        let wallet_26_name = "w26";
+        await createWallet(clientConfig, wallet_25_name);
+        await createWallet(clientConfig, wallet_26_name);
+        await transferSendCoinExpiryBySending(clientConfig, wallet_25_name, wallet_26_name);
+        console.log("Completed test for Transfer-sender of coin that will make it expired by sending");
         
         process.exit(0); // Exit successfully
     } catch (error) {
