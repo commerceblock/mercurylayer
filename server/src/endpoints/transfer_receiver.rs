@@ -123,7 +123,9 @@ pub async fn transfer_unlock(statechain_entity: &State<StateChainEntity>, transf
     let signed_statechain_id = transfer_unlock_request_payload.0.auth_sig.clone();
     let auth_pub_key = transfer_unlock_request_payload.0.auth_pub_key.clone();
 
-    if !crate::endpoints::utils::validate_signature_given_public_key(&signed_statechain_id, &statechain_id, &auth_pub_key).await {
+    let is_current_owner_signature = crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await;
+
+    if !is_current_owner_signature && auth_pub_key.is_some() && !crate::endpoints::utils::validate_signature_given_public_key(&signed_statechain_id, &statechain_id, &auth_pub_key.unwrap()).await {
 
         let response_body = json!({
             "message": "Signature does not match authentication key."
@@ -132,7 +134,7 @@ pub async fn transfer_unlock(statechain_entity: &State<StateChainEntity>, transf
         return status::Custom(Status::Forbidden, Json(response_body));
     }
 
-    crate::database::transfer_receiver::update_unlock_transfer(&statechain_entity.pool, &statechain_id).await;
+    crate::database::transfer_receiver::update_unlock_transfer(&statechain_entity.pool, is_current_owner_signature, &statechain_id).await;
 
     let response_body = json!({
         "message": "Success"

@@ -207,8 +207,7 @@ pub async fn update_transfer_msg(pool: &sqlx::PgPool, new_user_auth_key: &Public
         SET encrypted_transfer_msg = $1, updated_at = NOW() \
         WHERE \
             statechain_id = $2 AND \
-            new_user_auth_public_key = $3 AND \
-            updated_at = (SELECT MAX(updated_at) FROM statechain_transfer WHERE statechain_id = $2)";
+            new_user_auth_public_key = $3";
 
     let _ = sqlx::query(query)
         .bind(enc_transfer_msg)
@@ -217,4 +216,39 @@ pub async fn update_transfer_msg(pool: &sqlx::PgPool, new_user_auth_key: &Public
         .execute(pool)
         .await
         .unwrap();
+}
+
+pub struct GetPreimageResult {
+    pub pre_image: String,
+    pub locked: bool,
+    pub locked2: bool,
+}
+
+pub async fn get_preimage(pool: &sqlx::PgPool, statechain_id: &str) -> Option<GetPreimageResult> {
+
+    let query = "\
+        SELECT pre_image, locked, locked2 \
+        FROM statechain_transfer \
+        WHERE statechain_id = $1
+        AND locked = true";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+
+    match row {
+        Some(row) => {
+            let pre_image: String = row.get(0);
+            let locked: bool = row.get(1);
+            let locked2: bool = row.get(2);
+            Some(GetPreimageResult{
+                pre_image,
+                locked,
+                locked2
+            })
+        }
+        None => None
+    }
 }

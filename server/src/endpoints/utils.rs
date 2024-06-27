@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use bitcoin::hashes::{sha256, Hash};
+use bitcoin::hashes::sha256;
 use rocket::{State, response::status, http::Status, serde::json::Json};
 use secp256k1_zkp::{schnorr::Signature, Message, Secp256k1, XOnlyPublicKey};
 use serde_json::{json, Value};
 use sqlx::Row;
 use secp256k1_zkp::PublicKey;
 
-use crate::{server::StateChainEntity, server_config::Enclave};
+use crate::server::StateChainEntity;
 
 async fn get_auth_key_by_statechain_id(pool: &sqlx::PgPool, statechain_id: &str) -> Result<XOnlyPublicKey, sqlx::Error> {
 

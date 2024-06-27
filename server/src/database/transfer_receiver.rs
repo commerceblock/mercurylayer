@@ -82,8 +82,13 @@ pub async fn get_x1pub(pool: &sqlx::PgPool, statechain_id: &str) -> Option<Publi
 
     let row = row.unwrap();
 
-    let x1_secret_bytes = row.get::<Vec<u8>, _>("x1");
-    let secret_x1 = SecretKey::from_slice(&x1_secret_bytes).unwrap();
+    let x1_secret_bytes: Option<Vec<u8>> = row.get("x1");
+
+    if x1_secret_bytes.is_none() {
+        return None;
+    }
+
+    let secret_x1 = SecretKey::from_slice(&x1_secret_bytes.unwrap()).unwrap();
 
     Some(secret_x1.public_key(&Secp256k1::new()))
 }
@@ -209,14 +214,15 @@ pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, s
     transaction.commit().await.unwrap();
 }
 
-pub async fn update_unlock_transfer(pool: &sqlx::PgPool, statechain_id: &str)  {
+pub async fn update_unlock_transfer(pool: &sqlx::PgPool, is_current_owner: bool, statechain_id: &str)  {
 
-    let query = "\
-        UPDATE statechain_transfer \
-        SET locked = false, updated_at = NOW() \
-        WHERE statechain_id = $1";
+    let locked_field = if is_current_owner { "locked2" } else { "locked" };
 
-    let _ = sqlx::query(query)
+    let query = format!("UPDATE statechain_transfer \
+        SET {} = false, updated_at = NOW() \
+        WHERE statechain_id = $1", locked_field);
+
+    let _ = sqlx::query(&query)
         .bind(statechain_id)
         .execute(pool)
         .await

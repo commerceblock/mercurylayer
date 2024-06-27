@@ -193,4 +193,3 @@ async fn get_new_x1(client_config: &ClientConfig,  statechain_id: &str, signed_s
     Ok(response.x1)
 }
 
-

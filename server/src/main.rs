@@ -46,6 +46,7 @@ async fn main() {
             endpoints::sign::sign_first,
             endpoints::sign::sign_second,
             endpoints::transfer_sender::paymenthash,
+            endpoints::transfer_sender::transfer_preimage,
             endpoints::transfer_sender::transfer_sender,
             endpoints::transfer_sender::transfer_update_msg,
             endpoints::transfer_receiver::get_msg_addr,
