@@ -69,4 +69,4 @@ RUN rm -rf Dockerfiles
 # Use the SGX_MODE argument in the make command
 RUN make SGX_MODE=SIM INCLUDE_SECP256K1_ZKP=1
 
-CMD ["/home/lockbox-sgx/app"]
+CMD ["/home/lockbox-sgx/app", "-g"]

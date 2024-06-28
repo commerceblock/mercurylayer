@@ -63,8 +63,21 @@ const signFirst = async (clientConfig, signFirstRequestPayload) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
     
-    let response = await axios.post(url, signFirstRequestPayload, socksAgent);
+    let response;
+    try {
+        response = await axios.post(url, signFirstRequestPayload, socksAgent);
+    } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+            console.error('Error: Connection refused. The server at 0.0.0.0:8000 is not available.');
+        } else {
+            console.error('An error occurred:', error.message);
+        }
+    }
 
+    // Check if response or response.data is undefined
+    if (!response || !response.data || !response.data.server_pubnonce) {
+        throw new Error('Server public nonce is not available.');
+    }
     let server_pubnonce_hex = response.data.server_pubnonce;
 
     if (server_pubnonce_hex.startsWith("0x")) {
@@ -88,8 +101,21 @@ const signSecond = async (clientConfig, partialSigRequest) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    let response = await axios.post(url, partialSigRequest, socksAgent);
+    let response;
+    try {
+        response = await axios.post(url, partialSigRequest, socksAgent);
+    } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+            console.error('Error: Connection refused. The server at 0.0.0.0:8000 is not available.');
+        } else {
+            console.error('An error occurred:', error.message);
+        }
+    }
 
+    // Check if response or response data is undefined
+    if (!response || !response.data || !response.data.partial_sig) {
+        throw new Error('Server partial signature is not available.');
+    }
     let server_partial_sig_hex = response.data.partial_sig;
 
     if (server_partial_sig_hex.startsWith("0x")) {

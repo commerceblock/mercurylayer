@@ -107,7 +107,6 @@ const init = async (clientConfig, db, wallet, token_id) => {
     if (torProxy) {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
-
     const response = await axios.post(url, depositMsg1, socksAgent);
 
     if (response.status != 200) {
