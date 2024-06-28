@@ -688,7 +688,27 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     // const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const signed_tx = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+
+    // Coin withdrawal is working fine
+    // let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
+
+    // let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_1_name, coin.statechain_id, withdraw_address, null);
+
+    // console.log("txid: ", txid);
+
+    transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    console.log("coin ", coin);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
 }
 
 async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
