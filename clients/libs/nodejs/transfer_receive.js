@@ -113,7 +113,12 @@ const getMsgAddr = async (clientConfig, auth_pubkey) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
 
-    const response = await axios.get(url, socksAgent);
+    let response;
+    try {
+        response = await axios.get(url, socksAgent);
+    } catch (error) {
+        throw new Error('Failed to get message address from mercury server');
+    }
 
     return response.data.list_enc_transfer_msg;
 }
