@@ -27,12 +27,8 @@ const checkDeposit = async (clientConfig, electrumClient, coin, wallet_network) 
     reversedHash = reversedHash.toString('hex');
 
     let utxo = null;
-    let utxo_list = null;
-    try { 
-        utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
-    } catch (error) {
-        throw new Error("Error getting unspent list from electrs server");
-    }
+
+    let utxo_list = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
 
     for (let unspent of utxo_list) {
         if (unspent.value === coin.amount) {
@@ -181,6 +177,7 @@ const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
         let coin = wallet.coins[i];
 
         if (coin.status == CoinStatus.INITIALISED || coin.status == CoinStatus.IN_MEMPOOL || coin.status == CoinStatus.UNCONFIRMED) {
+
             let depositResult = await checkDeposit(clientConfig, electrumClient, coin, network);
 
             if (depositResult) {
