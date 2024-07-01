@@ -1,3 +1,5 @@
+use std::env;
+
 use bitcoin::Network;
 use config::Config;
 use sqlx::{Sqlite, migrate::MigrateDatabase, SqlitePool};
@@ -27,10 +29,22 @@ pub struct ClientConfig {
     pub max_fee_rate: u32,
 }
 
+fn check_and_set_settings() -> String {
+    if let Ok(value) = env::var("ML_NETWORK") {
+        if value == "regtest" {
+            return String::from("regtest.Settings");
+        }
+    }
+    "Settings".to_string()
+}
+
 impl ClientConfig {
     pub async fn load() -> Self {
+
+        let settings_filename = check_and_set_settings();
+
         let settings = Config::builder()
-            .add_source(config::File::with_name("Settings"))
+            .add_source(config::File::with_name(&settings_filename))
             .build()
             .unwrap();
 
