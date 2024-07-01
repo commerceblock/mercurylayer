@@ -6,7 +6,7 @@ pub mod utils;
 pub mod transfer_sender;
 pub mod transfer_receiver;
 pub mod withdraw;
-
+pub mod lightning_latch;
 
 fn is_batch_expired(batch_time: DateTime<Utc>) -> bool {
 

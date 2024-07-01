@@ -293,7 +293,7 @@ async fn unlock_statecoin(client_config: &ClientConfig, statechain_id: &str, sig
     let transfer_unlock_request_payload = mercurylib::transfer::receiver::TransferUnlockRequestPayload {
         statechain_id: statechain_id.to_string(),
         auth_sig: signed_statechain_id.to_string(),
-        auth_pub_key: auth_pubkey.to_string(),
+        auth_pub_key: Some(auth_pubkey.to_string()),
     };
 
     let status = request.json(&transfer_unlock_request_payload).send().await?.status();

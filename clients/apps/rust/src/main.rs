@@ -59,6 +59,22 @@ enum Commands {
     },
     /// Send a statechain coin to a transfer address
     TransferReceive { wallet_name: String },
+    /// Create a payment hash for a lightning latch
+    PaymentHash {
+        wallet_name: String, 
+        statechain_id: String, 
+    },
+    /// Confirm pending invoice
+    ConfirmPendingInvoice {
+        wallet_name: String, 
+        statechain_id: String,
+    },
+    /// Retrieve a payment pre-image for a lightning latch
+    RetrievePreImage {
+        wallet_name: String, 
+        statechain_id: String,
+        batch_id: String,
+    },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -152,6 +168,24 @@ async fn main() -> Result<()> {
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
+        Commands::PaymentHash { wallet_name, statechain_id} => {
+            let response = mercuryrustlib::lightning_latch::create_pre_image(&client_config, &wallet_name, &statechain_id).await?;
+
+            let obj = json!(response);
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
+        },
+        Commands::ConfirmPendingInvoice { wallet_name, statechain_id } => {
+            mercuryrustlib::lightning_latch::confirm_pending_invoice(&client_config, &wallet_name, &statechain_id).await?;
+        },
+        Commands::RetrievePreImage { wallet_name, statechain_id, batch_id } => {
+
+            let pre_image = mercuryrustlib::lightning_latch::retrieve_pre_image(&client_config, &wallet_name, &statechain_id, &batch_id).await?;
+
+            let obj = json!({"pre_image": pre_image});
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
+        }
     }
 
     client_config.pool.close().await;

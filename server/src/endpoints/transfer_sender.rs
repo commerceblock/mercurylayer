@@ -32,7 +32,11 @@ pub async fn validate_batch_transfer(statechain_entity: &State<StateChainEntity>
 
         if !is_batch_expired(batch_time) {
 
-            // TODO: check if the batch is complete. If complete, should return success.
+            let all_coins_unlocked = crate::database::transfer::is_all_coins_unlocked(&statechain_entity.pool, &batch_id).await;
+
+            if all_coins_unlocked {
+                return BatchTransferValidationResult::Success;
+            }
 
             // the batch time has not expired
             return BatchTransferValidationResult::StatecoinBatchLockedError("Statecoin batch locked (the batch time has not expired).".to_string())
