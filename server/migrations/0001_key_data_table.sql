@@ -9,6 +9,20 @@ CREATE TABLE public.statechain_data (
 	CONSTRAINT statechain_data_server_public_key_ukey UNIQUE (server_public_key)
 );
 
+CREATE TABLE public.lightning_latch (
+	id serial4 NOT NULL,
+	statechain_id varchar NOT NULL,
+    sender_auth_xonly_public_key bytea NULL,
+	batch_id varchar NOT NULL,
+	pre_image varchar NULL,
+	locked boolean NOT NULL DEFAULT true,
+	expires_at TIMESTAMPTZ NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CONSTRAINT lightning_latch_pkey PRIMARY KEY (id),
+	CONSTRAINT unique_statechain_sender_batch UNIQUE (statechain_id, sender_auth_xonly_public_key, batch_id)
+);
+
 CREATE TABLE public.statechain_transfer (
 	id serial4 NOT NULL,
 	statechain_id varchar UNIQUE,
@@ -21,6 +35,7 @@ CREATE TABLE public.statechain_transfer (
 	batch_id varchar NULL,
 	batch_time TIMESTAMPTZ NULL,
 	locked boolean NOT NULL DEFAULT false,
+	locked2 boolean NOT NULL DEFAULT false,
 	CONSTRAINT statechain_transfer_pkey PRIMARY KEY (id)
 );
 

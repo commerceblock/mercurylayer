@@ -11,6 +11,20 @@ use super::TransferMsg;
 
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct PaymentHashRequestPayload {
+    pub statechain_id: String,
+    pub auth_sig: String, // signed_statechain_id
+    pub batch_id: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct PaymentHashResponsePayload {
+    pub hash: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
 pub struct TransferSenderRequestPayload {
     pub statechain_id: String,
     pub auth_sig: String, // signed_statechain_id

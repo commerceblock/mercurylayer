@@ -59,6 +59,11 @@ enum Commands {
     },
     /// Send a statechain coin to a transfer address
     TransferReceive { wallet_name: String },
+    /// Create a payment hash for a lightning latch
+    PaymentHash {
+        wallet_name: String, 
+        statechain_id: String, 
+    },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -149,6 +154,13 @@ async fn main() -> Result<()> {
             let received_statechain_ids = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet_name).await?;
 
             let obj = json!(received_statechain_ids);
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
+        },
+        Commands::PaymentHash { wallet_name, statechain_id} => {
+            let response = mercuryrustlib::lightning_latch::create_pre_image(&client_config, &wallet_name, &statechain_id).await?;
+
+            let obj = json!(response);
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },

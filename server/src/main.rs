@@ -45,6 +45,7 @@ async fn main() {
             endpoints::deposit::token_init,
             endpoints::sign::sign_first,
             endpoints::sign::sign_second,
+            endpoints::lightning_latch::paymenthash,
             endpoints::transfer_sender::transfer_sender,
             endpoints::transfer_sender::transfer_update_msg,
             endpoints::transfer_receiver::get_msg_addr,
