@@ -30,7 +30,7 @@ pub async fn get_batch_id_and_time_by_statechain_id(pool: &sqlx::PgPool, statech
 pub async fn is_all_coins_unlocked(pool: &sqlx::PgPool, batch_id: &str) -> bool {
 
     let query = "\
-        SELECT locked \
+        SELECT locked, locked2 \
         FROM statechain_transfer \
         WHERE batch_id = $1";
 
@@ -42,8 +42,9 @@ pub async fn is_all_coins_unlocked(pool: &sqlx::PgPool, batch_id: &str) -> bool 
 
     for row in rows {
         let locked: bool = row.get(0);
+        let locked2: bool = row.get(1);
 
-        if locked {
+        if locked || locked2 {
             return false;
         }
     }

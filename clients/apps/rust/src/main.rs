@@ -64,6 +64,11 @@ enum Commands {
         wallet_name: String, 
         statechain_id: String, 
     },
+    /// Confirm pending invoice
+    ConfirmPendingInvoice {
+        wallet_name: String, 
+        statechain_id: String,
+    },
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -163,6 +168,9 @@ async fn main() -> Result<()> {
             let obj = json!(response);
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
+        },
+        Commands::ConfirmPendingInvoice { wallet_name, statechain_id } => {
+            mercuryrustlib::lightning_latch::confirm_pending_invoice(&client_config, &wallet_name, &statechain_id).await?;
         },
     }
 

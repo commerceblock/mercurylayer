@@ -5,6 +5,8 @@ use sqlx::Row;
 
 pub async fn exists_msg_for_same_statechain_id_and_new_user_auth_key(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, statechain_id: &str, batch_id: &Option<String>) -> bool {
 
+// TODO: if there is no batch_id, the query should be batch_id = null
+
     let mut query = "\
         SELECT COUNT(*) \
         FROM statechain_transfer \
@@ -77,9 +79,9 @@ pub async fn insert_new_transfer(
         .unwrap();
 
     let query2 = if batch_id.is_none() {
-        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, locked) VALUES ($1, $2, $3, $4)"
+        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, locked, locked2) VALUES ($1, $2, $3, $4, $5)"
     } else {
-        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, batch_id, batch_time, locked) VALUES ($1, $2, $3, $4, $5, $6)"
+        "INSERT INTO statechain_transfer (statechain_id, new_user_auth_public_key, x1, batch_id, batch_time, locked, locked2) VALUES ($1, $2, $3, $4, $5, $6, $7)"
     };
 
     let ser_new_user_auth_key = new_user_auth_key.serialize();
@@ -99,12 +101,18 @@ pub async fn insert_new_transfer(
             batch_time = Some(Utc::now());
         }
 
+        let sender_auth_key = crate::endpoints::utils::get_auth_key_by_statechain_id(&pool, &statechain_id).await.unwrap();
+        let is_lightning_latch = crate::database::lightning_latch::is_lightning_latch(pool, statechain_id, &sender_auth_key, &batch_id).await;
+
         ps_query = ps_query
             .bind(batch_id)
             .bind(batch_time.unwrap())
-            .bind(true);
+            .bind(true)
+            .bind(is_lightning_latch);
     } else {
-        ps_query = ps_query.bind(false);
+        ps_query = ps_query
+            .bind(false)
+            .bind(false);
     }
 
     ps_query.execute(&mut *transaction)

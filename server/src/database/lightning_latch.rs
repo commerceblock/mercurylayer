@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use secp256k1_zkp::XOnlyPublicKey;
+use sqlx::Row;
 
 pub async fn insert_paymenthash(
     pool: &sqlx::PgPool, 
@@ -27,4 +28,25 @@ pub async fn insert_paymenthash(
         .execute(pool)
         .await
         .unwrap();
+}
+
+pub async fn is_lightning_latch(pool: &sqlx::PgPool, statechain_id: &str, sender_auth_key: &XOnlyPublicKey, batch_id: &str) -> bool {
+    let query = "SELECT EXISTS \
+        (SELECT 1 FROM \
+        lightning_latch \
+        WHERE statechain_id = $1 \
+        AND sender_auth_xonly_public_key = $2 \
+        AND batch_id = $3)";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .bind(sender_auth_key.serialize())
+        .bind(batch_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    let exists: bool = row.get(0);
+
+    exists
 }

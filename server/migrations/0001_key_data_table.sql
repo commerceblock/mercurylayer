@@ -20,7 +20,7 @@ CREATE TABLE public.lightning_latch (
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	CONSTRAINT lightning_latch_pkey PRIMARY KEY (id),
-	CONSTRAINT unique_statechain_sender_batch UNIQUE (statechain_id, sender_auth_xonly_public_key, batch_id)
+	CONSTRAINT unique_statechain_sender_batch UNIQUE (statechain_id, batch_id)
 );
 
 CREATE TABLE public.statechain_transfer (

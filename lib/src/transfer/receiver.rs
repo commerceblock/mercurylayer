@@ -13,7 +13,7 @@ use super::TransferMsg;
 pub struct TransferUnlockRequestPayload { 
     pub statechain_id: String,
     pub auth_sig: String, // signed_statechain_id
-    pub auth_pub_key: String, // public key for verification
+    pub auth_pub_key: Option<String>, // public key for verification
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -209,16 +209,53 @@ pub async fn update_statechain(pool: &sqlx::PgPool, auth_key: &XOnlyPublicKey, s
     transaction.commit().await.unwrap();
 }
 
-pub async fn update_unlock_transfer(pool: &sqlx::PgPool, statechain_id: &str)  {
+pub async fn update_unlock_transfer(pool: &sqlx::PgPool, is_current_owner: bool, statechain_id: &str)  {
 
-    let query = "\
-        UPDATE statechain_transfer \
-        SET locked = false, updated_at = NOW() \
-        WHERE statechain_id = $1";
+    let locked_field = if is_current_owner { "locked2" } else { "locked" };
 
-    let _ = sqlx::query(query)
+    let query = format!("UPDATE statechain_transfer \
+        SET {} = false, updated_at = NOW() \
+        WHERE statechain_id = $1", locked_field);
+
+    let _ = sqlx::query(&query)
         .bind(statechain_id)
         .execute(pool)
         .await
         .unwrap();
+
+
+        let query = "SELECT locked, locked2, batch_id \
+            FROM statechain_transfer \
+            WHERE statechain_id = $1";
+
+        let row = sqlx::query(query)
+            .bind(statechain_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+
+        let locked: bool = row.get(0);
+        let locked2: bool = row.get(1);
+        let batch_id: Option<String> = row.get(2);
+
+        // if there is no lightning latch operation, the update below will have no effect
+
+        if batch_id.is_some() && !locked && !locked2 {
+            let query = "UPDATE lightning_latch \
+                SET locked = false, updated_at = NOW() \
+                WHERE statechain_id = $1
+                AND batch_id = $2";
+
+            let _ = sqlx::query(query)
+                .bind(statechain_id)
+                .bind(batch_id.unwrap())
+                .execute(pool)
+                .await
+                .unwrap();
+
+        
+        }
+
+    
+
 }
