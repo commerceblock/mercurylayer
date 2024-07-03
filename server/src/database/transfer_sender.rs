@@ -5,29 +5,18 @@ use sqlx::Row;
 
 pub async fn exists_msg_for_same_statechain_id_and_new_user_auth_key(pool: &sqlx::PgPool, new_user_auth_key: &PublicKey, statechain_id: &str, batch_id: &Option<String>) -> bool {
 
-// TODO: if there is no batch_id, the query should be batch_id = null
-
-    let mut query = "\
+    let query = "\
         SELECT COUNT(*) \
         FROM statechain_transfer \
         WHERE new_user_auth_public_key = $1 \
-        AND statechain_id = $2".to_string();
-
-    if batch_id.is_some() {
-        query = format!("{} AND batch_id = $3", query);
-    }
+        AND statechain_id = $2 AND batch_id = $3".to_string();
 
     let serialized_new_user_auth_key = new_user_auth_key.serialize();
 
-    let mut ps_query = sqlx::query(&query)
+    let row = sqlx::query(&query)
         .bind(&serialized_new_user_auth_key)
-        .bind(statechain_id);
-
-    if batch_id.is_some() {
-        ps_query = ps_query.bind(batch_id.clone().unwrap());
-    }
-
-    let row =   ps_query  
+        .bind(statechain_id)
+        .bind(batch_id)
         .fetch_one(pool)
         .await
         .unwrap();
