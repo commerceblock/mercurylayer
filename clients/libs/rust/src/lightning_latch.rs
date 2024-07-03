@@ -1,7 +1,7 @@
 
 use crate::{client_config::ClientConfig, sqlite_manager::get_wallet};
 use anyhow::{anyhow, Result};
-use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload};
+use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -96,4 +96,40 @@ pub async fn confirm_pending_invoice(client_config: &ClientConfig, wallet_name: 
     }
 
     Ok(())
+}
+
+pub async fn retrieve_pre_image(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, batch_id: &str) -> Result<String> {
+
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let coin = wallet.coins
+        .iter_mut()
+        .filter(|tx| tx.statechain_id == Some(statechain_id.to_string())) // Filter coins with the specified statechain_id
+        .min_by_key(|tx| tx.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
+
+    if coin.is_none() {
+        return Err(anyhow!("No coins associated with this statechain ID were found"));
+    }
+
+    let coin = coin.unwrap();
+
+    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
+
+    let path = "transfer/transfer_preimage";
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.post(&format!("{}/{}", client_config.statechain_entity, path));
+
+    let transfer_preimage_request_payload = TransferPreimageRequestPayload {
+        statechain_id: statechain_id.to_string(),
+        auth_sig: signed_statechain_id.to_string(),
+        previous_user_auth_key: coin.auth_pubkey.to_string(),
+        batch_id: batch_id.to_string(),
+    };
+
+    let value = request.json(&transfer_preimage_request_payload).send().await?.text().await?;
+
+    let transfer_preimage_response_payload: TransferPreimageResponsePayload = serde_json::from_str(value.as_str())?;
+
+    Ok(transfer_preimage_response_payload.preimage)
 }

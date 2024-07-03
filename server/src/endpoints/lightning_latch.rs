@@ -1,9 +1,12 @@
+use std::str::FromStr;
+
 use bitcoin::hashes::Hash;
 use chrono::Duration;
 use hex::encode;
-use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload};
+use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload};
 use rand::Rng;
 use rocket::{State, serde::json::Json, response::status, http::Status};
+use secp256k1_zkp::{PublicKey, XOnlyPublicKey};
 use serde_json::{json, Value};
 
 use crate::server::StateChainEntity;
@@ -48,4 +51,46 @@ pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_ha
 
     return status::Custom(Status::Ok, Json(response_body));
     
+}
+
+
+#[post("/transfer/transfer_preimage", format = "json", data = "<transfer_preimage_request_payload>")]
+pub async fn transfer_preimage(statechain_entity: &State<StateChainEntity>, transfer_preimage_request_payload: Json<TransferPreimageRequestPayload>) -> status::Custom<Json<Value>>  {
+
+    let statechain_id = transfer_preimage_request_payload.0.statechain_id.clone();
+    let signed_statechain_id = transfer_preimage_request_payload.0.auth_sig.clone();
+    let previous_user_auth_key = transfer_preimage_request_payload.0.previous_user_auth_key.clone();
+    let batch_id = transfer_preimage_request_payload.0.batch_id.clone();
+
+    if !crate::endpoints::utils::validate_signature_given_public_key(&signed_statechain_id, &statechain_id, &previous_user_auth_key).await {
+
+        let response_body = json!({
+            "message": "Signature does not match authentication key."
+        });
+    
+        return status::Custom(Status::Forbidden, Json(response_body));
+    }
+
+    let previous_user_auth_key = PublicKey::from_str(&previous_user_auth_key).unwrap();
+    let previous_user_auth_key = previous_user_auth_key.x_only_public_key().0;
+
+    let pre_image = crate::database::lightning_latch::get_preimage(&statechain_entity.pool, &statechain_id, &previous_user_auth_key, &batch_id).await;
+
+    if pre_image.is_none() {
+        let message = format!("Pre-image for statechain {} not available. The transaction may still be locked", statechain_id);
+        let response_body = json!({
+            "message": message
+        });
+
+        return status::Custom(Status::NotFound, Json(response_body));
+    }
+
+    let pre_image = pre_image.unwrap();
+
+    let response_body = json!(TransferPreimageResponsePayload {
+        preimage: pre_image
+    });
+
+    return status::Custom(Status::Ok, Json(response_body));
+
 }

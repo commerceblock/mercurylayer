@@ -50,3 +50,32 @@ pub async fn is_lightning_latch(pool: &sqlx::PgPool, statechain_id: &str, sender
 
     exists
 }
+
+pub async fn get_preimage(pool: &sqlx::PgPool, statechain_id: &str, sender_auth_key: &XOnlyPublicKey, batch_id: &str) -> Option<String> {
+
+    let query = "SELECT pre_image FROM \
+        lightning_latch \
+        WHERE statechain_id = $1 \
+        AND sender_auth_xonly_public_key = $2 \
+        AND batch_id = $3";
+
+    let row = sqlx::query(query)
+        .bind(statechain_id)
+        .bind(sender_auth_key.serialize())
+        .bind(batch_id)
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+
+    if row.is_none()
+    {
+        return None;
+    }
+
+    let row = row.unwrap();
+
+    let pre_image: String = row.get(0);
+
+    Some(pre_image)
+
+}
