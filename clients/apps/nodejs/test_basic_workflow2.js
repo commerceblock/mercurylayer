@@ -909,7 +909,7 @@ async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_na
 
     console.log("coin: ", coin);
 
-    const electrumClient = await mercurynodejslib.getElectrumClient(clientConfig);
+    const electrumClient = await getElectrumClient(clientConfig);
 
     const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     const currentBlockheight = blockHeader.height;
@@ -974,7 +974,7 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    const electrumClient = await mercurynodejslib.getElectrumClient(clientConfig);
+    const electrumClient = await getElectrumClient(clientConfig);
 
     const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     const currentBlockheight = blockHeader.height;
@@ -1041,7 +1041,7 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
 
     console.log("coin: ", coin);
 
-    const electrumClient = await mercurynodejslib.getElectrumClient(clientConfig);
+    const electrumClient = await getElectrumClient(clientConfig);
 
     const blockHeader = await electrumClient.request('blockchain.headers.subscribe'); // request(promise)
     const currentBlockheight = blockHeader.height;
@@ -1154,7 +1154,7 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
             assert.fail("Expected error when sending backup tx before expiry, but no error was thrown");
         } catch (error) {
             console.log("Expected error received: ", error.message);
-            assert(error.message.includes("The coin is expired."),
+            assert(error.message.includes("The coin is not expired yet."),
             `Unexpected error message: ${error.message}`);
         }
         console.log("Completed test for send backup tx before expiry");
