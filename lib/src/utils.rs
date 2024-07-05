@@ -10,6 +10,7 @@ use crate::{wallet::{BackupTx, Coin}, MercuryError};
 pub struct ServerConfig {
     pub initlock: u32,
     pub interval: u32,
+    pub batch_timeout: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

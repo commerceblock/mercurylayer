@@ -57,6 +57,7 @@ services:
       LOCKHEIGHT_INIT: 1100
       LH_DECREMENT: 1
       CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+      BATCH_TIMEOUT: 20
       ENCLAVES: '[{"url": "http://mercurylayer_enclave-sgx_1:18080", "allow_deposit": true}]'
     ports:
       - "8000:8000"
