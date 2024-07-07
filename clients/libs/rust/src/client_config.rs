@@ -65,7 +65,7 @@ impl ClientConfig {
 
         if !Sqlite::database_exists(&database_file).await.unwrap_or(false) {
             match Sqlite::create_database(&database_file).await {
-                Ok(_) => println!("Create db success"),
+                Ok(_) => {},
                 Err(error) => panic!("error: {}", error),
             }
         }
