@@ -59,3 +59,24 @@
 24. Confirm that the coin status changed to `WITHDRAWING` status in wallet 1
 25. Generate blocks enough to confirm the withdrawal (according to the client's Settings.toml)
 26. Confirm that the coin status changed to `WITHDRAWN` status in wallet 1
+
+## Malicious Workflow
+
+### TM01 - Sender Double Spends
+
+01. Create wallet 1, 2 and 3
+02. Create a token
+03. Generate wallet 1 deposit address with this token
+04. Generate blocks enough to confirm the coin (according to the client's Settings.toml)
+05. Wait for Electrs to index this deposit transaction
+06. Confirm that there is a coin in `CONFIRMED` status in wallet 1
+07. Wallet 2 generates a new transfer address.
+08. Wallet 1 sends the coin to this wallet 2's address.
+09. Wallet 3 generates a new transfer address.
+10. Wallet 1 sends the coin to this wallet 3's address.
+11. Wallet 3 executes `transfer-receive`. This must succeed.
+12. Wallet 1 tries to send the coin to this wallet 2's address again.
+13. This time, the server must not allow it because the wallet 3 has already received the coin.
+14. Update wallet 1
+15. Wallet 1 tries to send the coin to this wallet 2's address again.
+16. This time, the client must not allow it because coin is in the `TRANSFERRED` state.
