@@ -97,7 +97,6 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
 
     let tx_bytes = hex::decode(&signed_tx)?;
     let txid = client_config.electrum_client.transaction_broadcast_raw(&tx_bytes)?;
-    println!("Broadcasting withdrawal transaction: {}", txid);
 
     coin.tx_withdraw = Some(txid.to_string());
     coin.withdrawal_address = Some(to_address.to_string());

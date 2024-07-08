@@ -41,7 +41,6 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
         let enc_messages = get_msg_addr(&auth_pubkey, &client_config).await?;
         if enc_messages.len() == 0 {
-            println!("No messages");
             continue;
         }
 

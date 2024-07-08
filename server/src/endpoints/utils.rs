@@ -62,6 +62,7 @@ pub async fn info_config() -> status::Custom<Json<Value>> {
     let server_config = mercurylib::utils::ServerConfig {
         initlock: config.lockheight_init,
         interval: config.lh_decrement,
+        batchtimeout: config.batch_timeout,
     };
 
     let response_body = json!(server_config);

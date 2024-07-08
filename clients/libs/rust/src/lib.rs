@@ -11,6 +11,9 @@ pub mod utils;
 pub mod wallet;
 pub mod withdraw;
 
+pub use mercurylib::wallet::Wallet;
+pub use mercurylib::wallet::CoinStatus;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
