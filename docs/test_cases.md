@@ -60,6 +60,24 @@
 25. Generate blocks enough to confirm the withdrawal (according to the client's Settings.toml)
 26. Confirm that the coin status changed to `WITHDRAWN` status in wallet 1
 
+## Alternative Workflow
+
+### TA01 - SignSecond not called
+
+01. Create wallet 1 and 2
+02. Create a token
+03. Generate wallet 1 deposit address with this token
+04. Send funds to the address of the new coin
+05. Generate blocks enough to confirm the coin (according to the client's Settings.toml)
+06. Wait for Electrs to index this deposit transaction
+07. Confirm wallet 1 has a coin
+08. Wallet 2 generates a new transfer address.
+09. Wallet 1 calls `transfer/send` and `sign/first` but not `sign/second` using the coin' statechain id and the transfer address of wallet 2
+10. Using the same parameters, wallet 1 then calls `transfer-send` command, which includes the complete process (transfer/send`, `sign/first`, `sign/second` and `transfer/update`)
+11. Wallet 2 executes `transfer-receive`
+12. Confirm that the coin status changed to `TRANSFERRED` status in wallet 1
+13. Confirm that the coin status changed to `CONFIRMED` status in wallet 2
+
 ## Malicious Workflow
 
 ### TM01 - Sender Double Spends

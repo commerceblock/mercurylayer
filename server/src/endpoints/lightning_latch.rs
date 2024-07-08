@@ -6,7 +6,7 @@ use hex::encode;
 use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload};
 use rand::Rng;
 use rocket::{State, serde::json::Json, response::status, http::Status};
-use secp256k1_zkp::{PublicKey, XOnlyPublicKey};
+use secp256k1_zkp::PublicKey;
 use serde_json::{json, Value};
 
 use crate::server::StateChainEntity;
