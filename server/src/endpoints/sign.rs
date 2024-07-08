@@ -1,49 +1,11 @@
 use mercurylib::transaction::SignFirstRequestPayload;
-use rocket::{State, serde::json::Json, response::status, http::Status};
+use rocket::{http::Status, response::status, serde::json::Json, State};
 use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sqlx::Row;
+
 
 use crate::server::StateChainEntity;
-
-pub async fn insert_new_signature_data(pool: &sqlx::PgPool, server_pubnonce: &str, statechain_id: &str)  {
-
-    let mut transaction = pool.begin().await.unwrap();
-
-    // FOR UPDATE is used to lock the row for the duration of the transaction
-    // It is not allowed with aggregate functions (MAX in this case), so we need to wrap it in a subquery
-    let max_tx_k_query = "\
-        SELECT COALESCE(MAX(tx_n), 0) \
-        FROM (\
-            SELECT * \
-            FROM statechain_signature_data \
-            WHERE statechain_id = $1 FOR UPDATE) AS result";
-
-    let row = sqlx::query(max_tx_k_query)
-        .bind(statechain_id)
-        .fetch_one(&mut *transaction)
-        .await
-        .unwrap();
-
-    let mut new_tx_n = row.get::<i32, _>(0);
-    new_tx_n = new_tx_n + 1;
-
-    let query = "\
-        INSERT INTO statechain_signature_data \
-        (server_pubnonce, statechain_id, tx_n) \
-        VALUES ($1, $2, $3)";
-
-    let _ = sqlx::query(query)
-        .bind(server_pubnonce)
-        .bind(statechain_id)
-        .bind(new_tx_n)
-        .execute(&mut *transaction)
-        .await
-        .unwrap();
-
-    transaction.commit().await.unwrap();
-}
 
 #[post("/sign/first", format = "json", data = "<sign_first_request_payload>")]
 pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_request_payload: Json<SignFirstRequestPayload>) -> status::Custom<Json<Value>>  {
@@ -87,6 +49,21 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
         return status::Custom(Status::InternalServerError, Json(response_body));
     }
 
+    // This situation should not happen, as this state is only possible if the client has called signFirst, but not signSecond
+    // In this case, the server should have already stored server_pubnonce in the database and the challenge is still null because the client did not call signSecond
+    let server_pubnonce_hex = crate::database::sign::get_server_pubnonce_from_null_challenge(&statechain_entity.pool, &statechain_id).await;
+
+    if server_pubnonce_hex.is_some() {
+
+        let response = mercurylib::transaction::SignFirstResponsePayload {
+            server_pubnonce: server_pubnonce_hex.unwrap(),
+        };
+
+        let response_body = json!(response);
+    
+        return status::Custom(Status::Ok, Json(response_body));
+    }
+
     let value = match request.json(&sign_first_request_payload.0).send().await {
         Ok(response) => {
             let text = response.text().await.unwrap();
@@ -112,35 +89,11 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
         server_pubnonce_hex = server_pubnonce_hex[2..].to_string();
     }
 
-    insert_new_signature_data(&statechain_entity.pool, &server_pubnonce_hex, &statechain_id,).await;
+    crate::database::sign::insert_new_signature_data(&statechain_entity.pool, &server_pubnonce_hex, &statechain_id,).await;
 
     let response_body = json!(response);
 
-/*     let response_body = json!({
-        "server_pubnonce": hex::encode(server_pub_nonce.serialize()),
-    }); */
-
     return status::Custom(Status::Ok, Json(response_body));
-}
-
-pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_nonce: &str, challenge: &str, statechain_id: &str)  {
-
-    println!("server_pub_nonce: {}", server_pub_nonce);
-    println!("challenge: {}", challenge);
-    println!("statechain_id: {}", statechain_id);
-
-    let query = "\
-        UPDATE statechain_signature_data \
-        SET challenge = $1 \
-        WHERE statechain_id = $2 AND server_pubnonce= $3";
-
-    let _ = sqlx::query(query)
-        .bind(challenge)
-        .bind(statechain_id)
-        .bind(server_pub_nonce)
-        .execute(pool)
-        .await
-        .unwrap();
 }
 
 #[post("/sign/second", format = "json", data = "<partial_signature_request_payload>")]
@@ -194,7 +147,7 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
     let challenge = session.get_challenge_from_session();
     let challenge_str = hex::encode(challenge);
 
-    update_signature_data_challenge(&statechain_entity.pool, &server_pub_nonce, &challenge_str, &statechain_id).await;
+    crate::database::sign::update_signature_data_challenge(&statechain_entity.pool, &server_pub_nonce, &challenge_str, &statechain_id).await;
 
     let value = match request.json(&partial_signature_request_payload).send().await {
         Ok(response) => {
