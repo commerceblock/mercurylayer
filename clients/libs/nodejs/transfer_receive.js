@@ -337,6 +337,7 @@ const sendTransferReceiverRequestPayload = async (clientConfig, transferReceiver
 
             if (error.response.status == 400) {
                 if (error.response.data.code == 'ExpiredBatchTimeError') {
+                    console.error(error.response.data.message);
                     throw new Error(`Failed to update transfer message ${error.response.data.message}`);
                 } else  if (error.response.data.code == 'StatecoinBatchLockedError') {
                     console.error("Statecoin batch still locked. Waiting until expiration or unlock.");
