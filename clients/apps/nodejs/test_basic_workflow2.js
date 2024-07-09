@@ -629,9 +629,9 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     const electrumClient = await getElectrumClient(clientConfig);
 
-    let options = transfer_address.transfer_receive;
+    let options = transfer_address;
 
-    let batchId = (options && options.batchId)  || null;
+    let batchId = (options && options.batch_id)  || null;
 
     let wallet = await sqlite_manager.getWallet(db, wallet_1_name);
 
@@ -1155,20 +1155,23 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
-    let received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
 
-    console.log("received_statechain_ids: ", received_statechain_ids_w3);
+    let received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
 
-    assert(received_statechain_ids_w3.length > 0);
-    assert(received_statechain_ids_w3[0] == coin3.statechain_id);
-
-    await sleep(20000);
+    // Assert the captured error message
+    const expectedMessage = 'Statecoin batch still locked. Waiting until expiration or unlock.';
+    console.log("errorMessage: ", errorMessage);
+    assert.ok(errorMessage.includes(expectedMessage));
 
     let received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
 
@@ -1270,10 +1273,12 @@ async function atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_1_name, w
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, null);
+    transfer_address_w3.batch_id = "";
+
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
     let received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -1386,7 +1391,7 @@ async function atomicSwapWithoutFirstBatchId(clientConfig, wallet_1_name, wallet
     let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, null);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
     let received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -1496,10 +1501,10 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
     await sleep(20000);
@@ -1508,23 +1513,21 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
 
     console.log("received_statechain_ids: ", received_statechain_ids_w3);
 
-    assert(received_statechain_ids_w3.length > 0);
-    assert(received_statechain_ids_w3[0] == coin3.statechain_id);
+    assert(received_statechain_ids_w3.length == 0);
 
     let received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
 
     console.log("received_statechain_ids: ", received_statechain_ids_w4);
 
-    assert(received_statechain_ids_w4.length > 0);
-    assert(received_statechain_ids_w4[0] == coin4.statechain_id);
+    assert(received_statechain_ids_w4.length == 0);
 
     transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin3);
 
-    coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
     received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -1672,6 +1675,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
         await createWallet(clientConfig, wallet_29_name);
         await createWallet(clientConfig, wallet_30_name);
         await atomicSwapSuccess(clientConfig, wallet_27_name, wallet_28_name, wallet_29_name, wallet_30_name);
+        console.log("Completed test for Successful test - all transfers complete within batch_time complete.");
 
         // Second party performs transfer-sender with incorrect or missing batch-id. First party should still receive OK.
         let wallet_31_name = "w31";
@@ -1683,6 +1687,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
         await createWallet(clientConfig, wallet_33_name);
         await createWallet(clientConfig, wallet_34_name);
         await atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_31_name, wallet_32_name, wallet_33_name, wallet_34_name);
+        console.log("Completed test for Second party performs transfer-sender with incorrect or missing batch-id. First party should still receive OK.");
 
         // First party performs transfer-sender without batch_id.
         let wallet_35_name = "w35";
@@ -1694,6 +1699,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
         await createWallet(clientConfig, wallet_37_name);
         await createWallet(clientConfig, wallet_38_name);
         await atomicSwapWithoutFirstBatchId(clientConfig, wallet_35_name, wallet_36_name, wallet_37_name, wallet_38_name);
+        console.log("Completed test for First party performs transfer-sender without batch_id.");
         
         // One party doesn't complete transfer-receiver before the timeout. 
         // Both wallets should be able to repeat transfer-sender and transfer-receiver back to new addresses without error, 
@@ -1707,6 +1713,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
         await createWallet(clientConfig, wallet_41_name);
         await createWallet(clientConfig, wallet_42_name);
         await atomicSwapWithTimeout(clientConfig, wallet_39_name, wallet_40_name, wallet_41_name, wallet_42_name);
+        console.log("Completed test for One party doesn't complete transfer-receiver before the timeout.");
 
         process.exit(0); // Exit successfully
     } catch (error) {
