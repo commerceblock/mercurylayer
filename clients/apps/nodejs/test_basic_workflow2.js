@@ -1167,10 +1167,10 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
     };
 
     let received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    await sleep(3000);
 
     // Assert the captured error message
     const expectedMessage = 'Statecoin batch still locked. Waiting until expiration or unlock.';
-    console.log("errorMessage: ", errorMessage);
     assert.ok(errorMessage.includes(expectedMessage));
 
     let received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
@@ -1179,6 +1179,13 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
 
     assert(received_statechain_ids_w4.length > 0);
     assert(received_statechain_ids_w4[0] == coin4.statechain_id);
+
+    received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids_w3);
+
+    assert(received_statechain_ids_w3.length > 0);
+    assert(received_statechain_ids_w3[0] == coin3.statechain_id);
 }
 
 async function atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name) {
@@ -1507,19 +1514,28 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
+
+    let received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
     await sleep(20000);
 
-    let received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    // Assert the captured error message
+    const expectedMessageForBatchLock = 'Statecoin batch still locked. Waiting until expiration or unlock.';
+    assert.ok(errorMessage.includes(expectedMessageForBatchLock));
 
-    console.log("received_statechain_ids: ", received_statechain_ids_w3);
-
-    assert(received_statechain_ids_w3.length == 0);
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
 
     let received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    await sleep(3000);
 
-    console.log("received_statechain_ids: ", received_statechain_ids_w4);
-
-    assert(received_statechain_ids_w4.length == 0);
+    // Assert the captured error message
+    const expectedMessageForBatchExpiry = 'Batch time has expired';
+    assert.ok(errorMessage.includes(expectedMessageForBatchExpiry));
 
     transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
@@ -1530,12 +1546,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
-    received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
-
-    console.log("received_statechain_ids: ", received_statechain_ids_w3);
-
-    assert(received_statechain_ids_w3.length > 0);
-    assert(received_statechain_ids_w3[0] == coin3.statechain_id);
+    received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
 
     received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
 
@@ -1543,6 +1554,13 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
 
     assert(received_statechain_ids_w4.length > 0);
     assert(received_statechain_ids_w4[0] == coin4.statechain_id);
+
+    received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids_w3);
+
+    assert(received_statechain_ids_w3.length > 0);
+    assert(received_statechain_ids_w3[0] == coin3.statechain_id);
 }
 
 (async () => {
