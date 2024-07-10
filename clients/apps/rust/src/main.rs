@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde_json::json;
@@ -162,7 +164,20 @@ async fn main() -> Result<()> {
         },
         Commands::TransferReceive { wallet_name } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
-            let received_statechain_ids = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet_name).await?;
+
+            let mut received_statechain_ids = Vec::<String>::new();
+
+            loop {
+                let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet_name).await?;
+                received_statechain_ids.extend(transfer_receive_result.received_statechain_ids);
+
+                if transfer_receive_result.is_there_batch_locked {
+                    println!("Statecoin batch still locked. Waiting until expiration or unlock.");
+                    thread::sleep(Duration::from_secs(5));
+                } else {
+                    break;
+                }
+            }
 
             let obj = json!(received_statechain_ids);
 

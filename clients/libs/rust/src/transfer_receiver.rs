@@ -1,7 +1,7 @@
-use std::{collections::{HashMap, HashSet}, str::FromStr, thread, time::Duration};
+use std::{collections::{HashMap, HashSet}, str::FromStr};
 
 use crate::{sqlite_manager::{get_wallet, update_wallet, insert_or_update_backup_txs}, client_config::ClientConfig, utils};
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
@@ -23,7 +23,12 @@ pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &st
     Ok(coin.address)
 }
 
-pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<Vec<String>>{
+pub struct TransferReceiveResult {
+    pub is_there_batch_locked: bool,
+    pub received_statechain_ids: Vec<String>,
+}
+
+pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<TransferReceiveResult>{
 
     let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
@@ -47,6 +52,8 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
         enc_msgs_per_auth_pubkey.insert(auth_pubkey.clone(), enc_messages);
     }
 
+    let mut is_there_batch_locked = false;
+
     let mut received_statechain_ids =  Vec::<String>::new();
 
     let mut temp_coins = wallet.coins.clone();
@@ -64,14 +71,22 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut coin = coin.unwrap();
 
-                let statechain_id_added = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
 
-                if statechain_id_added.is_err() {
-                    println!("Error: {}", statechain_id_added.err().unwrap().to_string());
+                if message_result.is_err() {
+                    println!("Error: {}", message_result.err().unwrap().to_string());
                     continue;
                 }
 
-                received_statechain_ids.push(statechain_id_added.unwrap());
+                let message_result = message_result.unwrap();
+
+                if message_result.is_batch_locked {
+                    is_there_batch_locked = true;
+                }
+
+                if message_result.statechain_id.is_some() {
+                    received_statechain_ids.push(message_result.statechain_id.unwrap());
+                }
 
             } else {
 
@@ -84,15 +99,24 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut new_coin = new_coin.unwrap();
 
-                let statechain_id_added = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
 
-                if statechain_id_added.is_err() {
-                    println!("Error: {}", statechain_id_added.err().unwrap().to_string());
+                if message_result.is_err() {
+                    println!("Error: {}", message_result.err().unwrap().to_string());
                     continue;
                 }
 
                 temp_coins.push(new_coin);
-                received_statechain_ids.push(statechain_id_added.unwrap());
+
+                let message_result = message_result.unwrap();
+
+                if message_result.is_batch_locked {
+                    is_there_batch_locked = true;
+                }
+
+                if message_result.statechain_id.is_some() {
+                    received_statechain_ids.push(message_result.statechain_id.unwrap());
+                }
             }
         }
     }
@@ -102,7 +126,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
     update_wallet(&client_config.pool, &wallet).await?;
 
-    Ok(received_statechain_ids)
+    Ok(TransferReceiveResult{
+        is_there_batch_locked,
+        received_statechain_ids
+    })
 }
 
 async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result<Vec<String>> {
@@ -119,7 +146,12 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
     Ok(response.list_enc_transfer_msg)
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<String> {
+pub struct MessageResult {
+    pub is_batch_locked: bool,
+    pub statechain_id: Option<String>,
+}
+
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<MessageResult> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -200,7 +232,17 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
     let transfer_receiver_result = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await;
 
     let server_public_key_hex = match transfer_receiver_result {
-        Ok(server_public_key_hex) => server_public_key_hex,
+        std::result::Result::Ok(server_public_key_hex) => {
+
+            if server_public_key_hex.is_batch_locked {
+                return Ok(MessageResult {
+                    is_batch_locked: true,
+                    statechain_id: None,
+                });
+            }
+
+            server_public_key_hex.server_pubkey.unwrap()
+        },
         Err(err) => {
             return Err(anyhow::anyhow!("Error: {}", err.to_string()));
         }
@@ -233,7 +275,12 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
     insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
 
-    Ok(transfer_msg.statechain_id.clone())
+    Ok(MessageResult {
+        is_batch_locked: false,
+        statechain_id: Some(transfer_msg.statechain_id.clone()),
+    })
+
+    // Ok(transfer_msg.statechain_id.clone())
 }
 
 async fn get_tx0(electrum_client: &electrum_client::Client, tx0_txid: &str) -> Result<String> {
@@ -304,14 +351,18 @@ async fn unlock_statecoin(client_config: &ClientConfig, statechain_id: &str, sig
     Ok(())
 }
 
-async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, transfer_receiver_request_payload: &mercurylib::transfer::receiver::TransferReceiverRequestPayload) -> Result<String>{
+pub struct TransferReceiveRequestResult {
+    pub is_batch_locked: bool,
+    pub server_pubkey: Option<String>,
+}
+
+async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, transfer_receiver_request_payload: &mercurylib::transfer::receiver::TransferReceiverRequestPayload) -> Result<TransferReceiveRequestResult>{
 
     let path = "transfer/receiver";
 
     let client = client_config.get_reqwest_client()?;
 
-    loop {
-        let request = client.post(&format!("{}/{}", client_config.statechain_entity, path));
+        let request: reqwest::RequestBuilder = client.post(&format!("{}/{}", client_config.statechain_entity, path));
 
         let response = request.json(&transfer_receiver_request_payload).send().await?;
 
@@ -328,18 +379,22 @@ async fn send_transfer_receiver_request_payload(client_config: &ClientConfig, tr
                     return Err(anyhow::anyhow!(error.message));
                 },
                 mercurylib::transfer::receiver::TransferReceiverError::StatecoinBatchLockedError => {
-                    println!("Statecoin batch still locked. Waiting until expiration or unlock.");
-                    thread::sleep(Duration::from_secs(5));
-                    continue;
+                    return Ok(TransferReceiveRequestResult {
+                        is_batch_locked: true,
+                        server_pubkey: None,
+                    });
                 },
             }
         }
 
         if status == StatusCode::OK {
             let response: mercurylib::transfer::receiver::TransferReceiverPostResponsePayload = serde_json::from_str(value.as_str())?;
-            return Ok(response.server_pubkey);
+            return Ok(TransferReceiveRequestResult {
+                is_batch_locked: false,
+                server_pubkey: Some(response.server_pubkey)
+            });
         } else {
             return Err(anyhow::anyhow!("{}: {}", "Failed to update transfer message".to_string(), value));
         }
-    }
+    
 }
