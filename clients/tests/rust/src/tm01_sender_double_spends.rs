@@ -51,7 +51,8 @@ async fn tm01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet, 
 
     assert!(result.is_ok());
 
-    let received_statechain_ids = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet3.name).await?;
+    let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet3.name).await?;
+    let received_statechain_ids = transfer_receive_result.received_statechain_ids;
 
     assert!(received_statechain_ids.len() == 1);
 

@@ -59,7 +59,8 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
         assert!(result.is_ok());
     }
 
-    let received_statechain_ids = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet2.name).await?;
+    let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet2.name).await?;
+    let received_statechain_ids = transfer_receive_result.received_statechain_ids;
 
     let wallet2: mercuryrustlib::Wallet = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet2.name).await?;
 
@@ -111,7 +112,8 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     assert!(result.is_ok());
 
-    let received_statechain_ids = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet1.name).await?;
+    let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet1.name).await?;
+    let received_statechain_ids = transfer_receive_result.received_statechain_ids;
 
     assert!(received_statechain_ids.contains(&statechain_id.to_string()));
     assert!(received_statechain_ids.len() == 1);
@@ -162,7 +164,7 @@ pub async fn execute() -> Result<()> {
 
     tb02(&client_config, &wallet1, &wallet2).await?;
 
-    println!("T02 - Transfer Address Reuse completed successfully");
+    println!("TB02 - Transfer Address Reuse completed successfully");
 
     Ok(())
 }
