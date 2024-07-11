@@ -178,12 +178,12 @@ const transferReceive = async (clientConfig, walletName) => {
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let received_statechain_ids = await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
+    let transferReceiveResult = await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
 
     electrumClient.close();
     db.close();
 
-    return received_statechain_ids;
+    return transferReceiveResult;
 }
 
 module.exports = { 
