@@ -688,7 +688,27 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     // const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const signed_tx = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+
+    transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    console.log("coin ", coin);
+
+    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+
+    // Coin withdrawal
+    let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
+
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null);
+
+    console.log("txid: ", txid);
 }
 
 async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -1563,6 +1583,439 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     assert(received_statechain_ids_w3[0] == coin3.statechain_id);
 }
 
+async function atomicSwapWithFirstPartySteal(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name) {
+
+    const amount = 10000;
+    let token = undefined;
+    let tokenId = undefined;
+    let deposit_info = undefined;
+    let tokenList = undefined;
+    let usedToken = undefined;
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin1 = undefined;
+
+    console.log("coin: ", coin1);
+
+    while (!coin1) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin1 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin1);
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_2_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_2_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_2_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_2_name, amount, deposit_info);
+
+    let coin2 = undefined;
+
+    console.log("coin: ", coin2);
+
+    while (!coin2) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_2_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin2 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin2);
+
+    let options = {
+        generateBatchId: true
+    };
+
+    let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
+    let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
+
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin3);
+
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin4);
+
+    let transfer_address_w3_for_steal = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
+    console.log("transfer address for steal", transfer_address_w3_for_steal);
+
+    let coin_to_steal = undefined;
+    try {
+        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3_for_steal.transfer_receive, transfer_address_w3);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'expected a string argument, found undefined';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    console.log("coin to steal transferSend: ", coin_to_steal);
+
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
+
+    let received_statechain_ids_w3 = undefined;
+    try {
+        received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+    await sleep(3000);
+
+    let received_statechain_ids_w4 = undefined; 
+    try {
+        received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    try {
+        received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+}
+
+async function atomicSwapWithFirstPartySteal(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name) {
+
+    const amount = 10000;
+    let token = undefined;
+    let tokenId = undefined;
+    let deposit_info = undefined;
+    let tokenList = undefined;
+    let usedToken = undefined;
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin1 = undefined;
+
+    console.log("coin: ", coin1);
+
+    while (!coin1) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin1 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin1);
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_2_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_2_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_2_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_2_name, amount, deposit_info);
+
+    let coin2 = undefined;
+
+    console.log("coin: ", coin2);
+
+    while (!coin2) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_2_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin2 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin2);
+
+    let options = {
+        generateBatchId: true
+    };
+
+    let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
+    let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
+
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin3);
+
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin4);
+
+    let transfer_address_w3_for_steal = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
+    console.log("transfer address for steal", transfer_address_w3_for_steal);
+
+    let coin_to_steal = undefined;
+    try {
+        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3_for_steal.transfer_receive, transfer_address_w3);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'expected a string argument, found undefined';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    console.log("coin to steal transferSend: ", coin_to_steal);
+
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
+
+    let received_statechain_ids_w3 = undefined;
+    try {
+        received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    let received_statechain_ids_w4 = undefined; 
+    try {
+        received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    try {
+        received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+}
+
+async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name) {
+
+    const amount = 10000;
+    let token = undefined;
+    let tokenId = undefined;
+    let deposit_info = undefined;
+    let tokenList = undefined;
+    let usedToken = undefined;
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_1_name, amount, deposit_info);
+
+    let coin1 = undefined;
+
+    console.log("coin: ", coin1);
+
+    while (!coin1) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin1 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin1);
+
+    token = await mercurynodejslib.newToken(clientConfig, wallet_2_name);
+    tokenId = token.token_id;
+
+    deposit_info = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_2_name, amount);
+
+    tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_2_name);
+
+    usedToken = tokenList.find(token => token.token_id === tokenId);
+
+    assert(usedToken.spent);
+    
+    await depositCoin(clientConfig, wallet_2_name, amount, deposit_info);
+
+    let coin2 = undefined;
+
+    console.log("coin: ", coin2);
+
+    while (!coin2) {
+        const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_2_name);
+
+        let coinsWithStatechainId = list_coins.filter(c => {
+            return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
+        });
+
+        if (coinsWithStatechainId.length === 0) {
+            console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(5000);
+            generateBlock(1);
+            continue;
+        }
+
+        coin2 = coinsWithStatechainId[0];
+        break;
+    }
+
+    console.log("coin: ", coin2);
+
+    let options = {
+        generateBatchId: true
+    };
+
+    let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
+    let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
+
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin3);
+
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
+    console.log("coin transferSend: ", coin4);
+
+    let transfer_address_w4_for_steal = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, options);
+    console.log("transfer address for steal", transfer_address_w4_for_steal);
+
+    let coin_to_steal = undefined;
+    try {
+        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4_for_steal.transfer_receive, transfer_address_w4);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'expected a string argument, found undefined';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    console.log("coin to steal transferSend: ", coin_to_steal);
+
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
+
+    let received_statechain_ids_w3 = undefined;
+    try {
+        received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    let received_statechain_ids_w4 = undefined; 
+    try {
+        received_statechain_ids_w4 = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+
+    try {
+        received_statechain_ids_w3 = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    } catch (error) {
+        // Assert the captured error message
+        const expectedMessage = 'num_sigs is not correct';
+        assert.ok(error.message.includes(expectedMessage));
+    }
+}
+
 (async () => {
 
     try {
@@ -1732,6 +2185,32 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
         await createWallet(clientConfig, wallet_42_name);
         await atomicSwapWithTimeout(clientConfig, wallet_39_name, wallet_40_name, wallet_41_name, wallet_42_name);
         console.log("Completed test for One party doesn't complete transfer-receiver before the timeout.");
+
+        // First party tries to steal within timeout
+        // they perform transfer-sender a second time sending back to one of their own addresses - should fail.
+        let wallet_43_name = "w43";
+        let wallet_44_name = "w44";
+        let wallet_45_name = "w45";
+        let wallet_46_name = "w46";
+        await createWallet(clientConfig, wallet_43_name);
+        await createWallet(clientConfig, wallet_44_name);
+        await createWallet(clientConfig, wallet_45_name);
+        await createWallet(clientConfig, wallet_46_name);
+        await atomicSwapWithFirstPartySteal(clientConfig, wallet_43_name, wallet_44_name, wallet_45_name, wallet_46_name);
+        console.log("Completed test for First party tries to steal within timeout");
+
+        // Second party tries to steal within timeout
+        // they perform transfer-sender a second time sending back to one of their own addresses - should fail.
+        let wallet_47_name = "w47";
+        let wallet_48_name = "w48";
+        let wallet_49_name = "w49";
+        let wallet_50_name = "w50";
+        await createWallet(clientConfig, wallet_43_name);
+        await createWallet(clientConfig, wallet_44_name);
+        await createWallet(clientConfig, wallet_45_name);
+        await createWallet(clientConfig, wallet_46_name);
+        await atomicSwapWithSecondPartySteal(clientConfig, wallet_47_name, wallet_48_name, wallet_49_name, wallet_50_name);
+        console.log("Completed test for Second party tries to steal within timeout");
 
         process.exit(0); // Exit successfully
     } catch (error) {
