@@ -14,9 +14,9 @@ const utils = require('../../libs/nodejs/utils');
 async function removeDatabase() {
     try {
         const clientConfig = client_config.load(); 
-        const { stdout, stderr } = await exec(`rm ./${clientConfig.databaseFile}`);
-        console.log('stdout:', stdout);
-        console.error('stderr:', stderr);
+        const { stdout, stderr } = await exec(`rm ${clientConfig.databaseFile}`);
+        // console.log('stdout:', stdout);
+        // console.error('stderr:', stderr);
     } catch (e) {  
         console.error(e);
     }
@@ -59,19 +59,19 @@ const getElectrumClient = async (clientConfig) => {
 async function generateBlock(numBlocks) {
     const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
     await exec(generateBlockCommand);
-    console.log(`Generated ${numBlocks} blocks`);
+    // console.log(`Generated ${numBlocks} blocks`);
 
     const clientConfig = client_config.load();
     const electrumClient = await getElectrumClient(clientConfig);
     const block_header = await electrumClient.request('blockchain.headers.subscribe');
     const blockheight = block_header.height;
-    console.log("Current block height: ", blockheight);
+    // console.log("Current block height: ", blockheight);
 }
 
 async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
 
     deposit_info["amount"] = amount;
-    console.log("deposit_coin: ", deposit_info);
+    // console.log("deposit_coin: ", deposit_info);
 
     const amountInBtc = amount / 100000000;
 
@@ -79,7 +79,7 @@ async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
     try {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         exec(sendBitcoinCommand);
-        console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
+        // console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         await generateBlock(3);
     } catch (error) {
         console.error('Error sending Bitcoin:', error.message);
@@ -107,16 +107,16 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
-        console.log(list_coins);
+        // console.log(list_coins);
 
         let coinsWithStatechainId = list_coins.filter(c => {
             return c.statechain_id === deposit_info.statechain_id && c.status === CoinStatus.CONFIRMED;
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -126,20 +126,13 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
         break;
     }
 
-    console.log("coin: ", coin);
-
     for (let i = 0; i < 10; i++) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        console.log("transfer_address: ", transfer_address);
-
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
 
-        console.log("coin transferSend: ", coin);
-
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
-
-        console.log("received_statechain_ids: ", received_statechain_ids);
+        let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+        let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
         assert(received_statechain_ids.length > 0);
         assert(received_statechain_ids[0] == coin.statechain_id);
@@ -149,8 +142,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
     let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
 
-    console.log("txid: ", txid);
-
+    // TODO: confirm withdrawal status
 }
 
 async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(clientConfig, wallet_name) {
@@ -179,8 +171,8 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
             await sleep(5000);
             generateBlock(1);
             continue;
@@ -191,26 +183,18 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
         break;
     }
 
-    console.log("coin: ", coin);
-
     const electrumClient = await getElectrumClient(clientConfig);
 
     let block_header = await electrumClient.request('blockchain.headers.subscribe');
     let currentBlockHeight = block_header.height;
-    console.log("Current block height: ", currentBlockHeight);
 
     while (coin.locktime <= currentBlockHeight) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        console.log("transfer_address: ", transfer_address);
-
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
 
-        console.log("coin transferSend: ", coin);
-
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
-
-        console.log("received_statechain_ids: ", received_statechain_ids);
+        let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+        let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
         assert(received_statechain_ids.length > 0);
         assert(received_statechain_ids[0] == coin.statechain_id);
@@ -218,15 +202,13 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
         // Fetch the coin again to get the updated locktime
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_name);
         coin = list_coins.find(c => c.statechain_id === coin.statechain_id);
-
-        console.log("Updated coin: ", coin);
     }
 
     let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
     let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
 
-    console.log("txid: ", txid);
+    // TODO: confirm withdrawal status
 }
 
 async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name) {
@@ -247,8 +229,6 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -257,9 +237,9 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -269,15 +249,12 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
         break;
     }
 
-    console.log("coin: ", coin);
-
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
-
-    console.log("received_statechain_ids: ", received_statechain_ids);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+    let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
@@ -286,7 +263,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 
     let txid = await mercurynodejslib.broadcastBackupTransaction(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null);
 
-    console.log("txid: ", txid);
+    // TODO: confirm withdrawal status
 }
 
 async function depositAndRepeatSend(clientConfig, wallet_1_name) {
@@ -307,8 +284,6 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -317,9 +292,9 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -328,12 +303,11 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
         break;
     }
 
-    console.log("coin: ", coin);
-
     for (let i = 0; i < 10; i++) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+        let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+        let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
         assert(received_statechain_ids.length > 0);
         assert(received_statechain_ids[0] == coin.statechain_id);
@@ -342,7 +316,8 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
+    let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
@@ -366,8 +341,6 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -376,9 +349,9 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -387,15 +360,12 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
         break;
     }
 
-    console.log("coin: ", coin);
-
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
-    let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
-
-    console.log("received_statechain_ids: ", received_statechain_ids);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+    let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
@@ -438,9 +408,9 @@ async function depositAndTransfer(clientConfig, wallet_name) {
             });
 
             if (coinsWithStatechainId.length === 0) {
-                console.log("Waiting for coin to be confirmed...");
-                console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-                await sleep(5000);
+                // console.log("Waiting for coin to be confirmed...");
+                // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+                await sleep(1000);
                 generateBlock(1);
                 continue;
             }
@@ -456,15 +426,10 @@ async function depositAndTransfer(clientConfig, wallet_name) {
     for (let coin of list_coins) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        console.log("transfer_address: ", transfer_address);
-
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
 
-        console.log("coin transferSend: ", coin);
-
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
-
-        console.log("received_statechain_ids: ", received_statechain_ids);
+        let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+        let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
         assert(received_statechain_ids.length > 0);
         assert(received_statechain_ids[0] == coin.statechain_id);
@@ -488,8 +453,6 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -498,9 +461,9 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -508,8 +471,6 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
         coin = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coin);
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
@@ -600,8 +561,6 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     let coinDeposited = undefined;
 
-    console.log("coin: ", coinDeposited);
-
     while (!coinDeposited) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -610,9 +569,9 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -620,8 +579,6 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
         coinDeposited = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coinDeposited);
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
@@ -728,8 +685,6 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -738,9 +693,9 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            // console.log("Waiting for coin to be confirmed...");
+            // console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -749,9 +704,9 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         break;
     }
 
-    console.log("coin: ", coin);
-
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    await sleep(5000); // wait for Electrum to disconnect
 
     console.log("Disconnect mercurylayer_electrs_1 from network");
     await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
@@ -766,6 +721,8 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     }
     console.log("Connect mercurylayer_electrs_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+
+    await sleep(5000); // wait for Electrum to connect
 }
 
 async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -786,8 +743,6 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -796,9 +751,9 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -807,17 +762,17 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         break;
     }
 
-    console.log("coin: ", coin);
-
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    await sleep(5000); // wait for Electrum to disconnect
 
     console.log("Disconnect mercurylayer_electrs_1 from network");
     await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
 
     try {
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+        await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
         assert.fail("Expected error when receiving into wallet two, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -826,6 +781,8 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
     }
     console.log("Connect mercurylayer_electrs_1 from network");
     await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+
+    await sleep(5000); // wait for Electrum to connect
 }
 
 async function interruptTransferReceiveWithMercuryServerUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -846,8 +803,6 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -856,8 +811,8 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
             await sleep(5000);
             generateBlock(1);
             continue;
@@ -866,8 +821,6 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         coin = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coin);
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
@@ -906,8 +859,6 @@ async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_na
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -916,9 +867,9 @@ async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_na
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
-            await sleep(5000);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
+            await sleep(1000);
             generateBlock(1);
             continue;
         }
@@ -926,8 +877,6 @@ async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_na
         coin = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coin);
 
     const electrumClient = await getElectrumClient(clientConfig);
 
@@ -967,8 +916,6 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -977,8 +924,8 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
             await sleep(5000);
             generateBlock(1);
             continue;
@@ -987,8 +934,6 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
         coin = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coin);
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
@@ -1002,19 +947,17 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
     const blocksToBeGenerated = coin.locktime - currentBlockheight;
     await generateBlock(blocksToBeGenerated);
 
-    let received_statechain_ids = undefined;
-
     let errorMessage;
     console.error = (msg) => {
         errorMessage = msg;
     };
 
-    received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+    let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
     // Assert the captured error message
     const expectedMessage = 'The coin is expired.';
     assert.ok(errorMessage.includes(expectedMessage));
-    console.log("received_statechain_ids: ", received_statechain_ids);
 
     assert(received_statechain_ids.length > 0);
     assert(received_statechain_ids[0] == coin.statechain_id);
@@ -1038,8 +981,6 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
 
     let coin = undefined;
 
-    console.log("coin: ", coin);
-
     while (!coin) {
         const list_coins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
 
@@ -1048,8 +989,8 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
         });
 
         if (coinsWithStatechainId.length === 0) {
-            console.log("Waiting for coin to be confirmed...");
-            console.log(`Check the address ${deposit_info.deposit_address} ...\n`);
+            /* console.log("Waiting for coin to be confirmed...");
+            console.log(`Check the address ${deposit_info.deposit_address} ...\n`); */
             await sleep(5000);
             generateBlock(1);
             continue;
@@ -1058,8 +999,6 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
         coin = coinsWithStatechainId[0];
         break;
     }
-
-    console.log("coin: ", coin);
 
     const electrumClient = await getElectrumClient(clientConfig);
 

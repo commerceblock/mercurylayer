@@ -4,6 +4,10 @@ const program = new Command();
 const mercurynodejslib = require('mercurynodejslib');
 const client_config = require('./client_config');
 
+const sleep = (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
 
   const clientConfig = client_config.load();
@@ -123,9 +127,22 @@ async function main() {
       .argument('<wallet_name>', 'name of the wallet')
       .action(async (wallet_name) => {
 
-        let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+        let receivedStatechainIds = [];
 
-        console.log(JSON.stringify(received_statechain_ids, null, 2));
+        while(true) {
+
+          let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+          receivedStatechainIds = [...receivedStatechainIds, ...transferReceiveResult.receivedStatechainIds];
+
+          if (!transferReceiveResult.isThereBatchLocked) {
+            console.log("Statecoin batch still locked. Waiting until expiration or unlock.");
+            await sleep(5000);
+          } else {
+            break;
+          }
+        }
+
+        console.log(JSON.stringify(receivedStatechainIds, null, 2));
     });
   
   program.parse();
