@@ -653,7 +653,7 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     console.log("coin ", coin);
 
-    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
     let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
     console.log("received_statechain_ids: ", received_statechain_ids);
