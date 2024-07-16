@@ -1477,17 +1477,15 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
 
     assert(transferReceiveResult.isThereBatchLocked === true);
 
-    console.error = (msg) => {
-        errorMessage = msg;
-    };
-
-    transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
-    received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
-    await sleep(3000);
-
-    // Assert the captured error message
-    const expectedMessageForBatchExpiry = 'Batch time has expired';
-    assert.ok(errorMessage.includes(expectedMessageForBatchExpiry));
+    try {
+        transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+        let received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
+        assert.fail("Expected error when transferring batch time expired coin, but no error was thrown");
+    } catch (error) {
+        console.log("Expected error received: ", error.message);
+        assert(error.message.includes("Failed to update transfer message"),   
+        `Unexpected error message: ${error.message}`);
+    }
 
     transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
@@ -1630,11 +1628,6 @@ async function atomicSwapWithFirstPartySteal(clientConfig, wallet_1_name, wallet
 
     console.log("coin to steal transferSend: ", coin_to_steal);
 
-    let errorMessage;
-    console.error = (msg) => {
-        errorMessage = msg;
-    };
-
     let received_statechain_ids_w3 = undefined;
     try {
         received_statechain_ids_w3 = mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -1774,11 +1767,6 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
     }
 
     console.log("coin to steal transferSend: ", coin_to_steal);
-
-    let errorMessage;
-    console.error = (msg) => {
-        errorMessage = msg;
-    };
 
     let received_statechain_ids_w3 = undefined;
     try {
