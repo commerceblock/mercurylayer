@@ -144,6 +144,17 @@ async function main() {
 
         console.log(JSON.stringify(receivedStatechainIds, null, 2));
     });
+
+    program.command('payment-hash')
+      .description('Get a payment hash for lightning latch') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .action(async (wallet_name, statechain_id) => {
+
+        let res = await mercurynodejslib.paymentHash(clientConfig, wallet_name, statechain_id);
+
+        console.log(JSON.stringify(res, null, 2));
+    });
   
   program.parse();
 

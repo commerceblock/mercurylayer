@@ -1,7 +1,7 @@
 
 use crate::{client_config::ClientConfig, sqlite_manager::get_wallet};
 use anyhow::{anyhow, Result};
-use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload};
+use mercurylib::{transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload}, wallet::CoinStatus};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -29,6 +29,18 @@ pub async fn create_pre_image(
     }
 
     let coin = coin.unwrap();
+
+    if coin.amount.is_none() {
+        return Err(anyhow::anyhow!("coin.amount is None"));
+    }
+
+    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER {
+        return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", coin.status));
+    }
+
+    if coin.locktime.is_none() {
+        return Err(anyhow::anyhow!("coin.locktime is None"));
+    }
 
     let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
 
