@@ -1996,6 +1996,6 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
         process.exit(0); // Exit successfully
     } catch (error) {
         console.error("Test encountered an error:", error);
-        // process.exit(1); // Exit with failure
+        process.exit(1); // Exit with failure
     }
 })();
