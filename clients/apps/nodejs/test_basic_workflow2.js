@@ -1475,6 +1475,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
     await sleep(20000);
 
+    console.log("transferReceiverResult", transferReceiveResult);
     assert(transferReceiveResult.isThereBatchLocked === true);
 
     try {
