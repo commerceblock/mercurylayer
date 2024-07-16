@@ -1474,7 +1474,7 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
     let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
-    await sleep(20000);
+    await sleep(25000);
 
     console.log("transferReceiverResult", transferReceiveResult);
     assert(transferReceiveResult.isThereBatchLocked === true);
