@@ -1121,18 +1121,8 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
     let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
-    let errorMessage;
-    console.error = (msg) => {
-        errorMessage = msg;
-    };
-
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
-    let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
-    await sleep(3000);
-
-    // Assert the captured error message
-    const expectedMessage = 'Statecoin batch still locked. Waiting until expiration or unlock.';
-    assert.ok(errorMessage.includes(expectedMessage));
+    assert(transferReceiveResult.isThereBatchLocked === false);
 
     transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
     let received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
@@ -1366,7 +1356,7 @@ async function atomicSwapWithoutFirstBatchId(clientConfig, wallet_1_name, wallet
     let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
-    transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
     let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
 
     console.log("received_statechain_ids: ", received_statechain_ids_w3);
@@ -1374,7 +1364,7 @@ async function atomicSwapWithoutFirstBatchId(clientConfig, wallet_1_name, wallet
     assert(received_statechain_ids_w3.length > 0);
     assert(received_statechain_ids_w3[0] == coin3.statechain_id);
 
-    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
     let received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
 
     console.log("received_statechain_ids: ", received_statechain_ids_w4);
@@ -1481,18 +1471,11 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3);
     console.log("coin transferSend: ", coin4);
 
-    let errorMessage;
-    console.error = (msg) => {
-        errorMessage = msg;
-    };
-
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
     let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
     await sleep(20000);
 
-    // Assert the captured error message
-    const expectedMessageForBatchLock = 'Statecoin batch still locked. Waiting until expiration or unlock.';
-    assert.ok(errorMessage.includes(expectedMessageForBatchLock));
+    assert(transferReceiveResult.isThereBatchLocked === false);
 
     console.error = (msg) => {
         errorMessage = msg;
