@@ -134,7 +134,7 @@ async function main() {
           let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
           receivedStatechainIds = [...receivedStatechainIds, ...transferReceiveResult.receivedStatechainIds];
 
-          if (!transferReceiveResult.isThereBatchLocked) {
+          if (transferReceiveResult.isThereBatchLocked) {
             console.log("Statecoin batch still locked. Waiting until expiration or unlock.");
             await sleep(5000);
           } else {
@@ -152,6 +152,21 @@ async function main() {
       .action(async (wallet_name, statechain_id) => {
 
         let res = await mercurynodejslib.paymentHash(clientConfig, wallet_name, statechain_id);
+
+        console.log(JSON.stringify(res, null, 2));
+    });
+
+    program.command('confirm-pending-invoice')
+      .description('Confirm a pending invoice for lightning latch') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .action(async (wallet_name, statechain_id) => {
+
+        await mercurynodejslib.confirmPendingInvoice(clientConfig, wallet_name, statechain_id);
+
+        let res = {
+          message: 'Invoice confirmed'
+        };
 
         console.log(JSON.stringify(res, null, 2));
     });

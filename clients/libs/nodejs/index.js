@@ -203,6 +203,20 @@ const paymentHash = async (clientConfig, walletName, statechainId) => {
     return paymentHash;
 }
 
+const confirmPendingInvoice = async (clientConfig, walletName, statechainId) => {
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+
+    await lightningLatch.confirmPendingInvoice(clientConfig, db, walletName, statechainId);
+
+    electrumClient.close();
+    db.close();
+}
+
 module.exports = { 
     createWallet, 
     newToken, 
@@ -214,5 +228,6 @@ module.exports = {
     newTransferAddress, 
     transferSend,
     transferReceive,
-    paymentHash
+    paymentHash,
+    confirmPendingInvoice
 };
