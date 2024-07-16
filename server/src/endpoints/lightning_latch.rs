@@ -11,7 +11,6 @@ use serde_json::{json, Value};
 
 use crate::server::StateChainEntity;
 
-
 #[post("/transfer/paymenthash", format = "json", data = "<payment_hash_payload>")]
 pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_hash_payload: Json<PaymentHashRequestPayload>) -> status::Custom<Json<Value>>  {
 
@@ -39,7 +38,7 @@ pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_ha
 
     crate::database::lightning_latch::insert_paymenthash(&statechain_entity.pool, &statechain_id, &sender_auth_key, &batch_id, &pre_image, &expires_at).await;
 
-    let result_hash = bitcoin::hashes::sha256::Hash::from_slice(&buffer).unwrap();
+    let result_hash = bitcoin::hashes::sha256::Hash::hash(&buffer);
     let hash_bytes = result_hash.as_byte_array();
     let payment_hash = encode(hash_bytes);
 

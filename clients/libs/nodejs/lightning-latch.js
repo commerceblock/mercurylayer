@@ -58,7 +58,7 @@ const sendPaymentHash = async (clientConfig, paymentHashPayload) => {
     
     let response = await axios.post(url, paymentHashPayload, socksAgent);
 
-    return { hash: response?.data?.hash };
+    return response?.data?.hash;
 }
 
 const confirmPendingInvoice = async (clientConfig, db, walletName, statechainId) => {
