@@ -223,7 +223,7 @@ const processEncryptedMessage = async (clientConfig, electrumClient, db, coin, e
         if (transferReceiverResult.isBatchLocked) {
             return {
                 isBatchLocked: true,
-                statechainId: None,
+                statechainId: null,
             };
         }
 

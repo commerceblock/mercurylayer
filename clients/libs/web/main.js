@@ -7,6 +7,7 @@ import withdraw from './withdraw.js';
 import broadcast_backup_tx from './broadcast_backup_tx.js';
 import transfer_send from './transfer_send.js';
 import transfer_receive from './transfer_receive.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const greet = async () => {
   
@@ -24,6 +25,8 @@ const createWallet = async (clientConfig, name) => {
   const wallet = await walletManager.createWallet(clientConfig, name);
 
   storageManager.setItem(name, wallet, false);
+
+  return wallet;
 }
 
 const newToken = async (clientConfig, walletName) => {
@@ -71,12 +74,12 @@ const broadcastBackupTransaction = async (clientConfig, walletName, statechainId
   return txIds;
 }
 
-const newTransferAddress = async (walletName, options) => {
+const newTransferAddress = async (walletName, generateBatchId) => {
 
   const addr = await transfer_receive.newTransferAddress(walletName)
   let res = {transfer_receive: addr};
 
-  if (options && options.generateBatchId) {
+  if (generateBatchId) {
       const batchId = uuidv4();
       res.batch_id = batchId;
   }
@@ -97,9 +100,7 @@ const transferReceive = async (clientConfig, walletName) => {
 
   await coin_status.updateCoins(clientConfig, walletName);
 
-  const received_statechain_ids = await transfer_receive.execute(clientConfig, walletName);
-
-  return received_statechain_ids;
+  return await transfer_receive.execute(clientConfig, walletName);
 }
 
 export default { 

@@ -105,27 +105,30 @@ const sleep = (ms) => {
 
 const sendTransferReceiverRequestPayload = async (clientConfig, transferReceiverRequestPayload) => {
  
-    while(true) {
-        try {
-            const url = `${clientConfig.statechainEntity}/transfer/receiver`;
-            const response = await axios.post(url, transferReceiverRequestPayload);
-            return response.data.server_pubkey;
-        }
-        catch (error) {
+    try {
+        const url = `${clientConfig.statechainEntity}/transfer/receiver`;
+        const response = await axios.post(url, transferReceiverRequestPayload);
+        return {
+            isBatchLocked: false,
+            serverPubkey: response.data.server_pubkey,
+        };
+    }
+    catch (error) {
 
-            if (error.response.status == 400) {
-                if (error.response.data.code == 'ExpiredBatchTimeError') {
-                    throw new Error(`Failed to update transfer message ${error.response.data.message}`);
-                } else  if (error.response.data.code == 'StatecoinBatchLockedError') {
-                    console.log("Statecoin batch still locked. Waiting until expiration or unlock.");
-                    await sleep(5000);
-                    continue;
-                }
-            } else {
-                throw new Error(`Failed to update transfer message ${JSON.stringify(error.response.data)}`);
+        if (error.response.status == 400) {
+            if (error.response.data.code == 'ExpiredBatchTimeError') {
+                throw new Error(`Failed to update transfer message ${error.response.data.message}`);
+            } else  if (error.response.data.code == 'StatecoinBatchLockedError') {
+                return {
+                    isBatchLocked: true,
+                    serverPubkey: null,
+                };
             }
+        } else {
+            throw new Error(`Failed to update transfer message ${JSON.stringify(error.response.data)}`);
         }
     }
+    
 }
 
 const processEncryptedMessage = async (clientConfig, coin, encMessage, network, serverInfo, activities) => {
@@ -199,7 +202,16 @@ const processEncryptedMessage = async (clientConfig, coin, encMessage, network, 
     let serverPublicKeyHex = "";
 
     try {
-        serverPublicKeyHex = await sendTransferReceiverRequestPayload(clientConfig, transferReceiverRequestPayload);
+        const transferReceiverResult = await sendTransferReceiverRequestPayload(clientConfig, transferReceiverRequestPayload);
+
+        if (transferReceiverResult.isBatchLocked) {
+            return {
+                isBatchLocked: true,
+                statechainId: null,
+            };
+        }
+
+        serverPublicKeyHex = transferReceiverResult.serverPubkey;
     } catch (error) {
         throw new Error(error);
     }
@@ -230,7 +242,10 @@ const processEncryptedMessage = async (clientConfig, coin, encMessage, network, 
 
     storageManager.setItem(transferMsg.statechain_id, transferMsg.backup_transactions, true);
 
-    return transferMsg.statechain_id;
+    return {
+        isBatchLocked: false,
+        statechainId: transferMsg.statechain_id,
+    };
 }
 
 const execute = async (clientConfig, walletName) => {
@@ -262,6 +277,7 @@ const execute = async (clientConfig, walletName) => {
         }
     }
 
+    let isThereBatchLocked = false;
     let receivedStatechainIds = [];
 
     let tempCoins = [...wallet.coins];
@@ -275,13 +291,17 @@ const execute = async (clientConfig, walletName) => {
 
             if (coin) {
                 try {
-                    let statechainIdAdded = await processEncryptedMessage(clientConfig, coin, encMessage, wallet.network, serverInfo, tempActivities);
+                    let messageResult = await processEncryptedMessage(clientConfig, coin, encMessage, wallet.network, serverInfo, tempActivities);
 
-                    if (statechainIdAdded) {
-                        receivedStatechainIds.push(statechainIdAdded);
+                    if (messageResult.isBatchLocked) {
+                        isThereBatchLocked = true;
+                    }
+
+                    if (messageResult.statechainId) {
+                        receivedStatechainIds.push(messageResult.statechainId);
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                    console.error(`Error: ${error}`);
                     continue;
                 }
 
@@ -290,15 +310,19 @@ const execute = async (clientConfig, walletName) => {
                     let newCoin = await mercury_wasm.duplicateCoinToInitializedState(wallet, authPubkey);
 
                     if (newCoin) {
-                        let statechainIdAdded = await processEncryptedMessage(clientConfig, newCoin, encMessage, wallet.network, serverInfo, tempActivities);
+                        let messageResult = await processEncryptedMessage(clientConfig, newCoin, encMessage, wallet.network, serverInfo, tempActivities);
 
-                        if (statechainIdAdded) {
+                        if (messageResult.isBatchLocked) {
+                            isThereBatchLocked = true;
+                        }
+
+                        if (messageResult.statechainId) {
                             tempCoins.push(newCoin);
-                            receivedStatechainIds.push(statechainIdAdded);
+                            receivedStatechainIds.push(messageResult.statechainId);
                         }
                     }
                 } catch (error) {
-                    console.error(`Error: ${error.message}`);
+                    console.error(`Error: ${error}`);
                     continue;
                 }
             }
@@ -310,7 +334,10 @@ const execute = async (clientConfig, walletName) => {
 
     storageManager.setItem(walletName, wallet, true);
 
-    return receivedStatechainIds;
+    return {
+        isThereBatchLocked,
+        receivedStatechainIds
+    };
 }
 
 export default { newTransferAddress, execute }

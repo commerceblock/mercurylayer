@@ -7,6 +7,7 @@ const withdraw = require('./withdraw');
 const transfer_receive = require('./transfer_receive');
 const transfer_send = require('./transfer_send');
 const coin_status = require('./coin_status');
+const lightningLatch = require('./lightning-latch');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -186,6 +187,52 @@ const transferReceive = async (clientConfig, walletName) => {
     return transferReceiveResult;
 }
 
+const paymentHash = async (clientConfig, walletName, statechainId) => {
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+
+    let paymentHash = await lightningLatch.createPreImage(clientConfig, db, walletName, statechainId);
+
+    electrumClient.close();
+    db.close();
+    
+    return paymentHash;
+}
+
+const confirmPendingInvoice = async (clientConfig, walletName, statechainId) => {
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+
+    await lightningLatch.confirmPendingInvoice(clientConfig, db, walletName, statechainId);
+
+    electrumClient.close();
+    db.close();
+}
+
+const retrievePreImage = async (clientConfig, walletName, statechainId, batchId) => {
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+
+    let preImage = await lightningLatch.retrievePreImage(clientConfig, db, walletName, statechainId, batchId);
+
+    electrumClient.close();
+    db.close();
+
+    return preImage;
+}
+
 module.exports = { 
     createWallet, 
     newToken, 
@@ -196,5 +243,8 @@ module.exports = {
     withdrawCoin, 
     newTransferAddress, 
     transferSend,
-    transferReceive
+    transferReceive,
+    paymentHash,
+    confirmPendingInvoice,
+    retrievePreImage
 };
