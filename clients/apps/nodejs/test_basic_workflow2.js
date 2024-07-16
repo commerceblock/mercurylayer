@@ -1122,6 +1122,7 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
     console.log("coin transferSend: ", coin4);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
+    console.log("transferReceiveResult: ", transferReceiveResult);
     assert(transferReceiveResult.isThereBatchLocked === true);
 
     transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
