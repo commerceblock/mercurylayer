@@ -4,7 +4,11 @@ const infoConfig = async (clientConfig) => {
 
     let response = await axios.get(`${clientConfig.esploraServer}/api/fee-estimates`);
 
-    const feeRateSatsPerByte = response.data[3];
+    let feeRateSatsPerByte = response.data[3];
+
+    if (!feeRateSatsPerByte) {
+        feeRateSatsPerByte = 1;
+    }
 
     console.log(`feeRateSatsPerByte: ${feeRateSatsPerByte}`)
 

@@ -1,0 +1,27 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "mocha"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "install": "^0.13.0",
+    "mercuryweblib": "file:../../libs/web",
+    "npm": "^10.8.2",
+    "puppeteer": "^22.13.0"
+  },
+  "devDependencies": {
+    "chai": "^5.1.1",
+    "jsdom": "^24.1.0",
+    "mocha": "^10.6.0",
+    "vite": "^5.3.1"
+  }
+}
