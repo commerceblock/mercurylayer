@@ -1594,6 +1594,7 @@ dependencies = [
  "secp256k1-zkp",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "uuid 1.4.1",
 ]
@@ -2422,9 +2423,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "electrum-client",
+ "hex",
  "mercuryrustlib",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
  "uuid 1.4.1",
 ]

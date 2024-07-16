@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{process::Command, thread};
 use anyhow::{anyhow, Result, Ok};
 
 pub fn get_container_id() -> Result<String> {
@@ -56,7 +56,12 @@ pub fn generatetoaddress(num_blocks: u32, address: &str) -> Result<String> {
         "bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress {} {}", num_blocks, address
     );
 
-    execute_bitcoin_command(&bitcoin_command)
+    let res = execute_bitcoin_command(&bitcoin_command);
+
+    // The command may take some time to execute
+    thread::sleep(std::time::Duration::from_secs(1));
+
+    res
 }
 
 pub fn getnewaddress() -> Result<String> {

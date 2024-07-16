@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use bitcoin::hashes::Hash;
 use chrono::Duration;
-use hex::encode;
 use mercurylib::transfer::sender::{PaymentHashRequestPayload, PaymentHashResponsePayload, TransferPreimageRequestPayload, TransferPreimageResponsePayload};
 use rand::Rng;
 use rocket::{State, serde::json::Json, response::status, http::Status};
 use secp256k1_zkp::PublicKey;
 use serde_json::{json, Value};
+
+use sha2::{Sha256, Digest};
 
 use crate::server::StateChainEntity;
 
@@ -30,7 +30,7 @@ pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_ha
     let sender_auth_key = super::utils::get_auth_key_by_statechain_id(&statechain_entity.pool, &statechain_id).await.unwrap();
 
     let buffer = rand::thread_rng().gen::<[u8; 32]>();
-    let pre_image = encode(&buffer.clone());
+    let pre_image = hex::encode(buffer.clone());
 
     let now = chrono::Utc::now();
     let expiry_time = Duration::seconds(90000); // 25h
@@ -38,9 +38,11 @@ pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_ha
 
     crate::database::lightning_latch::insert_paymenthash(&statechain_entity.pool, &statechain_id, &sender_auth_key, &batch_id, &pre_image, &expires_at).await;
 
-    let result_hash = bitcoin::hashes::sha256::Hash::hash(&buffer);
-    let hash_bytes = result_hash.as_byte_array();
-    let payment_hash = encode(hash_bytes);
+    let mut hasher = Sha256::new();
+    hasher.update(buffer);
+    let result = hasher.finalize();
+
+    let payment_hash = hex::encode(result);
 
     let payment_hash_response_payload = PaymentHashResponsePayload {
         hash: payment_hash,

@@ -131,7 +131,7 @@ pub async fn execute() -> Result<()> {
 
     tb03(&client_config, &wallet1, &wallet2, &wallet3, &wallet4).await?;
 
-    println!("TB03- Simple Atomic Transfer Test completed successfully");
+    println!("TB03 - Simple Atomic Transfer Test completed successfully");
 
     Ok(())
 }
