@@ -217,6 +217,22 @@ const confirmPendingInvoice = async (clientConfig, walletName, statechainId) => 
     db.close();
 }
 
+const retrievePreImage = async (clientConfig, walletName, statechainId, batchId) => {
+
+    const db = await getDatabase(clientConfig);
+
+    const electrumClient = await getElectrumClient(clientConfig);
+
+    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+
+    let preImage = await lightningLatch.retrievePreImage(clientConfig, db, walletName, statechainId, batchId);
+
+    electrumClient.close();
+    db.close();
+
+    return preImage;
+}
+
 module.exports = { 
     createWallet, 
     newToken, 
@@ -229,5 +245,6 @@ module.exports = {
     transferSend,
     transferReceive,
     paymentHash,
-    confirmPendingInvoice
+    confirmPendingInvoice,
+    retrievePreImage
 };

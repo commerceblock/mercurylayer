@@ -170,6 +170,18 @@ async function main() {
 
         console.log(JSON.stringify(res, null, 2));
     });
+
+    program.command('retrieve-pre-image')
+      .description('Confirm a pending invoice for lightning latch') 
+      .argument('<wallet_name>', 'name of the wallet')
+      .argument('<statechain_id>', 'statechain id of the coin')
+      .argument('<batch-id>', 'transfer batch id')
+      .action(async (wallet_name, statechain_id, batch_id) => {
+
+       let res = await mercurynodejslib.retrievePreImage(clientConfig, wallet_name, statechain_id, batch_id);
+
+        console.log(JSON.stringify(res, null, 2));
+    });
   
   program.parse();
 
