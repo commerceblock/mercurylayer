@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const mercurynodejslib = require('mercurynodejslib');
 const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const { sleep, createWallet, generateBlock, depositCoin  } = require('./test_utils');
+const client_config = require('./client_config');
 
 async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name) {
 

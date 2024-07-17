@@ -1,6 +1,11 @@
 
+const util = require('node:util');
 const ElectrumCli = require('@mempool/electrum-client');
 const sqlite3 = require('sqlite3').verbose();
+const mercurynodejslib = require('mercurynodejslib');
+const exec = util.promisify(require('node:child_process').exec);
+const assert = require('node:assert/strict');
+const client_config = require('./client_config');
 
 const removeDatabase = async () => {
     try {
