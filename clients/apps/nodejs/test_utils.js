@@ -78,4 +78,4 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
     }
 }
 
-export default { removeDatabase, getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin };
+module.exports = { removeDatabase, getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin };
