@@ -6,6 +6,7 @@ const mercurynodejslib = require('mercurynodejslib');
 const exec = util.promisify(require('node:child_process').exec);
 const assert = require('node:assert/strict');
 const client_config = require('./client_config');
+const sqlite_manager = require('../../libs/nodejs/sqlite_manager');
 
 const removeDatabase = async () => {
     try {
