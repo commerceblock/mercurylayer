@@ -1476,18 +1476,19 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let received_statechain_ids_w3 = transferReceiveResult.receivedStatechainIds;
     await sleep(25000);
 
-    console.log("transferReceiverResult", transferReceiveResult);
     assert(transferReceiveResult.isThereBatchLocked === true);
 
-    try {
-        transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
-        let received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
-        assert.fail("Expected error when transferring batch time expired coin, but no error was thrown");
-    } catch (error) {
-        console.log("Expected error received: ", error.message);
-        assert(error.message.includes("Failed to update transfer message"),   
-        `Unexpected error message: ${error.message}`);
-    }
+    let errorMessage;
+    console.error = (msg) => {
+        errorMessage = msg;
+    };
+
+    transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_4_name);
+    let received_statechain_ids_w4 = transferReceiveResult.receivedStatechainIds;
+
+    // Assert the captured error message
+    const expectedMessage = 'Failed to update transfer message';
+    assert.ok(errorMessage.includes(expectedMessage));
 
     transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, options);
     transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
@@ -1986,10 +1987,10 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
         let wallet_48_name = "w48";
         let wallet_49_name = "w49";
         let wallet_50_name = "w50";
-        await createWallet(clientConfig, wallet_43_name);
-        await createWallet(clientConfig, wallet_44_name);
-        await createWallet(clientConfig, wallet_45_name);
-        await createWallet(clientConfig, wallet_46_name);
+        await createWallet(clientConfig, wallet_47_name);
+        await createWallet(clientConfig, wallet_48_name);
+        await createWallet(clientConfig, wallet_49_name);
+        await createWallet(clientConfig, wallet_50_name);
         await atomicSwapWithSecondPartySteal(clientConfig, wallet_47_name, wallet_48_name, wallet_49_name, wallet_50_name);
         console.log("Completed test for Second party tries to steal within timeout");
 
