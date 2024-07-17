@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "author": "",
   "license": "ISC",
@@ -15,10 +15,14 @@
     "commander": "^11.1.0",
     "config": "^3.3.9",
     "mercury-wasm": "file:../../../wasm/node_pkg/debug",
+    "mercurynodejslib": "file:../../libs/nodejs",
     "socks-proxy-agent": "^8.0.2",
     "sqlite3": "^5.1.6",
     "tiny-secp256k1": "^2.2.3",
-    "uuid": "^9.0.1",
-    "mercurynodejslib": "file:../../libs/nodejs"
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "chai": "^5.1.1",
+    "mocha": "^10.6.0"
   }
 }

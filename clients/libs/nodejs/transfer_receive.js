@@ -259,7 +259,7 @@ const processEncryptedMessage = async (clientConfig, electrumClient, db, coin, e
     await sqlite_manager.insertOrUpdateBackupTxs(db, transferMsg.statechain_id, transferMsg.backup_transactions);
 
     return {
-        isBatchLocked: true,
+        isBatchLocked: false,
         statechainId: transferMsg.statechain_id,
     };
 }
