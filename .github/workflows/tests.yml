@@ -106,6 +106,7 @@ jobs:
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
+          node test_atomic_swap.js
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down
