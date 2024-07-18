@@ -68,6 +68,8 @@ async function main() {
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
+        const feeRate = (options && options.fee_rate) || null;
+
        let tx_ids = await mercurynodejslib.broadcastBackupTransaction(clientConfig, wallet_name, statechain_id, to_address, options);
 
        console.log(JSON.stringify(tx_ids, null, 2));
@@ -90,8 +92,10 @@ async function main() {
       .argument('<to_address>', 'recipient bitcoin address')
       .option('-f, --fee_rate <fee_rate>', '(optional) fee rate in satoshis per byte')
       .action(async (wallet_name, statechain_id, to_address, options) => {
+        
+        const feeRate = (options && options.fee_rate) || null;
 
-        const txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, statechain_id, to_address, options);
+        const txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, statechain_id, to_address, feeRate);
 
         console.log(JSON.stringify({
           txid
@@ -104,7 +108,9 @@ async function main() {
       .option('-b, --generate-batch-id', 'optional batch id for the transaction')
       .action(async (wallet_name, options) => {
 
-        let res = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, options);
+        const generateBatchId = options && options.generateBatchId;
+
+        let res = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, generateBatchId);
 
         console.log(JSON.stringify(res, null, 2));
     });
@@ -117,7 +123,9 @@ async function main() {
       .option('-b, --batch-id <batch_id>', 'optional batch id for the transaction')
       .action(async (wallet_name, statechain_id, to_address, options) => {
 
-        let coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, statechain_id, to_address, options);
+        let batchId = (options && options.batch_id)  || null;
+
+        let coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, statechain_id, to_address, batchId);
 
         console.log(JSON.stringify(coin, null, 2));
       });

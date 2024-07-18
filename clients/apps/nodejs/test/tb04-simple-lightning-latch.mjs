@@ -86,7 +86,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet2.name, null);
 
-      await mercurynodejslib.transferSend(clientConfig, wallet1.name, coin.statechain_id, transferAddress.transfer_receive, { batchId: paymentHash.batchId });
+      await mercurynodejslib.transferSend(clientConfig, wallet1.name, coin.statechain_id, transferAddress.transfer_receive, paymentHash.batchId);
 
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet2.name);
 

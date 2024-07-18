@@ -76,15 +76,13 @@ const getWalletTokens = async (clientConfig, walletName) => {
     return wallet.tokens;
 }
 
-const broadcastBackupTransaction = async (clientConfig, walletName, statechainId, toAddress, options) => {
+const broadcastBackupTransaction = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
 
     const db = await getDatabase(clientConfig);
 
     const electrumClient = await getElectrumClient(clientConfig);
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
-
-    const feeRate = (options && options.fee_rate) || null;
 
     let txIds = await broadcast_backup_tx.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate);
 
@@ -118,15 +116,13 @@ const listStatecoins = async (clientConfig, walletName) => {
     return coins;
 }
 
-const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, options) => {
+const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
 
     const db = await getDatabase(clientConfig);
 
     const electrumClient = await getElectrumClient(clientConfig);
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
-
-    const feeRate = (options && options.fee_rate) || null;
 
     const txId = await withdraw.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate);
 
@@ -136,16 +132,15 @@ const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, o
     return txId;
 }
 
-const newTransferAddress = async (clientConfig, walletName, options) => {
+const newTransferAddress = async (clientConfig, walletName, generateBatchId) => {
 
     const db = await getDatabase(clientConfig);
 
     const addr = await transfer_receive.newTransferAddress(db, walletName)
     let res = {transfer_receive: addr};
 
-    if (options && options.generateBatchId) {
-        const batchId = uuidv4();
-        res.batch_id = batchId;
+    if (generateBatchId) {
+        res.batchId = uuidv4();
     }
 
     db.close();
@@ -153,13 +148,11 @@ const newTransferAddress = async (clientConfig, walletName, options) => {
     return res;
 }
 
-const transferSend = async (clientConfig, walletName, statechainId, toAddress, options) => {
+const transferSend = async (clientConfig, walletName, statechainId, toAddress, batchId) => {
 
     const db = await getDatabase(clientConfig);
 
     const electrumClient = await getElectrumClient(clientConfig);
-
-    let batchId = (options && options.batch_id)  || null;
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 

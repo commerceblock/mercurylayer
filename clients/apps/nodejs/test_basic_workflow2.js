@@ -8,7 +8,7 @@ const sqlite_manager = require('../../libs/nodejs/sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const transaction = require('../../libs/nodejs/transaction');
 const utils = require('../../libs/nodejs/utils');
-const { getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin  } = require('./test_utils');
+const { getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin, connectElectr, disconnectElectr, disconnectMercuryServer, connectMercuryServer  } = require('./test_utils');
 
 async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
@@ -398,7 +398,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     console.log("Disconnect mercurylayer_mercury_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+    await disconnectMercuryServer();
 
     try {
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
@@ -409,7 +409,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_mercury_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
+    await connectMercuryServer();
 }
 
 const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isWithdrawal, qtBackupTx, block_height, network) => {
@@ -450,7 +450,7 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
     console.log("Disconnect mercurylayer_mercury_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+    await disconnectMercuryServer();
 
     let serverPartialSig;
 
@@ -464,7 +464,7 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
     }
 
     console.log("Connect mercurylayer_mercury_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
+    await connectMercuryServer();
 }
 
 async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_name) {
@@ -633,7 +633,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await sleep(5000); // wait for Electrum to disconnect
 
     console.log("Disconnect mercurylayer_electrs_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
+    await disconnectElectr();
 
     try {
         coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
@@ -644,7 +644,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+    await connectElectr();
 
     await sleep(5000); // wait for Electrum to connect
 }
@@ -693,7 +693,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
     await sleep(5000); // wait for Electrum to disconnect
 
     console.log("Disconnect mercurylayer_electrs_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
+    await disconnectElectr();
 
     try {
         await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
@@ -704,7 +704,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_electrs_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+    await connectElectr();
 
     await sleep(5000); // wait for Electrum to connect
 }
@@ -751,7 +751,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
 
     console.log("Disconnect mercurylayer_mercury_1 from network");
-    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+    await disconnectMercuryServer();
 
     try {
         let received_statechain_ids = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
@@ -762,7 +762,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         `Unexpected error message: ${error.message}`);
     }
     console.log("Connect mercurylayer_mercury_1 from network");
-    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
+    await connectMercuryServer();
 }
 
 async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_name) {

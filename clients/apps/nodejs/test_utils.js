@@ -75,7 +75,7 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
     // Sending Bitcoin using bitcoin-cli
     try {
         const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
+        await exec(sendBitcoinCommand);
         // console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         await generateBlock(3);
     } catch (error) {
@@ -84,4 +84,32 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
     }
 }
 
-module.exports = { removeDatabase, getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin };
+const disconnectMercuryServer = async () => {
+    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+}
+
+const connectMercuryServer = async () => {
+    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
+}
+
+const disconnectElectr = async () => {
+    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
+}
+
+const connectElectr = async () => {
+    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+}
+
+module.exports = { 
+    removeDatabase, 
+    getDatabase, 
+    sleep, 
+    createWallet, 
+    getElectrumClient, 
+    generateBlock, 
+    depositCoin, 
+    connectElectr, 
+    disconnectElectr, 
+    connectMercuryServer, 
+    disconnectMercuryServer 
+};
