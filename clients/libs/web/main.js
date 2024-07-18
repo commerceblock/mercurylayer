@@ -7,6 +7,7 @@ import withdraw from './withdraw.js';
 import broadcast_backup_tx from './broadcast_backup_tx.js';
 import transfer_send from './transfer_send.js';
 import transfer_receive from './transfer_receive.js';
+import lightningLatch from './lightning-latch.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const greet = async () => {
@@ -103,6 +104,27 @@ const transferReceive = async (clientConfig, walletName) => {
   return await transfer_receive.execute(clientConfig, walletName);
 }
 
+const paymentHash = async (clientConfig, walletName, statechainId) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  return await lightningLatch.createPreImage(clientConfig, walletName, statechainId);
+}
+
+const confirmPendingInvoice = async (clientConfig, walletName, statechainId) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  await lightningLatch.confirmPendingInvoice(clientConfig, walletName, statechainId);
+}
+
+const retrievePreImage = async (clientConfig, walletName, statechainId, batchId) => {
+
+  await coin_status.updateCoins(clientConfig, walletName);
+
+  return await lightningLatch.retrievePreImage(clientConfig, walletName, statechainId, batchId);
+}
+
 export default { 
   greet, 
   createWallet, 
@@ -114,4 +136,7 @@ export default {
   newTransferAddress,
   transferSend,
   transferReceive,
+  paymentHash,
+  confirmPendingInvoice,
+  retrievePreImage
 }

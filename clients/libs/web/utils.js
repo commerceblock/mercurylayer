@@ -10,7 +10,7 @@ const infoConfig = async (clientConfig) => {
         feeRateSatsPerByte = 1;
     }
 
-    console.log(`feeRateSatsPerByte: ${feeRateSatsPerByte}`)
+    // console.log(`feeRateSatsPerByte: ${feeRateSatsPerByte}`)
 
     /* let response = await axios.get(`${clientConfig.esploraServer}/api/v1/fees/recommended`);
     
