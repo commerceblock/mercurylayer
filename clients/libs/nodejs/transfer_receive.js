@@ -80,7 +80,7 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
                         receivedStatechainIds.push(messageResult.statechainId);
                     }
                 } catch (error) {
-                   // console.error(`Error: ${error.message}`);
+                    console.error(`Error: ${error.message}`);
                     continue;
                 }
 
@@ -101,7 +101,7 @@ const execute = async (clientConfig, electrumClient, db, wallet_name) => {
                         }
                     }
                 } catch (error) {
-                   // console.error(`Error: ${error.message}`);
+                    console.error(`Error: ${error.message}`);
                     continue;
                 }
             }

@@ -63,13 +63,7 @@ jobs:
            echo "Container ID: $container_id"
           docker logs $container_id
           docker exec $container_id \
-          curl -X POST http://0.0.0.0:8000/deposit/init/pod \
-          -H "Content-Type: application/json" \
-          -d '{
-            "auth_key": "f461775606ffc86e3f6e3115ff425d371b0f68cc59ad8cf71375c0e08c2ee8e9",
-            "token_id": "616f505d-b94c-45cf-b251-833e4fa14fa1",
-            "signed_token_id": "7401ac1f792f56d5357997f9846b5045656758f4afece4c51b73472bd338e97da3d167733502cf62d77c1169bd89bfaa0c9c5fcc26d75190e7a3a3fd2f83ae0a"
-          }'
+          curl http://0.0.0.0:8000/info/config 
       - name: Get Public Key
         run: |
           docker exec $(docker ps -qf "name=enclave") \
@@ -112,6 +106,7 @@ jobs:
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
+          node test_atomic_swap.js
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down

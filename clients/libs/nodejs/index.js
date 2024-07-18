@@ -159,7 +159,7 @@ const transferSend = async (clientConfig, walletName, statechainId, toAddress, o
 
     const electrumClient = await getElectrumClient(clientConfig);
 
-    let batchId = (options && options.batchId)  || null;
+    let batchId = (options && options.batch_id)  || null;
 
     await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
