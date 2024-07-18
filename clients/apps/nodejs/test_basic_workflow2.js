@@ -4,88 +4,11 @@ const assert = require('node:assert/strict');
 const mercurynodejslib = require('mercurynodejslib');
 const { CoinStatus } = require('mercurynodejslib/coin_enum');
 const client_config = require('./client_config');
-const ElectrumCli = require('@mempool/electrum-client');
-const sqlite3 = require('sqlite3').verbose();
 const sqlite_manager = require('../../libs/nodejs/sqlite_manager');
 const mercury_wasm = require('mercury-wasm');
 const transaction = require('../../libs/nodejs/transaction');
 const utils = require('../../libs/nodejs/utils');
-
-async function removeDatabase() {
-    try {
-        const clientConfig = client_config.load(); 
-        const { stdout, stderr } = await exec(`rm ${clientConfig.databaseFile}`);
-        // console.log('stdout:', stdout);
-        // console.error('stderr:', stderr);
-    } catch (e) {  
-        console.error(e);
-    }
-}
-
-const getDatabase = async (clientConfig) => {
-    const databaseFile = clientConfig.databaseFile;
-    const db = new sqlite3.Database(databaseFile);
-    await sqlite_manager.createTables(db);
-    return db;
-}
-
-const sleep = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function createWallet(clientConfig, walletName) {
-
-    let wallet = await mercurynodejslib.createWallet(clientConfig, walletName);
-    assert.equal(wallet.name, walletName);
-
-    // TODO: add more assertions
-}
-
-const getElectrumClient = async (clientConfig) => {
-
-    const urlElectrum = clientConfig.electrumServer;
-    const urlElectrumObject = new URL(urlElectrum);
-
-    const electrumPort = parseInt(urlElectrumObject.port, 10);
-    const electrumHostname = urlElectrumObject.hostname;  
-    const electrumProtocol = urlElectrumObject.protocol.slice(0, -1);
-
-    const electrumClient = new ElectrumCli(electrumPort, electrumHostname, electrumProtocol);
-    await electrumClient.connect();
-
-    return electrumClient;
-}
-
-async function generateBlock(numBlocks) {
-    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
-    await exec(generateBlockCommand);
-    // console.log(`Generated ${numBlocks} blocks`);
-
-    const clientConfig = client_config.load();
-    const electrumClient = await getElectrumClient(clientConfig);
-    const block_header = await electrumClient.request('blockchain.headers.subscribe');
-    const blockheight = block_header.height;
-    // console.log("Current block height: ", blockheight);
-}
-
-async function depositCoin(clientConfig, wallet_name, amount, deposit_info) {
-
-    deposit_info["amount"] = amount;
-    // console.log("deposit_coin: ", deposit_info);
-
-    const amountInBtc = amount / 100000000;
-
-    // Sending Bitcoin using bitcoin-cli
-    try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
-        exec(sendBitcoinCommand);
-        // console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-        await generateBlock(3);
-    } catch (error) {
-        console.error('Error sending Bitcoin:', error.message);
-        return;
-    }
-}
+const { getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin  } = require('./test_utils');
 
 async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
@@ -586,9 +509,9 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     const electrumClient = await getElectrumClient(clientConfig);
 
-    let options = transfer_address.transfer_receive;
+    let options = transfer_address;
 
-    let batchId = (options && options.batchId)  || null;
+    let batchId = (options && options.batch_id)  || null;
 
     let wallet = await sqlite_manager.getWallet(db, wallet_1_name);
 
@@ -645,7 +568,28 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     // const new_x1 = await get_new_x1(clientConfig, statechain_id, signed_statechain_id, new_auth_pubkey, batchId);
 
-    coin = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+    const signed_tx = await new_transaction(clientConfig, electrumClient, coin, transfer_address.transfer_receive, isWithdrawal, qtBackupTx, block_height, wallet.network);
+
+    transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
+
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+
+    console.log("coin ", coin);
+
+    let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
+    let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
+
+    console.log("received_statechain_ids: ", received_statechain_ids);
+
+    assert(received_statechain_ids.length > 0);
+    assert(received_statechain_ids[0] == coin.statechain_id);
+
+    // Coin withdrawal
+    let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
+
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null);
+
+    console.log("txid: ", txid);
 }
 
 async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_name, wallet_2_name) {
@@ -1004,8 +948,6 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
 
 (async () => {
 
-    removeDatabase();
-
     try {
         const clientConfig = client_config.load();
 
@@ -1014,7 +956,6 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
         await createWallet(clientConfig, wallet_1_name);
         await createWallet(clientConfig, wallet_2_name);
         await walletTransfersToItselfAndWithdraw(clientConfig, wallet_1_name);
-        console.log("walletTransfersToItselfAndWithdraw test completed successfully.");
         // await walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, wallet_1_name, wallet_2_name);
 
 
