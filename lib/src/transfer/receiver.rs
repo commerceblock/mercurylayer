@@ -264,8 +264,8 @@ pub fn validate_signature_scheme(
     transfer_msg: &TransferMsg, 
     statechain_info: &StatechainInfoResponsePayload, 
     tx0_hex: &str, 
-    fee_rate_tolerance: u32, 
-    current_fee_rate_sats_per_byte: u32,
+    fee_rate_tolerance: f64, 
+    current_fee_rate_sats_per_byte: f64,
     interval: u32) -> Result<u32, MercuryError> {
 
     let mut previous_lock_time: Option<u32> = None;
@@ -315,7 +315,7 @@ pub fn validate_signature_scheme(
 }
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
-pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> Result<(), MercuryError> {
+pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tolerance: f64, current_fee_rate_sats_per_byte: f64) -> Result<(), MercuryError> {
 
     let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
 
@@ -350,13 +350,13 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
     let msg: Message = hash.into();
 
     let fee = tx0_output.value - tx_n.output[0].value;
-    let fee_rate = fee / tx_n.vsize() as u64;
+    let fee_rate = fee as f64 / tx_n.vsize() as f64;
 
-    if (fee_rate as i64 + fee_rate_tolerance as i64) < current_fee_rate_sats_per_byte as i64 {
+    if (fee_rate + fee_rate_tolerance) < current_fee_rate_sats_per_byte {
         return Err(MercuryError::FeeTooLow);
     }
 
-    if (fee_rate as i64 - fee_rate_tolerance as i64) > current_fee_rate_sats_per_byte as i64 {
+    if (fee_rate - fee_rate_tolerance) > current_fee_rate_sats_per_byte {
         return Err(MercuryError::FeeTooHigh);
     }
 

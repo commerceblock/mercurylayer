@@ -108,7 +108,7 @@ fn get_locktime_for_withdrawal_transaction (block_height: u32) -> u32 {
 
 pub fn create_tx_out(
     coin: &Coin, 
-    fee_rate_sats_per_byte: u64,
+    fee_rate_sats_per_byte: f64,
     to_address: &str,
     network: Network,
 ) -> core::result::Result<TxOut, MercuryError>
@@ -116,8 +116,8 @@ pub fn create_tx_out(
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
     // 163 is the real size one input P2TR and one output P2TR
 
-    let input_amount: u64 = coin.amount.unwrap() as u64;
-    let absolute_fee: u64 = BACKUP_TX_SIZE * fee_rate_sats_per_byte;
+    let input_amount = coin.amount.unwrap() as u64;
+    let absolute_fee = (BACKUP_TX_SIZE as f64 * fee_rate_sats_per_byte).ceil() as u64;
     let amount_out = input_amount - absolute_fee;
 
     let recipient_address = if to_address.starts_with(crate::MAINNET_HRP) || to_address.starts_with(crate::TESTNET_HRP) {
@@ -167,7 +167,7 @@ pub fn get_partial_sig_request(
     block_height: u32, 
     initlock: u32, 
     interval: u32, 
-    fee_rate_sats_per_byte: u32,
+    fee_rate_sats_per_byte: f64,
     qt_backup_tx: u32,
     to_address: String,
     network: String,
@@ -175,8 +175,7 @@ pub fn get_partial_sig_request(
 {
     let network = utils::get_network(&network)?;
     
-    let tx_out = create_tx_out(
-        coin, fee_rate_sats_per_byte as u64, &to_address, network)?;
+    let tx_out = create_tx_out(coin, fee_rate_sats_per_byte, &to_address, network)?;
 
     let block_height = calculate_block_height(
         block_height, 

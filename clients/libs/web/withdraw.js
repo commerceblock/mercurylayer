@@ -21,7 +21,7 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
     if (!feeRate) {
         feeRate = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
     } else {
-        feeRate = parseInt(feeRate, 10);
+        feeRate = parseFloat(feeRate);
     }
 
     let coinsWithStatechainId = wallet.coins.filter(c => {

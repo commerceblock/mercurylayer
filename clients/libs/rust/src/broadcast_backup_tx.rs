@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use electrum_client::ElectrumApi;
 use mercurylib::wallet::{cpfp_tx, CoinStatus};
 
-pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()> {
+pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<f64>) -> Result<()> {
     
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
@@ -44,10 +44,10 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
                 fee_rate_btc_per_kb = 0.00001;
             }
 
-            let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
+            let fee_rate_sats_per_byte = fee_rate_btc_per_kb * 100000.0;
 
-            if fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
-                client_config.max_fee_rate as u64
+            if fee_rate_sats_per_byte > client_config.max_fee_rate {
+                client_config.max_fee_rate
             } else {
                 fee_rate_sats_per_byte
             }

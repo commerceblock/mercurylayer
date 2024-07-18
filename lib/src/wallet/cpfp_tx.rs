@@ -43,7 +43,7 @@ pub fn latest_backup_tx_pays_to_user_pubkey(backup_txs: &Vec<BackupTx>, coin: &C
 
 
 #[cfg_attr(feature = "bindings", uniffi::export)]
-pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats_per_byte: u64, network: &str) -> Result<String, MercuryError> {
+pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_rate_sats_per_byte: f64, network: &str) -> Result<String, MercuryError> {
 
     let network = get_network(network)?;
 
@@ -75,7 +75,7 @@ pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_r
 
     let tx = create_transaction(&input_tx_hash, input_vout, &coin, input_amount, &outputs, network)?;
 
-    let absolute_fee: u64 = tx.vsize() as u64 * fee_rate_sats_per_byte;
+    let absolute_fee: u64 = (tx.vsize() as f64 * fee_rate_sats_per_byte).ceil() as u64;
 
     let amount_out = input_amount as i64 - absolute_fee as i64;
 

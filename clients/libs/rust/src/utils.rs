@@ -28,7 +28,7 @@ pub async fn info_config(client_config: &ClientConfig) -> Result<InfoConfig>{
         fee_rate_btc_per_kb = 0.00001;
     }
 
-    let fee_rate_sats_per_byte = (fee_rate_btc_per_kb * 100000.0) as u64;
+    let fee_rate_sats_per_byte = fee_rate_btc_per_kb * 100000.0;
 
     Ok(InfoConfig {    
         initlock,

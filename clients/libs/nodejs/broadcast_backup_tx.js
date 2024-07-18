@@ -20,7 +20,7 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
 
         feeRate = (feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: feeRateSatsPerByte;
     } else {
-        feeRate = parseInt(feeRate, 10);
+        feeRate = parseFloat(feeRate);
     }
 
     let backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);

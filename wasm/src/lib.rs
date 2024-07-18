@@ -209,7 +209,7 @@ pub fn getPartialSigRequest(
     block_height: u32, 
     initlock: u32, 
     interval: u32, 
-    fee_rate_sats_per_byte: u32,
+    fee_rate_sats_per_byte: f32,
     qt_backup_tx: u32,
     to_address: String,
     network: String,
@@ -222,7 +222,7 @@ pub fn getPartialSigRequest(
         block_height, 
         initlock, 
         interval, 
-        fee_rate_sats_per_byte,
+        fee_rate_sats_per_byte as f64,
         qt_backup_tx,
         to_address,
         network,
@@ -251,11 +251,11 @@ pub fn newBackupTransaction(encoded_unsigned_tx: String, signature_hex: String) 
 }
 
 #[wasm_bindgen]
-pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: String, fee_rate_sats_per_byte: u32, network: String) -> String {
+pub fn createCpfpTx(backup_tx_json: JsValue, coin_json: JsValue, to_address: String, fee_rate_sats_per_byte: f32, network: String) -> String {
     let coin: Coin = serde_wasm_bindgen::from_value(coin_json).unwrap();
     let backup_tx: BackupTx = serde_wasm_bindgen::from_value(backup_tx_json).unwrap();
 
-    let backup_tx = mercurylib::wallet::cpfp_tx::create_cpfp_tx(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as u64, &network).unwrap();
+    let backup_tx = mercurylib::wallet::cpfp_tx::create_cpfp_tx(&backup_tx, &coin, &to_address, fee_rate_sats_per_byte as f64, &network).unwrap();
     backup_tx
     // "".to_string()
 }
@@ -342,8 +342,8 @@ pub fn getOutputAddressFromTx0(tx0_outpoint: JsValue, tx0_hex: String, network: 
 
 //TODO: remove this function
 #[wasm_bindgen]
-pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32) -> JsValue {
-    let result = mercurylib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+pub fn verifyTransactionSignature(tx_n_hex: String, tx0_hex: String, fee_rate_tolerance: f32, current_fee_rate_sats_per_byte: f32) -> JsValue {
+    let result = mercurylib::transfer::receiver::verify_transaction_signature(&tx_n_hex, &tx0_hex, fee_rate_tolerance as f64, current_fee_rate_sats_per_byte as f64);
 
     #[derive(Serialize, Deserialize)]
     struct ValidationResult {
@@ -468,12 +468,12 @@ pub fn duplicateCoinToInitializedState(walletJson: JsValue, authPubkey: String) 
 }
 
 #[wasm_bindgen]
-pub fn validateSignatureScheme(transfer_msg: JsValue, statechain_info: JsValue, tx0_hex: String, fee_rate_tolerance: u32, current_fee_rate_sats_per_byte: u32, interval: u32) -> JsValue {
+pub fn validateSignatureScheme(transfer_msg: JsValue, statechain_info: JsValue, tx0_hex: String, fee_rate_tolerance: f32, current_fee_rate_sats_per_byte: f32, interval: u32) -> JsValue {
 
     let statechain_info: StatechainInfoResponsePayload = serde_wasm_bindgen::from_value(statechain_info).unwrap();
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
 
-    let result = mercurylib::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval);
+    let result = mercurylib::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, &tx0_hex, fee_rate_tolerance as f64, current_fee_rate_sats_per_byte as f64, interval);
 
     #[derive(Serialize, Deserialize)]
     struct ValidationResult {

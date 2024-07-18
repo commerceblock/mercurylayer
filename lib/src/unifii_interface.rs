@@ -102,8 +102,8 @@ pub fn ffi_validate_signature_scheme(
     ffi_transfer_msg: &FFITransferMsg, 
     statechain_info: &StatechainInfoResponsePayload, 
     tx0_hex: &str, 
-    fee_rate_tolerance: u32, 
-    current_fee_rate_sats_per_byte: u32,
+    fee_rate_tolerance: f64, 
+    current_fee_rate_sats_per_byte: f64,
     interval: u32) -> Result<u32, MercuryError> {
 
     let transfer_msg = ffi_to_transfer_msg(ffi_transfer_msg.clone())?;

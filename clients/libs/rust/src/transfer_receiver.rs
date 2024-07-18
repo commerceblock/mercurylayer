@@ -198,10 +198,10 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         return Err(anyhow::anyhow!("tx0 output is spent or not confirmed".to_string()));
     }
 
-    let current_fee_rate_sats_per_byte = if info_config.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
-        client_config.max_fee_rate as u32
+    let current_fee_rate_sats_per_byte = if info_config.fee_rate_sats_per_byte > client_config.max_fee_rate {
+        client_config.max_fee_rate
     } else {
-        info_config.fee_rate_sats_per_byte as u32
+        info_config.fee_rate_sats_per_byte
     };
 
     let previous_lock_time = mercurylib::transfer::receiver::validate_signature_scheme(

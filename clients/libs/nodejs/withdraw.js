@@ -19,7 +19,7 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     if (!feeRate) {
         feeRate = (serverInfo.fee_rate_sats_per_byte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.fee_rate_sats_per_byte;
     } else {
-        feeRate = parseInt(feeRate, 10);
+        feeRate = parseFloat(feeRate);
     }
 
     let coinsWithStatechainId = wallet.coins.filter(c => {

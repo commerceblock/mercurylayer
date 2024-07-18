@@ -29,7 +29,7 @@ enum Commands {
         statechain_id: String,
         to_address: String,
         /// Transaction fee rate in sats per byte
-        fee_rate: Option<u64>
+        fee_rate: Option<f64>
     },
     /// Broadcast the backup transaction to the network
     ListStatecoins { wallet_name: String },
@@ -39,7 +39,7 @@ enum Commands {
         statechain_id: String, 
         to_address: String, 
         /// Transaction fee rate in sats per byte
-        fee_rate: Option<u64>
+        fee_rate: Option<f64>
     },
     /// Generate a transfer address to receive funds
     NewTransferAddress { 

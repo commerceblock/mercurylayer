@@ -4,7 +4,7 @@ use chrono::Utc;
 use electrum_client::ElectrumApi;
 use mercurylib::wallet::{Activity, BackupTx, CoinStatus};
 
-pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<u64>) -> Result<()>{
+pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<f64>) -> Result<()>{
 
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
@@ -48,11 +48,11 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     let server_info = info_config(&client_config).await?;
 
     let fee_rate_sats_per_byte = match fee_rate {
-        Some(fee_rate) => fee_rate as u32,
-        None => if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
-            client_config.max_fee_rate as u32
+        Some(fee_rate) => fee_rate,
+        None => if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate {
+            client_config.max_fee_rate
         } else {
-            server_info.fee_rate_sats_per_byte as u32
+            server_info.fee_rate_sats_per_byte
         },
     };
 

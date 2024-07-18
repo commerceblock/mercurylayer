@@ -18,7 +18,7 @@ pub struct ServerConfig {
 pub struct InfoConfig {
     pub initlock: u32,
     pub interval: u32,
-    pub fee_rate_sats_per_byte: u64,
+    pub fee_rate_sats_per_byte: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

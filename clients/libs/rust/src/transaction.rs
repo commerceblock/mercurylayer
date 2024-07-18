@@ -12,7 +12,7 @@ pub async fn new_transaction(
     is_withdrawal: bool, 
     block_height: Option<u32>, 
     network: &str, 
-    fee_rate_sats_per_byte: u32,
+    fee_rate_sats_per_byte: f64,
     initlock: u32,
     interval: u32) -> Result<String> {
 

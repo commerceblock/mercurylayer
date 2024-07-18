@@ -41,10 +41,10 @@ pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_ne
 
     let server_info = info_config(&client_config).await?;
 
-    let fee_rate = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
-        client_config.max_fee_rate as u32
+    let fee_rate_sats_per_byte = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate {
+        client_config.max_fee_rate
     } else {
-        server_info.fee_rate_sats_per_byte as u32
+        server_info.fee_rate_sats_per_byte
     };
 
     let signed_tx = new_transaction(
@@ -55,7 +55,7 @@ pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_ne
         false, 
         None, 
         wallet_netwotk, 
-        fee_rate, 
+        fee_rate_sats_per_byte, 
         server_info.initlock,
         server_info.interval
     ).await?;

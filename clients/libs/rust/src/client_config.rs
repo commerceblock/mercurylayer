@@ -18,7 +18,7 @@ pub struct ClientConfig {
     /// Bitcoin network name (testnet, regtest, mainnet)
     pub network: Network,
     /// Fee rate tolerance
-    pub fee_rate_tolerance: u32,
+    pub fee_rate_tolerance: f64,
     /// Confirmation target
     pub confirmation_target: u32,
     /// Database connection pool
@@ -26,7 +26,7 @@ pub struct ClientConfig {
     /// Tor SOCKS5 proxy address
     pub tor_proxy: Option<String>,
     /// Confirmation target
-    pub max_fee_rate: u32,
+    pub max_fee_rate: f64,
 }
 
 fn check_and_set_settings() -> String {
@@ -52,10 +52,10 @@ impl ClientConfig {
         let electrum_server = settings.get_string("electrum_server").unwrap();
         let electrum_type = settings.get_string("electrum_type").unwrap();
         let network = settings.get_string("network").unwrap();
-        let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as u32;
+        let fee_rate_tolerance = settings.get_int("fee_rate_tolerance").unwrap() as f64;
         let database_file = settings.get_string("database_file").unwrap();
         let confirmation_target = settings.get_int("confirmation_target").unwrap() as u32;
-        let max_fee_rate = settings.get_int("max_fee_rate").unwrap() as u32;
+        let max_fee_rate = settings.get_int("max_fee_rate").unwrap() as f64;
 
         let tor_proxy = match settings.get_string("tor_proxy") {
             Ok(proxy) => Some(proxy.to_string()),

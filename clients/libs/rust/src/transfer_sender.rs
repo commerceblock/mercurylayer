@@ -134,10 +134,10 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
 
     let server_info = info_config(&client_config).await?;
 
-    let fee_rate = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate as u64 {
-        client_config.max_fee_rate as u32
+    let fee_rate_sats_per_byte = if server_info.fee_rate_sats_per_byte > client_config.max_fee_rate {
+        client_config.max_fee_rate
     } else {
-        server_info.fee_rate_sats_per_byte as u32
+        server_info.fee_rate_sats_per_byte
     };
 
     let is_withdrawal = false;
@@ -149,7 +149,7 @@ async fn create_backup_tx_to_receiver(client_config: &ClientConfig, coin: &mut C
         is_withdrawal, 
         block_height, 
         network, 
-        fee_rate, 
+        fee_rate_sats_per_byte, 
         server_info.initlock,
         server_info.interval).await?;
 

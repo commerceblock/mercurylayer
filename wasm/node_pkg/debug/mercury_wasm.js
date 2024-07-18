@@ -437,7 +437,6 @@ module.exports.getPartialSigRequest = function(coin_json, block_height, initlock
     _assertNum(block_height);
     _assertNum(initlock);
     _assertNum(interval);
-    _assertNum(fee_rate_sats_per_byte);
     _assertNum(qt_backup_tx);
     const ptr0 = passStringToWasm0(to_address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
@@ -524,7 +523,6 @@ module.exports.createCpfpTx = function(backup_tx_json, coin_json, to_address, fe
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passStringToWasm0(to_address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        _assertNum(fee_rate_sats_per_byte);
         const ptr1 = passStringToWasm0(network, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
         wasm.createCpfpTx(retptr, addHeapObject(backup_tx_json), addHeapObject(coin_json), ptr0, len0, fee_rate_sats_per_byte, ptr1, len1);
@@ -709,13 +707,16 @@ module.exports.verifyTransactionSignature = function(tx_n_hex, tx0_hex, fee_rate
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passStringToWasm0(tx0_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
-    _assertNum(fee_rate_tolerance);
-    _assertNum(current_fee_rate_sats_per_byte);
     const ret = wasm.verifyTransactionSignature(ptr0, len0, ptr1, len1, fee_rate_tolerance, current_fee_rate_sats_per_byte);
     return takeObject(ret);
 };
 
-//TODO: remove this function
+/**
+* @param {any} backup_tx
+* @param {string} tx0_hex
+* @param {any} statechain_info
+* @returns {any}
+*/
 module.exports.verifyBlindedMusigScheme = function(backup_tx, tx0_hex, statechain_info) {
     const ptr0 = passStringToWasm0(tx0_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
@@ -852,8 +853,6 @@ module.exports.duplicateCoinToInitializedState = function(walletJson, authPubkey
 module.exports.validateSignatureScheme = function(transfer_msg, statechain_info, tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval) {
     const ptr0 = passStringToWasm0(tx0_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    _assertNum(fee_rate_tolerance);
-    _assertNum(current_fee_rate_sats_per_byte);
     _assertNum(interval);
     const ret = wasm.validateSignatureScheme(addHeapObject(transfer_msg), addHeapObject(statechain_info), ptr0, len0, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval);
     return takeObject(ret);
