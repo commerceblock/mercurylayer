@@ -64,6 +64,54 @@ services:
     depends_on:
       - postgres
 
+  alice:
+    image: lightninglabs/lnd:v0.18.0-beta
+    user: root
+    hostname: lnd
+    entrypoint: 
+      - sh
+      - -c
+      - |
+        mkdir -p /data/.lnd
+        if [ ! -f "/data/.lnd/umbrel-lnd.conf" ]; then
+          touch "/data/.lnd/umbrel-lnd.conf"
+        fi
+        lnd --listen=0.0.0.0:9735 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf
+    ports:
+      - "9735:9735" 
+    volumes:
+      - alice-data:/data/.lnd
+    restart: unless-stopped
+    environment:
+      HOME: /data
+    depends_on:
+      - bitcoind
+
+  bob:
+    image: lightninglabs/lnd:v0.18.0-beta
+    user: root
+    hostname: lnd
+    entrypoint: 
+      - sh
+      - -c
+      - |
+        mkdir -p /data/.lnd
+        if [ ! -f "/data/.lnd/umbrel-lnd.conf" ]; then
+          touch "/data/.lnd/umbrel-lnd.conf"
+        fi
+        lnd --listen=0.0.0.0:9735 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf
+    ports:
+      - "9736:9735" 
+    volumes:
+      - bob-data:/data/.lnd
+    restart: unless-stopped
+    environment:
+      HOME: /data
+    depends_on:
+      - bitcoind
+
 volumes:
   bitcoin_data:
   electrs-data:
+  alice-data:
+  bob-data:
