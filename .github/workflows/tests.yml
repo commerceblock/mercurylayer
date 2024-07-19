@@ -98,6 +98,7 @@ jobs:
         run: |
           cd clients/apps/nodejs
           npm install
+          npm install mocha -g
       - name: Install Node.js dependencies for lib
         run: |
           cd clients/libs/nodejs
