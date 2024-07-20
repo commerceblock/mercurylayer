@@ -187,6 +187,12 @@ async fn check_for_duplicated(client_config: &ClientConfig, existing_coins: &Vec
 
         let utxo_list =  client_config.electrum_client.script_list_unspent(&address.script_pubkey())?;
 
+        let mut max_duplicated_index = existing_coins.iter()
+            .filter(|c|  c.statechain_id == coin.statechain_id )
+            .map(|coin| coin.duplicate_index)
+            .max()
+            .unwrap();
+
         for unspent in utxo_list {
 
             let utxo_exists = existing_coins.iter().any(|coin| {
@@ -198,10 +204,14 @@ async fn check_for_duplicated(client_config: &ClientConfig, existing_coins: &Vec
                 continue;
             }
 
+            max_duplicated_index = max_duplicated_index + 1;
+
             let mut duplicated_coin = coin.clone();
             duplicated_coin.status = CoinStatus::DUPLICATED;
             duplicated_coin.utxo_txid = Some(unspent.tx_hash.to_string());
             duplicated_coin.utxo_vout = Some(unspent.tx_pos as u32);
+            duplicated_coin.amount = Some(unspent.value as u32);
+            duplicated_coin.duplicate_index = max_duplicated_index;
             duplicated_coin_list.push(duplicated_coin);
         }
     }

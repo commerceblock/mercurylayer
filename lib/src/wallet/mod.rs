@@ -104,6 +104,7 @@ pub struct Coin {
     pub tx_withdraw: Option<String>,
     pub withdrawal_address: Option<String>,
     pub status: CoinStatus,
+    pub duplicate_index: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

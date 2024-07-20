@@ -39,7 +39,8 @@ enum Commands {
         statechain_id: String, 
         to_address: String, 
         /// Transaction fee rate in sats per byte
-        fee_rate: Option<f64>
+        fee_rate: Option<f64>,
+        duplicated_index: Option<u32>
     },
     /// Generate a transfer address to receive funds
     NewTransferAddress { 
@@ -136,9 +137,9 @@ async fn main() -> Result<()> {
             let coins_json_string = serde_json::to_string_pretty(&coins_json).unwrap();
             println!("{}", coins_json_string);
         },
-        Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
+        Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate, duplicated_index } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
-            mercuryrustlib::withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
+            mercuryrustlib::withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate, duplicated_index).await?;
         },
         Commands::NewTransferAddress { wallet_name, generate_batch_id } => {
             let address = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;

@@ -37,6 +37,8 @@ async fn ta02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let _ = bitcoin_core::sendtoaddress(amount, &deposit_address)?;
 
+    let _ = bitcoin_core::generatetoaddress(remaining_blocks, &core_wallet_address)?;
+
     let mut is_tx_indexed = false;
 
     while !is_tx_indexed {
@@ -53,7 +55,13 @@ async fn ta02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
     assert!(new_coin.is_some());
     assert!(duplicated_coin.is_some());
 
-    let statechain_id = new_coin.unwrap().statechain_id.as_ref().unwrap();
+    let new_coin = new_coin.unwrap();
+    let duplicated_coin = duplicated_coin.unwrap();
+
+    assert!(new_coin.duplicate_index == 0);
+    assert!(duplicated_coin.duplicate_index == 1);
+
+    let statechain_id = new_coin.statechain_id.as_ref().unwrap();
 
     let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
 
@@ -67,7 +75,11 @@ async fn ta02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let fee_rate = None;
 
-    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, statechain_id, &core_wallet_address, fee_rate).await;
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, statechain_id, &core_wallet_address, fee_rate, None).await;
+
+    assert!(result.is_ok());
+
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, statechain_id, &core_wallet_address, fee_rate, Some(1)).await;
 
     assert!(result.is_ok());
     

@@ -87,7 +87,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let fee_rate = None;
 
-    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet2.name, &statechain_id, &core_wallet_address, fee_rate).await;
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet2.name, &statechain_id, &core_wallet_address, fee_rate, None).await;
 
     assert!(result.is_ok());
 
@@ -118,7 +118,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
     assert!(received_statechain_ids.contains(&statechain_id.to_string()));
     assert!(received_statechain_ids.len() == 1);
 
-    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, &statechain_id, &core_wallet_address, fee_rate).await;
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, &statechain_id, &core_wallet_address, fee_rate, None).await;
 
     assert!(result.is_ok());
 
