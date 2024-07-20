@@ -104,6 +104,7 @@ pub struct Coin {
     pub tx_withdraw: Option<String>,
     pub withdrawal_address: Option<String>,
     pub status: CoinStatus,
+    pub duplicate_index: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -118,6 +119,7 @@ pub enum CoinStatus {
     WITHDRAWING, // withdrawal tx signed and broadcast but not yet confirmed
     TRANSFERRED, // the coin was transferred
     WITHDRAWN, // the coin was withdrawn
+    DUPLICATED, // the coin was duplicated
 }
 
 impl fmt::Display for CoinStatus {
@@ -132,6 +134,7 @@ impl fmt::Display for CoinStatus {
             Self::WITHDRAWING => "WITHDRAWING",
             Self::TRANSFERRED => "TRANSFERRED",
             Self::WITHDRAWN => "WITHDRAWN",
+            Self::DUPLICATED => "DUPLICATED",
         })
     }
 }
@@ -161,6 +164,7 @@ impl FromStr for CoinStatus {
             "WITHDRAWING" => Ok(CoinStatus::WITHDRAWING),
             "TRANSFERRED" => Ok(CoinStatus::TRANSFERRED),
             "WITHDRAWN" => Ok(CoinStatus::WITHDRAWN),
+            "DUPLICATED" => Ok(CoinStatus::DUPLICATED),
             _ => Err(CoinStatusParseError {}),
         }
     }

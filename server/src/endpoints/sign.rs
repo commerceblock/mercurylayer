@@ -1,5 +1,5 @@
 use mercurylib::transaction::SignFirstRequestPayload;
-use rocket::{http::Status, response::status, serde::json::Json, State};
+use rocket::{http::Status, response::status::{self, Unauthorized}, serde::json::Json, State};
 use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -42,11 +42,10 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     
-        return status::Custom(Status::InternalServerError, Json(response_body));
+        return status::Custom(Status::Unauthorized, Json(response_body));
     }
 
     // This situation should not happen, as this state is only possible if the client has called signFirst, but not signSecond
@@ -131,11 +130,10 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
     if !crate::endpoints::utils::validate_signature(&statechain_entity.pool, &signed_statechain_id, &statechain_id).await {
 
         let response_body = json!({
-            "error": "Internal Server Error",
             "message": "Signature does not match authentication key."
         });
     
-        return status::Custom(Status::InternalServerError, Json(response_body));
+        return status::Custom(Status::Unauthorized, Json(response_body));
     }
 
     let partial_signature_request_payload = partial_signature_request_payload.0.clone(); 

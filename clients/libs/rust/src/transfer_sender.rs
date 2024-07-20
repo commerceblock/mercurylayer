@@ -8,7 +8,8 @@ pub async fn execute(
     client_config: &ClientConfig, 
     recipient_address: &str, 
     wallet_name: &str, 
-    statechain_id: &str, 
+    statechain_id: &str,
+    force_send: bool,
     batch_id: Option<String>) -> Result<()> 
 {
 
@@ -32,18 +33,40 @@ pub async fn execute(
 
     let new_tx_n = backup_transactions.len() as u32 + 1;
 
+    let is_coin_duplicated = wallet.coins.iter().any(|c| {
+        c.statechain_id == Some(statechain_id.to_string()) &&
+        c.status == CoinStatus::DUPLICATED
+    });
+
+    let are_there_duplicate_coins_withdrawn = wallet.coins.iter().any(|c| {
+        c.statechain_id == Some(statechain_id.to_string()) &&
+        (c.status == CoinStatus::WITHDRAWING || c.status == CoinStatus::WITHDRAWING) &&
+        c.duplicate_index > 0
+    });
+
+    if are_there_duplicate_coins_withdrawn {
+        return Err(anyhow::anyhow!("There have been withdrawals of other coins with this same statechain_id (possibly duplicates).\
+        This transfer cannot be performed because the recipient would reject it due to the difference in signature count.\
+        This coin can be withdrawn, however."));
+    }
+
     // If the user sends to himself, he will have two coins with same statechain_id
     // In this case, we need to find the one with the lowest locktime
     let coin = wallet.coins
         .iter_mut()
-        .filter(|tx| tx.statechain_id == Some(statechain_id.to_string())) // Filter coins with the specified statechain_id
-        .min_by_key(|tx| tx.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
+        .filter(|c| c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED) // Filter coins with the specified statechain_id
+        .min_by_key(|c| c.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
 
     if coin.is_none() {
         return Err(anyhow!("No coins associated with this statechain ID were found"));
     }
 
     let coin = coin.unwrap();
+
+    if is_coin_duplicated && !force_send {
+        return Err(anyhow::anyhow!("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. \
+        You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds."));
+    }
 
     if coin.amount.is_none() {
         return Err(anyhow::anyhow!("coin.amount is None"));

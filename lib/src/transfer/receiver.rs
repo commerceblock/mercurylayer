@@ -131,6 +131,7 @@ pub fn duplicate_coin_to_initialized_state(wallet: &Wallet, auth_pubkey: &str) -
         tx_withdraw: None,
         withdrawal_address: None,
         status: CoinStatus::INITIALISED,
+        duplicate_index: coin.duplicate_index,
     })
 }   
 
