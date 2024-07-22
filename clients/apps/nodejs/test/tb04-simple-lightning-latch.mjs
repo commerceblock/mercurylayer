@@ -13,8 +13,8 @@ describe('TB04 - Lightning Latch', function() {
 
       // await removeDatabase();
       const clientConfig = client_config.load();
-      let wallet_1_name = "w1";
-      let wallet_2_name = "w2";
+      let wallet_1_name = "w_ln_1";
+      let wallet_2_name = "w_ln_2";
       await createWallet(clientConfig, wallet_1_name);
       await createWallet(clientConfig, wallet_2_name);
 
