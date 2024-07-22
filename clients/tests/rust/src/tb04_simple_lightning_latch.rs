@@ -42,7 +42,9 @@ pub async fn tb04(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wall
 
     let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
 
-    mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, Some(batch_id.clone())).await?;
+    let force_send = false;
+
+    mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, force_send, Some(batch_id.clone())).await?;
     
     let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet2.name).await?;
 

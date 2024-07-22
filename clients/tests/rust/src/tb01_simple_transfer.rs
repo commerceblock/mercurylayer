@@ -10,7 +10,9 @@ async fn try_to_send_unconfirmed_coin(client_config: &ClientConfig, to_address: 
 
     let batch_id = None;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, to_address, &wallet.name, &statechain_id, batch_id).await;
+    let force_send = false;
+
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, to_address, &wallet.name, &statechain_id, force_send, batch_id).await;
 
     assert!(result.is_err());
 
@@ -116,7 +118,9 @@ async fn sucessfully_transfer(client_config: &ClientConfig, wallet1: &Wallet, wa
 
     let batch_id = None;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet.name, &statechain_id, batch_id).await;
+    let force_send = false;
+
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet.name, &statechain_id, force_send, batch_id).await;
 
     assert!(result.is_ok());
 

@@ -134,7 +134,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     update_wallet(&client_config.pool, &wallet).await?;
 
     let is_there_more_duplicated_coins = wallet.coins.iter().any(|coin| {
-        coin.status == CoinStatus::DUPLICATED &&
+        (coin.status == CoinStatus::DUPLICATED || coin.status == CoinStatus::CONFIRMED) &&
         duplicated_index.map_or(true, |index| coin.duplicate_index != index)
     });
 
