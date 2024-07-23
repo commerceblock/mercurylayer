@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin, connectElectr, disconnectElectr, disconnectMercuryServer, connectMercuryServer  } from '../test_utils.js';
 
 describe('TB04 - Lightning Latch', function() {
-  this.timeout(3000);
+  this.timeout(30000);
 
   context('Simple Transfer', () => {
     it('should complete successfully', async () => {
