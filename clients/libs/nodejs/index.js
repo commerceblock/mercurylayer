@@ -107,7 +107,9 @@ const listStatecoins = async (clientConfig, walletName) => {
         amount: coin.amount,
         status: coin.status,
         adress: coin.address,
-        locktime: coin.locktime
+        aggregated_address: coin.aggregated_address,
+        locktime: coin.locktime,
+        duplicate_index: coin.duplicate_index
     }));
 
     electrumClient.close();
