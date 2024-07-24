@@ -1,57 +1,19 @@
 import { expect } from 'chai'; 
 import client_config from '../client_config.js';
 import mercurynodejslib from 'mercurynodejslib';
-import { promisify } from 'node:util';
-import { exec as execCallback } from 'node:child_process';
 import { CoinStatus } from 'mercurynodejslib/coin_enum.js';
 import crypto from 'crypto';
-
-const exec = promisify(execCallback);
-
-async function removeDatabase() {
-  const clientConfig = client_config.load(); 
-  await exec(`rm ${clientConfig.databaseFile}`);
-}
-
-async function getnewaddress() {
-  const generateBlockCommand = `docker exec $(docker ps -qf "name=lnd_docker-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass getnewaddress`;
-  const { stdout, stderr } = await exec(generateBlockCommand);
-  if (stderr) {
-    console.error('Error:', stderr);
-    return null;
-  }
-  return stdout.trim();
-}
-
-async function generateBlock(numBlocks, address) {
-  const generateBlockCommand = `docker exec $(docker ps -qf "name=lnd_docker-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} ${address}`;
-  await exec(generateBlockCommand);
-}
-
-async function depositCoin(deposit_address, amountInSats) {
-  const amountInBtc = amountInSats / 100000000;
-
-  const sendBitcoinCommand = `docker exec $(docker ps -qf "name=lnd_docker-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_address} ${amountInBtc}`;
-  await exec(sendBitcoinCommand);
-
-}
-
-async function createWallet(clientConfig, walletName) {
-
-  let wallet = await mercurynodejslib.createWallet(clientConfig, walletName);
-  expect(wallet.name).to.equal(walletName)
-  return wallet;
-
-  // TODO: add more assertions
-}
+import { createWallet, removeDatabase, getnewaddress, generateBlock, depositCoin } from './test-utils.mjs';
 
 describe('TB04 - Lightning Latch', function() {
 
   context('Simple Transfer', () => {
     it('should complete successfully', async () => {
 
-      await removeDatabase();
+      
       const clientConfig = client_config.load();
+      await removeDatabase(clientConfig);
+
       let wallet_1_name = "w1";
       let wallet_2_name = "w2";
       let wallet1 = await createWallet(clientConfig, wallet_1_name);
@@ -86,7 +48,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet2.name, null);
 
-      await mercurynodejslib.transferSend(clientConfig, wallet1.name, coin.statechain_id, transferAddress.transfer_receive, paymentHash.batchId);
+      await mercurynodejslib.transferSend(clientConfig, wallet1.name, coin.statechain_id, transferAddress.transfer_receive, false, paymentHash.batchId);
 
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet2.name);
 

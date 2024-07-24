@@ -52,7 +52,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
     for (let i = 0; i < 10; i++) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
         let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
         let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -63,7 +63,7 @@ async function walletTransfersToItselfAndWithdraw(clientConfig, wallet_name) {
 
     let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
-    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null, null);
 
     // TODO: confirm withdrawal status
 }
@@ -114,7 +114,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
     while (coin.locktime <= currentBlockHeight) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
         let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
         let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -129,7 +129,7 @@ async function walletTransfersToItselfTillLocktimeReachesBlockHeightAndWithdraw(
 
     let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
-    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null);
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_name, coin.statechain_id, withdraw_address, null, null);
 
     // TODO: confirm withdrawal status
 }
@@ -174,7 +174,7 @@ async function walletTransfersToAnotherAndBroadcastsBackupTx(clientConfig, walle
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
     let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -228,7 +228,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
 
     for (let i = 0; i < 10; i++) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
         let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
 
@@ -237,7 +237,7 @@ async function depositAndRepeatSend(clientConfig, wallet_1_name) {
     }
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_1_name, null);
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_1_name);
     let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -285,7 +285,7 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
     let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -295,7 +295,7 @@ async function transferSenderAfterTransferReceiver(clientConfig, wallet_1_name, 
 
     try {
         transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
-        await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         assert.fail("Expected error when transferring from wallet one again, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -349,7 +349,7 @@ async function depositAndTransfer(clientConfig, wallet_name) {
     for (let coin of list_coins) {
         let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_name, null);
 
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
         let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_name);
         let received_statechain_ids = transferReceiveResult.receivedStatechainIds;
@@ -401,7 +401,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
     await disconnectMercuryServer();
 
     try {
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         assert.fail("Expected error when transferring from wallet one, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -572,7 +572,7 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
 
     transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     console.log("coin ", coin);
 
@@ -587,7 +587,7 @@ async function interruptBeforeSignSecond(clientConfig, wallet_1_name, wallet_2_n
     // Coin withdrawal
     let withdraw_address = "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9";
 
-    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null);
+    let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet_2_name, coin.statechain_id, withdraw_address, null, null);
 
     console.log("txid: ", txid);
 }
@@ -636,7 +636,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
     await disconnectElectr();
 
     try {
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         assert.fail("Expected error when transferring from wallet one, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -688,7 +688,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     await sleep(5000); // wait for Electrum to disconnect
 
@@ -748,7 +748,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     console.log("Disconnect mercurylayer_mercury_1 from network");
     await disconnectMercuryServer();
@@ -813,7 +813,7 @@ async function transferSendAtCoinExpiry(clientConfig, wallet_1_name, wallet_2_na
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     try {
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         assert.fail("Expected error when transferring expired coin, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);
@@ -861,7 +861,7 @@ async function transferReceiveAtCoinExpiry(clientConfig, wallet_1_name, wallet_2
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+    coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
     const electrumClient = await getElectrumClient(clientConfig);
 
@@ -937,7 +937,7 @@ async function transferSendCoinExpiryBySending(clientConfig, wallet_1_name, wall
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
     try {
-        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive);
+        coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
         assert.fail("Expected error when transferring expired coin, but no error was thrown");
     } catch (error) {
         console.log("Expected error received: ", error.message);

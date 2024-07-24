@@ -171,6 +171,60 @@ const checkWithdrawal = async (clientConfig, electrumClient, coin, wallet_networ
     return false;
 }
 
+const checkForDuplicated = async (electrumClient, existingCoins, walletNetwork) => {
+
+    const duplicatedCoinList = [];
+
+    for (const coin of existingCoins) {
+
+        if (![CoinStatus.IN_MEMPOOL, CoinStatus.UNCONFIRMED, CoinStatus.CONFIRMED].includes(coin.status)) {
+            continue;
+        }
+
+        const network = utils.getNetwork(walletNetwork);
+
+        let script = bitcoinjs.address.toOutputScript(coin.aggregated_address, network);
+        let hash = bitcoinjs.crypto.sha256(script);
+        let reversedHash = Buffer.from(hash.reverse());
+        reversedHash = reversedHash.toString('hex');
+
+        let utxoList = await electrumClient.request('blockchain.scripthash.listunspent', [reversedHash]);
+
+        let maxDuplicatedIndex = Math.max(
+            ...existingCoins
+            .filter(c => c.statechain_id === coin.statechain_id)
+            .map(coin => coin.duplicate_index)
+        );
+
+        for (const unspent of utxoList) {
+
+            const utxoExists = existingCoins.some(coin => 
+                coin.utxo_txid === unspent.tx_hash &&
+                coin.utxo_vout === unspent.tx_pos
+            );
+
+            if (utxoExists) {
+                continue;
+            }
+
+            maxDuplicatedIndex++;
+
+            const duplicatedCoin = {
+                ...coin,
+                status: CoinStatus.DUPLICATED,
+                utxo_txid: unspent.tx_hash,
+                utxo_vout: unspent.tx_pos,
+                amount: unspent.value,
+                duplicate_index: maxDuplicatedIndex
+            };
+        
+            duplicatedCoinList.push(duplicatedCoin);
+        }
+    }
+
+    return duplicatedCoinList;
+}
+
 const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
 
     let wallet = await sqlite_manager.getWallet(db, wallet_name);
@@ -201,6 +255,9 @@ const updateCoins = async (clientConfig, electrumClient, db, wallet_name) => {
             }
         }
     }
+
+    const duplicatedCoins = await checkForDuplicated(electrumClient, wallet.coins, wallet.network);
+    wallet.coins = [...wallet.coins, ...duplicatedCoins];
 
     await sqlite_manager.updateWallet(db, wallet);
 }
