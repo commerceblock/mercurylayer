@@ -187,17 +187,18 @@ const transferSend = async (clientConfig, walletName, statechainId, toAddress, f
 const transferReceive = async (clientConfig, walletName) => {
     
     const db = await getDatabase(clientConfig);
-
     const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+    try {
+        await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let transferReceiveResult = await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
-
-    electrumClient.close();
-    db.close();
-
-    return transferReceiveResult;
+        return await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
+    } finally {
+        await Promise.all([
+            electrumClient.close(),
+            db.close()
+        ]);
+    }
 }
 
 const paymentHash = async (clientConfig, walletName, statechainId) => {
