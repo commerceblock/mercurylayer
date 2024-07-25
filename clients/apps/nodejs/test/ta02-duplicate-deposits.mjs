@@ -51,6 +51,32 @@ describe('TA02 - Duplicated Deposits', function() {
 
             expect(newCoin.duplicate_index).to.equal(0);
             expect(duplicatedCoin.duplicate_index).to.equal(1);
+
+            const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet2.name, null);
+
+            try {
+                await mercurynodejslib.transferSend(clientConfig, wallet1.name, newCoin.statechain_id, transferAddress.transfer_receive, false, null);
+            } catch (error) {
+                expect(error.message).to.include("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. " + 
+                    "You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds.");
+            }
+
+            let withdrawAddress = "bcrt1qn5948np2j8t68xgpceneg3ua4wcwhwrsqj8scv";
+
+            let txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet1.name, duplicatedCoin.statechain_id, withdrawAddress, null, 1);
+
+            expect(txid).to.not.be.string;
+
+            try {
+                await mercurynodejslib.transferSend(clientConfig, wallet1.name, newCoin.statechain_id, transferAddress.transfer_receive, false, null);
+            } catch (error) {
+                expect(error.message).to.include("There have been withdrawals of other coins with this same statechain_id (possibly duplicates). " +
+                    "This transfer cannot be performed because the recipient would reject it due to the difference in signature count. This coin can be withdrawn, however.");
+            }
+            
+            txid = await mercurynodejslib.withdrawCoin(clientConfig, wallet1.name, duplicatedCoin.statechain_id, withdrawAddress, null, 0);
+
+            expect(txid).to.not.be.string;
         })
     })
 })
