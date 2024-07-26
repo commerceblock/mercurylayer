@@ -78,7 +78,9 @@ services:
         fi
         lnd --listen=0.0.0.0:9735 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf
     ports:
-      - "9735:9735" 
+      - "9735:9735"
+      - "10009:10009"
+      - "8080:8080"
     volumes:
       - alice-data:/data/.lnd
     restart: unless-stopped
@@ -101,7 +103,9 @@ services:
         fi
         lnd --listen=0.0.0.0:9735 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf
     ports:
-      - "9736:9735" 
+      - "9736:9735"
+      - "10010:10009"
+      - "8081:8080"
     volumes:
       - bob-data:/data/.lnd
     restart: unless-stopped

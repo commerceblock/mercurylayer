@@ -36,7 +36,7 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 80 # Adjust time as necessary for services to initialize
-      - name: Verify Bitcoin daemon Service with Curl
+      - name: Verify Bitcoin daemon Service and create wallet
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_bitcoind_1")
           echo "Container ID: $container_id"
@@ -47,6 +47,32 @@ jobs:
           echo "New Wallet Address: $address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 101 "$address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
+      - name: Verify LND nodes and create a channel between them
+        run: |
+          container_id_alice=$(docker ps -qf "name=mercurylayer_alice_1")
+          echo "Container ID: $container_id_alice"
+          docker exec $container_id_alice \
+          curl -X POST http://0.0.0.0:8080/v1/initwallet \
+          -H "Content-Type: application/json" \
+          -d '{"wallet_password": "password", "stateless_init": "true"}'
+          container_id_bob=$(docker ps -qf "name=mercurylayer_bob_1")
+          echo "Container ID: $container_id_bob"
+          docker exec $container_id_bob \
+          curl -X POST http://0.0.0.0:8080/v1/initwallet \
+          -H "Content-Type: application/json" \
+          -d '{"wallet_password": "password", "stateless_init": "true"}'
+          docker exec $container_id_alice \
+          curl -X POST http://0.0.0.0:8080/v1/unlockwallet \
+          -H "Content-Type: application/json" \
+          -d '{"wallet_password": "password"}'
+          docker exec $container_id_bob \
+          curl -X POST http://0.0.0.0:8080/v1/unlockwallet \
+          -H "Content-Type: application/json" \
+          -d '{"wallet_password": "password"}'
+          docker exec $container_id_alice lncli -n regtest getinfo
+          docker exec $container_id_bob lncli -n regtest getinfo
+          docker logs $container_id_alice
+          docker logs $container_id_bob
       - name: Verify ElectrumX Service with Curl
         run: |
           container_id=$(docker ps -qf "name=mercurylayer_electrs_1")
