@@ -173,6 +173,53 @@ async fn check_withdrawal(client_config: &ClientConfig, coin: &mut Coin) -> Resu
     Ok(())
 }
 
+async fn check_for_duplicated(client_config: &ClientConfig, existing_coins: &Vec<Coin>) -> Result<Vec<Coin>>{
+
+    let mut duplicated_coin_list : Vec<Coin> = Vec::new();
+
+    for coin in existing_coins.iter() {
+
+        if coin.status != CoinStatus::IN_MEMPOOL && coin.status != CoinStatus::UNCONFIRMED && coin.status != CoinStatus::CONFIRMED {
+            continue;
+        }
+
+        let address = Address::from_str(&coin.aggregated_address.as_ref().unwrap())?.require_network(client_config.network)?;
+
+        let utxo_list =  client_config.electrum_client.script_list_unspent(&address.script_pubkey())?;
+
+        let mut max_duplicated_index = existing_coins.iter()
+            .filter(|c|  c.statechain_id == coin.statechain_id )
+            .map(|coin| coin.duplicate_index)
+            .max()
+            .unwrap();
+
+        for unspent in utxo_list {
+
+            let utxo_exists = existing_coins.iter().any(|coin| {
+                coin.utxo_txid == Some(unspent.tx_hash.to_string()) &&
+                coin.utxo_vout == Some(unspent.tx_pos as u32)
+            });
+
+            if utxo_exists {
+                continue;
+            }
+
+            max_duplicated_index = max_duplicated_index + 1;
+
+            let mut duplicated_coin = coin.clone();
+            duplicated_coin.status = CoinStatus::DUPLICATED;
+            duplicated_coin.utxo_txid = Some(unspent.tx_hash.to_string());
+            duplicated_coin.utxo_vout = Some(unspent.tx_pos as u32);
+            duplicated_coin.amount = Some(unspent.value as u32);
+            duplicated_coin.duplicate_index = max_duplicated_index;
+            duplicated_coin_list.push(duplicated_coin);
+        }
+    }
+
+    Ok(duplicated_coin_list)
+
+}
+
 pub async fn update_coins(client_config: &ClientConfig, wallet_name: &str) -> Result<()> {
     
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
@@ -205,6 +252,10 @@ pub async fn update_coins(client_config: &ClientConfig, wallet_name: &str) -> Re
             check_withdrawal(client_config, coin).await?;
         }
     }
+
+    let duplicated_coins = check_for_duplicated(client_config, &wallet.coins).await?;
+
+    wallet.coins.extend(duplicated_coins);
 
     update_wallet(&client_config.pool, &wallet).await?;
 

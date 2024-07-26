@@ -1,7 +1,9 @@
 use electrum_client::ElectrumApi;
 use mercurylib::{transaction::{SignFirstRequestPayload, PartialSignatureRequestPayload, PartialSignatureResponsePayload, get_partial_sig_request, create_signature, new_backup_transaction}, wallet::Coin};
 use anyhow::Result;
+use reqwest::StatusCode;
 use secp256k1_zkp::musig::MusigPartialSignature;
+use serde_json::Value;
 use crate::client_config::ClientConfig;
 
 pub async fn new_transaction(
@@ -74,7 +76,20 @@ pub async fn sign_first(client_config: &ClientConfig, sign_first_request_payload
     let client = client_config.get_reqwest_client()?;
     let request = client.post(&format!("{}/{}", endpoint, path));
 
-    let value = request.json(&sign_first_request_payload).send().await?.text().await?;
+    // let value = request.json(&sign_first_request_payload).send().await?.text().await?;
+
+    let response = request.json(&sign_first_request_payload).send().await?;
+
+    let status = response.status();
+
+    let value = response.text().await?;
+
+    if status != StatusCode::OK{
+        
+        let error_message: Value = serde_json::from_str(value.as_str())?;
+        
+        return Err(anyhow::anyhow!("{}", error_message["message"].as_str().unwrap()));
+    }
 
     let sign_first_response_payload: mercurylib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str())?;
 

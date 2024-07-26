@@ -52,9 +52,11 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
     for coin in wallet1.coins.iter() {
         let batch_id = None;
 
+        let force_send = false;
+
         let statechain_id = coin.statechain_id.as_ref().unwrap();
 
-        let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, batch_id).await;
+        let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
 
         assert!(result.is_ok());
     }
@@ -87,7 +89,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let fee_rate = None;
 
-    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet2.name, &statechain_id, &core_wallet_address, fee_rate).await;
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet2.name, &statechain_id, &core_wallet_address, fee_rate, None).await;
 
     assert!(result.is_ok());
 
@@ -108,7 +110,9 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let statechain_id = wallet2.coins[1].statechain_id.as_ref().unwrap().clone();
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet1_transfer_adress, &wallet2.name, &statechain_id, batch_id).await;
+    let force_send = false;
+
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet1_transfer_adress, &wallet2.name, &statechain_id, force_send, batch_id).await;
 
     assert!(result.is_ok());
 
@@ -118,7 +122,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
     assert!(received_statechain_ids.contains(&statechain_id.to_string()));
     assert!(received_statechain_ids.len() == 1);
 
-    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, &statechain_id, &core_wallet_address, fee_rate).await;
+    let result = mercuryrustlib::withdraw::execute(&client_config, &wallet1.name, &statechain_id, &core_wallet_address, fee_rate, None).await;
 
     assert!(result.is_ok());
 

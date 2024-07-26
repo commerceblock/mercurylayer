@@ -107,7 +107,9 @@ const listStatecoins = async (clientConfig, walletName) => {
         amount: coin.amount,
         status: coin.status,
         adress: coin.address,
-        locktime: coin.locktime
+        aggregated_address: coin.aggregated_address,
+        locktime: coin.locktime,
+        duplicate_index: coin.duplicate_index
     }));
 
     electrumClient.close();
@@ -116,20 +118,29 @@ const listStatecoins = async (clientConfig, walletName) => {
     return coins;
 }
 
-const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
-
+const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate, duplicatedIndex) => {
     const db = await getDatabase(clientConfig);
-
     const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+    try {
+        await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    const txId = await withdraw.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate);
-
-    electrumClient.close();
-    db.close();
-
-    return txId;
+        return await withdraw.execute(
+            clientConfig, 
+            electrumClient, 
+            db, 
+            walletName, 
+            statechainId, 
+            toAddress, 
+            feeRate, 
+            duplicatedIndex
+        );
+    } finally {
+        await Promise.all([
+            electrumClient.close(),
+            db.close()
+        ]);
+    }
 }
 
 const newTransferAddress = async (clientConfig, walletName, generateBatchId) => {
@@ -148,36 +159,46 @@ const newTransferAddress = async (clientConfig, walletName, generateBatchId) => 
     return res;
 }
 
-const transferSend = async (clientConfig, walletName, statechainId, toAddress, batchId) => {
-
+const transferSend = async (clientConfig, walletName, statechainId, toAddress, forceSend, batchId) => {
     const db = await getDatabase(clientConfig);
-
     const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+    try {
+        await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let coin = await transfer_send.execute(clientConfig, electrumClient, db, walletName, statechainId, toAddress, batchId);
-
-    electrumClient.close();
-    db.close();
-
-    return coin;
+        return await transfer_send.execute(
+            clientConfig, 
+            electrumClient, 
+            db, 
+            walletName, 
+            statechainId, 
+            toAddress, 
+            forceSend, 
+            batchId
+        );
+    } finally {
+        await Promise.all([
+            electrumClient.close(),
+            db.close()
+        ]);
+    }
 }
 
 const transferReceive = async (clientConfig, walletName) => {
     
     const db = await getDatabase(clientConfig);
-
     const electrumClient = await getElectrumClient(clientConfig);
 
-    await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
+    try {
+        await coin_status.updateCoins(clientConfig, electrumClient, db, walletName);
 
-    let transferReceiveResult = await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
-
-    electrumClient.close();
-    db.close();
-
-    return transferReceiveResult;
+        return await transfer_receive.execute(clientConfig, electrumClient, db, walletName);
+    } finally {
+        await Promise.all([
+            electrumClient.close(),
+            db.close()
+        ]);
+    }
 }
 
 const paymentHash = async (clientConfig, walletName, statechainId) => {

@@ -63,8 +63,8 @@ const signFirst = async (clientConfig, signFirstRequestPayload) => {
         socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
     }
     
-    let response;
-    try {
+    let response = await axios.post(url, signFirstRequestPayload, socksAgent);
+    /*try {
         response = await axios.post(url, signFirstRequestPayload, socksAgent);
     } catch (error) {
         if (error.code === 'ECONNREFUSED') {
@@ -77,7 +77,7 @@ const signFirst = async (clientConfig, signFirstRequestPayload) => {
     // Check if response or response.data is undefined
     if (!response || !response.data || !response.data.server_pubnonce) {
         throw new Error('Server public nonce is not available.');
-    }
+    }*/
     let server_pubnonce_hex = response.data.server_pubnonce;
 
     if (server_pubnonce_hex.startsWith("0x")) {

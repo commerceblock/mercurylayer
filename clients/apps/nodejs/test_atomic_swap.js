@@ -94,10 +94,10 @@ async function atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wal
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -211,12 +211,12 @@ async function atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_1_name, w
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
     transfer_address_w3.batchId = "";
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -326,10 +326,10 @@ async function atomicSwapWithoutFirstBatchId(clientConfig, wallet_1_name, wallet
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, null);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, null);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -439,10 +439,10 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -466,10 +466,10 @@ async function atomicSwapWithTimeout(clientConfig, wallet_1_name, wallet_2_name,
     transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
-    coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
@@ -582,10 +582,10 @@ async function atomicSwapWithFirstPartySteal(clientConfig, wallet_1_name, wallet
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transfer_address_w3_for_steal = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
@@ -593,7 +593,7 @@ async function atomicSwapWithFirstPartySteal(clientConfig, wallet_1_name, wallet
 
     let coin_to_steal = undefined;
     try {
-        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3_for_steal.transfer_receive, transfer_address_w3.batchId);
+        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3_for_steal.transfer_receive, false, transfer_address_w3.batchId);
     } catch (error) {
         // Assert the captured error message
         const expectedMessage = 'expected a string argument, found undefined';
@@ -720,10 +720,10 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
     let transfer_address_w3 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_3_name, generateBatchId);
     let transfer_address_w4 = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, null);
 
-    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, transfer_address_w3.batchId);
+    let coin3 = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin1.statechain_id, transfer_address_w3.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin3);
 
-    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, transfer_address_w3.batchId);
+    let coin4 = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4.transfer_receive, false, transfer_address_w3.batchId);
     console.log("coin transferSend: ", coin4);
 
     let transfer_address_w4_for_steal = await mercurynodejslib.newTransferAddress(clientConfig, wallet_4_name, generateBatchId);
@@ -731,7 +731,7 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
 
     let coin_to_steal = undefined;
     try {
-        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4_for_steal.transfer_receive, transfer_address_w4.batchId);
+        coin_to_steal = await mercurynodejslib.transferSend(clientConfig, wallet_2_name, coin2.statechain_id, transfer_address_w4_for_steal.transfer_receive, false, transfer_address_w4.batchId);
     } catch (error) {
         // Assert the captured error message
         const expectedMessage = 'expected a string argument, found undefined';

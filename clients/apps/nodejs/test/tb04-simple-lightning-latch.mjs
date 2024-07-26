@@ -3,7 +3,7 @@ import client_config from '../client_config.js';
 import mercurynodejslib from 'mercurynodejslib';
 import { CoinStatus } from 'mercurynodejslib/coin_enum.js';
 import crypto from 'crypto';
-import { getDatabase, sleep, createWallet, getElectrumClient, generateBlock, depositCoin, connectElectr, disconnectElectr, disconnectMercuryServer, connectMercuryServer  } from '../test_utils.js';
+import { createWallet, removeDatabase, getnewaddress, generateBlock, depositCoin } from './test-utils.mjs';
 
 describe('TB04 - Lightning Latch', function() {
   this.timeout(30000);
@@ -314,7 +314,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-      await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transferAddress.transfer_receive, paymentHash.batchId);
+      await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transferAddress.transfer_receive, false, paymentHash.batchId);
 
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 

@@ -39,7 +39,8 @@ enum Commands {
         statechain_id: String, 
         to_address: String, 
         /// Transaction fee rate in sats per byte
-        fee_rate: Option<f64>
+        fee_rate: Option<f64>,
+        duplicated_index: Option<u32>
     },
     /// Generate a transfer address to receive funds
     NewTransferAddress { 
@@ -53,11 +54,10 @@ enum Commands {
         wallet_name: String, 
         statechain_id: String, 
         to_address: String,
+        // Force send (required when the coin is duplicated)
+        force_send: Option<bool>,
         /// Batch id for atomic transfers
         batch_id: Option<String>,
-        // Generate batch id for atomic transfers
-        // #[arg(short, long, help = "Optional flag for additional behavior")]
-        // generate_batch_id: bool,
     },
     /// Send a statechain coin to a transfer address
     TransferReceive { wallet_name: String },
@@ -136,9 +136,9 @@ async fn main() -> Result<()> {
             let coins_json_string = serde_json::to_string_pretty(&coins_json).unwrap();
             println!("{}", coins_json_string);
         },
-        Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate } => {
+        Commands::Withdraw { wallet_name, statechain_id, to_address, fee_rate, duplicated_index } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
-            mercuryrustlib::withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
+            mercuryrustlib::withdraw::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate, duplicated_index).await?;
         },
         Commands::NewTransferAddress { wallet_name, generate_batch_id } => {
             let address = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet_name).await?;
@@ -154,9 +154,12 @@ async fn main() -> Result<()> {
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
-        Commands::TransferSend { wallet_name, statechain_id, to_address, batch_id } => {
+        Commands::TransferSend { wallet_name, statechain_id, to_address, force_send, batch_id } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
-            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, batch_id).await?;
+
+            let force_send = force_send.unwrap_or(false);
+
+            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, force_send, batch_id).await?;
 
             let obj = json!({"Transfer": "sent"});
 

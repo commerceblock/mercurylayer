@@ -3,7 +3,7 @@ const utils = require('./utils');
 const transaction = require('./transaction');
 const { CoinStatus } = require('./coin_enum');
 
-const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate) => {
+const execute = async (clientConfig, electrumClient, db, walletName, statechainId, toAddress, feeRate, duplicatedIndex) => {
     let wallet = await sqlite_manager.getWallet(db, walletName);
 
     const backupTxs = await sqlite_manager.getBackupTxs(db, statechainId);
@@ -11,8 +11,6 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
     if (backupTxs.length === 0) {
         throw new Error(`There is no backup transaction for the statechain id ${statechainId}`);
     }
-
-    const new_tx_n = backupTxs.length + 1;
 
     const serverInfo = await utils.infoConfig(clientConfig, electrumClient);
 
@@ -22,21 +20,28 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
         feeRate = parseFloat(feeRate);
     }
 
-    let coinsWithStatechainId = wallet.coins.filter(c => {
-        return c.statechain_id === statechainId
-    });
+    let coin;
 
-    if (!coinsWithStatechainId) {
-        throw new Error(`There is no coin for the statechain id ${statechainId}`);
+    if (!!duplicatedIndex) {
+        coin = wallet.coins
+            .filter(c => c.statechain_id === statechainId && c.status === CoinStatus.DUPLICATED && c.duplicate_index === duplicatedIndex)
+            .reduce((min, current) => (current.locktime < min.locktime) ? current : min, { locktime: Infinity });
+    } else {
+        coin = wallet.coins
+            .filter(c => c.statechain_id === statechainId && c.status !== CoinStatus.DUPLICATED)
+            .reduce((min, current) => (current.locktime < min.locktime) ? current : min, { locktime: Infinity });
     }
 
-    // If the user sends to himself, he will have two coins with same statechain_id
-    // In this case, we need to find the one with the lowest locktime
-    // Sort the coins by locktime in ascending order and pick the first one
-    let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
+    if (!coin || coin.locktime === Infinity) {
+        if (duplicatedIndex !== undefined) {
+          throw new Error(`No duplicated coins associated with this statechain ID and index ${duplicatedIndex} were found`);
+        } else {
+          throw new Error("No coins associated with this statechain ID were found");
+        }
+      }
 
-    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
-        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
+    if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER && coin.status != CoinStatus.DUPLICATED) {
+        throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER or DUPLICATED to withdraw it. The current status is ${coin.status}`);
     }
 
     const isWithdrawal = true;
@@ -56,20 +61,6 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
         serverInfo.interval
     );
 
-    let backup_tx = {
-        tx_n: new_tx_n,
-        tx: signed_tx,
-        client_public_nonce: coin.public_nonce,
-        server_public_nonce: coin.server_public_nonce,
-        client_public_key: coin.user_pubkey,
-        server_public_key: coin.server_pubkey,
-        blinding_factor: coin.blinding_factor
-    };
-
-    backupTxs.push(backup_tx);
-
-    await sqlite_manager.updateTransaction(db, coin.statechain_id, backupTxs);
-
     const txid = await electrumClient.request('blockchain.transaction.broadcast', [signed_tx]);
 
     coin.tx_withdraw = txid;
@@ -87,7 +78,14 @@ const execute = async (clientConfig, electrumClient, db, walletName, statechainI
 
     await sqlite_manager.updateWallet(db, wallet);
 
-    utils.completeWithdraw(clientConfig, coin.statechain_id, coin.signed_statechain_id);
+    const isThereMoreDuplicatedCoins = wallet.coins.some(coin => 
+        (coin.status === CoinStatus.DUPLICATED || coin.status === CoinStatus.CONFIRMED) &&
+        (duplicatedIndex === undefined || coin.duplicate_index !== duplicatedIndex)
+    );
+
+    if (!isThereMoreDuplicatedCoins) {
+        await utils.completeWithdraw(clientConfig, coin.statechain_id, coin.signed_statechain_id);
+    }
 
     return txid;
 }

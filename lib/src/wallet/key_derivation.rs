@@ -131,6 +131,7 @@ impl Wallet {
             tx_withdraw: None,
             withdrawal_address: None,
             status: CoinStatus::INITIALISED,
+            duplicate_index: 0,
         };
 
         Ok(coin)
