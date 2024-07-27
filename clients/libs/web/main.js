@@ -57,13 +57,11 @@ const listStatecoins = async (clientConfig, walletName) => {
   return coins;
 }
 
-const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
+const withdrawCoin = async (clientConfig, walletName, statechainId, toAddress, feeRate, duplicatedIndex) => {
 
   await coin_status.updateCoins(clientConfig, walletName);
 
-  const txId = await withdraw.execute(clientConfig, walletName, statechainId, toAddress, feeRate);
-
-  return txId;
+  return await withdraw.execute(clientConfig, walletName, statechainId, toAddress, feeRate, duplicatedIndex);
 }
 
 const broadcastBackupTransaction = async (clientConfig, walletName, statechainId, toAddress, feeRate) => {
@@ -88,13 +86,11 @@ const newTransferAddress = async (walletName, generateBatchId) => {
   return res;
 }
 
-const transferSend = async (clientConfig, walletName, statechainId, toAddress, batchId) => {
+const transferSend = async (clientConfig, walletName, statechainId, toAddress, forceSend, batchId) => {
 
   await coin_status.updateCoins(clientConfig, walletName);
 
-  let coin = await transfer_send.execute(clientConfig, walletName, statechainId, toAddress, batchId);
-
-  return coin;
+  return await transfer_send.execute(clientConfig, walletName, statechainId, toAddress, forceSend, batchId);
 }
 
 const transferReceive = async (clientConfig, walletName) => {

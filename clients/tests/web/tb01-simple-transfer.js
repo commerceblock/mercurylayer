@@ -106,13 +106,13 @@ const tb01ExecuteSimpleTransfer = async () => {
     statusMsg = statusMsg + "<li>Transferring to wallet 2.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
     
-    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, toAddress.transfer_receive, null);
+    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, toAddress.transfer_receive, false, null);
 
     await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
     toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
 
-    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null);
+    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null, null);
 
     statusMsg = statusMsg + "<li>Coin withdrawn.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;

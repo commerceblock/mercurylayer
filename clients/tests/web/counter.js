@@ -3,6 +3,7 @@ import clientConfig from './ClientConfig.js';
 import { tb01ExecuteSimpleTransfer } from './tb01-simple-transfer.js';
 import { tb03SimpleAtomicTransfer } from './tb03-simple-atomic-transfer.js';
 import { tb04SimpleLightningLatch } from './tb04-simple-lightning-latch.js';
+import { tb02DuplicateDeposits } from './ta02-duplicate-deposits.js'
 
 function setupCounter(element) {
   let counter = 0
@@ -19,7 +20,8 @@ function setupTests(element) {
   const startTests = async () => {
     // tb01ExecuteSimpleTransfer();
     // tb03SimpleAtomicTransfer();
-    tb04SimpleLightningLatch();
+    // tb04SimpleLightningLatch();
+    tb02DuplicateDeposits();
   }
   element.addEventListener('click', () => startTests())
 }

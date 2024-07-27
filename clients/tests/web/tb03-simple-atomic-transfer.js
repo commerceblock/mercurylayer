@@ -85,8 +85,8 @@ const tb03SimpleAtomicTransfer = async () => {
     statusMsg = statusMsg + "<li>Transferring to wallets 3 and 4 with a batch id.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
 
-    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId1, toAddress3.transfer_receive, toAddress3.batch_id);
-    await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId2, toAddress4.transfer_receive, toAddress3.batch_id);
+    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId1, toAddress3.transfer_receive, false, toAddress3.batch_id);
+    await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId2, toAddress4.transfer_receive, false, toAddress3.batch_id);
 
     let transferReceive3 = await mercuryweblib.transferReceive(clientConfig, wallet3.name);
 
@@ -120,9 +120,9 @@ const tb03SimpleAtomicTransfer = async () => {
 
     const toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
 
-    await mercuryweblib.withdrawCoin(clientConfig, wallet3.name, statechainId1, toAddress, null);
+    await mercuryweblib.withdrawCoin(clientConfig, wallet3.name, statechainId1, toAddress, null, null);
 
-    await mercuryweblib.withdrawCoin(clientConfig, wallet4.name, statechainId2, toAddress, null);
+    await mercuryweblib.withdrawCoin(clientConfig, wallet4.name, statechainId2, toAddress, null, null);
 
     statusMsg = statusMsg + "<li>Coins withdrawn.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;

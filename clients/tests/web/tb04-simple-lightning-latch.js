@@ -86,7 +86,7 @@ const tb04SimpleLightningLatch = async () => {
 
     console.log(paymentHash);
 
-    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, paymentHash.batchId );
+    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, paymentHash.batchId );
 
     let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
@@ -115,7 +115,7 @@ const tb04SimpleLightningLatch = async () => {
 
     let toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
 
-    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null);
+    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null, null);
 
     statusMsg = statusMsg + "<li>Coins withdrawn.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;

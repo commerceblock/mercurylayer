@@ -104,7 +104,7 @@ const checkTransfer = async (clientConfig, coin) => {
     return isTransferred;
 }
 
-const checkWithdrawal = async (clientConfig, coin, wallet_network) => {
+const checkWithdrawal = async (clientConfig, coin) => {
 
     let txid = undefined;
 
@@ -168,6 +168,55 @@ const checkWithdrawal = async (clientConfig, coin, wallet_network) => {
     return false;
 }
 
+const checkForDuplicated = async (clientConfig, existingCoins) => {
+
+    const duplicatedCoinList = [];
+
+    for (const coin of existingCoins) {
+
+        if (![CoinStatus.IN_MEMPOOL, CoinStatus.UNCONFIRMED, CoinStatus.CONFIRMED].includes(coin.status)) {
+            continue;
+        }
+
+        let response = await axios.get(`${clientConfig.esploraServer}/api/address/${coin.aggregated_address}/utxo`);
+
+        let utxoList = response.data;
+
+        let maxDuplicatedIndex = Math.max(
+            ...existingCoins
+            .filter(c => c.statechain_id === coin.statechain_id)
+            .map(coin => coin.duplicate_index)
+        );
+
+        for (const unspent of utxoList) {
+
+            const utxoExists = existingCoins.some(coin => 
+                coin.utxo_txid === unspent.txid &&
+                coin.utxo_vout === unspent.vout
+            );
+
+            if (utxoExists) {
+                continue;
+            }
+
+            maxDuplicatedIndex++;
+
+            const duplicatedCoin = {
+                ...coin,
+                status: CoinStatus.DUPLICATED,
+                utxo_txid: unspent.txid,
+                utxo_vout: unspent.vout,
+                amount: unspent.value,
+                duplicate_index: maxDuplicatedIndex
+            };
+
+            duplicatedCoinList.push(duplicatedCoin);
+        }
+    }
+
+    return duplicatedCoinList;
+}
+
 const updateCoins = async (clientConfig, walletName) => {
 
     await initWasm(wasmUrl);
@@ -201,6 +250,9 @@ const updateCoins = async (clientConfig, walletName) => {
             }
         }
     }
+
+    const duplicatedCoins = await checkForDuplicated(clientConfig, wallet.coins);
+    wallet.coins = [...wallet.coins, ...duplicatedCoins];
 
     storageManager.setItem(wallet.name, wallet, true);
 }
