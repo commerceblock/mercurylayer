@@ -51,24 +51,8 @@ jobs:
         run: |
           container_id_alice=$(docker ps -qf "name=mercurylayer_alice_1")
           echo "Container ID: $container_id_alice"
-          docker exec $container_id_alice \
-          curl -X POST http://0.0.0.0:8080/v1/initwallet \
-          -H "Content-Type: application/json" \
-          -d '{"wallet_password": "password", "stateless_init": "true"}'
           container_id_bob=$(docker ps -qf "name=mercurylayer_bob_1")
           echo "Container ID: $container_id_bob"
-          docker exec $container_id_bob \
-          curl -X POST http://0.0.0.0:8080/v1/initwallet \
-          -H "Content-Type: application/json" \
-          -d '{"wallet_password": "password", "stateless_init": "true"}'
-          docker exec $container_id_alice \
-          curl -X POST http://0.0.0.0:8080/v1/unlockwallet \
-          -H "Content-Type: application/json" \
-          -d '{"wallet_password": "password"}'
-          docker exec $container_id_bob \
-          curl -X POST http://0.0.0.0:8080/v1/unlockwallet \
-          -H "Content-Type: application/json" \
-          -d '{"wallet_password": "password"}'
           docker exec $container_id_alice lncli -n regtest getinfo
           docker exec $container_id_bob lncli -n regtest getinfo
           docker logs $container_id_alice
