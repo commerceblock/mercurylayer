@@ -16,7 +16,8 @@
     "install": "^0.13.0",
     "mercuryweblib": "file:../../libs/web",
     "npm": "^10.8.2",
-    "puppeteer": "^22.13.0"
+    "puppeteer": "^22.13.0",
+    "axios": "^1.7.2"
   },
   "devDependencies": {
     "chai": "^5.1.1",

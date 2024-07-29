@@ -1,6 +1,7 @@
 import CoinStatus from 'mercuryweblib/coin_enum.js';
 import clientConfig from './ClientConfig.js';
 import mercuryweblib from 'mercuryweblib';
+import { generateBlocks, depositCoin } from './test-utils.js';
 
 const withdrawFlow = async (statusMsg) => {
 
@@ -27,6 +28,9 @@ const withdrawFlow = async (statusMsg) => {
     
     let isDepositInMempool = false;
     let isDepositConfirmed = false;
+    let areBlocksGenerated = false;
+
+    await depositCoin(result.deposit_address, amount);
 
     while (!isDepositConfirmed) {
 
@@ -44,23 +48,29 @@ const withdrawFlow = async (statusMsg) => {
                 break;
             }
         }
+
+        if (isDepositInMempool && !areBlocksGenerated) {
+            areBlocksGenerated = true;
+            await generateBlocks(clientConfig.confirmationTarget);
+        }
         
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     statusMsg = statusMsg + "<li>Waiting for the duplicated deposit.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
 
+    await depositCoin(result.deposit_address, amount);
+
     while (true) {
         let coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
-        console.log(coins);
         let duplicatedCoin = coins.find(coin => coin.statechain_id === statechainId && coin.status === CoinStatus.DUPLICATED);
         if (duplicatedCoin) {
             statusMsg = statusMsg + "<li>Duplicated deposit found.</li>";
             statusText.innerHTML = `<ol>${statusMsg}</ol>`;
             break;
         }
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     depositAddressText.textContent = "";
@@ -87,7 +97,7 @@ const withdrawFlow = async (statusMsg) => {
         statusText.innerHTML = `<ol>${statusMsg}</ol>`;
     }
 
-    const toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
+    const toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
     await mercuryweblib.withdrawCoin(clientConfig, wallet1.name, statechainId, toAddress, null, 1);
 
@@ -109,6 +119,8 @@ const withdrawFlow = async (statusMsg) => {
 
     statusMsg = statusMsg + "<li>Test 'withdraw flow test' completed successfully.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
+
+    return statusMsg;
 
 };
 
@@ -137,6 +149,9 @@ const transferFlow = async (statusMsg) => {
     
     let isDepositInMempool = false;
     let isDepositConfirmed = false;
+    let areBlocksGenerated = false;
+
+    await depositCoin(result.deposit_address, amount);
 
     while (!isDepositConfirmed) {
 
@@ -154,23 +169,29 @@ const transferFlow = async (statusMsg) => {
                 break;
             }
         }
+
+        if (isDepositInMempool && !areBlocksGenerated) {
+            areBlocksGenerated = true;
+            await generateBlocks(clientConfig.confirmationTarget);
+        }
         
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     statusMsg = statusMsg + "<li>Waiting for the duplicated deposit.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
 
+    await depositCoin(result.deposit_address, amount);
+
     while (true) {
         let coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
-        console.log(coins);
         let duplicatedCoin = coins.find(coin => coin.statechain_id === statechainId && coin.status === CoinStatus.DUPLICATED);
         if (duplicatedCoin) {
             statusMsg = statusMsg + "<li>Duplicated deposit found.</li>";
             statusText.innerHTML = `<ol>${statusMsg}</ol>`;
             break;
         }
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     depositAddressText.textContent = "";
@@ -227,7 +248,7 @@ const transferFlow = async (statusMsg) => {
     }
 
     try {
-        const withdrawAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
+        const withdrawAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
         await mercuryweblib.withdrawCoin(clientConfig, wallet1.name, statechainId, withdrawAddress, null, 1);
     } catch (error) {
         console.log(error.message);
@@ -235,17 +256,19 @@ const transferFlow = async (statusMsg) => {
 
     statusMsg = statusMsg + "<li>Test 'transfer flow test' completed successfully.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
+
+    return statusMsg;
 }
 
 const tb02DuplicateDeposits = async () => {
 
-    let statusMsg = "<li>Starting test TB01 - Simple Transfer</li>";
+    let statusMsg = "<li>Starting test 'TA02 - Duplicated Deposits'</li>";
     const statusText = document.getElementById('statusText');
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
     
-    // await withdrawFlow(statusMsg);
+    statusMsg = await withdrawFlow(statusMsg);
 
-    await transferFlow(statusMsg);
+    statusMsg = await transferFlow(statusMsg);
 
     statusMsg = statusMsg + "<li>Test 'TA02 - Duplicated Deposits' completed successfully.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;

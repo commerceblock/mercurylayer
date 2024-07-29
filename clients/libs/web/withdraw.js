@@ -18,9 +18,9 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, feeRat
 
     if (!feeRate) {
         feeRate = (serverInfo.feeRateSatsPerByte > clientConfig.maxFeeRate) ? clientConfig.maxFeeRate: serverInfo.feeRateSatsPerByte;
-    } else {
-        feeRate = parseFloat(feeRate);
     }
+
+    feeRate = parseFloat(feeRate);
 
     let coin;
 

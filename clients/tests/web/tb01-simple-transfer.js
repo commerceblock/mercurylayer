@@ -1,57 +1,9 @@
 import CoinStatus from 'mercuryweblib/coin_enum.js';
 import clientConfig from './ClientConfig.js';
 import mercuryweblib from 'mercuryweblib';
+import { generateBlocks, depositCoin } from './test-utils.js';
 
-// docker run --name esplora-container -p 50001:50001 -p 8094:80 --volume $PWD/data_bitcoin_regtest:/data --env CORS_ALLOW=* --rm -i -t blockstream/esplora bash -c "/srv/explorer/run.sh bitcoin-regtest explorer"
-
-/* const checkAddress = async (address) => {
-
-    let response = await fetch(`${clientConfig.esploraServer}/api/address/${address}/utxo`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
-
-    let utxo_list = await response.json();
-
-    let found = false;
-
-    for (let unspent of utxo_list) {
-        if (unspent.value === coin.amount) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-const depositCoin = async (address, amount) => {
-
-    const data = {
-        address,
-        amount
-    };
-
-    const response = await fetch('http://localhost:3000/deposit_amount', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    });
-
-    if (response.status !== 200) {
-        throw new Error('Failed to process deposit');
-    }
-
-    // if (response.status === 200) {
-    //     const responseData = await response.json();
-    //     console.log('Success:', responseData);
-    // } else {
-    //     throw new Error('Failed to process deposit');
-    // }
-} */
+// docker run --name esplora-container -p 50001:50001 -p 8094:80 --volume $PWD/data_bitcoin_regtest:/data --env CORS_ALLOW='*' --rm -i -t blockstream/esplora bash -c "/srv/explorer/run.sh bitcoin-regtest explorer"
 
 const tb01ExecuteSimpleTransfer = async () => {
 
@@ -77,7 +29,10 @@ const tb01ExecuteSimpleTransfer = async () => {
     const statechainId = result.statechain_id;
     
     let isDepositInMempool = false;
+    let areBlocksGenerated = false;
     let isDepositConfirmed = false;
+
+    await depositCoin(result.deposit_address, amount);
 
     while (!isDepositConfirmed) {
 
@@ -96,7 +51,12 @@ const tb01ExecuteSimpleTransfer = async () => {
             }
         }
         
-        await new Promise(r => setTimeout(r, 5000));
+        if (isDepositInMempool && !areBlocksGenerated) {
+            areBlocksGenerated = true;
+            await generateBlocks(clientConfig.confirmationTarget);
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     depositAddressText.textContent = "";
@@ -108,9 +68,17 @@ const tb01ExecuteSimpleTransfer = async () => {
     
     await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, toAddress.transfer_receive, false, null);
 
-    await mercuryweblib.transferReceive(clientConfig, wallet2.name);
+    const transferReceiveResult = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
-    toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
+    if (transferReceiveResult.receivedStatechainIds.includes(statechainId) && transferReceiveResult.receivedStatechainIds.length === 1) {
+        statusMsg = statusMsg + "<li>Transfer received correctly.</li>";
+        statusText.innerHTML = `<ol>${statusMsg}</ol>`;
+    } else {
+        statusMsg = statusMsg + "<li>Transfer not received correctly.</li>";
+        statusText.innerHTML = `<ol>${statusMsg}</ol>`;
+    }
+
+    toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
     await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null, null);
 

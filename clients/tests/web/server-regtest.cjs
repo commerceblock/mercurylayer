@@ -9,17 +9,25 @@ const exec = util.promisify(require('node:child_process').exec);
 app.use(bodyParser.json())
 app.use(cors())
 
+async function getnewaddress() {
+  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli getnewaddress`;
+  const { stdout, stderr } = await exec(generateBlockCommand);
+  if (stderr) {
+    throw new Error(`Error: ${stderr}`);
+  }
+  return stdout.trim();
+}
+
+async function generateBlocks(numBlocks) {
+  const address = await getnewaddress();
+  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli generatetoaddress ${numBlocks} ${address}`;
+  await exec(generateBlockCommand);
+}
+
 async function depositCoin(amount, address) {
-
   const amountInBtc = amount / 100000000;
-
-  // Sending Bitcoin using bitcoin-cli
-
-      const sendBitcoinCommand = `docker exec $(docker ps -qf "name=container") cli sendtoaddress ${address} ${amountInBtc}`;
-      exec(sendBitcoinCommand);
-      // console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
-      // await generateBlock(3);
-
+  const sendBitcoinCommand = `docker exec $(docker ps -qf "name=esplora-container") cli sendtoaddress ${address} ${amountInBtc}`;
+  await exec(sendBitcoinCommand);
 }
 
 app.post('/deposit_amount', async (req, res) => {
@@ -35,6 +43,26 @@ app.post('/deposit_amount', async (req, res) => {
   }
 })
 
+app.post('/generate_blocks', async (req, res) => {
+  const { blocks } = req.body
+
+  if (Number.isInteger(blocks)) {
+    // Process the deposit here
+    console.log(`Generating ${blocks} blocks ...`)
+    
+    try {
+      await generateBlocks(blocks);
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).send({ message: error.message })
+    } 
+    
+    res.status(200).send({ message: 'Blocks generated successfully' })
+  } else {
+    res.status(400).send({ message: 'Invalid input' })
+  }
+})
+
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`Docker server listening on port ${port}`)
 })

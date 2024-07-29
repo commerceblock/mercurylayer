@@ -1,6 +1,7 @@
 import CoinStatus from 'mercuryweblib/coin_enum.js';
 import clientConfig from './ClientConfig.js';
 import mercuryweblib from 'mercuryweblib';
+import { generateBlocks, depositCoin } from './test-utils.js';
 
 const tb03SimpleAtomicTransfer = async () => {
 
@@ -38,6 +39,11 @@ const tb03SimpleAtomicTransfer = async () => {
     let isDepositInMempool2 = false;
     let isDepositConfirmed2 = false;
 
+    let areBlocksGenerated = false;
+
+    await depositCoin(result1.deposit_address, amount);
+    await depositCoin(result2.deposit_address, amount);
+
     while (!isDepositConfirmed2 && !isDepositConfirmed1) {
 
         let coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
@@ -54,9 +60,6 @@ const tb03SimpleAtomicTransfer = async () => {
             }
         }
 
-        console.log("coins 1: ");
-        console.log(coins);
-
         coins = await mercuryweblib.listStatecoins(clientConfig, wallet2.name);
  
         for (let coin of coins) {
@@ -70,11 +73,13 @@ const tb03SimpleAtomicTransfer = async () => {
                 isDepositConfirmed1 = true;
             }
         }
-
-        console.log("coins 2: ");
-        console.log(coins);
         
-        await new Promise(r => setTimeout(r, 5000));
+        if (isDepositInMempool1 && isDepositInMempool2 && !areBlocksGenerated) {
+            areBlocksGenerated = true;
+            await generateBlocks(clientConfig.confirmationTarget);
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     depositAddressText.textContent = "";
@@ -118,7 +123,7 @@ const tb03SimpleAtomicTransfer = async () => {
         statusText.innerHTML = `<ol>${statusMsg}</ol>`;
     }
 
-    const toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
+    const toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
     await mercuryweblib.withdrawCoin(clientConfig, wallet3.name, statechainId1, toAddress, null, null);
 
