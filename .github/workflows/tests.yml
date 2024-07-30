@@ -60,7 +60,7 @@ jobs:
           docker logs $container_id_bob
           identity_pubkey=$(docker exec $container_id_bob lncli -n regtest getinfo | jq -r '.identity_pubkey')
           echo "Pubkey: $identity_pubkey"
-          docker exec $container_id_alice lncli -n regtest connect $identity_pubkey@0.0.0.0:9736
+          docker exec $container_id_alice lncli -n regtest connect $identity_pubkey@bob:9736
           docker exec $container_id_alice lncli -n regtest listpeers
           docker exec $container_id_bob lncli -n regtest getinfo
           docker logs $container_id_alice

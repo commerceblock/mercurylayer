@@ -128,9 +128,9 @@ services:
         if [ ! -f "/data/.lnd/umbrel-lnd.conf" ]; then
           touch "/data/.lnd/umbrel-lnd.conf"
         fi
-        lnd --listen=0.0.0.0:9736 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf --wallet-unlock-password-file=/data/walletpassword.txt --wallet-unlock-allow-create
+        lnd --listen=0.0.0.0:9735 --rpclisten=0.0.0.0:10009 --restlisten=0.0.0.0:8080 --bitcoin.active --bitcoin.regtest --bitcoin.node=bitcoind --bitcoind.rpchost=bitcoind --bitcoind.rpcuser=user --bitcoind.rpcpass=pass --bitcoind.zmqpubrawblock=tcp://bitcoind:28332 --bitcoind.zmqpubrawtx=tcp://bitcoind:28333 --configfile=/data/.lnd/umbrel-lnd.conf --wallet-unlock-password-file=/data/walletpassword.txt --wallet-unlock-allow-create
     ports:
-      - "9736:9736"
+      - "9736:9735"
       - "10010:10009"
       - "8081:8080"
     volumes:
