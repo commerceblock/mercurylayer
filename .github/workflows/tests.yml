@@ -53,7 +53,10 @@ jobs:
           echo "Container ID: $container_id_alice"
           container_id_bob=$(docker ps -qf "name=mercurylayer_bob_1")
           echo "Container ID: $container_id_bob"
+          docker logs $container_id_alice
+          docker logs $container_id_bob
           identity_pubkey=$(docker exec $container_id_bob lncli -n regtest getinfo | jq -r '.identity_pubkey')
+          echo "Pubkey: $identity_pubkey"
           docker exec $container_id_alice lncli -n regtest connect $identity_pubkey@0.0.0.0:9736
           docker exec $container_id_alice lncli -n regtest listpeers
           docker exec $container_id_bob lncli -n regtest getinfo
