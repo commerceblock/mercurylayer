@@ -67,7 +67,7 @@ services:
       - postgres
 
   alice:
-    image: lightninglabs/lndinit:v0.1.3-beta-lnd-v0.14.2-beta
+    image: lightninglabs/lndinit:v0.1.21-beta-lnd-v0.18.0-beta
     user: root
     hostname: lnd
     entrypoint: 
@@ -105,7 +105,7 @@ services:
       - bitcoind
 
   bob:
-    image: lightninglabs/lndinit:v0.1.3-beta-lnd-v0.14.2-beta
+    image: lightninglabs/lndinit:v0.1.21-beta-lnd-v0.18.0-beta
     user: root
     hostname: lnd
     entrypoint: 
