@@ -58,11 +58,17 @@ jobs:
           echo "Container ID: $container_id_bob"
           docker logs $container_id_alice
           docker logs $container_id_bob
-          identity_pubkey=$(docker exec $container_id_bob lncli -n regtest getinfo | jq -r '.identity_pubkey')
-          echo "Pubkey: $identity_pubkey"
-          docker exec $container_id_alice lncli -n regtest connect $identity_pubkey@bob:9736
+          identity_pubkey_bob=$(docker exec $container_id_bob lncli -n regtest getinfo | jq -r '.identity_pubkey')
+          echo "Pubkey: $identity_pubkey_bob"
+          docker exec $container_id_alice lncli -n regtest connect $identity_pubkey_bob@bob:9735
           docker exec $container_id_alice lncli -n regtest listpeers
-          docker exec $container_id_bob lncli -n regtest getinfo
+          address=$(docker exec $container_id_bob lncli -n regtest newaddress p2wkh | jq -r '.address')
+          container_id_bitcoind=$(docker ps -qf "name=mercurylayer_bitcoind_1")
+          docker exec $container_id_bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress $address 0.5
+          docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 6
+          identity_pubkey_alice=$(docker exec $container_id_alice lncli -n regtest getinfo | jq -r '.identity_pubkey')
+          docker exec $container_id_bob lncli -n regtest openchannel $identity_pubkey_alice 100000
+          docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 5
           docker logs $container_id_alice
           docker logs $container_id_bob
       - name: Verify ElectrumX Service with Curl
