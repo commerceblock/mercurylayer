@@ -3,7 +3,7 @@ import client_config from '../client_config.js';
 import mercurynodejslib from 'mercurynodejslib';
 import { CoinStatus } from 'mercurynodejslib/coin_enum.js';
 import crypto from 'crypto';
-import { createWallet, removeDatabase, getnewaddress, generateBlock, depositCoin } from './test-utils.mjs';
+import { createWallet, depositCoin, generateInvoice } from '../test_utils.js';
 
 describe('TB04 - Lightning Latch', function() {
   this.timeout(30000);
@@ -311,6 +311,8 @@ describe('TB04 - Lightning Latch', function() {
       expect(coin.status).to.equal(CoinStatus.CONFIRMED);
 
       const paymentHash = await mercurynodejslib.paymentHash(clientConfig, wallet_1_name, coin.statechain_id);
+
+      const invoice = await generateInvoice(paymentHash.hash, amount);
 
       const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 

@@ -100,6 +100,17 @@ const connectElectr = async () => {
     await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
 }
 
+async function generateInvoice(paymentHash, amountInSats) {
+
+    const generateInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_alice_1") lncli addinvoice ${paymentHash} --amt ${amountInSats}`;
+    const { stdout, stderr } = await exec(generateInvoiceCommand);
+    if (stderr) {
+        console.error('Error:', stderr);
+        return null;
+    }
+    return stdout.trim();
+}
+
 module.exports = { 
     removeDatabase, 
     getDatabase, 
@@ -111,5 +122,6 @@ module.exports = {
     connectElectr, 
     disconnectElectr, 
     connectMercuryServer, 
-    disconnectMercuryServer 
+    disconnectMercuryServer ,
+    generateInvoice
 };
