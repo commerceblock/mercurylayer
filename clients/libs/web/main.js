@@ -51,7 +51,8 @@ const listStatecoins = async (clientConfig, walletName) => {
       amount: coin.amount,
       status: coin.status,
       adress: coin.address,
-      locktime: coin.locktime
+      locktime: coin.locktime,
+      duplicate_index: coin.duplicate_index
   }));
 
   return coins;

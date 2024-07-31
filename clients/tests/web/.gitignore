@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 
 data_bitcoin_regtest
+test/__screenshots__
