@@ -108,18 +108,26 @@ const generateInvoice = async (paymentHash, amountInSats) => {
         console.error('Error:', stderr);
         return null;
     }
-    return stdout.trim();
-}
-
-const payInvoice = async (paymentRequest) => {
     
-    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice ${paymentRequest}`;
-    const { stdout, stderr } = await exec(payInvoiceCommand);
-    if (stderr) {
-        console.error('Error:', stderr);
+    try {
+        const response = JSON.parse(stdout.trim());
+        return response;
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
         return null;
     }
-    return stdout.trim();
+}
+
+const payInvoice = (paymentRequest) => {
+    
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    exec(payInvoiceCommand);
+}
+
+const settleInvoice = async (preimage) => {
+
+    const settleInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_alice_1") lncli -n regtest settleinvoice ${preimage}`;
+    await exec(settleInvoiceCommand);
 }
 
 module.exports = { 
@@ -135,5 +143,6 @@ module.exports = {
     connectMercuryServer, 
     disconnectMercuryServer ,
     generateInvoice,
-    payInvoice
+    payInvoice,
+    settleInvoice
 };
