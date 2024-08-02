@@ -349,8 +349,8 @@ describe('TB04 - Lightning Latch', function() {
 
       // await removeDatabase();
       const clientConfig = client_config.load();
-      let wallet_1_name = "w_ln_7";
-      let wallet_2_name = "w_ln_8";
+      let wallet_1_name = "w_ln_9";
+      let wallet_2_name = "w_ln_10";
       await createWallet(clientConfig, wallet_1_name);
       await createWallet(clientConfig, wallet_2_name);
 
@@ -379,7 +379,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const invoice = await generateInvoice(paymentHash.hash, amount);
 
-      payInvoice(invoice.payment_request);
+      payHoldInvoice(invoice.payment_request);
 
       const transferAddress = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
@@ -405,10 +405,10 @@ describe('TB04 - Lightning Latch', function() {
 
       expect(hash).to.equal(paymentHash.hash);
 
-      const paymentHashSecond = await mercurynodejslib.paymentHash(clientConfig, wallet_1_name, coin.statechain_id);
-      const invoiceSecond = await generateInvoice(paymentHashSecond.hash, amount);
+      const paymentHashSecond = "f768c404215f9fb5731c32c00fe7a057fc181d7695de447b334380d90674db34"
+      const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
 
-      payInvoice(invoiceSecond.payment_request);
+      await payInvoice(invoiceSecond.payment_request);
     })
   })
 })

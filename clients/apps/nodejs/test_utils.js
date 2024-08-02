@@ -118,7 +118,19 @@ const generateInvoice = async (paymentHash, amountInSats) => {
     }
 }
 
-const payInvoice = (paymentRequest) => {
+const payInvoice = async (paymentRequest) => {
+    
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    const { stdout, stderr } = await exec(payInvoiceCommand);
+    if (stderr) {
+      console.error('Error:', stderr);
+      return null;
+    }
+    console.log('stdout:', stdout.trim());
+    return stdout.trim();
+}
+
+const payHoldInvoice = (paymentRequest) => {
     
     const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice --force ${paymentRequest}`;
     exec(payInvoiceCommand);
@@ -144,5 +156,6 @@ module.exports = {
     disconnectMercuryServer ,
     generateInvoice,
     payInvoice,
+    payHoldInvoice,
     settleInvoice
 };
