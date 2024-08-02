@@ -32,4 +32,3 @@ RUN CARGO_TARGET_DIR=target  cargo build --release
 
 # # Command to run the server by default when the container starts
 CMD ["cargo", "run", "--bin", "token-server"]
-
