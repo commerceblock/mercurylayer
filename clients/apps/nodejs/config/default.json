@@ -1,0 +1,11 @@
+{
+    "statechainEntity": "http://0.0.0.0:8000",
+    "electrumServer": "tcp://0.0.0.0:50001",
+    "electrumType": "electrs",
+    "network": "regtest",
+    "feeRateTolerance": 5,
+    "databaseFile": "wallet.db",
+    "confirmationTarget": 2,
+    "torProxy": null,
+    "maxFeeRate": 1
+}

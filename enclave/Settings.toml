@@ -1,0 +1,5 @@
+[intel_sgx]
+database_connection_string = "postgresql://postgres:postgres@localhost/enclave"
+enclave_port = 18080
+replication_server_url = "http://localhost:18082"
+seed_dir = "./seed"

@@ -1,0 +1,29 @@
+[package]
+name = "mercurylib"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "mercurylib"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+required-features = ["bindings"]
+
+[dependencies]
+bitcoin = { version = "0.30.1", features = ["serde", "base64", "rand-std", "std"], default-features = false }
+bip39 = "1.2.0"
+bech32 = { version = "0.9.1", default-features = false }
+ecies = {version = "0.2.7", default-features = false, features = ["pure"]}
+hex = "0.4.3"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", branch = "blinded-musig-scheme", features = [ "rand-std", "bitcoin_hashes", "std" ] }
+uniffi = { version = "0.27.1", features = [ "cli" ], optional = true }
+thiserror = "1.0.59"
+
+[features]
+default = []
+bindings = ["uniffi", "uniffi/cli"]

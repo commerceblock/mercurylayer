@@ -184,34 +184,6 @@ paths:
 
             If you get this response please report this as an issue at
             github.com/commerceblock/mercury.
-  /info/transfer-batch/{batch_id}:
-    get:
-      summary: Get batch transfer status and statecoin IDs for specified batch ID
-      operationId: util_get_transfer_batch_status
-      parameters:
-        - name: batch_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransferBatchDataAPI'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
   /pod/token/init/{value}:
     get:
       summary: Initialize a pay-on-demand token
@@ -270,62 +242,6 @@ paths:
 
             If you get this response please report this as an issue at
             github.com/commerceblock/mercury.
-  /transfer/batch/init:
-    post:
-      summary: 'Initiate the batch transfer protocol: provide statechain signatures'
-      operationId: transfer_batch_transfer_batch_init
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TransferBatchInitMsg'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /transfer/batch/reveal:
-    post:
-      summary: 'Complete Batch transfer: reveal transfer nonce'
-      operationId: transfer_batch_transfer_reveal_nonce
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TransferRevealNonce'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
   /transfer/get_msg_addr/{auth_key}:
     get:
       summary: Get stored transfer message (TransferMsg3) for specified auth key
@@ -345,34 +261,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TransferMsg3'
-        '500':
-          description: >-
-            # [500 Internal Server
-            Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)
-
-            This response is given when the server has an internal error that it
-            could not recover from.
-
-
-            If you get this response please report this as an issue at
-            github.com/commerceblock/mercury.
-  /transfer/keyupdate_complete:
-    post:
-      summary: 'Transfer completing by receiver: key share update and deletion'
-      operationId: transfer_keyupdate_complete
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/KUFinalize'
-        required: true
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                type: 'boolean'
         '500':
           description: >-
             # [500 Internal Server
@@ -789,15 +677,9 @@ components:
       description: User commitments for signing
       type: object
       required:
-        - r2_commitment
-        - blind_commitment
         - statechain_id
         - auth_sig
       properties:
-        r2_commitment:
-          type: string
-        blind_commitment:
-          type: string
         statechain_id:
           $ref: '#/components/schemas/Uuid'
         auth_sig:
@@ -858,10 +740,9 @@ components:
         - num_sigs
         - s2_pub
         - signature_count
-        - blind_commits
-        - r2_commits
         - r1_values
         - blind_challenges
+        - x1_pub
       properties:
         amount:
           description: The value of the statecoin (in satoshis)
@@ -876,19 +757,15 @@ components:
           type: integer
         s2_pub:
           type: string
-        blind_commits:
-          type: array
-          items:
-            type: string
-        r2_commits:
-          type: array
-          items:
-            type: string
         r1_values:
           type: array
           items:
             type: string
         blind_challenges:
+          type: array
+          items:
+            type: string
+        x1_pub:
           type: array
           items:
             type: string
@@ -1070,21 +947,11 @@ components:
       required:
         - s2_pub
         - signature_count
-        - blind_commits
-        - r2_commits
         - r1_values
         - blind_challenges
       properties:
         s2_pub:
           type: string
-        blind_commits:
-          type: array
-          items:
-            type: string
-        r2_commits:
-          type: array
-          items:
-            type: string
         r1_values:
           type: array
           items:

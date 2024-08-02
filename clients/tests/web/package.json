@@ -1,0 +1,31 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:browser": "vitest --workspace=vitest.workspace.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "install": "^0.13.0",
+    "mercuryweblib": "file:../../libs/web",
+    "npm": "^10.8.2",
+    "puppeteer": "^22.13.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@vitest/browser": "^2.0.4",
+    "jsdom": "^24.1.1",
+    "playwright": "^1.45.3",
+    "vite": "^5.3.1",
+    "vitest": "^2.0.4"
+  }
+}

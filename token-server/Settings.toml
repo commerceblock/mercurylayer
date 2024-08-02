@@ -1,0 +1,6 @@
+processor_url = "http://0.0.0.0:18080"
+api_key = "aaaaa"
+fee = 10000
+unit = "BTC"
+delay = 3600
+connection_string = "postgresql://postgres:postgres@localhost/mercury"

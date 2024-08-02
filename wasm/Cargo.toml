@@ -1,0 +1,49 @@
+[package]
+name = "mercury-wasm"
+version = "0.1.0"
+authors = ["ttrevethan"]
+edition = "2018"
+rust-version = "1.56"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+wasm-bindgen = "0.2.87"
+js-sys = "0.3.64"
+wasm-bindgen-futures = "0.4.37"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
+bip39 = "1.2.0"
+rand = "0.8"
+mercurylib = { path = "../lib" }
+
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size when deploying.
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'Window',
+]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
+
+[dependencies.getrandom]
+features = ["js"]
