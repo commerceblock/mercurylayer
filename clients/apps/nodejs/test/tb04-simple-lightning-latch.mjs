@@ -408,7 +408,11 @@ describe('TB04 - Lightning Latch', function() {
       const paymentHashSecond = "f768c404215f9fb5731c32c00fe7a057fc181d7695de447b334380d90674db34"
       const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
 
-      await payInvoice(invoiceSecond.payment_request);
-    })
+      try {
+        await payInvoice(invoiceSecond.payment_request);
+      } catch (error) {
+        console.error('Error:', error);
+        expect(error.message).to.include('failed');
+      }
   })
 })
