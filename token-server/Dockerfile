@@ -28,7 +28,7 @@ WORKDIR /mercurylayer/token-server
 
 # # Build your Rust project. Since the source files are now present,
 # # the Rust compiler should be able to find and compile them.
-RUN CARGO_TARGET_DIR=target  cargo build --release
+RUN cargo build --release
 
 EXPOSE 8001
 # # Command to run the token server by default when the container starts
