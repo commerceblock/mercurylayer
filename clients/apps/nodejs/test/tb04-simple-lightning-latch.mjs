@@ -3,7 +3,7 @@ import client_config from '../client_config.js';
 import mercurynodejslib from 'mercurynodejslib';
 import { CoinStatus } from 'mercurynodejslib/coin_enum.js';
 import crypto from 'crypto';
-import { sleep, createWallet, depositCoin, generateInvoice, payInvoice, settleInvoice } from '../test_utils.js';
+import { sleep, createWallet, depositCoin, generateInvoice, payHoldInvoice, payInvoice, settleInvoice } from '../test_utils.js';
 
 describe('TB04 - Lightning Latch', function() {
   this.timeout(30000);
