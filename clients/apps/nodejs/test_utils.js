@@ -54,7 +54,7 @@ const getElectrumClient = async (clientConfig) => {
 }
 
 const generateBlock = async (numBlocks) => {
-    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
+    const generateBlockCommand = `docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} "bcrt1qgh48u8aj4jvjkalc28lqujyx2wveck4jsm59x9"`;
     await exec(generateBlockCommand);
     // console.log(`Generated ${numBlocks} blocks`);
 
@@ -74,7 +74,7 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
 
     // Sending Bitcoin using bitcoin-cli
     try {
-        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
+        const sendBitcoinCommand = `docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress ${deposit_info.deposit_address} ${amountInBtc}`;
         await exec(sendBitcoinCommand);
         // console.log(`Sent ${amountInBtc} BTC to ${deposit_info.deposit_address}`);
         await generateBlock(3);
@@ -85,24 +85,24 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
 }
 
 const disconnectMercuryServer = async () => {
-    await exec("docker network disconnect mercurylayer_default mercurylayer_mercury_1");
+    await exec("docker network disconnect mercurylayer-default mercurylayer-mercury-1");
 }
 
 const connectMercuryServer = async () => {
-    await exec("docker network connect mercurylayer_default mercurylayer_mercury_1");
+    await exec("docker network connect mercurylayer-default mercurylayer-mercury-1");
 }
 
 const disconnectElectr = async () => {
-    await exec("docker network disconnect mercurylayer_default mercurylayer_electrs_1");
+    await exec("docker network disconnect mercurylayer-default mercurylayer-electrs-1");
 }
 
 const connectElectr = async () => {
-    await exec("docker network connect mercurylayer_default mercurylayer_electrs_1");
+    await exec("docker network connect mercurylayer-default mercurylayer-electrs-1");
 }
 
 const generateInvoice = async (paymentHash, amountInSats) => {
 
-    const generateInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_alice_1") lncli -n regtest addholdinvoice ${paymentHash} --amt ${amountInSats}`;
+    const generateInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest addholdinvoice ${paymentHash} --amt ${amountInSats}`;
     const { stdout, stderr } = await exec(generateInvoiceCommand);
     if (stderr) {
         console.error('Error:', stderr);
@@ -120,7 +120,7 @@ const generateInvoice = async (paymentHash, amountInSats) => {
 
 const payInvoice = async (paymentRequest) => {
     
-    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
     const { stdout, stderr } = await exec(payInvoiceCommand);
     if (stderr) {
       console.error('Error:', stderr);
@@ -132,13 +132,13 @@ const payInvoice = async (paymentRequest) => {
 
 const payHoldInvoice = (paymentRequest) => {
     
-    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_bob_1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
     exec(payInvoiceCommand);
 }
 
 const settleInvoice = async (preimage) => {
 
-    const settleInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer_alice_1") lncli -n regtest settleinvoice ${preimage}`;
+    const settleInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest settleinvoice ${preimage}`;
     await exec(settleInvoiceCommand);
 }
 

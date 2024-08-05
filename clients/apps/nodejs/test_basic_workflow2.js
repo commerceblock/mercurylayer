@@ -395,7 +395,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
 
     let transfer_address = await mercurynodejslib.newTransferAddress(clientConfig, wallet_2_name, null);
 
-    console.log("Disconnect mercurylayer_mercury_1 from network");
+    console.log("Disconnect mercurylayer-mercury-1 from network");
     await disconnectMercuryServer();
 
     try {
@@ -406,7 +406,7 @@ async function interruptBeforeSignFirst(clientConfig, wallet_1_name, wallet_2_na
         assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:8000"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_mercury_1 from network");
+    console.log("Connect mercurylayer-mercury-1 from network");
     await connectMercuryServer();
 }
 
@@ -447,7 +447,7 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
 
     const serverPartialSigRequest = partialSigRequest.partial_signature_request_payload;
 
-    console.log("Disconnect mercurylayer_mercury_1 from network");
+    console.log("Disconnect mercurylayer-mercury-1 from network");
     await disconnectMercuryServer();
 
     let serverPartialSig;
@@ -461,7 +461,7 @@ const new_transaction = async(clientConfig, electrumClient, coin, toAddress, isW
         `Unexpected error message: ${error.message}`);
     }
 
-    console.log("Connect mercurylayer_mercury_1 from network");
+    console.log("Connect mercurylayer-mercury-1 from network");
     await connectMercuryServer();
 }
 
@@ -630,7 +630,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
 
     await sleep(5000); // wait for Electrum to disconnect
 
-    console.log("Disconnect mercurylayer_electrs_1 from network");
+    console.log("Disconnect mercurylayer-electrs-1 from network");
     await disconnectElectr();
 
     try {
@@ -641,7 +641,7 @@ async function interruptSignWithElectrumUnavailability(clientConfig, wallet_1_na
         assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:50001"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_electrs_1 from network");
+    console.log("Connect mercurylayer-electrs-1 from network");
     await connectElectr();
 
     await sleep(5000); // wait for Electrum to connect
@@ -690,7 +690,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
 
     await sleep(5000); // wait for Electrum to disconnect
 
-    console.log("Disconnect mercurylayer_electrs_1 from network");
+    console.log("Disconnect mercurylayer-electrs-1 from network");
     await disconnectElectr();
 
     try {
@@ -701,7 +701,7 @@ async function interruptTransferReceiveWithElectrumUnavailability(clientConfig, 
         assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:50001"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_electrs_1 from network");
+    console.log("Connect mercurylayer-electrs-1 from network");
     await connectElectr();
 
     await sleep(5000); // wait for Electrum to connect
@@ -748,7 +748,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
 
     coin = await mercurynodejslib.transferSend(clientConfig, wallet_1_name, coin.statechain_id, transfer_address.transfer_receive, false, null);
 
-    console.log("Disconnect mercurylayer_mercury_1 from network");
+    console.log("Disconnect mercurylayer-mercury-1 from network");
     await disconnectMercuryServer();
 
     try {
@@ -759,7 +759,7 @@ async function interruptTransferReceiveWithMercuryServerUnavailability(clientCon
         assert(error.message.includes("connect ECONNREFUSED 0.0.0.0:8000"),   
         `Unexpected error message: ${error.message}`);
     }
-    console.log("Connect mercurylayer_mercury_1 from network");
+    console.log("Connect mercurylayer-mercury-1 from network");
     await connectMercuryServer();
 }
 

@@ -40,7 +40,7 @@ jobs:
           sleep 80 # Adjust time as necessary for services to initialize
       - name: Verify Bitcoin daemon Service and create wallet
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_bitcoind_1")
+          container_id=$(docker ps -qf "name=mercurylayer-bitcoind-1")
           echo "Container ID: $container_id"
           docker logs $container_id
           wallet_name="new_wallet"
@@ -54,9 +54,9 @@ jobs:
           sleep 60 # Wait for lnd to sync with latest block
       - name: Verify LND nodes and create a channel between them
         run: |
-          container_id_alice=$(docker ps -qf "name=mercurylayer_alice_1")
+          container_id_alice=$(docker ps -qf "name=mercurylayer-alice-1")
           echo "Container ID: $container_id_alice"
-          container_id_bob=$(docker ps -qf "name=mercurylayer_bob_1")
+          container_id_bob=$(docker ps -qf "name=mercurylayer-bob-1")
           echo "Container ID: $container_id_bob"
           docker logs $container_id_alice
           docker logs $container_id_bob
@@ -65,27 +65,27 @@ jobs:
           docker exec $container_id_alice lncli -n regtest connect $identity_pubkey_bob@bob:9735
           docker exec $container_id_alice lncli -n regtest listpeers
           address=$(docker exec $container_id_bob lncli -n regtest newaddress p2wkh | jq -r '.address')
-          container_id_bitcoind=$(docker ps -qf "name=mercurylayer_bitcoind_1")
+          container_id_bitcoind=$(docker ps -qf "name=mercurylayer-bitcoind-1")
           docker exec $container_id_bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress $address 0.5
-          docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 6
+          docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 6
           identity_pubkey_alice=$(docker exec $container_id_alice lncli -n regtest getinfo | jq -r '.identity_pubkey')
           docker exec $container_id_bob lncli -n regtest openchannel $identity_pubkey_alice 100000
-          docker exec $(docker ps -qf "name=mercurylayer_bitcoind_1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 5
+          docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 5
           docker logs $container_id_alice
           docker logs $container_id_bob
       - name: Verify ElectrumX Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_electrs_1")
+          container_id=$(docker ps -qf "name=mercurylayer-electrs-1")
           echo "Container ID: $container_id"
           docker logs $container_id
       - name: Verify Enclave Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
+          container_id=$(docker ps -qf "name=mercurylayer-enclave-sgx-1")
           echo "Container ID: $container_id"
           docker logs $container_id
       - name: Verify Mercury Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
+          container_id=$(docker ps -qf "name=mercurylayer-mercury-1")
            echo "Container ID: $container_id"
           docker logs $container_id
           docker exec $container_id \
@@ -100,11 +100,11 @@ jobs:
       - name: Check connectivity between containers
         run: |
           # Get container IDs
-          enclave_container=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
-          mercury_container=$(docker ps -qf "name=mercurylayer_mercury_1")
+          enclave_container=$(docker ps -qf "name=mercurylayer-enclave-sgx-1")
+          mercury_container=$(docker ps -qf "name=mercurylayer-mercury-1")
           
-          # Check if mercurylayer_mercury_1 can reach mercurylayer_enclave-sgx_1
-          docker exec $mercury_container curl -v http://mercurylayer_enclave-sgx_1:18080/get_public_key \
+          # Check if mercurylayer-mercury-1 can reach mercurylayer-enclave-sgx-1
+          docker exec $mercury_container curl -v http://mercurylayer-enclave-sgx-1:18080/get_public_key \
             -H "Content-Type: application/json" \
             -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
           
@@ -114,7 +114,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
 
-          docker inspect mercurylayer_mercury_1
+          docker inspect mercurylayer-mercury-1
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
