@@ -14,7 +14,7 @@ jobs:
 
     services:
       docker:
-        image: docker:19.03.12
+        image: docker:24.0.5
         options: --privileged
         ports:
           - 5432:5432
