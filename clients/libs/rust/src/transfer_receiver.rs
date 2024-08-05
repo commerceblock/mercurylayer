@@ -3,7 +3,6 @@ use std::{collections::{HashMap, HashSet}, str::FromStr};
 use crate::{sqlite_manager::{get_wallet, update_wallet, insert_or_update_backup_txs}, client_config::ClientConfig, utils};
 use anyhow::{anyhow, Ok, Result};
 use bitcoin::{Txid, Address};
-use chrono::Utc;
 use electrum_client::ElectrumApi;
 use mercurylib::{utils::{get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
 use reqwest::StatusCode;
@@ -261,15 +260,8 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
     coin.locktime = Some(previous_lock_time);
     coin.status = tx0_status;
 
-    let date = Utc::now(); // This will get the current date and time in UTC
-    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
-
-    let activity = Activity {
-        utxo: tx0_outpoint.txid.clone(),
-        amount: new_key_info.amount,
-        action: "Receive".to_string(),
-        date: iso_string
-    };
+    let activity = crate::utils::create_activity(
+        &tx0_outpoint.txid.clone(), new_key_info.amount, "Receive");
 
     activities.push(activity);
 

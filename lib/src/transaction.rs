@@ -4,7 +4,7 @@ use bitcoin::{Txid, ScriptBuf, Transaction, absolute, TxIn, OutPoint, Witness, T
 use secp256k1_zkp::{SecretKey, PublicKey,  Secp256k1, schnorr::Signature, Message, musig::{MusigSessionId, MusigPubNonce, BlindingFactor, MusigSession, MusigPartialSignature, blinded_musig_pubkey_xonly_tweak_add, blinded_musig_negate_seckey, MusigAggNonce, MusigSecNonce}, new_musig_nonce_pair, KeyPair, rand::{self, Rng}};
 use serde::{Serialize, Deserialize};
 
-use crate::{decode_transfer_address, error::MercuryError, utils::{self, get_network}, wallet::Coin};
+use crate::{decode_transfer_address, error::MercuryError, utils::{self, get_network}, wallet::coin::Coin};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -68,16 +68,16 @@ pub fn create_and_commit_nonces(coin: &Coin) -> core::result::Result<CoinNonce, 
 
     let client_session_id = MusigSessionId::new(&mut rand::thread_rng());
 
-    let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
-    let client_pubkey = PublicKey::from_str(&coin.user_pubkey)?;
+    let client_seckey = PrivateKey::from_wif(&coin.user_privkey())?.inner;
+    let client_pubkey = PublicKey::from_str(&coin.user_pubkey())?;
 
     let (client_sec_nonce, client_pub_nonce) = new_musig_nonce_pair(&secp, client_session_id, None, Some(client_seckey), client_pubkey, None, None)?;
 
     let blinding_factor = BlindingFactor::new(&mut rand::thread_rng());
 
     let sign_first_request_payload = SignFirstRequestPayload {
-        statechain_id: coin.statechain_id.as_ref().unwrap().to_owned(),
-        signed_statechain_id: coin.signed_statechain_id.as_ref().unwrap().to_owned(),
+        statechain_id: coin.statechain_id().as_ref().unwrap().to_owned(),
+        signed_statechain_id: coin.signed_statechain_id().as_ref().unwrap().to_owned(),
     };
 
     Ok(CoinNonce {
@@ -116,7 +116,7 @@ pub fn create_tx_out(
     const BACKUP_TX_SIZE: u64 = 112; // virtual size one input P2TR and one output P2TR
     // 163 is the real size one input P2TR and one output P2TR
 
-    let input_amount = coin.amount.unwrap() as u64;
+    let input_amount = coin.amount().unwrap() as u64;
     let absolute_fee = (BACKUP_TX_SIZE as f64 * fee_rate_sats_per_byte).ceil() as u64;
     let amount_out = input_amount - absolute_fee;
 
@@ -156,7 +156,7 @@ pub fn get_user_backup_address(coin: &Coin, network: String) -> core::result::Re
 
     let network = get_network(&network)?;
 
-    let user_pubkey = PublicKey::from_str(&coin.user_pubkey.clone())?;
+    let user_pubkey = PublicKey::from_str(&coin.user_pubkey().clone())?;
     let to_address = Address::p2tr(&Secp256k1::new(), user_pubkey.x_only_public_key().0, None, network);
     Ok(to_address.to_string())
 }
@@ -199,15 +199,15 @@ pub fn get_musig_session(
     output: &TxOut,
     network: Network) -> core::result::Result<PartialSignatureMsg1, MercuryError>
 {
-    let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?;
+    let input_pubkey = PublicKey::from_str(&coin.aggregated_pubkey().as_ref().unwrap())?;
     let input_xonly_pubkey = input_pubkey.x_only_public_key().0;
 
     let outputs = [output.to_owned()].to_vec();
 
     let lock_time = absolute::LockTime::from_height(block_height)?;
 
-    let input_txid = Txid::from_str(&coin.utxo_txid.as_ref().unwrap())?;
-    let input_vout = coin.utxo_vout.unwrap();
+    let input_txid = Txid::from_str(&coin.utxo_txid().as_ref().unwrap())?;
+    let input_vout = coin.utxo_vout().unwrap();
 
     let tx1 = Transaction {
         version: 2,
@@ -223,9 +223,9 @@ pub fn get_musig_session(
 
     let mut psbt = Psbt::from_unsigned_tx(tx1)?;
 
-    let input_amount = coin.amount.unwrap() as u64;
+    let input_amount = coin.amount().unwrap() as u64;
     
-    let input_address = Address::from_str(&coin.aggregated_address.as_ref().unwrap())?.require_network(network)?;
+    let input_address = Address::from_str(&coin.aggregated_address().as_ref().unwrap())?.require_network(network)?;
     let input_scriptpubkey = input_address.script_pubkey();
     let mut input = Input {
         witness_utxo: Some(TxOut { value: input_amount, script_pubkey: input_scriptpubkey }),
@@ -278,7 +278,7 @@ pub fn calculate_musig_session(
 {
     let secp = Secp256k1::new();
 
-    let aggregate_pubkey = PublicKey::from_str(&coin.aggregated_pubkey.as_ref().unwrap())?; 
+    let aggregate_pubkey = PublicKey::from_str(&coin.aggregated_pubkey().as_ref().unwrap())?; 
 
     let tap_tweak = TapTweakHash::from_key_and_tweak(aggregate_pubkey.x_only_public_key().0, None);
     let tap_tweak_bytes = tap_tweak.as_byte_array();
@@ -288,16 +288,16 @@ pub fn calculate_musig_session(
 
     let (parity_acc, output_pubkey, out_tweak32) = blinded_musig_pubkey_xonly_tweak_add(&secp, &aggregate_pubkey, tweak);
 
-    let client_pub_nonce_bytes = hex::decode(coin.public_nonce.as_ref().unwrap())?;
+    let client_pub_nonce_bytes = hex::decode(coin.public_nonce().as_ref().unwrap())?;
     let client_pub_nonce = MusigPubNonce::from_slice(client_pub_nonce_bytes.as_slice())?;
 
-    let server_pubnonce_hex = coin.server_public_nonce.as_ref().unwrap().to_string();
+    let server_pubnonce_hex = coin.server_public_nonce().as_ref().unwrap().to_string();
     let server_pub_nonce_bytes = hex::decode(&server_pubnonce_hex)?;
     let server_pub_nonce = MusigPubNonce::from_slice(server_pub_nonce_bytes.as_slice())?;
 
     let aggnonce = MusigAggNonce::new(&secp, &[client_pub_nonce, server_pub_nonce]);
 
-    let blinding_factor_bytes = hex::decode(coin.blinding_factor.as_ref().unwrap())?;
+    let blinding_factor_bytes = hex::decode(coin.blinding_factor().as_ref().unwrap())?;
     let blinding_factor = BlindingFactor::from_slice(blinding_factor_bytes.as_slice())?;
 
     let msg: Message = hash.into();
@@ -318,13 +318,13 @@ pub fn calculate_musig_session(
         parity_acc,
     );
 
-    let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+    let client_seckey = PrivateKey::from_wif(&coin.user_privkey())?.inner;
 
-    let client_pubkey = PublicKey::from_str(&coin.user_pubkey)?;
+    let client_pubkey = PublicKey::from_str(&coin.user_pubkey())?;
 
     let client_keypair = KeyPair::from_secret_key(&secp, &client_seckey);
 
-    let client_sec_nonce_bytes = hex::decode(coin.secret_nonce.as_ref().unwrap())?;
+    let client_sec_nonce_bytes = hex::decode(coin.secret_nonce().as_ref().unwrap())?;
     let client_sec_nonce_bytes: [u8; 132] = client_sec_nonce_bytes.try_into().unwrap();
     let client_sec_nonce = MusigSecNonce::from_slice(client_sec_nonce_bytes);
 
@@ -343,8 +343,8 @@ pub fn calculate_musig_session(
 
     let blinded_session = session.remove_fin_nonce_from_session();
 
-    let statechain_id = coin.statechain_id.as_ref().unwrap();
-    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
+    let statechain_id = coin.statechain_id().unwrap();
+    let signed_statechain_id = coin.signed_statechain_id().unwrap();
 
     let payload = PartialSignatureRequestPayload {
         statechain_id: statechain_id.to_string(),

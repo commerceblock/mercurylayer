@@ -2,7 +2,7 @@ use std::{str::FromStr, collections::BTreeMap};
 
 use crate::{error::MercuryError, utils::get_network};
 
-use super::{BackupTx, Coin};
+use super::{backup_tx::BackupTx, Coin};
 use bitcoin::{Transaction, Address, TxOut, Txid, OutPoint, TxIn, ScriptBuf, Witness, absolute, psbt::{Psbt, Input, PsbtSighashType, self}, bip32::{Fingerprint, DerivationPath}, Amount, Network, sighash::{TapSighashType, SighashCache, self, TapSighash}, taproot::{TapLeafHash, self}, secp256k1, key::TapTweak, PrivateKey};
 use secp256k1_zkp::{Secp256k1, SecretKey, PublicKey, XOnlyPublicKey};
 
@@ -11,11 +11,11 @@ pub fn latest_backup_tx_pays_to_user_pubkey(backup_txs: &Vec<BackupTx>, coin: &C
 
     let network = get_network(network)?;
 
-    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
+    let backup_address = Address::from_str(coin.backup_address().as_str())?.require_network(network)?;
 
     let backup_tx = backup_txs.iter()
         .filter_map(|bkp_tx| {
-            let tx_bytes = hex::decode(&bkp_tx.tx).ok()?;
+            let tx_bytes = hex::decode(&bkp_tx.tx()).ok()?;
             let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes).ok()?;
             
             if tx.output.len() != 1 {
@@ -29,7 +29,7 @@ pub fn latest_backup_tx_pays_to_user_pubkey(backup_txs: &Vec<BackupTx>, coin: &C
                 None
             }
         })
-        .max_by_key(|bkp_tx| bkp_tx.tx_n);
+        .max_by_key(|bkp_tx| bkp_tx.tx_n());
 
     match backup_tx {
         Some(tx) => {
@@ -47,7 +47,7 @@ pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_r
 
     let network = get_network(network)?;
 
-    let tx_bytes = hex::decode(&backup_tx.tx)?;
+    let tx_bytes = hex::decode(&backup_tx.tx())?;
     let tx: Transaction = bitcoin::consensus::deserialize(&tx_bytes)?;
 
     if tx.output.len() != 1 {
@@ -56,7 +56,7 @@ pub fn create_cpfp_tx(backup_tx: &BackupTx, coin: &Coin, to_address: &str, fee_r
 
     let output: &TxOut = tx.output.get(0).unwrap();
 
-    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
+    let backup_address = Address::from_str(coin.backup_address().as_str())?.require_network(network)?;
 
     if backup_address.script_pubkey() != output.script_pubkey {
         return Err(MercuryError::BackupTransactionDoesNotPayUser);
@@ -115,7 +115,7 @@ fn create_transaction(input_tx_hash: &Txid, input_vout: u32, coin: &Coin, input_
     };
     let mut psbt = Psbt::from_unsigned_tx(tx1)?;
 
-    let input_public_key = PublicKey::from_str(&coin.user_pubkey)?;
+    let input_public_key = PublicKey::from_str(&coin.user_pubkey())?;
     let input_x_only_public_key = input_public_key.x_only_public_key().0;
 
     let mut origins = BTreeMap::new();
@@ -124,15 +124,15 @@ fn create_transaction(input_tx_hash: &Txid, input_vout: u32, coin: &Coin, input_
         (
             vec![],
             (
-                Fingerprint::from_str(&coin.fingerprint).unwrap(),
-                DerivationPath::from_str(&coin.derivation_path).unwrap(),
+                Fingerprint::from_str(&coin.fingerprint()).unwrap(),
+                DerivationPath::from_str(&coin.derivation_path()).unwrap(),
             ),
         ),
     );
 
     let mut psbt_inputs = Vec::<Input>::new();
 
-    let backup_address = Address::from_str(coin.backup_address.as_str())?.require_network(network)?;
+    let backup_address = Address::from_str(coin.backup_address().as_str())?.require_network(network)?;
     let input_script_pubkey = backup_address.script_pubkey();
 
     let mut input = Input {
@@ -171,7 +171,7 @@ fn create_transaction(input_tx_hash: &Txid, input_vout: u32, coin: &Coin, input_
         hash_ty,
     )?;
 
-    let secret_key = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+    let secret_key = PrivateKey::from_wif(&coin.user_privkey())?.inner;
 
     sign_psbt_taproot(
         &secret_key,

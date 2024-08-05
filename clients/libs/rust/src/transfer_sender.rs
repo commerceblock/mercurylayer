@@ -1,7 +1,6 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
-use chrono::Utc;
-use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use mercurylib::{wallet::{Coin, BackupTx, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
 use electrum_client::ElectrumApi;
 
 pub async fn execute(
@@ -131,17 +130,10 @@ pub async fn execute(
 
     update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
 
-    let date = Utc::now(); // This will get the current date and time in UTC
-    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
-
     let utxo = format!("{}:{}", input_txid, input_vout);
 
-    let activity = Activity {
-        utxo,
-        amount: coin.amount.unwrap(),
-        action: "Transfer".to_string(),
-        date: iso_string
-    };
+    let activity = crate::utils::create_activity(
+        &utxo, coin.amount.unwrap(), "Transfer");
 
     wallet.activities.push(activity);
     coin.status = CoinStatus::IN_TRANSFER;

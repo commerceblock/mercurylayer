@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "staticlib", "lib"]
+crate-type = ["cdylib", "rlib", "staticlib", "lib"]
 name = "mercurylib"
 
 [[bin]]
@@ -23,7 +23,26 @@ serde_json = "1.0.96"
 secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", branch = "blinded-musig-scheme", features = [ "rand-std", "bitcoin_hashes", "std" ] }
 uniffi = { version = "0.27.1", features = [ "cli" ], optional = true }
 thiserror = "1.0.59"
+wasm-bindgen = "0.2.92"
+wasm-bindgen-futures = "0.4.42"
+js-sys = "0.3.69"
+serde-wasm-bindgen = "0.6.5"
+
+[dependencies.web-sys]
+version = "0.3.69"
+features = [
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'Window',
+]
 
 [features]
 default = []
 bindings = ["uniffi", "uniffi/cli"]
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

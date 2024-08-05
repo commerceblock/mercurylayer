@@ -4,7 +4,7 @@ use bitcoin::{Transaction, secp256k1::PublicKey};
 use secp256k1_zkp::musig::{MusigPubNonce, BlindingFactor};
 use serde::{Deserialize, Serialize};
 
-use crate::wallet::BackupTx;
+use crate::wallet::backup_tx::BackupTx;
 
 pub mod receiver;
 pub mod sender;

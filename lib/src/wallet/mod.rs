@@ -1,9 +1,19 @@
 pub mod key_derivation;
 pub mod cpfp_tx;
+pub mod coin;
+pub mod coin_status;
+pub mod activity;
+pub mod backup_tx;
+pub mod statechain_backup_txs;
+pub mod token;
+pub mod settings;
 
-use std::{fmt, str::FromStr};
-
+use activity::Activity;
 use bip39::{Mnemonic, Language};
+use coin::Coin;
+use settings::Settings;
+use token::Token;
+use wasm_bindgen::prelude::*;
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
 
@@ -11,182 +21,189 @@ use crate::{utils::ServerConfig, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+#[wasm_bindgen]
 pub struct Wallet {
-    pub name: String,
-    pub mnemonic: String,
-    pub version: String,
-    pub state_entity_endpoint: String,
-    pub electrum_endpoint: String,
-    pub network: String,
-    pub blockheight: u32,
-    pub initlock: u32,
-    pub interval: u32,
-    pub tokens: Vec<Token>,
-    pub activities: Vec<Activity>,
-    pub coins: Vec<Coin>,
-    pub settings: Settings,
+    name: String,
+    mnemonic: String,
+    version: String,
+    state_entity_endpoint: String,
+    electrum_endpoint: String,
+    network: String,
+    blockheight: u32,
+    initlock: u32,
+    interval: u32,
+    tokens: Vec<Token>,
+    activities: Vec<Activity>,
+    coins: Vec<Coin>,
+    settings: Settings,
 }
 
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct Settings {
-    pub network: String,
-    pub block_explorerURL: Option<String>,
-    pub torProxyHost: Option<String>,
-    pub torProxyPort: Option<String>,
-    pub torProxyControlPassword: Option<String>,
-    pub torProxyControlPort: Option<String>,
-    pub statechainEntityApi: String,
-    pub torStatechainEntityApi: Option<String>,
-    pub electrumProtocol: String,
-    pub electrumHost: String,
-    pub electrumPort: String,
-    pub electrumType: String,
-    pub notifications: bool,
-    pub tutorials: bool
-}
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct Token {
-    pub btc_payment_address: String,
-    pub fee: String,
-    pub lightning_invoice: String,
-    pub processor_id: String,
-    pub token_id: String,
-    pub confirmed: bool,
-    pub spent: bool,
-    pub expiry: String,
-}
+#[wasm_bindgen]
+impl Wallet {
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct Activity {
-    pub utxo: String,
-    pub amount: u32,
-    pub action: String,
-    pub date: String
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct Coin {
-    
-    pub index: u32,
-    pub user_privkey: String,
-    pub user_pubkey: String,
-    pub auth_privkey: String,
-    pub auth_pubkey: String,
-    pub derivation_path: String,
-    pub fingerprint: String,
-    /// The coin address is the user_pubkey || auth_pubkey
-    /// Used to transfer the coin to another wallet
-    pub address: String,
-    /// The backup address is the address used in backup transactions
-    /// The backup address is the p2tr address of the user_pubkey
-    pub backup_address: String,
-    pub server_pubkey: Option<String>,
-    // The aggregated_pubkey is the user_pubkey + server_pubkey
-    pub aggregated_pubkey: Option<String>,
-    /// The aggregated address is the P2TR address from aggregated_pubkey
-    pub aggregated_address: Option<String>,
-    pub utxo_txid: Option<String>,
-    pub utxo_vout: Option<u32>,
-    pub amount: Option<u32>,
-    pub statechain_id: Option<String>,
-    pub signed_statechain_id: Option<String>,
-    pub locktime: Option<u32>,
-    pub secret_nonce: Option<String>,
-    pub public_nonce: Option<String>,
-    pub blinding_factor: Option<String>,
-    pub server_public_nonce: Option<String>,
-    pub tx_cpfp: Option<String>,
-    pub tx_withdraw: Option<String>,
-    pub withdrawal_address: Option<String>,
-    pub status: CoinStatus,
-    pub duplicate_index: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Enum))]
-#[allow(non_camel_case_types)]
-pub enum CoinStatus {
-    INITIALISED, //  address generated but no Tx0 yet
-    IN_MEMPOOL, // Tx0 in mempool
-    UNCONFIRMED, // Tx0 is awaiting more confirmations before coin is available to be sent
-    CONFIRMED, // Tx0 confirmed and coin available to be sent
-    IN_TRANSFER, // transfer-sender performed, but receiver hasn't completed transfer-receiver
-    WITHDRAWING, // withdrawal tx signed and broadcast but not yet confirmed
-    TRANSFERRED, // the coin was transferred
-    WITHDRAWN, // the coin was withdrawn
-    DUPLICATED, // the coin was duplicated
-}
-
-impl fmt::Display for CoinStatus {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Match the enum variants
-        write!(f, "{}", match self {
-            Self::INITIALISED => "INITIALISED",
-            Self::IN_MEMPOOL => "IN_MEMPOOL",
-            Self::UNCONFIRMED => "UNCONFIRMED",
-            Self::CONFIRMED => "CONFIRMED",
-            Self::IN_TRANSFER => "IN_TRANSFER",
-            Self::WITHDRAWING => "WITHDRAWING",
-            Self::TRANSFERRED => "TRANSFERRED",
-            Self::WITHDRAWN => "WITHDRAWN",
-            Self::DUPLICATED => "DUPLICATED",
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct CoinStatusParseError;
-
-impl fmt::Display for CoinStatusParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "provided string was not a valid CoinStatus")
-    }
-}
-
-impl std::error::Error for CoinStatusParseError {}
-
-impl FromStr for CoinStatus {
-    type Err = CoinStatusParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "INITIALISED" => Ok(CoinStatus::INITIALISED),
-            "IN_MEMPOOL" => Ok(CoinStatus::IN_MEMPOOL),
-            "UNCONFIRMED" => Ok(CoinStatus::UNCONFIRMED),
-            "CONFIRMED" => Ok(CoinStatus::CONFIRMED),
-            "IN_TRANSFER" => Ok(CoinStatus::IN_TRANSFER),
-            "WITHDRAWING" => Ok(CoinStatus::WITHDRAWING),
-            "TRANSFERRED" => Ok(CoinStatus::TRANSFERRED),
-            "WITHDRAWN" => Ok(CoinStatus::WITHDRAWN),
-            "DUPLICATED" => Ok(CoinStatus::DUPLICATED),
-            _ => Err(CoinStatusParseError {}),
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        name: String,
+        mnemonic: String,
+        version: String,
+        state_entity_endpoint: String,
+        electrum_endpoint: String,
+        network: String,
+        blockheight: u32,
+        initlock: u32,
+        interval: u32,
+        tokens: Vec<Token>,
+        activities: Vec<Activity>,
+        coins: Vec<Coin>,
+        settings: Settings
+    ) -> Self {
+        Self {
+            name,
+            mnemonic,
+            version,
+            state_entity_endpoint,
+            electrum_endpoint,
+            network,
+            blockheight,
+            initlock,
+            interval,
+            tokens,
+            activities,
+            coins,
+            settings
         }
     }
-}
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct StatechainBackupTxs {
-    pub statechain_id: String,
-    pub backup_txs: Vec<BackupTx>
-}
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct BackupTx {
-    pub tx_n: u32,
-    pub tx: String,
-    pub client_public_nonce: String,
-    pub server_public_nonce: String,
-    pub client_public_key: String,
-    pub server_public_key: String,
-    pub blinding_factor: String,
-} 
+    #[wasm_bindgen(getter)]
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn mnemonic(&self) -> String {
+        self.mnemonic.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_mnemonic(&mut self, mnemonic: String) {
+        self.mnemonic = mnemonic;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn version(&self) -> String {
+        self.version.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_version(&mut self, version: String) {
+        self.version = version;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn state_entity_endpoint(&self) -> String {
+        self.state_entity_endpoint.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_state_entity_endpoint(&mut self, state_entity_endpoint: String) {
+        self.state_entity_endpoint = state_entity_endpoint;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn electrum_endpoint(&self) -> String {
+        self.electrum_endpoint.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_electrum_endpoint(&mut self, electrum_endpoint: String) {
+        self.electrum_endpoint = electrum_endpoint;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn network(&self) -> String {
+        self.network.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_network(&mut self, network: String) {
+        self.network = network;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn blockheight(&self) -> u32 {
+        self.blockheight.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_blockheight(&mut self, blockheight: u32) {
+        self.blockheight = blockheight;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn initlock(&self) -> u32 {
+        self.initlock.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_initlock(&mut self, initlock: u32) {
+        self.initlock = initlock;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn interval(&self) -> u32 {
+        self.interval.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_interval(&mut self, interval: u32) {
+        self.interval = interval;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn tokens(&self) -> Vec<Token> {
+        self.tokens.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_tokens(&mut self, tokens: Vec<Token>) {
+        self.tokens = tokens;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn activities(&self) -> Vec<Activity> {
+        self.activities.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_activities(&mut self, activities: Vec<Activity>) {
+        self.activities = activities;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn coins(&self) -> Vec<Coin> {
+        self.coins.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_coins(&mut self, coins: Vec<Coin>) {
+        self.coins = coins;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn settings(&self) -> Settings {
+        self.settings.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_settings(&mut self, settings: Settings) {
+        self.settings = settings;
+    }
+}
 
 pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
     wallet.initlock = config.initlock;

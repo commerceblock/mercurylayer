@@ -59,7 +59,7 @@ pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::
 
     crate::database::deposit::insert_new_token(&statechain_entity.pool, &token_id).await;
 
-    let token = mercurylib::wallet::Token {
+    let token = mercurylib::wallet::token::Token::new(
         btc_payment_address,
         fee,
         lightning_invoice,
@@ -68,7 +68,7 @@ pub async fn token_init(statechain_entity: &State<StateChainEntity>) -> status::
         confirmed,
         spent,
         expiry
-    };
+    );
 
     let response_body = json!(token);
 

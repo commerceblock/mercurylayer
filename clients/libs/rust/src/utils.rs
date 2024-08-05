@@ -42,14 +42,7 @@ pub fn create_activity(utxo: &str, amount: u32, action: &str) -> Activity {
     let date = Utc::now(); // This will get the current date and time in UTC
     let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
 
-    let activity = Activity {
-        utxo: utxo.to_string(),
-        amount,
-        action: action.to_string(),
-        date: iso_string
-    };
-
-    activity
+    Activity::new(utxo.to_string(), amount, action.to_string(), iso_string)
 }
 
 pub async fn get_statechain_info(statechain_id: &str, client_config: &ClientConfig) -> Result<Option<StatechainInfoResponsePayload>> {

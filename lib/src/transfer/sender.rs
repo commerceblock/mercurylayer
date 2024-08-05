@@ -5,7 +5,7 @@ use secp256k1_zkp::{Secp256k1, Message, Scalar};
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 
-use crate::{decode_transfer_address, error::MercuryError, wallet::{BackupTx, Coin}};
+use crate::{decode_transfer_address, error::MercuryError, wallet::{backup_tx::BackupTx, coin::Coin}};
 
 use super::TransferMsg;
 
@@ -92,8 +92,8 @@ pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
 
-    let client_seckey = PrivateKey::from_wif(&coin.user_privkey)?.inner;
-    let client_public_key = coin.user_pubkey.to_string();
+    let client_seckey = PrivateKey::from_wif(&coin.user_privkey())?.inner;
+    let client_public_key = coin.user_pubkey().to_string();
 
     let x1 = hex::decode(x1)?;
     let x1: [u8; 32] = x1.try_into().unwrap();
@@ -101,8 +101,8 @@ pub fn create_transfer_update_msg(x1: &str, recipient_address: &str, coin: &Coin
     
     let t1 = client_seckey.add_tweak(&x1)?;
 
-    let statechain_id = coin.statechain_id.as_ref().unwrap();
-    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
+    let statechain_id = coin.statechain_id().unwrap();
+    let signed_statechain_id = coin.signed_statechain_id().unwrap();
 
     let transfer_msg = TransferMsg {
         statechain_id: statechain_id.to_string(),

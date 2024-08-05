@@ -4,7 +4,7 @@ use bip39::Mnemonic;
 use bitcoin::{bip32::{ExtendedPrivKey, DerivationPath, ExtendedPubKey, ChildNumber}, Address, PrivateKey};
 use secp256k1_zkp::{SecretKey, PublicKey, ffi::types::AlignedType, Secp256k1};
 
-use crate::{encode_sc_address, error::MercuryError, utils::get_network, wallet::{Coin, CoinStatus, Wallet}};
+use crate::{encode_sc_address, error::MercuryError, utils::get_network, wallet::{coin_status::CoinStatus, Coin, Wallet}};
 
 pub struct KeyData {
     pub secret_key: SecretKey,
@@ -24,7 +24,7 @@ impl Wallet {
 
     pub fn get_next_address_index(&self) -> u32 {
 
-        let max_index = self.coins.iter().map(|coin| coin.index).max();
+        let max_index = self.coins.iter().map(|coin| coin.index()).max();
 
         match max_index {
             Some(index) => index + 1,
@@ -104,35 +104,35 @@ impl Wallet {
 
         let coin_address = encode_sc_address(&client_pubkey_share, &auth_key_data.public_key, network)?;
 
-        let coin = Coin {
-            index: address_index,
-            user_privkey: client_secret_key_wif,
+        let coin = Coin::new(
+            address_index,
+            client_secret_key_wif,
             user_pubkey,
-            auth_privkey: auth_secret_wif,
+            auth_secret_wif,
             auth_pubkey,
-            derivation_path: agg_key_data.derivation_path,
-            fingerprint: agg_key_data.fingerprint,
-            address:coin_address,
-            backup_address: backup_address.to_string(),
-            server_pubkey: None,
-            aggregated_pubkey: None,
-            aggregated_address: None,
-            utxo_txid: None,
-            utxo_vout: None,
-            amount: None,
-            statechain_id: None,
-            signed_statechain_id: None,
-            locktime: None,
-            secret_nonce: None,
-            public_nonce: None,
-            blinding_factor: None,
-            server_public_nonce: None,
-            tx_cpfp: None,
-            tx_withdraw: None,
-            withdrawal_address: None,
-            status: CoinStatus::INITIALISED,
-            duplicate_index: 0,
-        };
+            agg_key_data.derivation_path,
+            agg_key_data.fingerprint,
+            coin_address,
+            backup_address.to_string(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            CoinStatus::Initialised,
+            0,
+        );
 
         Ok(coin)
     }

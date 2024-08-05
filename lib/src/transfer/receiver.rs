@@ -4,7 +4,7 @@ use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, si
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 
-use crate::{error::MercuryError, utils::get_network, wallet::{BackupTx, Coin, CoinStatus, Wallet}};
+use crate::{error::MercuryError, utils::get_network, wallet::{backup_tx::BackupTx, coin::Coin, coin_status::CoinStatus, Wallet}};
 
 use super::TransferMsg;
 
@@ -96,7 +96,8 @@ pub struct NewKeyInfo {
 #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn duplicate_coin_to_initialized_state(wallet: &Wallet, auth_pubkey: &str) -> Result<Coin, MercuryError> {
 
-    let coin = wallet.coins.iter().find(|coin| coin.auth_pubkey == auth_pubkey.to_string());
+    let coins = wallet.coins();
+    let coin = coins.iter().find(|coin| coin.auth_pubkey() == auth_pubkey.to_string());
 
     if coin.is_none() {
         return Err(MercuryError::CoinNotFound);
@@ -104,35 +105,36 @@ pub fn duplicate_coin_to_initialized_state(wallet: &Wallet, auth_pubkey: &str) -
 
     let coin = coin.unwrap();
 
-    Ok(Coin {
-        index: coin.index,
-        user_privkey: coin.user_privkey.clone(),
-        user_pubkey: coin.user_pubkey.clone(),
-        auth_privkey: coin.auth_privkey.clone(),
-        auth_pubkey: coin.auth_pubkey.clone(),
-        derivation_path: coin.derivation_path.clone(),
-        fingerprint: coin.fingerprint.clone(),
-        address: coin.address.clone(),
-        backup_address: coin. backup_address.clone(),
-        server_pubkey: None,
-        aggregated_pubkey: None,
-        aggregated_address: None,
-        utxo_txid: None,
-        utxo_vout: None,
-        amount: None,
-        statechain_id: None,
-        signed_statechain_id: None,
-        locktime: None,
-        secret_nonce: None,
-        public_nonce: None,
-        blinding_factor: None,
-        server_public_nonce: None,
-        tx_cpfp: None,
-        tx_withdraw: None,
-        withdrawal_address: None,
-        status: CoinStatus::INITIALISED,
-        duplicate_index: coin.duplicate_index,
-    })
+    Ok(Coin::new(
+        coin.index(),
+        coin.user_privkey().clone(),
+        coin.user_pubkey().clone(),
+        coin.auth_privkey().clone(),
+        coin.auth_pubkey().clone(),
+        coin.derivation_path().clone(),
+        coin.fingerprint().clone(),
+        coin.address().clone(),
+        coin.backup_address().clone(),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        CoinStatus::Initialised,
+        coin.duplicate_index(),
+    ))
+
 }   
 
 pub fn decrypt_transfer_msg(encrypted_message: &str, private_key_wif: &str) -> Result<TransferMsg, MercuryError> {
@@ -155,11 +157,11 @@ pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoin
 
     let mut backup_transactions = backup_transactions.clone();
 
-    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+    backup_transactions.sort_by(|a, b| a.tx_n().cmp(&b.tx_n()));
 
     let bkp_tx1 = backup_transactions.first().ok_or(MercuryError::NoBackupTransactionFound)?;
 
-    let tx1: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&bkp_tx1.tx)?)?;
+    let tx1: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&bkp_tx1.tx())?)?;
 
     if tx1.input.len() > 1 {
         return Err(MercuryError::Tx1HasMoreThanOneInput);
@@ -236,7 +238,7 @@ pub fn verify_latest_backup_tx_pays_to_user_pubkey(transfer_msg: &TransferMsg, c
 
     let last_bkp_tx = last_bkp_tx.unwrap();
 
-    let last_tx: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&last_bkp_tx.tx)?)?;
+    let last_tx: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&last_bkp_tx.tx())?)?;
 
     let output = &last_tx.output[0];
 
@@ -277,7 +279,7 @@ pub fn validate_signature_scheme(
 
         let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
-        let is_signature_valid = verify_transaction_signature(&backup_tx.tx, &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
+        let is_signature_valid = verify_transaction_signature(&backup_tx.tx(), &tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte);
         if is_signature_valid.is_err() {
             println!("{}", is_signature_valid.err().unwrap().to_string());
             sig_scheme_validation = false;
@@ -407,15 +409,15 @@ fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message, Mercur
 #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statechain_info: &StatechainInfo) -> Result<(), MercuryError> {
 
-    let client_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.client_public_nonce)?.as_slice())?;
+    let client_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.client_public_nonce())?.as_slice())?;
 
-    let server_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.server_public_nonce)?.as_slice())?;
+    let server_public_nonce = MusigPubNonce::from_slice(hex::decode(&backup_tx.server_public_nonce())?.as_slice())?;
 
-    let client_public_key = PublicKey::from_str(&backup_tx.client_public_key)?;
+    let client_public_key = PublicKey::from_str(&backup_tx.client_public_key())?;
 
-    let server_public_key = PublicKey::from_str(&backup_tx.server_public_key)?;
+    let server_public_key = PublicKey::from_str(&backup_tx.server_public_key())?;
 
-    let blinding_factor = BlindingFactor::from_slice(hex::decode(&backup_tx.blinding_factor)?.as_slice())?;
+    let blinding_factor = BlindingFactor::from_slice(hex::decode(&backup_tx.blinding_factor())?.as_slice())?;
 
     let secp = Secp256k1::new();
 
@@ -432,7 +434,7 @@ pub fn verify_blinded_musig_scheme(backup_tx: &BackupTx, tx0_hex: &str, statecha
 
     let tx_0: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx0_hex)?)?;
 
-    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&backup_tx.tx)?)?;
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&backup_tx.tx())?)?;
 
     let msg = get_tx_hash(&tx_0, &tx_n)?;
 
@@ -490,9 +492,9 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 
     let sender_public_key = PublicKey::from_str(&transfer_msg.user_public_key)?;
 
-    let client_seckey_share = PrivateKey::from_wif(&coin.user_privkey)?.inner;
+    let client_seckey_share = PrivateKey::from_wif(&coin.user_privkey())?.inner;
 
-    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey())?.inner;
 
     if !validate_t1pub(&transfer_msg.t1, &x1_pub, &sender_public_key)? {
         return Err(MercuryError::InvalidT1);
@@ -522,7 +524,7 @@ pub fn create_transfer_receiver_request_payload(statechain_info: &StatechainInfo
 #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn sign_message(message: &str, coin: &Coin) -> Result<String, MercuryError> {
 
-    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey())?.inner;
 
     let secp = Secp256k1::new();
 
@@ -538,9 +540,9 @@ pub fn get_new_key_info(server_public_key_hex: &str, coin: &Coin, statechain_id:
     
     let network = get_network(&network)?;
 
-    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey)?.inner;
+    let client_auth_key = PrivateKey::from_wif(&coin.auth_privkey())?.inner;
 
-    let client_pubkey_share = PublicKey::from_str(&coin.user_pubkey)?;
+    let client_pubkey_share = PublicKey::from_str(&coin.user_pubkey())?;
 
     let server_pubkey_share = PublicKey::from_str(server_public_key_hex)?;
 

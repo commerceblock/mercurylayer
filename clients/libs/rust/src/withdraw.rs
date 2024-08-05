@@ -1,8 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
-use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::wallet::{Activity, CoinStatus};
+use mercurylib::wallet::CoinStatus;
 
 
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain_id: &str, to_address: &str, fee_rate: Option<f64>, duplicated_index: Option<u32>) -> Result<()>{
@@ -117,15 +116,8 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     coin.withdrawal_address = Some(to_address.to_string());
     coin.status = CoinStatus::WITHDRAWING;
 
-    let date = Utc::now(); // This will get the current date and time in UTC
-    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
-
-    let activity = Activity {
-        utxo: txid.to_string(),
-        amount: coin.amount.unwrap(),
-        action: "Withdraw".to_string(),
-        date: iso_string
-    };
+    let activity = crate::utils::create_activity(
+        &txid.to_string(), coin.amount.unwrap(), "Withdraw");
 
     wallet.activities.push(activity);
 
