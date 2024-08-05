@@ -85,19 +85,19 @@ const depositCoin = async (clientConfig, wallet_name, amount, deposit_info) => {
 }
 
 const disconnectMercuryServer = async () => {
-    await exec("docker network disconnect mercurylayer-default mercurylayer-mercury-1");
+    await exec("docker network disconnect mercurylayer_default mercurylayer-mercury-1");
 }
 
 const connectMercuryServer = async () => {
-    await exec("docker network connect mercurylayer-default mercurylayer-mercury-1");
+    await exec("docker network connect mercurylayer_default mercurylayer-mercury-1");
 }
 
 const disconnectElectr = async () => {
-    await exec("docker network disconnect mercurylayer-default mercurylayer-electrs-1");
+    await exec("docker network disconnect mercurylayer_default mercurylayer-electrs-1");
 }
 
 const connectElectr = async () => {
-    await exec("docker network connect mercurylayer-default mercurylayer-electrs-1");
+    await exec("docker network connect mercurylayer_default mercurylayer-electrs-1");
 }
 
 const generateInvoice = async (paymentHash, amountInSats) => {
