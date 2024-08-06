@@ -50,6 +50,10 @@ describe('TB04 - Lightning Latch', function() {
 
       await mercurynodejslib.transferSend(clientConfig, wallet1.name, coin.statechain_id, transferAddress.transfer_receive, false, paymentHash.batchId);
 
+      const hashFromServer = await mercurynodejslib.getPaymentHash(clientConfig, paymentHash.batchId);
+
+      expect(hashFromServer).to.equal(paymentHash.hash);
+
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet2.name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.true;

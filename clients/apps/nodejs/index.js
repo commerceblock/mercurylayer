@@ -190,6 +190,16 @@ async function main() {
 
         console.log(JSON.stringify(res, null, 2));
     });
+
+    program.command('get-payment-hash')
+      .description('Confirm a pending invoice for lightning latch')
+      .argument('<batch-id>', 'transfer batch id')
+      .action(async (batch_id) => {
+
+       let res = await mercurynodejslib.getPaymentHash(clientConfig, batch_id);
+
+        console.log(JSON.stringify(res, null, 2));
+    });
   
   program.parse();
 

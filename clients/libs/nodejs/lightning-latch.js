@@ -135,4 +135,29 @@ const retrievePreImage = async (clientConfig, db, walletName, statechainId, batc
     return { preimage: response?.data?.preimage };
 }
 
-module.exports = { createPreImage, confirmPendingInvoice, retrievePreImage };
+const getPaymentHash = async (clientConfig, batchId) => {
+
+    const url = `${clientConfig.statechainEntity}/transfer/paymenthash/${batchId}`;
+
+    const torProxy = clientConfig.torProxy;
+
+    let socksAgent = undefined;
+
+    if (torProxy) {
+        socksAgent = { httpAgent: new SocksProxyAgent(torProxy) };
+    }
+
+    try {
+        const response = await axios.get(url, socksAgent);
+        return response?.data?.hash;
+    }
+    catch (error) {
+        if (error.response.status == 401) {
+            return null;
+        } else {
+            throw new Error(`Failed to retrieve payment hash: ${JSON.stringify(error.response.data)}`);
+        }
+    }
+}
+
+module.exports = { createPreImage, confirmPendingInvoice, retrievePreImage, getPaymentHash };
