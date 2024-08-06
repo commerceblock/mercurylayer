@@ -471,6 +471,7 @@ describe('TB04 - Lightning Latch', function() {
       expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+      console.log("Preimage: ", preimage);
 
       const hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
@@ -536,6 +537,7 @@ describe('TB04 - Lightning Latch', function() {
       expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+      console.log("Preimage: ", preimage);
 
       const hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
@@ -576,7 +578,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const paymentHash = await mercurynodejslib.paymentHash(clientConfig, wallet_1_name, coin.statechain_id);
 
-      const paymentHashSecond = "f768c404215f9fb5731c32c00fe7a057fc181d7695de447b334380d90674db34"
+      const paymentHashSecond = "ddddf1cd1e2ca1986e29b20401b555fbaa4a8502626a7afc37c47ae06a46d918"
       const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
 
       const isInvoiceValid = await mercurynodejslib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);
