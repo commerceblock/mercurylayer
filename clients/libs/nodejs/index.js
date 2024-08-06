@@ -248,35 +248,17 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
     return preImage;
 }
 
-const verifyInvoice = async (clientConfig, walletName, statechainId, batchId, paymentRequest) => {
+const verifyInvoice = async (clientConfig, batchId, paymentRequest) => {
 
     const decodedInvoice = bitcoinjs.decode(paymentRequest);
-
-    const db = await getDatabase(clientConfig);
-    let wallet = await sqlite_manager.getWallet(db, walletName);
-
-    let coinsWithStatechainId = wallet.coins.filter(c => {
-        return c.statechain_id === statechainId
-    });
-
-    if (!coinsWithStatechainId || coinsWithStatechainId.length === 0) {
-        throw new Error(`There is no coin for the statechain id ${statechainId}`);
-    }
-
-    // If the user sends to himself, he will have two coins with same statechain_id
-    // In this case, we need to find the one with the lowest locktime
-    // Sort the coins by locktime in ascending order and pick the first one
-    let coin = coinsWithStatechainId.sort((a, b) => a.locktime - b.locktime)[0];
-
-    let paymentHashPayload  = {
-        statechain_id: statechainId,
-        auth_sig: coin.signed_statechain_id,
-        batch_id: batchId
-    };
-
-    let paymentHash = await lightningLatch.sendPaymentHash(clientConfig, paymentHashPayload);
+    let paymentHash = await getPaymentHash(clientConfig, batchId);
     
     return paymentHash === decodedInvoice.tagsObject.payment_hash;
+}
+
+const getPaymentHash = async (clientConfig, batchId) => {
+
+    return await lightningLatch.getPaymentHash(clientConfig, batchId);
 }
 
 module.exports = { 
@@ -293,5 +275,6 @@ module.exports = {
     paymentHash,
     confirmPendingInvoice,
     retrievePreImage,
-    verifyInvoice
+    verifyInvoice,
+    getPaymentHash
 };

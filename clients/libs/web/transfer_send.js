@@ -7,7 +7,7 @@ import utils from './utils.js';
 import CoinStatus from './coin_enum.js';
 import transaction from './transaction.js';
 
-const execute = async (clientConfig, walletName, statechainId, toAddress, batchId)  => {
+const execute = async (clientConfig, walletName, statechainId, toAddress, forceSend, batchId)  => {
 
     await initWasm(wasmUrl);
 
@@ -21,8 +21,26 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, batchI
 
     const new_tx_n = backupTxs.length + 1;
 
+    const isCoinDuplicated = wallet.coins.some(c => 
+        c.statechain_id === statechainId &&
+        c.status === CoinStatus.DUPLICATED
+    );
+
+    const areThereDuplicateCoinsWithdrawn = wallet.coins.some(c => 
+        c.statechain_id === statechainId &&
+        (c.status === CoinStatus.WITHDRAWING || c.status === CoinStatus.WITHDRAWN) &&
+        c.duplicate_index > 0
+    );
+
+    if (areThereDuplicateCoinsWithdrawn) {
+        throw new Error("There have been withdrawals of other coins with this same statechain_id (possibly duplicates). " +
+            "This transfer cannot be performed because the recipient would reject it due to the difference in signature count. " +
+            "This coin can be withdrawn, however."
+        );
+    }
+
     let coinsWithStatechainId = wallet.coins.filter(c => {
-        return c.statechain_id === statechainId
+        return c.statechain_id === statechainId && c.status != CoinStatus.DUPLICATED
     });
 
     if (!coinsWithStatechainId || coinsWithStatechainId.length === 0) {
@@ -36,6 +54,11 @@ const execute = async (clientConfig, walletName, statechainId, toAddress, batchI
 
     if (coin.status != CoinStatus.CONFIRMED && coin.status != CoinStatus.IN_TRANSFER) {
         throw new Error(`Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is ${coin.status}`);
+    }
+
+    if (isCoinDuplicated && !forceSend) {
+        throw new Error("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. " +
+            "You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds.");
     }
 
     if (coin.locktime == null) {

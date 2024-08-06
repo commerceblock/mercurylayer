@@ -145,3 +145,27 @@ pub async fn retrieve_pre_image(client_config: &ClientConfig, wallet_name: &str,
 
     Ok(transfer_preimage_response_payload.preimage)
 }
+
+
+pub async fn get_payment_hash(client_config: &ClientConfig, batch_id: &str) -> Result<Option<String>> {
+
+    let path = format!("transfer/paymenthash/{}", batch_id);
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.get(&format!("{}/{}", client_config.statechain_entity, path));
+
+    let response = request.send().await?;
+    
+    if response.status() == 401 {
+        return Ok(None);
+    } else if response.status() != 200 {
+        let response_body = response.text().await?;
+        return Err(anyhow!(response_body));
+    }
+
+    let value = response.text().await?;
+
+    let payment_hash_response_payload: PaymentHashResponsePayload = serde_json::from_str(value.as_str())?;
+
+    Ok(Some(payment_hash_response_payload.hash))
+}

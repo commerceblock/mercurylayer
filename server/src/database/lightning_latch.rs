@@ -79,3 +79,27 @@ pub async fn get_preimage(pool: &sqlx::PgPool, statechain_id: &str, sender_auth_
     Some(pre_image)
 
 }
+
+pub async fn get_preimage_by_batch_id(pool: &sqlx::PgPool, batch_id: &str) -> Option<String> {
+
+    let query = "SELECT pre_image FROM \
+        lightning_latch \
+        WHERE batch_id = $1";
+
+    let row = sqlx::query(query)
+        .bind(batch_id)
+        .fetch_optional(pool)
+        .await
+        .unwrap();
+
+    if row.is_none()
+    {
+        return None;
+    }
+
+    let row = row.unwrap();
+
+    let pre_image: String = row.get(0);
+
+    Some(pre_image)
+}

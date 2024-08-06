@@ -8,6 +8,7 @@ const CoinStatus = {
     WITHDRAWING: "WITHDRAWING", // withdrawal tx signed and broadcast but not yet confirmed
     TRANSFERRED: "TRANSFERRED", // the coin was transferred
     WITHDRAWN: "WITHDRAWN", // the coin was withdrawn
+    DUPLICATED: "DUPLICATED", // the coin was duplicated
 };
 
 export default CoinStatus;

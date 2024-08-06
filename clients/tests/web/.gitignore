@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+data_bitcoin_regtest
+test/__screenshots__

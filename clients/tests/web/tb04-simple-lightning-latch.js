@@ -1,6 +1,7 @@
 import CoinStatus from 'mercuryweblib/coin_enum.js';
 import clientConfig from './ClientConfig.js';
 import mercuryweblib from 'mercuryweblib';
+import { generateBlocks, depositCoin } from './test-utils.js';
 
 async function sha256(preimage) {
     let buffer;
@@ -57,6 +58,9 @@ const tb04SimpleLightningLatch = async () => {
     
     let isDepositInMempool = false;
     let isDepositConfirmed = false;
+    let areBlocksGenerated = false;
+
+    await depositCoin(result.deposit_address, amount);
 
     while (!isDepositConfirmed) {
 
@@ -74,8 +78,13 @@ const tb04SimpleLightningLatch = async () => {
                 break;
             }
         }
+
+        if (isDepositInMempool && !areBlocksGenerated) {
+            areBlocksGenerated = true;
+            await generateBlocks(clientConfig.confirmationTarget);
+        }
         
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 1000));
     }
 
     depositAddressText.textContent = "";
@@ -86,7 +95,7 @@ const tb04SimpleLightningLatch = async () => {
 
     console.log(paymentHash);
 
-    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, paymentHash.batchId );
+    await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, paymentHash.batchId );
 
     let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
@@ -113,9 +122,9 @@ const tb04SimpleLightningLatch = async () => {
         statusText.innerHTML = `<ol>${statusMsg}</ol>`;
     }
 
-    let toAddress = "tb1qenr4esn602nm7y7p35rvm6qtnthn8mu85cu7jz";
+    let toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
-    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null);
+    await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null, null);
 
     statusMsg = statusMsg + "<li>Coins withdrawn.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
@@ -130,7 +139,11 @@ const tb04SimpleLightningLatch = async () => {
     statusMsg = statusMsg + `<li>The calculated hash is ${hashPreImage}.</li>`;
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
 
-    statusMsg = statusMsg + "<li>Test TB04 - Simple Lightning Latch.</li>";
+    if (paymentHash.hash === hashPreImage) {
+        statusMsg = statusMsg + "<li>Hashes match.</li>";
+    }
+
+    statusMsg = statusMsg + "<li>Test TB04 - Simple Lightning Latch completed successfully.</li>";
     statusText.innerHTML = `<ol>${statusMsg}</ol>`;
 }
 
