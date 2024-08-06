@@ -77,6 +77,10 @@ enum Commands {
         statechain_id: String,
         batch_id: String,
     },
+    /// Get the payment hash by batch id
+    GetPaymentHash {
+        batch_id: String,
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -201,6 +205,13 @@ async fn main() -> Result<()> {
             let pre_image = mercuryrustlib::lightning_latch::retrieve_pre_image(&client_config, &wallet_name, &statechain_id, &batch_id).await?;
 
             let obj = json!({"pre_image": pre_image});
+
+            println!("{}", serde_json::to_string_pretty(&obj).unwrap());
+        },
+        Commands::GetPaymentHash { batch_id } => {
+            let payment_hash = mercuryrustlib::lightning_latch::get_payment_hash(&client_config, &batch_id).await?;
+
+            let obj = json!({"payment_hash": payment_hash});
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         }
