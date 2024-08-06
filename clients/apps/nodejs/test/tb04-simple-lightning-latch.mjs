@@ -468,7 +468,7 @@ describe('TB04 - Lightning Latch', function() {
       transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).not.empty;
+      expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
 
@@ -533,7 +533,7 @@ describe('TB04 - Lightning Latch', function() {
       transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).not.empty;
+      expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
 
@@ -550,12 +550,8 @@ describe('TB04 - Lightning Latch', function() {
 
       // await removeDatabase();
       const clientConfig = client_config.load();
-      let wallet_1_name = "w_ln_13";
-      let wallet_2_name = "w_ln_14";
-      let wallet_3_name = "w_ln_15";
+      let wallet_1_name = "w_ln_16";
       await createWallet(clientConfig, wallet_1_name);
-      await createWallet(clientConfig, wallet_2_name);
-      await createWallet(clientConfig, wallet_3_name);
 
       const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
       const tokenId = token.token_id;
