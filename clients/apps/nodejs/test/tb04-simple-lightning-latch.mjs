@@ -461,16 +461,17 @@ describe('TB04 - Lightning Latch', function() {
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).empty;
+      expect(transferReceiveResult.receivedStatechainIds).not.empty;
 
       await mercurynodejslib.confirmPendingInvoice(clientConfig, wallet_1_name, coin.statechain_id);
 
       transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).not.empty;
+      expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+      console.log("Preimage: ", preimage);
 
       const hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
@@ -526,22 +527,62 @@ describe('TB04 - Lightning Latch', function() {
       let transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_3_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).empty;
+      expect(transferReceiveResult.receivedStatechainIds).not.empty;
 
       await mercurynodejslib.confirmPendingInvoice(clientConfig, wallet_1_name, coin.statechain_id);
 
       transferReceiveResult = await mercurynodejslib.transferReceive(clientConfig, wallet_2_name);
 
       expect(transferReceiveResult.isThereBatchLocked).is.false;
-      expect(transferReceiveResult.receivedStatechainIds).not.empty;
+      expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
       const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+      console.log("Preimage: ", preimage);
 
       const hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
           .digest('hex')
 
       expect(hash).to.equal(paymentHash.hash);
+    })
+  })
+
+  context('Coin receiver creates a non hold invoice, and sends to sender (i.e. an invoice with the a different payment hash). Sender should be able to determine this.', () => {
+    it('should complete successfully', async () => {
+
+      // await removeDatabase();
+      const clientConfig = client_config.load();
+      let wallet_1_name = "w_ln_16";
+      await createWallet(clientConfig, wallet_1_name);
+
+      const token = await mercurynodejslib.newToken(clientConfig, wallet_1_name);
+      const tokenId = token.token_id;
+
+      const amount = 10000;
+      const depositInfo = await mercurynodejslib.getDepositBitcoinAddress(clientConfig, wallet_1_name, amount);
+
+      const tokenList = await mercurynodejslib.getWalletTokens(clientConfig, wallet_1_name);
+      const usedToken = tokenList.find(token => token.token_id === tokenId);
+
+      expect(usedToken.spent).is.true;
+
+      await depositCoin(clientConfig, wallet_1_name, amount, depositInfo);
+
+      const listCoins = await mercurynodejslib.listStatecoins(clientConfig, wallet_1_name);
+
+      expect(listCoins.length).to.equal(1);
+
+      const coin = listCoins[0];
+
+      expect(coin.status).to.equal(CoinStatus.CONFIRMED);
+
+      const paymentHash = await mercurynodejslib.paymentHash(clientConfig, wallet_1_name, coin.statechain_id);
+
+      const paymentHashSecond = "ddddf1cd1e2ca1986e29b20401b555fbaa4a8502626a7afc37c47ae06a46d918"
+      const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
+
+      const isInvoiceValid = await mercurynodejslib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);
+      expect(isInvoiceValid).is.false;
     })
   })
 })
