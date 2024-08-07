@@ -124,17 +124,30 @@ jobs:
         run: |
           cd clients/apps/nodejs
           npm install
-          npm install mocha -g
+      - name: Install Node.js dependencies for web client
+        run: |
+          cd clients/tests/web
+          npm install
+          npx playwright install
+          npx playwright install-deps
       - name: Install Node.js dependencies for lib
         run: |
           cd clients/libs/nodejs
           npm install
+      - name: Install Node.js dependencies for web
+        run: |
+          cd clients/libs/web
+          npm install    
       - name: Run Client-Side Tests
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
           node test_atomic_swap.js
           mocha ./test/tb04-simple-lightning-latch.mjs --exit
+      - name: Run web client Tests
+        run: |
+          cd clients/libs/web
+          npx vitest --browser.name=chromium --browser.headless
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down
