@@ -22,7 +22,7 @@ node server-regtest.cjs &
 NODE_PID=$!
 
 # Run docker command in the background without -it flags
-docker run --name esplora-container -p 50001:50001 -p 8094:80 \
+docker run --name esplora-container -p 50002:50002 -p 8094:80 \
     --volume $PWD/data_bitcoin_regtest:/data \
     --env CORS_ALLOW='*' --rm \
     blockstream/esplora \

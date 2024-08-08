@@ -124,6 +124,7 @@ jobs:
         run: |
           cd clients/apps/nodejs
           npm install
+          npm install mocha -g
       - name: Install Node.js dependencies for web client
         run: |
           cd clients/tests/web
@@ -144,9 +145,14 @@ jobs:
           node test_basic_workflow2.js
           node test_atomic_swap.js
           mocha ./test/tb04-simple-lightning-latch.mjs --exit
+      - name: Run start-test-components.sh for web client tests
+        run: |
+          cd clients/tests/web
+          chmod +x start-test-components.sh
+          ./start-test-components.sh
       - name: Run web client Tests
         run: |
-          cd clients/libs/web
+          cd clients/tests/web
           npx vitest --browser.name=chromium --browser.headless
       - name: Tear Down
         run: |

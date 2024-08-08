@@ -16,7 +16,7 @@ const sqlite_manager = require('./sqlite_manager');
 const { v4: uuidv4 } = require('uuid');
 
 const wallet_manager = require('./wallet');
-const bitcoinjs = require("bitcoinjs-lib");
+const lightningPayReq = require("bolt11");
 
 const getDatabase = async (clientConfig) => {
     const databaseFile = clientConfig.databaseFile;
@@ -250,7 +250,7 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
 
 const verifyInvoice = async (clientConfig, batchId, paymentRequest) => {
 
-    const decodedInvoice = bitcoinjs.decode(paymentRequest);
+    const decodedInvoice = lightningPayReq.decode(paymentRequest);
     let paymentHash = await getPaymentHash(clientConfig, batchId);
     
     return paymentHash === decodedInvoice.tagsObject.payment_hash;
