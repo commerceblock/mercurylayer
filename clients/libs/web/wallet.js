@@ -7,7 +7,7 @@ import utils from './utils.js';
 const createWallet = async (clientConfig, name) => {
 
     await init(wasmUrl);
-
+    console.log(`${clientConfig.esploraServer}/api/blocks/tip/height`)
     const response = await axios.get(`${clientConfig.esploraServer}/api/blocks/tip/height`);
 
     const blockheight = response.data;

@@ -97,6 +97,21 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
           docker logs $(docker ps -qf "name=enclave")
+      - name: Verify Node Service with Curl
+        run: |
+          docker ps -a
+          docker logs $(docker ps -qf "name=node-server")
+          docker exec $(docker ps -qf "name=node-server") \
+          curl -X POST http://node-server:3000/deposit_amount \
+          -H 'Content-Type: application/json' \
+          -d '{"address":"bcrt1pkygl356c6fvk6ptx72c64hrjkhcxecj4hjzfzc430svzczuv6m0s42lvwx","amount":1000}'
+          docker logs $(docker ps -qf "name=node-server")
+      - name: Verify Esplora Service with Curl
+        run: |
+          docker logs $(docker ps -qf "name=esplora-container")
+          docker exec $(docker ps -qf "name=esplora-container") \
+          curl http://esplora-container:8094/regtest/api/blocks/tip/height
+          docker logs $(docker ps -qf "name=esplora-container")
       - name: Check connectivity between containers
         run: |
           # Get container IDs
@@ -124,6 +139,7 @@ jobs:
         run: |
           cd clients/apps/nodejs
           npm install
+          npm install mocha -g
       - name: Install Node.js dependencies for web client
         run: |
           cd clients/tests/web
@@ -146,7 +162,7 @@ jobs:
           mocha ./test/tb04-simple-lightning-latch.mjs --exit
       - name: Run web client Tests
         run: |
-          cd clients/libs/web
+          cd clients/tests/web
           npx vitest --browser.name=chromium --browser.headless
       - name: Tear Down
         run: |

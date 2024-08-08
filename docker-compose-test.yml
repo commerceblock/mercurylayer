@@ -148,8 +148,37 @@ services:
     depends_on:
       - bitcoind
 
+  esplora:
+    image: blockstream/esplora
+    container_name: esplora-container
+    command: /srv/explorer/run.sh bitcoin-regtest explorer
+    ports:
+      - "50002:50002"
+      - "8094:80"
+    volumes:
+      - esplora-data:/data
+    environment:
+      CORS_ALLOW: '*'
+    restart: unless-stopped
+    depends_on:
+      - bitcoind
+
+  node_server:
+    image: node:20.12.2
+    container_name: node-server
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app
+    command: ["/bin/sh", "-c", "cd ./clients/tests/web && npm install && node server-regtest.cjs"]
+    restart: unless-stopped
+    depends_on:
+      - esplora
+    ports:
+      - "3000:3000"
+
 volumes:
   bitcoin_data:
   electrs-data:
   alice-data:
   bob-data:
+  esplora-data:
