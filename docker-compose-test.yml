@@ -156,7 +156,7 @@ services:
       - "50002:50002"
       - "8094:80"
     volumes:
-      - $PWD/data_bitcoin_regtest:/data
+      - esplora-data:/data
     environment:
       CORS_ALLOW: '*'
     restart: unless-stopped
@@ -167,7 +167,7 @@ services:
     image: node:20.12.2
     container_name: node-server
     volumes:
-      - .:/usr/src/app
+      - node-server-data:/usr/src/app
     working_dir: /usr/src/app
     command: ["node", "./clients/tests/web/server-regtest.cjs"]
     depends_on:
@@ -180,3 +180,5 @@ volumes:
   electrs-data:
   alice-data:
   bob-data:
+  esplora-data:
+  node-server-data:
