@@ -169,7 +169,7 @@ services:
     volumes:
       - .:/usr/src/app
     working_dir: /usr/src/app
-    command: ["node", "server-regtest.cjs"]
+    command: ["node", "./clients/tests/web/server-regtest.cjs"]
     depends_on:
       - esplora
     ports:
