@@ -167,7 +167,7 @@ services:
     image: node:20.12.2
     container_name: node-server
     volumes:
-      - node-server-data:/usr/src/app
+      - .:/usr/src/app
     working_dir: /usr/src/app
     command: ["node", "./clients/tests/web/server-regtest.cjs"]
     depends_on:
@@ -180,5 +180,3 @@ volumes:
   electrs-data:
   alice-data:
   bob-data:
-  esplora-data:
-  node-server-data:
