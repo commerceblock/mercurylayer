@@ -773,79 +773,79 @@ async function atomicSwapWithSecondPartySteal(clientConfig, wallet_1_name, walle
         const clientConfig = client_config.load();
 
         // Successful test - all transfers complete within batch_time complete.
-        let wallet_27_name = "w27";
-        let wallet_28_name = "w28";
-        let wallet_29_name = "w29";
-        let wallet_30_name = "w30";
-        await createWallet(clientConfig, wallet_27_name);
-        await createWallet(clientConfig, wallet_28_name);
-        await createWallet(clientConfig, wallet_29_name);
-        await createWallet(clientConfig, wallet_30_name);
-        await atomicSwapSuccess(clientConfig, wallet_27_name, wallet_28_name, wallet_29_name, wallet_30_name);
+        let wallet_1_name = "w_atomic_1";
+        let wallet_2_name = "w_atomic_2";
+        let wallet_3_name = "w_atomic_3";
+        let wallet_4_name = "w_atomic_4";
+        await createWallet(clientConfig, wallet_1_name);
+        await createWallet(clientConfig, wallet_2_name);
+        await createWallet(clientConfig, wallet_3_name);
+        await createWallet(clientConfig, wallet_4_name);
+        await atomicSwapSuccess(clientConfig, wallet_1_name, wallet_2_name, wallet_3_name, wallet_4_name);
         console.log("Completed test for Successful test - all transfers complete within batch_time complete.");
 
         // Second party performs transfer-sender with incorrect or missing batch-id. First party should still receive OK.
-        let wallet_31_name = "w31";
-        let wallet_32_name = "w32";
-        let wallet_33_name = "w33";
-        let wallet_34_name = "w34";
-        await createWallet(clientConfig, wallet_31_name);
-        await createWallet(clientConfig, wallet_32_name);
-        await createWallet(clientConfig, wallet_33_name);
-        await createWallet(clientConfig, wallet_34_name);
-        await atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_31_name, wallet_32_name, wallet_33_name, wallet_34_name);
+        let wallet_5_name = "w_atomic_5";
+        let wallet_6_name = "w_atomic_6";
+        let wallet_7_name = "w_atomic_7";
+        let wallet_8_name = "w_atomic_8";
+        await createWallet(clientConfig, wallet_5_name);
+        await createWallet(clientConfig, wallet_6_name);
+        await createWallet(clientConfig, wallet_7_name);
+        await createWallet(clientConfig, wallet_8_name);
+        await atomicSwapWithSecondBatchIdMissing(clientConfig, wallet_5_name, wallet_6_name, wallet_7_name, wallet_8_name);
         console.log("Completed test for Second party performs transfer-sender with incorrect or missing batch-id. First party should still receive OK.");
 
         // First party performs transfer-sender without batch_id.
-        let wallet_35_name = "w35";
-        let wallet_36_name = "w36";
-        let wallet_37_name = "w37";
-        let wallet_38_name = "w38";
-        await createWallet(clientConfig, wallet_35_name);
-        await createWallet(clientConfig, wallet_36_name);
-        await createWallet(clientConfig, wallet_37_name);
-        await createWallet(clientConfig, wallet_38_name);
-        await atomicSwapWithoutFirstBatchId(clientConfig, wallet_35_name, wallet_36_name, wallet_37_name, wallet_38_name);
+        let wallet_9_name = "w_atomic_9";
+        let wallet_10_name = "w_atomic_10";
+        let wallet_11_name = "w_atomic_11";
+        let wallet_12_name = "w_atomic_12";
+        await createWallet(clientConfig, wallet_9_name);
+        await createWallet(clientConfig, wallet_10_name);
+        await createWallet(clientConfig, wallet_11_name);
+        await createWallet(clientConfig, wallet_12_name);
+        await atomicSwapWithoutFirstBatchId(clientConfig, wallet_9_name, wallet_10_name, wallet_11_name, wallet_12_name);
         console.log("Completed test for First party performs transfer-sender without batch_id.");
         
         // One party doesn't complete transfer-receiver before the timeout. 
         // Both wallets should be able to repeat transfer-sender and transfer-receiver back to new addresses without error, 
         // after the timeout.
-        let wallet_39_name = "w39";
-        let wallet_40_name = "w40";
-        let wallet_41_name = "w41";
-        let wallet_42_name = "w42";
-        await createWallet(clientConfig, wallet_39_name);
-        await createWallet(clientConfig, wallet_40_name);
-        await createWallet(clientConfig, wallet_41_name);
-        await createWallet(clientConfig, wallet_42_name);
-        await atomicSwapWithTimeout(clientConfig, wallet_39_name, wallet_40_name, wallet_41_name, wallet_42_name);
+        let wallet_13_name = "w_atomic_13";
+        let wallet_14_name = "w_atomic_14";
+        let wallet_15_name = "w_atomic_15";
+        let wallet_16_name = "w_atomic_16";
+        await createWallet(clientConfig, wallet_13_name);
+        await createWallet(clientConfig, wallet_14_name);
+        await createWallet(clientConfig, wallet_15_name);
+        await createWallet(clientConfig, wallet_16_name);
+        await atomicSwapWithTimeout(clientConfig, wallet_13_name, wallet_14_name, wallet_15_name, wallet_16_name);
         console.log("Completed test for One party doesn't complete transfer-receiver before the timeout.");
 
         // First party tries to steal within timeout
         // they perform transfer-sender a second time sending back to one of their own addresses - should fail.
-        let wallet_43_name = "w43";
-        let wallet_44_name = "w44";
-        let wallet_45_name = "w45";
-        let wallet_46_name = "w46";
-        await createWallet(clientConfig, wallet_43_name);
-        await createWallet(clientConfig, wallet_44_name);
-        await createWallet(clientConfig, wallet_45_name);
-        await createWallet(clientConfig, wallet_46_name);
-        await atomicSwapWithFirstPartySteal(clientConfig, wallet_43_name, wallet_44_name, wallet_45_name, wallet_46_name);
+        let wallet_17_name = "w_atomic_17";
+        let wallet_18_name = "w_atomic_18";
+        let wallet_19_name = "w_atomic_19";
+        let wallet_20_name = "w_atomic_20";
+        await createWallet(clientConfig, wallet_17_name);
+        await createWallet(clientConfig, wallet_18_name);
+        await createWallet(clientConfig, wallet_19_name);
+        await createWallet(clientConfig, wallet_20_name);
+        await atomicSwapWithFirstPartySteal(clientConfig, wallet_17_name, wallet_18_name, wallet_19_name, wallet_20_name);
         console.log("Completed test for First party tries to steal within timeout");
 
         // Second party tries to steal within timeout
         // they perform transfer-sender a second time sending back to one of their own addresses - should fail.
-        let wallet_47_name = "w47";
-        let wallet_48_name = "w48";
-        let wallet_49_name = "w49";
-        let wallet_50_name = "w50";
-        await createWallet(clientConfig, wallet_47_name);
-        await createWallet(clientConfig, wallet_48_name);
-        await createWallet(clientConfig, wallet_49_name);
-        await createWallet(clientConfig, wallet_50_name);
-        await atomicSwapWithSecondPartySteal(clientConfig, wallet_47_name, wallet_48_name, wallet_49_name, wallet_50_name);
+        let wallet_21_name = "w_atomic_21";
+        let wallet_22_name = "w_atomic_22";
+        let wallet_23_name = "w_atomic_23";
+        let wallet_24_name = "w_atomic_24";
+        await createWallet(clientConfig, wallet_21_name);
+        await createWallet(clientConfig, wallet_22_name);
+        await createWallet(clientConfig, wallet_23_name);
+        await createWallet(clientConfig, wallet_24_name);
+        await atomicSwapWithSecondPartySteal(clientConfig, wallet_21_name, wallet_22_name, wallet_23_name, wallet_24_name);
         console.log("Completed test for Second party tries to steal within timeout");
 
         process.exit(0); // Exit successfully

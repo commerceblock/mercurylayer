@@ -8,8 +8,8 @@
 // };
 
 const clientConfig = {
-  esploraServer: "http://localhost:8094/regtest",
-  statechainEntity: "http://127.0.0.1:8000",
+  esploraServer: "http://0.0.0.0:8094/regtest",
+  statechainEntity: "http://0.0.0.0:8000",
   network: "regtest",
   feeRateTolerance: 5,
   confirmationTarget: 2,
