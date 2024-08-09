@@ -180,3 +180,4 @@ volumes:
   electrs-data:
   alice-data:
   bob-data:
+  esplora-data:
