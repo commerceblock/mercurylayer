@@ -122,6 +122,11 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
   return await lightningLatch.retrievePreImage(clientConfig, walletName, statechainId, batchId);
 }
 
+const getPaymentHash = async (clientConfig, batchId) => {
+
+  return await lightningLatch.getPaymentHash(clientConfig, batchId);
+}
+
 export default { 
   greet, 
   createWallet, 
@@ -135,5 +140,6 @@ export default {
   transferReceive,
   paymentHash,
   confirmPendingInvoice,
-  retrievePreImage
+  retrievePreImage,
+  getPaymentHash
 }
