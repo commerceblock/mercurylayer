@@ -11,23 +11,33 @@ use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use server::StateChainEntity;
 
+use log::error;
+
 #[catch(500)]
-fn internal_error() -> Value {
-    json!("Internal server error")
+fn internal_error(req: &Request) -> Value {
+    let message = format!("500 - Internal Server Error: {}", req.uri());
+    error!("{}", message);
+    json!(message)
 }
 
 #[catch(400)]
-fn bad_request() -> Value {
-    json!("Bad request")
+fn bad_request(req: &Request) -> Value {
+    let message = format!("400 - Bad request: {}", req.uri());
+    error!("{}", message);
+    json!(message)
 }
 
 #[catch(404)]
 fn not_found(req: &Request) -> Value {
-    json!(format!("Not found! Unknown route '{}'.", req.uri()))
+    let message = format!("404 - Not Found: {}", req.uri());
+    error!("{}", message);
+    json!(message)
 }
 
 #[rocket::main]
 async fn main() {
+
+    env_logger::init();
 
     server_config::ServerConfig::load();
 
