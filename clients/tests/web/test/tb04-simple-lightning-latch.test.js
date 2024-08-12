@@ -85,6 +85,10 @@ describe('TB04 - Simple Lightning Latch', () => {
 
         await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, paymentHash.batchId );
 
+        const hashFromServer = await mercuryweblib.getPaymentHash(clientConfig, paymentHash.batchId);
+
+        expect(hashFromServer).to.equal(paymentHash.hash);
+
         let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
         expect(transferReceive.isThereBatchLocked).toBe(true);

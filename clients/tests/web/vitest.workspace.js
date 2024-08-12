@@ -16,10 +16,11 @@ export default defineWorkspace([
         // https://playwright.dev
         providerOptions: {},
       },
+      exclude:[
+        ...configDefaults.exclude, 
+        '**/data_bitcoin_regtest/**'
+      ],
     },
-    exclude:[
-      ...configDefaults.exclude, 
-      './data_bitcoin_regtest/*'
-    ],
+    
   },
 ])
