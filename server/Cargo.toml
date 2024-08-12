@@ -22,3 +22,5 @@ secp256k1-zkp = { git = "https://github.com/ssantos21/rust-secp256k1-zkp.git", b
 mercurylib = { path = "../lib" }
 chrono = "0.4.31"
 sha2 = "0.10.8"
+log = "0.4.22"
+env_logger = "0.11.5"
