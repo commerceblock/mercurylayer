@@ -10,7 +10,7 @@ app.use(bodyParser.json())
 app.use(cors())
 
 async function getnewaddress() {
-  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli -rpcconnect=bitcoind -rpcuser=user -rpcpassword=pass getnewaddress`;
+  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli getnewaddress`;
   const { stdout, stderr } = await exec(generateBlockCommand);
   if (stderr) {
     throw new Error(`Error: ${stderr}`);
@@ -20,13 +20,13 @@ async function getnewaddress() {
 
 async function generateBlocks(numBlocks) {
   const address = await getnewaddress();
-  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli -rpcconnect=bitcoind -rpcuser=user -rpcpassword=pass generatetoaddress ${numBlocks} ${address}`;
+  const generateBlockCommand = `docker exec $(docker ps -qf "name=esplora-container") cli generatetoaddress ${numBlocks} ${address}`;
   await exec(generateBlockCommand);
 }
 
 async function depositCoin(amount, address) {
   const amountInBtc = amount / 100000000;
-  const sendBitcoinCommand = `docker exec $(docker ps -qf "name=esplora-container") cli -rpcconnect=bitcoind -rpcuser=user -rpcpassword=pass sendtoaddress ${address} ${amountInBtc}`;
+  const sendBitcoinCommand = `docker exec $(docker ps -qf "name=esplora-container") cli sendtoaddress ${address} ${amountInBtc}`;
   await exec(sendBitcoinCommand);
 }
 

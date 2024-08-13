@@ -35,14 +35,14 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose -f docker-compose-test.yml up --build -d
-      - name: Wait for services to be ready
-        run: |
-          sleep 80 # Adjust time as necessary for services to initialize
       - name: Run start-test-components.sh for web client tests
         run: |
           cd clients/tests/web
           chmod +x start-test-components.sh
           ./start-test-components.sh
+      - name: Wait for services to be ready
+        run: |
+          sleep 80 # Adjust time as necessary for services to initialize
       - name: Verify Bitcoin daemon Service and create wallet
         run: |
           container_id=$(docker ps -qf "name=mercurylayer-bitcoind-1")
@@ -54,6 +54,17 @@ jobs:
           echo "New Wallet Address: $address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 101 "$address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
+      - name: Create wallet for esplora
+        run: |
+          container_id=$(docker ps -qf "name=esplora-container")
+          echo "Container ID: $container_id"
+          docker logs $container_id
+          wallet_name="esplora_wallet"
+          docker exec $container_id cli createwallet $wallet_name
+          address=$(docker exec $container_id cli getnewaddress $wallet_name)
+          echo "New Wallet Address: $address"
+          docker exec $container_id cli generatetoaddress 101 "$address"
+          docker exec $container_id cli sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
       - name: Wait for services to be ready
         run: |
           sleep 60 # Wait for lnd to sync with latest block
@@ -109,9 +120,7 @@ jobs:
           -d '{"address":"bcrt1pkygl356c6fvk6ptx72c64hrjkhcxecj4hjzfzc430svzczuv6m0s42lvwx","amount":1000}'
       - name: Verify Esplora Service with Curl
         run: |
-          docker logs $(docker ps -qf "name=esplora-container")
-          docker exec $(docker ps -qf "name=esplora-container") \
-          curl http://esplora-container:8094/regtest/api/blocks/tip/height
+          curl http://0.0.0.0:8094/regtest/api/blocks/tip/height
           docker logs $(docker ps -qf "name=esplora-container")
       - name: Check connectivity between containers
         run: |
@@ -154,17 +163,18 @@ jobs:
       - name: Install Node.js dependencies for web
         run: |
           cd clients/libs/web
-          npm install    
+          npm install
+      - name: Run web client Tests
+        run: |
+          cd clients/tests/web
+          sudo chmod -R 755 ./data_bitcoin_regtest
+          npx vitest --browser.name=chromium --browser.headless    
       - name: Run Client-Side Tests
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
           node test_atomic_swap.js
           mocha ./test/tb04-simple-lightning-latch.mjs --exit
-      - name: Run web client Tests
-        run: |
-          cd clients/tests/web
-          npx vitest --browser.name=chromium --browser.headless
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down

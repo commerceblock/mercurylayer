@@ -30,5 +30,6 @@ docker run --name esplora-container -p 50002:50002 -p 8094:80 \
     /srv/explorer/run.sh bitcoin-regtest explorer &
 DOCKER_PID=$!
 
+
 # Wait for both processes to finish
 # wait $NODE_PID $DOCKER_PID

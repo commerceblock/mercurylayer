@@ -5,7 +5,7 @@ const generateBlocks = async (blocks) => {
         blocks
     };
 
-    const url = `http://node-server:3000/generate_blocks`;
+    const url = `http://0.0.0.0:3000/generate_blocks`;
 
     let response = await axios.post(url, body);
 
@@ -21,7 +21,7 @@ const depositCoin = async (address, amount) => {
         amount
     };
 
-    const url = `http://node-server:3000/deposit_amount`;
+    const url = `http://0.0.0.0:3000/deposit_amount`;
     
     let response = await axios.post(url, body);
 
