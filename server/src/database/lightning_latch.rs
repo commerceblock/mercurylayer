@@ -57,7 +57,8 @@ pub async fn get_preimage(pool: &sqlx::PgPool, statechain_id: &str, sender_auth_
         lightning_latch \
         WHERE statechain_id = $1 \
         AND sender_auth_xonly_public_key = $2 \
-        AND batch_id = $3";
+        AND batch_id = $3
+        AND locked = false";
 
     let row = sqlx::query(query)
         .bind(statechain_id)

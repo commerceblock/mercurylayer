@@ -66,10 +66,6 @@ pub async fn insert_new_signature_data(pool: &sqlx::PgPool, server_pubnonce: &st
 
 pub async fn update_signature_data_challenge(pool: &sqlx::PgPool, server_pub_nonce: &str, challenge: &str, statechain_id: &str)  {
 
-    println!("server_pub_nonce: {}", server_pub_nonce);
-    println!("challenge: {}", challenge);
-    println!("statechain_id: {}", statechain_id);
-
     let query = "\
         UPDATE statechain_signature_data \
         SET challenge = $1 \
