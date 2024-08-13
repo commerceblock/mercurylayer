@@ -38,6 +38,11 @@ jobs:
       - name: Wait for services to be ready
         run: |
           sleep 80 # Adjust time as necessary for services to initialize
+      - name: Run start-test-components.sh for web client tests
+        run: |
+          cd clients/tests/web
+          chmod +x start-test-components.sh
+          ./start-test-components.sh
       - name: Verify Bitcoin daemon Service and create wallet
         run: |
           container_id=$(docker ps -qf "name=mercurylayer-bitcoind-1")
@@ -99,13 +104,9 @@ jobs:
           docker logs $(docker ps -qf "name=enclave")
       - name: Verify Node Service with Curl
         run: |
-          docker ps -a
-          docker logs $(docker ps -qf "name=node-server")
-          docker exec $(docker ps -qf "name=node-server") \
-          curl -X POST http://node-server:3000/deposit_amount \
+          curl -X POST http://0.0.0.0:3000/deposit_amount \
           -H 'Content-Type: application/json' \
           -d '{"address":"bcrt1pkygl356c6fvk6ptx72c64hrjkhcxecj4hjzfzc430svzczuv6m0s42lvwx","amount":1000}'
-          docker logs $(docker ps -qf "name=node-server")
       - name: Verify Esplora Service with Curl
         run: |
           docker logs $(docker ps -qf "name=esplora-container")

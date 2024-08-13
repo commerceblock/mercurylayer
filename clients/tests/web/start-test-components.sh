@@ -18,6 +18,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Run node server in the background and capture its PID
+npm install
 node server-regtest.cjs &
 NODE_PID=$!
 
@@ -30,4 +31,4 @@ docker run --name esplora-container -p 50002:50002 -p 8094:80 \
 DOCKER_PID=$!
 
 # Wait for both processes to finish
-wait $NODE_PID $DOCKER_PID
+# wait $NODE_PID $DOCKER_PID
