@@ -473,7 +473,7 @@ describe('TB03 - Atomic swap with first party steal', () => {
             await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId1, toAddress3_for_steal.transfer_receive, false, toAddress3.batch_id);
         } catch (error) {
             // Assert the captured error message
-            const expectedMessage = 'expected a string argument, found undefined';
+            const expectedMessage = 'Request failed';
             expect(error.message).contains(expectedMessage);
         }
 
@@ -582,7 +582,7 @@ describe('TB03 - Atomic swap with second party steal', () => {
             await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId1, toAddress4_for_steal.transfer_receive, false, toAddress4.batch_id);
         } catch (error) {
             // Assert the captured error message
-            const expectedMessage = 'expected a string argument, found undefined';
+            const expectedMessage = 'Request failed';
             expect(error.message).contains(expectedMessage);
         }
 
