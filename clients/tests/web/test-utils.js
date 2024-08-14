@@ -37,4 +37,8 @@ const testEsplora = async () => {
     console.log(block_header);
 }
 
-export { generateBlocks, depositCoin };
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export { generateBlocks, depositCoin, sleep };
