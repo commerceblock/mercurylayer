@@ -579,7 +579,7 @@ describe('TB03 - Atomic swap with second party steal', () => {
         const toAddress4_for_steal = await mercuryweblib.newTransferAddress(wallet4.name, true);
 
         try {
-            await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId1, toAddress4_for_steal.transfer_receive, false, toAddress4.batch_id);
+            await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId2, toAddress4_for_steal.transfer_receive, false, toAddress4.batch_id);
         } catch (error) {
             // Assert the captured error message
             const expectedMessage = 'Request failed';

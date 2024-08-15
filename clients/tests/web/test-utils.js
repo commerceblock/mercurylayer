@@ -1,4 +1,5 @@
 import axios from 'axios';
+const exec = util.promisify(require('node:child_process').exec);
 
 const generateBlocks = async (blocks) => {
     const body = {
@@ -41,4 +42,46 @@ const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export { generateBlocks, depositCoin, sleep };
+const generateInvoice = async (paymentHash, amountInSats) => {
+
+    const generateInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest addholdinvoice ${paymentHash} --amt ${amountInSats}`;
+    const { stdout, stderr } = await exec(generateInvoiceCommand);
+    if (stderr) {
+        console.error('Error:', stderr);
+        return null;
+    }
+    
+    try {
+        const response = JSON.parse(stdout.trim());
+        return response;
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
+        return null;
+    }
+}
+
+const payInvoice = async (paymentRequest) => {
+    
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    const { stdout, stderr } = await exec(payInvoiceCommand);
+    if (stderr) {
+      console.error('Error:', stderr);
+      return null;
+    }
+    console.log('stdout:', stdout.trim());
+    return stdout.trim();
+}
+
+const payHoldInvoice = (paymentRequest) => {
+    
+    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
+    exec(payInvoiceCommand);
+}
+
+const settleInvoice = async (preimage) => {
+
+    const settleInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest settleinvoice ${preimage}`;
+    await exec(settleInvoiceCommand);
+}
+
+export { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice };
