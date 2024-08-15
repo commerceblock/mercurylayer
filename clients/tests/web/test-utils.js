@@ -1,6 +1,4 @@
 import axios from 'axios';
-const util = require('node:util');
-const exec = util.promisify(require('node:child_process').exec);
 
 const generateBlocks = async (blocks) => {
     const body = {
@@ -45,44 +43,66 @@ const sleep = (ms) => {
 
 const generateInvoice = async (paymentHash, amountInSats) => {
 
-    const generateInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest addholdinvoice ${paymentHash} --amt ${amountInSats}`;
-    const { stdout, stderr } = await exec(generateInvoiceCommand);
-    if (stderr) {
-        console.error('Error:', stderr);
-        return null;
-    }
+    const body = {
+        paymentHash,
+        amountInSats
+    };
+
+    const url = `http://0.0.0.0:3000/generate_invoice`;
     
-    try {
-        const response = JSON.parse(stdout.trim());
-        return response;
-    } catch (error) {
-        console.error('Error parsing JSON:', error);
-        return null;
+    let response = await axios.post(url, body);
+
+    if (response.status == 200) {
+        const invoice = JSON.parse(response.data.invoice);
+        return invoice;
+    } else {
+        throw new Error(`Failed to generate invoice`);
     }
 }
 
 const payInvoice = async (paymentRequest) => {
+
+    const body = {
+        paymentRequest
+    };
+
+    const url = `http://0.0.0.0:3000/pay_invoice`;
     
-    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
-    const { stdout, stderr } = await exec(payInvoiceCommand);
-    if (stderr) {
-      console.error('Error:', stderr);
-      return null;
+    let response = await axios.post(url, body);
+
+    if (response.status != 200) {
+        throw new Error(`Failed to pay invoice`);
     }
-    console.log('stdout:', stdout.trim());
-    return stdout.trim();
 }
 
-const payHoldInvoice = (paymentRequest) => {
+const payHoldInvoice = async (paymentRequest) => {
+
+    const body = {
+        paymentRequest
+    };
+
+    const url = `http://0.0.0.0:3000/pay_holdinvoice`;
     
-    const payInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-bob-1") lncli -n regtest payinvoice --force ${paymentRequest}`;
-    exec(payInvoiceCommand);
+    let response = await axios.post(url, body);
+
+    if (response.status != 200) {
+        throw new Error(`Failed to pay hold invoice`);
+    }
 }
 
 const settleInvoice = async (preimage) => {
 
-    const settleInvoiceCommand = `docker exec $(docker ps -qf "name=mercurylayer-alice-1") lncli -n regtest settleinvoice ${preimage}`;
-    await exec(settleInvoiceCommand);
+    const body = {
+        preimage
+    };
+
+    const url = `http://0.0.0.0:3000/settle_invoice`;
+    
+    let response = await axios.post(url, body);
+
+    if (response.status != 200) {
+        throw new Error(`Failed to settle invoice`);
+    }
 }
 
 export { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice };
