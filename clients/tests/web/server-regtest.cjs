@@ -5,6 +5,7 @@ const cors = require('cors')
 const port = 3000
 const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
+const lightningPayReq = require('bolt11');
 
 app.use(bodyParser.json())
 app.use(cors())
@@ -160,6 +161,25 @@ app.post('/settle_invoice', async (req, res) => {
     } 
     
     res.status(200).send({ message: 'Invoice settled successfully' })
+  } else {
+    res.status(400).send({ message: 'Invalid input' })
+  }
+})
+
+app.post('/decode_invoice', async (req, res) => {
+  const { paymentRequest } = req.body
+
+  if (typeof paymentRequest === 'string') {
+    console.log(`Decoding invoice ...`)
+    
+    try {
+      const invoice = lightningPayReq.decode(paymentRequest);
+      res.status(200).send({ message: 'Invoice generated successfully', invoice })
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).send({ message: error.message })
+    } 
+    
   } else {
     res.status(400).send({ message: 'Invalid input' })
   }

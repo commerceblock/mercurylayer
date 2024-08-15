@@ -105,4 +105,21 @@ const settleInvoice = async (preimage) => {
     }
 }
 
-export { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice };
+const decodeInvoice = async (paymentRequest) => {
+    const body = {
+        paymentRequest
+    };
+
+    const url = `http://0.0.0.0:3000/decode_invoice`;
+    
+    let response = await axios.post(url, body);
+
+    if (response.status == 200) {
+        const invoice = response.data.invoice;
+        return invoice;
+    } else {
+        throw new Error(`Failed to decode invoice`);
+    }
+}
+
+export { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice, decodeInvoice };

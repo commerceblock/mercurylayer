@@ -9,7 +9,7 @@ import transfer_send from './transfer_send.js';
 import transfer_receive from './transfer_receive.js';
 import lightningLatch from './lightning-latch.js';
 import { v4 as uuidv4 } from 'uuid';
-import * as lightningPayReq from 'bolt11';
+import { decodeInvoice } from '../../tests/web/test-utils.js';
 
 const greet = async () => {
   
@@ -130,10 +130,12 @@ const getPaymentHash = async (clientConfig, batchId) => {
 
 const verifyInvoice = async (clientConfig, batchId, paymentRequest) => {
 
-  const decodedInvoice = lightningPayReq.decode(paymentRequest);
+  const decodedInvoice = await decodeInvoice(paymentRequest);
   let paymentHash = await getPaymentHash(clientConfig, batchId);
-  
-  return paymentHash === decodedInvoice.tagsObject.payment_hash;
+  console.log("Decoded invoice: ", decodedInvoice);
+
+  const paymentHashFromInvoice = decodedInvoice.tags.find(tag => tag.tagName === "payment_hash")?.data;
+  return paymentHash === paymentHashFromInvoice;
 }
 
 export default { 

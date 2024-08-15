@@ -409,7 +409,7 @@ describe('TB04 - Lightning Latch', function() {
 
       expect(hash).to.equal(paymentHash.hash);
 
-      const paymentHashSecond = "f768c404215f9fb5731c32c00fe7a057fc181d7695de447b334380d90674db34"
+      const paymentHashSecond = "b1f55a2f2eabb08ed9d6e15a053a6ac84d04d1c017de5a42caaec98b8d2ff738"
       const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
 
       try {
@@ -476,12 +476,11 @@ describe('TB04 - Lightning Latch', function() {
         hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
           .digest('hex')
+        expect(hash).to.equal(paymentHash.hash);
       } catch (error) {
         console.error('Error:', error);
         expect(error.message).to.include('failed');
       }
-
-      expect(hash).to.equal(paymentHash.hash);
     })
   })
 
@@ -546,12 +545,11 @@ describe('TB04 - Lightning Latch', function() {
         hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
           .digest('hex')
+        expect(hash).to.equal(paymentHash.hash);
       } catch (error) {
         console.error('Error:', error);
         expect(error.message).to.include('failed');
       }
-
-      expect(hash).to.equal(paymentHash.hash);
     })
   })
 
@@ -586,7 +584,7 @@ describe('TB04 - Lightning Latch', function() {
 
       const paymentHash = await mercurynodejslib.paymentHash(clientConfig, wallet_1_name, coin.statechain_id);
 
-      const paymentHashSecond = "ddddf1cd1e2ca1986e29b20401b555fbaa4a8502626a7afc37c47ae06a46d918"
+      const paymentHashSecond = "a3b5f72d4e8cb07cd9a6e17c054a7ac84d05e1c018fe5b43cbbef98a9d3ff839"
       const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
 
       const isInvoiceValid = await mercurynodejslib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);

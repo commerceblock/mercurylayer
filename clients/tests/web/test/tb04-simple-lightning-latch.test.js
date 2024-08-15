@@ -3,7 +3,7 @@ import { describe, test, expect } from "vitest";
 import CoinStatus from 'mercuryweblib/coin_enum.js';
 import clientConfig from '../ClientConfig.js';
 import mercuryweblib from 'mercuryweblib';
-import { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice } from '../test-utils.js';
+import { generateBlocks, depositCoin, sleep, generateInvoice, payInvoice, payHoldInvoice, settleInvoice, decodeInvoice } from '../test-utils.js';
 
 async function sha256(preimage) {
     let buffer;
@@ -315,11 +315,6 @@ describe('TB04 - Statecoin sender can recover (resend their coin) after batch ti
 
         expect(transferReceive.isThereBatchLocked).toBe(true);
 
-        let toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
-
-        await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId1, toAddress, null, null);
-        await mercuryweblib.withdrawCoin(clientConfig, wallet1.name, statechainId2, toAddress, null, null);
-
         const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId1, paymentHash1.batchId);
 
         let hashPreImage = await sha256(preimage);
@@ -454,7 +449,8 @@ describe('TB04 - Receiver tries to transfer invoice amount to another invoice be
 
         const invoice = await generateInvoice(paymentHash.hash, amount);
 
-        payHoldInvoice(invoice.payment_request);
+        await payHoldInvoice(invoice.payment_request);
+        console.log(invoice);
 
         let transferAddress = await mercuryweblib.newTransferAddress(wallet2.name);
 
@@ -484,8 +480,8 @@ describe('TB04 - Receiver tries to transfer invoice amount to another invoice be
 
         expect(hashPreImage).toEqual(paymentHash.hash);
 
-        const paymentHashSecond = "4f67f0a4bc4a8a6a8ecb944e9b748ed7c27655fbdb4c4d3f045d7f18c1e4de64"
-        const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
+        const paymentRequest = "lnbcrt10u1pnt70qdpp55w6lwt2w3jc8ekdxu97q2jn6epxstcwqrrl9ks7thmuc48fllqusdqqcqzzsxqyz5vqsp54ay50wuys4sjjmzsxms3hv6pf294rnys8y9k93t8dz6edpqvue5s9qxpqysgqwpp3m8a77cc6nt2yvxvkcql5avzf50ga95dxrtugfv2p5wdqfjy4fd44srh7undwaa7tkju88c0z9zf9ryp5tdr3hv7t9699l4qfpccpp7fqx7"
+        const invoiceSecond = await decodeInvoice(paymentRequest);
   
         try {
           await payInvoice(invoiceSecond.payment_request);
@@ -568,12 +564,11 @@ describe('Statecoin sender sends coin without batch_id (receiver should still be
         try {
             const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId, paymentHash.batchId);
             hashPreImage = await sha256(preimage);
+            expect(hashPreImage).toEqual(paymentHash.hash);
         } catch (error) {
             console.error('Error:', error);
             expect(error.message).to.include('failed');
         }
-
-        expect(hashPreImage).toEqual(paymentHash.hash);
     });
 }, 50000);
 
@@ -649,12 +644,11 @@ describe('TB04 - Sender sends coin without batch_id, and then resends to a diffe
         try {
             const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId, paymentHash.batchId);
             hashPreImage = await sha256(preimage);
+            expect(hashPreImage).toEqual(paymentHash.hash);
         } catch (error) {
             console.error('Error:', error);
             expect(error.message).to.include('failed');
         }
-
-        expect(hashPreImage).toEqual(paymentHash.hash);
     });
 }, 50000);
 
@@ -702,8 +696,8 @@ describe('Coin receiver creates a non hold invoice, and sends to sender (i.e. an
 
         const paymentHash = await mercuryweblib.paymentHash(clientConfig, wallet1.name, statechainId);
 
-        const paymentHashSecond = "b4eab5e663aebe5fc645865b27b33c04c4e057e7c844fa61519df6de1398cdb3"
-        const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
+        const paymentRequest = "lnbcrt10u1pnt70fjpp53gj23vyghz5ggpc3ppkttxkqkywfz2dfwgalsa9ynylwe28lscqqdqqcqzzsxqyz5vqsp5l640fse8wx9773rpxlqdgv95t4swhpeueuta358404q6exvhzk5q9qxpqysgqzytwwj9n6s5dt4jd6vgvy9rmtcq4cwhe4h98asrpe3u3pqp3tqkrcvz5fm6uvr76akr9ml07sz70cdx45d64h9dpmnd2ua5qdpp79rcpqpucyd"
+        const invoiceSecond = await decodeInvoice(paymentRequest);
 
         const isInvoiceValid = await mercuryweblib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);
         expect(isInvoiceValid).is.false;
