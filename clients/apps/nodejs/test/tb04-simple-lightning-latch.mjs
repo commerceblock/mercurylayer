@@ -470,12 +470,16 @@ describe('TB04 - Lightning Latch', function() {
       expect(transferReceiveResult.isThereBatchLocked).is.false;
       expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
-      const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
-      console.log("Preimage: ", preimage);
-
-      const hash = crypto.createHash('sha256')
+      let hash;
+      try {
+        const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+        hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
           .digest('hex')
+      } catch (error) {
+        console.error('Error:', error);
+        expect(error.message).to.include('failed');
+      }
 
       expect(hash).to.equal(paymentHash.hash);
     })
@@ -536,12 +540,16 @@ describe('TB04 - Lightning Latch', function() {
       expect(transferReceiveResult.isThereBatchLocked).is.false;
       expect(transferReceiveResult.receivedStatechainIds).is.empty;
 
-      const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
-      console.log("Preimage: ", preimage);
-
-      const hash = crypto.createHash('sha256')
+      let hash;
+      try {
+        const { preimage } = await mercurynodejslib.retrievePreImage(clientConfig, wallet_1_name, coin.statechain_id, paymentHash.batchId);
+        hash = crypto.createHash('sha256')
           .update(Buffer.from(preimage, 'hex'))
           .digest('hex')
+      } catch (error) {
+        console.error('Error:', error);
+        expect(error.message).to.include('failed');
+      }
 
       expect(hash).to.equal(paymentHash.hash);
     })

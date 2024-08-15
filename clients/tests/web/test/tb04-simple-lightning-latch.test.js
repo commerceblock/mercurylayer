@@ -203,7 +203,6 @@ describe('TB04 - The sender tries to get the pre-image before the batch is unloc
         let toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
         await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId1, toAddress, null, null);
-        await mercuryweblib.withdrawCoin(clientConfig, wallet1.name, statechainId2, toAddress, null, null);
 
         const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId1, paymentHash1.batchId);
 
@@ -281,7 +280,7 @@ describe('TB04 - Statecoin sender can recover (resend their coin) after batch ti
         let transferAddress2 = await mercuryweblib.newTransferAddress(wallet1.name);
 
         await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId1, transferAddress1.transfer_receive, false, paymentHash1.batchId );
-        await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId2, transferAddress2.transfer_receive, false, paymentHash2.batchId);
+        await mercuryweblib.transferSend(clientConfig, wallet2.name, statechainId2, transferAddress2.transfer_receive, false, paymentHash1.batchId);
 
         let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
 
@@ -314,7 +313,7 @@ describe('TB04 - Statecoin sender can recover (resend their coin) after batch ti
         await mercuryweblib.confirmPendingInvoice(clientConfig, wallet1.name, statechainId1);
         await mercuryweblib.confirmPendingInvoice(clientConfig, wallet2.name, statechainId2);
 
-        expect(transferReceive.isThereBatchLocked).toBe(false);
+        expect(transferReceive.isThereBatchLocked).toBe(true);
 
         let toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
 
@@ -461,7 +460,7 @@ describe('TB04 - Receiver tries to transfer invoice amount to another invoice be
 
         await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, paymentHash.batchId );
 
-        const hashFromServer = await mercurynodejslib.getPaymentHash(clientConfig, paymentHash.batchId);
+        const hashFromServer = await mercuryweblib.getPaymentHash(clientConfig, paymentHash.batchId);
 
         expect(hashFromServer).to.equal(paymentHash.hash);
 
@@ -494,5 +493,219 @@ describe('TB04 - Receiver tries to transfer invoice amount to another invoice be
           console.error('Error:', error);
           expect(error.message).to.include('failed');
         }
+    });
+}, 50000);
+
+describe('Statecoin sender sends coin without batch_id (receiver should still be able to receive, but no pre-image revealed)', () => {
+    test("expected flow", async () => {
+
+        localStorage.removeItem("mercury-layer:wallet1_tb04");
+        localStorage.removeItem("mercury-layer:wallet2_tb04");
+
+        let wallet1 = await mercuryweblib.createWallet(clientConfig, "wallet1_tb04");
+        let wallet2 = await mercuryweblib.createWallet(clientConfig, "wallet2_tb04");
+
+        await mercuryweblib.newToken(clientConfig, wallet1.name);
+
+        const amount = 1000;
+        
+        let result = await mercuryweblib.getDepositBitcoinAddress(clientConfig, wallet1.name, amount);
+
+        const statechainId = result.statechain_id;
+    
+        let isDepositInMempool = false;
+        let isDepositConfirmed = false;
+        let areBlocksGenerated = false;
+
+        await depositCoin(result.deposit_address, amount);
+
+        while (!isDepositConfirmed) {
+
+            const coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
+    
+            for (let coin of coins) {
+                if (coin.statechain_id === statechainId && coin.status === CoinStatus.IN_MEMPOOL && !isDepositInMempool) {
+                    isDepositInMempool = true;
+                } else if (coin.statechain_id === statechainId && coin.status === CoinStatus.CONFIRMED) {
+                    isDepositConfirmed = true;
+                    break;
+                }
+            }
+
+            if (isDepositInMempool && !areBlocksGenerated) {
+                areBlocksGenerated = true;
+                await generateBlocks(clientConfig.confirmationTarget);
+            }
+            
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        const paymentHash = await mercuryweblib.paymentHash(clientConfig, wallet1.name, statechainId);
+
+        let transferAddress = await mercuryweblib.newTransferAddress(wallet2.name);
+
+        await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, null);
+
+        const hashFromServer = await mercuryweblib.getPaymentHash(clientConfig, paymentHash.batchId);
+
+        expect(hashFromServer).to.equal(paymentHash.hash);
+
+        let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
+
+        expect(transferReceive.isThereBatchLocked).toBe(false);
+
+        await mercuryweblib.confirmPendingInvoice(clientConfig, wallet1.name, statechainId);
+
+        transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
+
+        expect(transferReceive.isThereBatchLocked).toBe(false);
+
+        let toAddress = "bcrt1q805t9k884s5qckkxv7l698hqlz7t6alsfjsqym";
+
+        await mercuryweblib.withdrawCoin(clientConfig, wallet2.name, statechainId, toAddress, null, null);
+
+        let hashPreImage;
+        try {
+            const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId, paymentHash.batchId);
+            hashPreImage = await sha256(preimage);
+        } catch (error) {
+            console.error('Error:', error);
+            expect(error.message).to.include('failed');
+        }
+
+        expect(hashPreImage).toEqual(paymentHash.hash);
+    });
+}, 50000);
+
+describe('TB04 - Sender sends coin without batch_id, and then resends to a different address (to attempt to steal), and then attempts to retrieve the pre-image, should fail (and LN payment cannot be claimed)', () => {
+    test("expected flow", async () => {
+        localStorage.removeItem("mercury-layer:wallet1_tb04");
+        localStorage.removeItem("mercury-layer:wallet2_tb04");
+
+        let wallet1 = await mercuryweblib.createWallet(clientConfig, "wallet1_tb04");
+        let wallet2 = await mercuryweblib.createWallet(clientConfig, "wallet2_tb04");
+        let wallet3 = await mercuryweblib.createWallet(clientConfig, "wallet3_tb04");
+
+        await mercuryweblib.newToken(clientConfig, wallet1.name);
+
+        const amount = 1000;
+        
+        let result = await mercuryweblib.getDepositBitcoinAddress(clientConfig, wallet1.name, amount);
+
+        const statechainId = result.statechain_id;
+    
+        let isDepositInMempool = false;
+        let isDepositConfirmed = false;
+        let areBlocksGenerated = false;
+
+        await depositCoin(result.deposit_address, amount);
+
+        while (!isDepositConfirmed) {
+
+            const coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
+    
+            for (let coin of coins) {
+                if (coin.statechain_id === statechainId && coin.status === CoinStatus.IN_MEMPOOL && !isDepositInMempool) {
+                    isDepositInMempool = true;
+                } else if (coin.statechain_id === statechainId && coin.status === CoinStatus.CONFIRMED) {
+                    isDepositConfirmed = true;
+                    break;
+                }
+            }
+
+            if (isDepositInMempool && !areBlocksGenerated) {
+                areBlocksGenerated = true;
+                await generateBlocks(clientConfig.confirmationTarget);
+            }
+            
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        const paymentHash = await mercuryweblib.paymentHash(clientConfig, wallet1.name, statechainId);
+
+        let transferAddress = await mercuryweblib.newTransferAddress(wallet2.name);
+
+        await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddress.transfer_receive, false, null);
+
+        const transferAddressSecond = await mercuryweblib.newTransferAddress(wallet3.name);
+
+        await mercuryweblib.transferSend(clientConfig, wallet1.name, statechainId, transferAddressSecond.transfer_receive, false, null);
+
+        const hashFromServer = await mercuryweblib.getPaymentHash(clientConfig, paymentHash.batchId);
+
+        expect(hashFromServer).to.equal(paymentHash.hash);
+
+        let transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
+
+        expect(transferReceive.isThereBatchLocked).toBe(false);
+
+        await mercuryweblib.confirmPendingInvoice(clientConfig, wallet1.name, statechainId);
+
+        transferReceive = await mercuryweblib.transferReceive(clientConfig, wallet2.name);
+
+        expect(transferReceive.isThereBatchLocked).toBe(false);
+
+        let hashPreImage;
+        try {
+            const { preimage } = await mercuryweblib.retrievePreImage(clientConfig, wallet1.name, statechainId, paymentHash.batchId);
+            hashPreImage = await sha256(preimage);
+        } catch (error) {
+            console.error('Error:', error);
+            expect(error.message).to.include('failed');
+        }
+
+        expect(hashPreImage).toEqual(paymentHash.hash);
+    });
+}, 50000);
+
+describe('Coin receiver creates a non hold invoice, and sends to sender (i.e. an invoice with the a different payment hash). Sender should be able to determine this.', () => {
+    test("expected flow", async () => {
+
+        localStorage.removeItem("mercury-layer:wallet1_tb04");
+
+        let wallet1 = await mercuryweblib.createWallet(clientConfig, "wallet1_tb04");
+
+        await mercuryweblib.newToken(clientConfig, wallet1.name);
+
+        const amount = 1000;
+        
+        let result = await mercuryweblib.getDepositBitcoinAddress(clientConfig, wallet1.name, amount);
+
+        const statechainId = result.statechain_id;
+    
+        let isDepositInMempool = false;
+        let isDepositConfirmed = false;
+        let areBlocksGenerated = false;
+
+        await depositCoin(result.deposit_address, amount);
+
+        while (!isDepositConfirmed) {
+
+            const coins = await mercuryweblib.listStatecoins(clientConfig, wallet1.name);
+    
+            for (let coin of coins) {
+                if (coin.statechain_id === statechainId && coin.status === CoinStatus.IN_MEMPOOL && !isDepositInMempool) {
+                    isDepositInMempool = true;
+                } else if (coin.statechain_id === statechainId && coin.status === CoinStatus.CONFIRMED) {
+                    isDepositConfirmed = true;
+                    break;
+                }
+            }
+
+            if (isDepositInMempool && !areBlocksGenerated) {
+                areBlocksGenerated = true;
+                await generateBlocks(clientConfig.confirmationTarget);
+            }
+            
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        const paymentHash = await mercuryweblib.paymentHash(clientConfig, wallet1.name, statechainId);
+
+        const paymentHashSecond = "b4eab5e663aebe5fc645865b27b33c04c4e057e7c844fa61519df6de1398cdb3"
+        const invoiceSecond = await generateInvoice(paymentHashSecond, amount);
+
+        const isInvoiceValid = await mercuryweblib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);
+        expect(isInvoiceValid).is.false;
     });
 }, 50000);
