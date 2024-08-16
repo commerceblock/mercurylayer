@@ -697,9 +697,8 @@ describe('Coin receiver creates a non hold invoice, and sends to sender (i.e. an
         const paymentHash = await mercuryweblib.paymentHash(clientConfig, wallet1.name, statechainId);
 
         const paymentRequest = "lnbcrt10u1pnt70fjpp53gj23vyghz5ggpc3ppkttxkqkywfz2dfwgalsa9ynylwe28lscqqdqqcqzzsxqyz5vqsp5l640fse8wx9773rpxlqdgv95t4swhpeueuta358404q6exvhzk5q9qxpqysgqzytwwj9n6s5dt4jd6vgvy9rmtcq4cwhe4h98asrpe3u3pqp3tqkrcvz5fm6uvr76akr9ml07sz70cdx45d64h9dpmnd2ua5qdpp79rcpqpucyd"
-        const invoiceSecond = await decodeInvoice(paymentRequest);
 
-        const isInvoiceValid = await mercuryweblib.verifyInvoice(clientConfig, paymentHash.batchId, invoiceSecond.payment_request);
+        const isInvoiceValid = await mercuryweblib.verifyInvoice(clientConfig, paymentHash.batchId, paymentRequest);
         expect(isInvoiceValid).is.false;
     });
 }, 50000);
