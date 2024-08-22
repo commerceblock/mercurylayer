@@ -132,4 +132,4 @@ const getPaymentHash = async (clientConfig, batchId) => {
 
 }
 
-export default { createPreImage, confirmPendingInvoice, retrievePreImage, getPaymentHash};
+export default { createPreImage, confirmPendingInvoice, retrievePreImage, getPaymentHash };
