@@ -14,7 +14,7 @@ jobs:
 
     services:
       docker:
-        image: docker:19.03.12
+        image: docker:24.0.5
         options: --privileged
         ports:
           - 5432:5432
@@ -32,13 +32,20 @@ jobs:
 
       - name: Set up Docker Compose
         run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
           docker-compose -f docker-compose-test.yml up --build -d
+      - name: Run start-test-components.sh for web client tests
+        run: |
+          cd clients/tests/web
+          chmod +x start-test-components.sh
+          ./start-test-components.sh
       - name: Wait for services to be ready
         run: |
           sleep 80 # Adjust time as necessary for services to initialize
-      - name: Verify Bitcoin daemon Service with Curl
+      - name: Verify Bitcoin daemon Service and create wallet
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_bitcoind_1")
+          container_id=$(docker ps -qf "name=mercurylayer-bitcoind-1")
           echo "Container ID: $container_id"
           docker logs $container_id
           wallet_name="new_wallet"
@@ -47,19 +54,54 @@ jobs:
           echo "New Wallet Address: $address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass generatetoaddress 101 "$address"
           docker exec $container_id bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
+      - name: Create wallet for esplora
+        run: |
+          container_id=$(docker ps -qf "name=esplora-container")
+          echo "Container ID: $container_id"
+          docker logs $container_id
+          wallet_name="esplora_wallet"
+          docker exec $container_id cli createwallet $wallet_name
+          address=$(docker exec $container_id cli getnewaddress $wallet_name)
+          echo "New Wallet Address: $address"
+          docker exec $container_id cli generatetoaddress 101 "$address"
+          docker exec $container_id cli sendtoaddress bcrt1pcngfxjdkf4r2h26k52dh5nunxg8m68uf4lkfhmfjvjj6agfkm5jqmftw4e 0.0001
+      - name: Wait for services to be ready
+        run: |
+          sleep 60 # Wait for lnd to sync with latest block
+      - name: Verify LND nodes and create a channel between them
+        run: |
+          container_id_alice=$(docker ps -qf "name=mercurylayer-alice-1")
+          echo "Container ID: $container_id_alice"
+          container_id_bob=$(docker ps -qf "name=mercurylayer-bob-1")
+          echo "Container ID: $container_id_bob"
+          docker logs $container_id_alice
+          docker logs $container_id_bob
+          identity_pubkey_bob=$(docker exec $container_id_bob lncli -n regtest getinfo | jq -r '.identity_pubkey')
+          echo "Pubkey: $identity_pubkey_bob"
+          docker exec $container_id_alice lncli -n regtest connect $identity_pubkey_bob@bob:9735
+          docker exec $container_id_alice lncli -n regtest listpeers
+          address=$(docker exec $container_id_bob lncli -n regtest newaddress p2wkh | jq -r '.address')
+          container_id_bitcoind=$(docker ps -qf "name=mercurylayer-bitcoind-1")
+          docker exec $container_id_bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass sendtoaddress $address 0.5
+          docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 6
+          identity_pubkey_alice=$(docker exec $container_id_alice lncli -n regtest getinfo | jq -r '.identity_pubkey')
+          docker exec $container_id_bob lncli -n regtest openchannel $identity_pubkey_alice 100000
+          docker exec $(docker ps -qf "name=mercurylayer-bitcoind-1") bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -generate 5
+          docker logs $container_id_alice
+          docker logs $container_id_bob
       - name: Verify ElectrumX Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_electrs_1")
+          container_id=$(docker ps -qf "name=mercurylayer-electrs-1")
           echo "Container ID: $container_id"
           docker logs $container_id
       - name: Verify Enclave Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
+          container_id=$(docker ps -qf "name=mercurylayer-enclave-sgx-1")
           echo "Container ID: $container_id"
           docker logs $container_id
       - name: Verify Mercury Service with Curl
         run: |
-          container_id=$(docker ps -qf "name=mercurylayer_mercury_1")
+          container_id=$(docker ps -qf "name=mercurylayer-mercury-1")
            echo "Container ID: $container_id"
           docker logs $container_id
           docker exec $container_id \
@@ -71,14 +113,23 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
           docker logs $(docker ps -qf "name=enclave")
+      - name: Verify Node Service with Curl
+        run: |
+          curl -X POST http://0.0.0.0:3000/deposit_amount \
+          -H 'Content-Type: application/json' \
+          -d '{"address":"bcrt1pkygl356c6fvk6ptx72c64hrjkhcxecj4hjzfzc430svzczuv6m0s42lvwx","amount":1000}'
+      - name: Verify Esplora Service with Curl
+        run: |
+          curl http://0.0.0.0:8094/regtest/api/blocks/tip/height
+          docker logs $(docker ps -qf "name=esplora-container")
       - name: Check connectivity between containers
         run: |
           # Get container IDs
-          enclave_container=$(docker ps -qf "name=mercurylayer_enclave-sgx_1")
-          mercury_container=$(docker ps -qf "name=mercurylayer_mercury_1")
+          enclave_container=$(docker ps -qf "name=mercurylayer-enclave-sgx-1")
+          mercury_container=$(docker ps -qf "name=mercurylayer-mercury-1")
           
-          # Check if mercurylayer_mercury_1 can reach mercurylayer_enclave-sgx_1
-          docker exec $mercury_container curl -v http://mercurylayer_enclave-sgx_1:18080/get_public_key \
+          # Check if mercurylayer-mercury-1 can reach mercurylayer-enclave-sgx-1
+          docker exec $mercury_container curl -v http://mercurylayer-enclave-sgx-1:18080/get_public_key \
             -H "Content-Type: application/json" \
             -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
           
@@ -88,7 +139,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"statechain_id":"550e8400e29b41d4a716446655440000"}'
 
-          docker inspect mercurylayer_mercury_1
+          docker inspect mercurylayer-mercury-1
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -98,15 +149,32 @@ jobs:
         run: |
           cd clients/apps/nodejs
           npm install
+          npm install mocha -g
+      - name: Install Node.js dependencies for web client
+        run: |
+          cd clients/tests/web
+          npm install
+          npx playwright install
+          npx playwright install-deps
       - name: Install Node.js dependencies for lib
         run: |
           cd clients/libs/nodejs
           npm install
+      - name: Install Node.js dependencies for web
+        run: |
+          cd clients/libs/web
+          npm install
+      - name: Run web client Tests
+        run: |
+          cd clients/tests/web
+          sudo chmod -R 755 ./data_bitcoin_regtest
+          npx vitest --browser.name=chromium --browser.headless
       - name: Run Client-Side Tests
         run: |
           cd clients/apps/nodejs
           node test_basic_workflow2.js
           node test_atomic_swap.js
+          mocha ./test/tb04-simple-lightning-latch.mjs --exit    
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down
