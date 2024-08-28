@@ -11,8 +11,39 @@ use sha2::{Sha256, Digest};
 
 use crate::server::StateChainEntity;
 
+#[get("/transfer/paymenthash/<batch_id>")]
+pub async fn get_paymenthash(statechain_entity: &State<StateChainEntity>, batch_id: &str) -> status::Custom<Json<Value>> {
+
+    let pre_image = crate::database::lightning_latch::get_preimage_by_batch_id(&statechain_entity.pool, batch_id).await;
+
+    if pre_image.is_none() {
+        let response_body = json!({
+            "message": "Pre-image not found"
+        });
+
+        return status::Custom(Status::NotFound, Json(response_body));
+    }
+
+    let pre_image = pre_image.unwrap();
+    let buffer = hex::decode(pre_image).unwrap();
+
+    let mut hasher = Sha256::new();
+    hasher.update(buffer);
+    let result = hasher.finalize();
+
+    let payment_hash = hex::encode(result);
+
+    let payment_hash_response_payload = PaymentHashResponsePayload {
+        hash: payment_hash,
+    };
+
+    let response_body = json!(payment_hash_response_payload);
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
 #[post("/transfer/paymenthash", format = "json", data = "<payment_hash_payload>")]
-pub async fn paymenthash(statechain_entity: &State<StateChainEntity>, payment_hash_payload: Json<PaymentHashRequestPayload>) -> status::Custom<Json<Value>>  {
+pub async fn post_paymenthash(statechain_entity: &State<StateChainEntity>, payment_hash_payload: Json<PaymentHashRequestPayload>) -> status::Custom<Json<Value>>  {
 
     let statechain_id = payment_hash_payload.0.statechain_id.clone();
     let signed_statechain_id = payment_hash_payload.0.auth_sig.clone();

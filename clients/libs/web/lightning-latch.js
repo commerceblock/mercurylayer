@@ -113,4 +113,23 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
     return { preimage: response?.data?.preimage };
 }
 
-export default { createPreImage, confirmPendingInvoice, retrievePreImage };
+const getPaymentHash = async (clientConfig, batchId) => {
+
+    const url = `${clientConfig.statechainEntity}/transfer/paymenthash/${batchId}`;
+
+    try {
+        let response = await axios.get(url);
+
+        return response?.data?.hash;
+
+    } catch (error) {
+        if (error.response.status == 401) {
+            return null;
+        } else {
+            throw new Error(`Failed to retrieve payment hash: ${JSON.stringify(error.response.data)}`);
+        }
+    }
+
+}
+
+export default { createPreImage, confirmPendingInvoice, retrievePreImage, getPaymentHash };

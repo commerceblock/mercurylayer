@@ -46,4 +46,5 @@ wasm-bindgen-test = "0.3.34"
 opt-level = "s"
 
 [dependencies.getrandom]
+version = "0.2.10"
 features = ["js"]

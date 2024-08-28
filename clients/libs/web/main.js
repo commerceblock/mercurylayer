@@ -9,6 +9,7 @@ import transfer_send from './transfer_send.js';
 import transfer_receive from './transfer_receive.js';
 import lightningLatch from './lightning-latch.js';
 import { v4 as uuidv4 } from 'uuid';
+import { decodeInvoice } from '../../tests/web/test-utils.js';
 
 const greet = async () => {
   
@@ -122,6 +123,21 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
   return await lightningLatch.retrievePreImage(clientConfig, walletName, statechainId, batchId);
 }
 
+const getPaymentHash = async (clientConfig, batchId) => {
+
+  return await lightningLatch.getPaymentHash(clientConfig, batchId);
+}
+
+const verifyInvoice = async (clientConfig, batchId, paymentRequest) => {
+
+  const decodedInvoice = await decodeInvoice(paymentRequest);
+  let paymentHash = await getPaymentHash(clientConfig, batchId);
+  console.log("Decoded invoice: ", decodedInvoice);
+
+  const paymentHashFromInvoice = decodedInvoice.tags.find(tag => tag.tagName === "payment_hash")?.data;
+  return paymentHash === paymentHashFromInvoice;
+}
+
 export default { 
   greet, 
   createWallet, 
@@ -135,5 +151,7 @@ export default {
   transferReceive,
   paymentHash,
   confirmPendingInvoice,
-  retrievePreImage
+  retrievePreImage,
+  getPaymentHash,
+  verifyInvoice
 }

@@ -18,16 +18,18 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Run node server in the background and capture its PID
+npm install
 node server-regtest.cjs &
 NODE_PID=$!
 
 # Run docker command in the background without -it flags
-docker run --name esplora-container -p 50001:50001 -p 8094:80 \
+docker run --name esplora-container -p 50002:50002 -p 8094:80 \
     --volume $PWD/data_bitcoin_regtest:/data \
     --env CORS_ALLOW='*' --rm \
     blockstream/esplora \
     /srv/explorer/run.sh bitcoin-regtest explorer &
 DOCKER_PID=$!
 
+
 # Wait for both processes to finish
-wait $NODE_PID $DOCKER_PID
+# wait $NODE_PID $DOCKER_PID

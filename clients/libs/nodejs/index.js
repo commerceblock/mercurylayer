@@ -16,6 +16,7 @@ const sqlite_manager = require('./sqlite_manager');
 const { v4: uuidv4 } = require('uuid');
 
 const wallet_manager = require('./wallet');
+const lightningPayReq = require("bolt11");
 
 const getDatabase = async (clientConfig) => {
     const databaseFile = clientConfig.databaseFile;
@@ -247,6 +248,19 @@ const retrievePreImage = async (clientConfig, walletName, statechainId, batchId)
     return preImage;
 }
 
+const verifyInvoice = async (clientConfig, batchId, paymentRequest) => {
+
+    const decodedInvoice = lightningPayReq.decode(paymentRequest);
+    let paymentHash = await getPaymentHash(clientConfig, batchId);
+    
+    return paymentHash === decodedInvoice.tagsObject.payment_hash;
+}
+
+const getPaymentHash = async (clientConfig, batchId) => {
+
+    return await lightningLatch.getPaymentHash(clientConfig, batchId);
+}
+
 module.exports = { 
     createWallet, 
     newToken, 
@@ -260,5 +274,7 @@ module.exports = {
     transferReceive,
     paymentHash,
     confirmPendingInvoice,
-    retrievePreImage
+    retrievePreImage,
+    verifyInvoice,
+    getPaymentHash
 };

@@ -1,5 +1,5 @@
 use mercurylib::transaction::SignFirstRequestPayload;
-use rocket::{http::Status, response::status::{self, Unauthorized}, serde::json::Json, State};
+use rocket::{http::Status, response::status, serde::json::Json, State};
 use secp256k1_zkp::musig::MusigSession;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -78,8 +78,6 @@ pub async fn sign_first(statechain_entity: &State<StateChainEntity>, sign_first_
         },
     };
 
-    println!("value: {}", value);
-
     let response: mercurylib::transaction::SignFirstResponsePayload = serde_json::from_str(value.as_str()).expect(&format!("failed to parse: {}", value.as_str()));
 
     let mut server_pubnonce_hex = response.server_pubnonce.clone();
@@ -153,8 +151,6 @@ pub async fn sign_second (statechain_entity: &State<StateChainEntity>, partial_s
             text
         },
         Err(err) => {
-            println!("ERROR sig: {}", err);
-
             let response_body = json!({
                 "error": "Internal Server Error",
                 "message": err.to_string()
