@@ -120,6 +120,33 @@ pub async fn token_init(token_server: &State<TokenServer>) -> status::Custom<Jso
     return status::Custom(Status::Ok, Json(response_body));
 }
 
+#[get("/token/token_gen")]
+pub async fn token_gen(token_server: &State<TokenServer>) -> status::Custom<Json<Value>>  {
+
+    let token_id = uuid::Uuid::new_v4().to_string();   
+
+    let invoice: Invoice = get_lightning_invoice(token_server, token_id.clone()).await;
+
+    let pod_info = PODInfo {
+        token_id: token_id.clone(),
+        fee: token_server.config.fee.clone(),
+        lightning_invoice: invoice.pr.clone(),
+        btc_payment_address: invoice.onChainAddr.clone(),
+        processor_id: invoice.id.clone(),
+    };
+
+    insert_new_token(&token_server.pool, &token_id, &invoice.pr.clone(), &invoice.onChainAddr, &invoice.id).await;
+
+    let config = crate::server_config::ServerConfig::load();
+
+    let response_body = json!({
+        "pod_info": pod_info,
+        "tnc": config.tnc.clone(),
+    });
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
 #[get("/token/token_verify/<token_id>")]
 pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>> {
 
