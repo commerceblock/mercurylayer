@@ -70,6 +70,22 @@ services:
     depends_on:
       - postgres
 
+  token-server:
+    build:
+      context: .
+      dockerfile: ./token-server/Dockerfile
+    environment:
+      PROCESSOR_URL: http://mercurylayer-enclave-sgx-1:18080"
+      API_KEY: aaaaa
+      FEE: 10000
+      UNIT: BTC
+      DELAY: 3600
+      CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+
   alice:
     image: lightninglabs/lndinit:v0.1.21-beta-lnd-v0.18.0-beta
     container_name: mercurylayer-alice-1

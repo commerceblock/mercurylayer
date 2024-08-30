@@ -147,6 +147,18 @@ pub async fn token_gen(token_server: &State<TokenServer>) -> status::Custom<Json
     return status::Custom(Status::Ok, Json(response_body));
 }
 
+#[get("/token/token_accept/<token_id>")]
+pub async fn token_accept(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>> {
+
+    set_tnc_accepted(&token_server.pool, &token_id).await;
+
+    let response_body = json!({
+        "accepted": true,
+    });
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
 #[get("/token/token_verify/<token_id>")]
 pub async fn token_verify(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>> {
 
@@ -281,6 +293,23 @@ pub async fn set_token_confirmed(pool: &sqlx::PgPool, token_id: &str)  {
 
     let query = "UPDATE tokens \
         SET confirmed = true \
+        WHERE token_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(token_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
+}
+
+pub async fn set_tnc_accepted(pool: &sqlx::PgPool, token_id: &str)  {
+
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query = "UPDATE tokens \
+        SET accepted = true \
         WHERE token_id = $1";
 
     let _ = sqlx::query(query)
