@@ -72,6 +72,7 @@ pub enum MercuryError {
     SecpError,
     NoBackupTransactionFound,
     Tx1HasMoreThanOneInput,
+    TxHasMoreThanOneOutput,
     EmptyInput,
     InvalidSignature,
     EmptyWitness,
