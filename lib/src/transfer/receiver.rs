@@ -299,7 +299,7 @@ pub fn validate_signature_scheme(
             break;
         }
 
-        if verify_if_locktime_is_reasonable(&backup_tx.tx, current_blockheight, lockheight_init).is_err() {
+        if verify_if_locktime_is_reasonable_and_tx_version(&backup_tx.tx, current_blockheight, lockheight_init).is_err() {
             println!("locktime is not reasonable");
             sig_scheme_validation = false;
             break;
@@ -405,9 +405,13 @@ pub fn verify_transaction_sequence(tx_n_hex: &str) -> Result<(), MercuryError> {
     Ok(())
 }
 
-pub fn verify_if_locktime_is_reasonable(tx_n_hex: &str, current_blockheight: u32, lockheight_init:u32) -> Result<(), MercuryError> {
+pub fn verify_if_locktime_is_reasonable_and_tx_version(tx_n_hex: &str, current_blockheight: u32, lockheight_init:u32) -> Result<(), MercuryError> {
 
     let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    if tx_n.version != 2 {
+        return Err(MercuryError::TransactionVersionError);
+    }
 
     let lock_time = tx_n.lock_time;
 
