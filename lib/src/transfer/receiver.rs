@@ -351,7 +351,7 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
 
-    let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
+    let sighash_type = TapSighashType::All;
 
     let hash = SighashCache::new(tx_n.clone()).taproot_key_spend_signature_hash(
         0,
