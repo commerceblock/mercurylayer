@@ -27,7 +27,7 @@ enum Commands {
     BroadcastBackupTransaction { 
         wallet_name: String,
         statechain_id: String,
-        to_address: String,
+        to_address: Option<String>,
         /// Transaction fee rate in sats per byte
         fee_rate: Option<f64>
     },
@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
         },
         Commands::BroadcastBackupTransaction { wallet_name, statechain_id, to_address, fee_rate } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
-            mercuryrustlib::broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, &to_address, fee_rate).await?;
+            mercuryrustlib::broadcast_backup_tx::execute(&client_config, &wallet_name, &statechain_id, to_address, fee_rate).await?;
         },
         Commands::ListStatecoins { wallet_name } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;

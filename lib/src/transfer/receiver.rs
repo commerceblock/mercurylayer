@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut, taproot::TapTweakHash};
+use bitcoin::{hashes::{sha256, Hash}, sighash::{self, SighashCache, TapSighashType}, taproot::TapTweakHash, Address, PrivateKey, Sequence, Transaction, TxOut, Txid};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 
@@ -291,6 +291,12 @@ pub fn validate_signature_scheme(
             break;
         }
 
+        if verify_transaction_sequence(&backup_tx.tx).is_err() {
+            println!("transaction sequence is not correct");
+            sig_scheme_validation = false;
+            break;
+        }
+
         if previous_lock_time.is_some() {
             let prev_lock_time = previous_lock_time.unwrap();
             let current_lock_time = crate::utils::get_blockheight(&backup_tx)?;
@@ -369,6 +375,27 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
 
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn verify_transaction_sequence(tx_n_hex: &str) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    if tx_n.input.is_empty() {
+        return Err(MercuryError::EmptyInput);
+    }
+
+    if tx_n.input.len() > 1 {
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
+    }
+
+    let input = tx_n.input.first().unwrap();
+
+    if input.sequence != Sequence(0) {
+        return Err(MercuryError::TransactionSequenceDifferentThanZeroError);
+    }
+
+    Ok(())
+}
 
 fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message, MercuryError> {
 

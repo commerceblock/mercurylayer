@@ -1176,16 +1176,16 @@ module.exports.__wbg_buffer_085ec1f694018c4f = function() { return logError(func
     return addHeapObject(ret);
 }, arguments) };
 
+module.exports.__wbg_get_97b561fb56f034b5 = function() { return handleError(function (arg0, arg1) {
+    const ret = Reflect.get(getObject(arg0), getObject(arg1));
+    return addHeapObject(ret);
+}, arguments) };
+
 module.exports.__wbindgen_is_function = function(arg0) {
     const ret = typeof(getObject(arg0)) === 'function';
     _assertBoolean(ret);
     return ret;
 };
-
-module.exports.__wbg_get_97b561fb56f034b5 = function() { return handleError(function (arg0, arg1) {
-    const ret = Reflect.get(getObject(arg0), getObject(arg1));
-    return addHeapObject(ret);
-}, arguments) };
 
 module.exports.__wbindgen_debug_string = function(arg0, arg1) {
     const ret = debugString(getObject(arg1));
