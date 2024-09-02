@@ -43,6 +43,8 @@ pub enum MercuryError {
     Bech32Error,
     HexError,
     LocktimeNotBlockHeightError,
+    LocktimeTooLow,
+    LocktimeTooHigh,
     TransactionSequenceDifferentThanZeroError,
     BitcoinConsensusEncodeError,
     MusigNonceGenError,

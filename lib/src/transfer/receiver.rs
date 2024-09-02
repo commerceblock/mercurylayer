@@ -265,8 +265,10 @@ pub fn validate_signature_scheme(
     transfer_msg: &TransferMsg, 
     statechain_info: &StatechainInfoResponsePayload, 
     tx0_hex: &str, 
+    current_blockheight: u32,
     fee_rate_tolerance: f64, 
     current_fee_rate_sats_per_byte: f64,
+    lockheight_init: u32,
     interval: u32) -> Result<u32, MercuryError> {
 
     let mut previous_lock_time: Option<u32> = None;
@@ -293,6 +295,12 @@ pub fn validate_signature_scheme(
 
         if verify_transaction_sequence(&backup_tx.tx).is_err() {
             println!("transaction sequence is not correct");
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if verify_if_locktime_is_reasonable(&backup_tx.tx, current_blockheight, lockheight_init).is_err() {
+            println!("locktime is not reasonable");
             sig_scheme_validation = false;
             break;
         }
@@ -392,6 +400,27 @@ pub fn verify_transaction_sequence(tx_n_hex: &str) -> Result<(), MercuryError> {
 
     if input.sequence != Sequence(0) {
         return Err(MercuryError::TransactionSequenceDifferentThanZeroError);
+    }
+
+    Ok(())
+}
+
+pub fn verify_if_locktime_is_reasonable(tx_n_hex: &str, current_blockheight: u32, lockheight_init:u32) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    let lock_time = tx_n.lock_time;
+
+    if !(lock_time.is_block_height()) {
+        return Err(MercuryError::LocktimeNotBlockHeightError);
+    }
+
+    if lock_time.to_consensus_u32() <= current_blockheight {
+        return Err(MercuryError::LocktimeTooLow);
+    }
+
+    if current_blockheight + lockheight_init < lock_time.to_consensus_u32() {
+        return Err(MercuryError::LocktimeTooHigh);
     }
 
     Ok(())
