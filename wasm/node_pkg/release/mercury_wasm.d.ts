@@ -267,12 +267,14 @@ export function duplicateCoinToInitializedState(walletJson: any, authPubkey: str
 * @param {any} transfer_msg
 * @param {any} statechain_info
 * @param {string} tx0_hex
+* @param {number} current_blockheight
 * @param {number} fee_rate_tolerance
 * @param {number} current_fee_rate_sats_per_byte
+* @param {number} lockheight_init
 * @param {number} interval
 * @returns {any}
 */
-export function validateSignatureScheme(transfer_msg: any, statechain_info: any, tx0_hex: string, fee_rate_tolerance: number, current_fee_rate_sats_per_byte: number, interval: number): any;
+export function validateSignatureScheme(transfer_msg: any, statechain_info: any, tx0_hex: string, current_blockheight: number, fee_rate_tolerance: number, current_fee_rate_sats_per_byte: number, lockheight_init: number, interval: number): any;
 /**
 * @returns {any}
 */

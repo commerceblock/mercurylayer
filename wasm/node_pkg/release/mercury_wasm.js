@@ -823,15 +823,17 @@ module.exports.duplicateCoinToInitializedState = function(walletJson, authPubkey
 * @param {any} transfer_msg
 * @param {any} statechain_info
 * @param {string} tx0_hex
+* @param {number} current_blockheight
 * @param {number} fee_rate_tolerance
 * @param {number} current_fee_rate_sats_per_byte
+* @param {number} lockheight_init
 * @param {number} interval
 * @returns {any}
 */
-module.exports.validateSignatureScheme = function(transfer_msg, statechain_info, tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval) {
+module.exports.validateSignatureScheme = function(transfer_msg, statechain_info, tx0_hex, current_blockheight, fee_rate_tolerance, current_fee_rate_sats_per_byte, lockheight_init, interval) {
     const ptr0 = passStringToWasm0(tx0_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.validateSignatureScheme(addHeapObject(transfer_msg), addHeapObject(statechain_info), ptr0, len0, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval);
+    const ret = wasm.validateSignatureScheme(addHeapObject(transfer_msg), addHeapObject(statechain_info), ptr0, len0, current_blockheight, fee_rate_tolerance, current_fee_rate_sats_per_byte, lockheight_init, interval);
     return takeObject(ret);
 };
 
