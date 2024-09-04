@@ -75,9 +75,9 @@ services:
       context: .
       dockerfile: ./token-server/Dockerfile
     environment:
-      PROCESSOR_URL: http://mercurylayer-enclave-sgx-1:18080"
-      API_KEY: aaaaa
-      FEE: 10000
+      PROCESSOR_URL: https://api.swiss-bitcoin-pay.ch
+      API_KEY: aaaa
+      FEE: 0.0001
       UNIT: BTC
       DELAY: 3600
       CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres

@@ -99,21 +99,28 @@ pub struct PODStatus {
 }
 
 
-#[get("/token/token_init")]
-pub async fn token_init(token_server: &State<TokenServer>) -> status::Custom<Json<Value>>  {
+#[get("/token/token_init/<token_id>")]
+pub async fn token_init(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>>  {
 
-    let token_id = uuid::Uuid::new_v4().to_string();   
+    set_tnc_accepted(&token_server.pool, &token_id).await;
 
-    let invoice: Invoice = get_lightning_invoice(token_server, token_id.clone()).await;
+    let row = sqlx::query(
+        "SELECT token_id, invoice, onchain_address, processor_id \
+        FROM public.tokens \
+        WHERE token_id = $1")
+        .bind(&token_id)
+        .fetch_one(&token_server.pool)
+        .await;
+
+    let row = row.unwrap();
+
     let pod_info = PODInfo {
-        token_id: token_id.clone(),
+        token_id: row.get(0),
         fee: token_server.config.fee.clone(),
-        lightning_invoice: invoice.pr.clone(),
-        btc_payment_address: invoice.onChainAddr.clone(),
-        processor_id: invoice.id.clone(),
+        lightning_invoice: row.get(1),
+        btc_payment_address: row.get(2),
+        processor_id: row.get(3),
     };
-
-    insert_new_token(&token_server.pool, &token_id, &invoice.pr.clone(), &invoice.onChainAddr, &invoice.id).await;
 
     let response_body = json!(pod_info);
 
@@ -142,18 +149,6 @@ pub async fn token_gen(token_server: &State<TokenServer>) -> status::Custom<Json
     let response_body = json!({
         "pod_info": pod_info,
         "tnc": config.tnc.clone(),
-    });
-
-    return status::Custom(Status::Ok, Json(response_body));
-}
-
-#[get("/token/token_accept/<token_id>")]
-pub async fn token_accept(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>> {
-
-    set_tnc_accepted(&token_server.pool, &token_id).await;
-
-    let response_body = json!({
-        "accepted": true,
     });
 
     return status::Custom(Status::Ok, Json(response_body));
