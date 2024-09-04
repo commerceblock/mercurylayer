@@ -45,6 +45,7 @@ pub enum MercuryError {
     LocktimeNotBlockHeightError,
     LocktimeTooLow,
     LocktimeTooHigh,
+    TransactionReconstructionError,
     TransactionVersionError,
     TransactionSequenceDifferentThanZeroError,
     BitcoinConsensusEncodeError,

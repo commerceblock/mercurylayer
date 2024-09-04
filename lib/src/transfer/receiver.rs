@@ -305,6 +305,12 @@ pub fn validate_signature_scheme(
             break;
         }
 
+        if reconstruct_transaction(&backup_tx.tx).is_err() {
+            println!("reconstruction failed");
+            sig_scheme_validation = false;
+            break;
+        }
+
         if previous_lock_time.is_some() {
             let prev_lock_time = previous_lock_time.unwrap();
             let current_lock_time = crate::utils::get_blockheight(&backup_tx)?;
@@ -429,6 +435,31 @@ pub fn verify_if_locktime_is_reasonable_tx_version_and_output_size(tx_n_hex: &st
 
     if current_blockheight + lockheight_init < lock_time.to_consensus_u32() {
         return Err(MercuryError::LocktimeTooHigh);
+    }
+
+    Ok(())
+}
+
+pub fn reconstruct_transaction(tx_n_hex: &str) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    // this assumes that the transaction has only one input and one output (suposedly checked before)
+    let output = tx_n.output[0].clone();
+    let input = tx_n.input[0].clone();
+    let locktime = tx_n.lock_time;
+
+    let new_tx = Transaction {
+        version: 2,
+        lock_time: locktime,
+        input: [input].to_vec(),
+        output: [output].to_vec(),
+    };
+
+    let serialized_new_tx = hex::encode(bitcoin::consensus::encode::serialize(&new_tx));
+
+    if tx_n_hex != serialized_new_tx {
+        return Err(MercuryError::TransactionReconstructionError);
     }
 
     Ok(())
