@@ -36,7 +36,6 @@ async fn main() {
             endpoints::token::token_init,
             endpoints::token::token_verify,
             endpoints::token::token_gen,
-            endpoints::token::token_accept,
         ])
         .register("/", catchers![
             not_found,

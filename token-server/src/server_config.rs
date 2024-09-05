@@ -30,7 +30,7 @@ impl Default for ServerConfig {
             fee: String::from("10000"),
             delay: 3600,
             connection_string: String::from("postgresql://postgres:postgres@localhost/mercury"),
-            tnc: fs::read_to_string("../tnc.html").unwrap_or_else(|_| String::from("")),
+            tnc: fs::read_to_string("tnc.html").unwrap_or_else(|_| String::from("")),
         }
     }
 }
@@ -44,7 +44,7 @@ impl From<ConfigRs> for ServerConfig {
             fee: config.get::<String>("fee").unwrap_or_else(|_| String::new()),
             delay: config.get::<u64>("delay").unwrap_or(0),
             connection_string: config.get::<String>("connection_string").unwrap_or_else(|_| String::new()),
-            tnc: fs::read_to_string("../tnc.html").unwrap_or_else(|_| String::from("")),
+            tnc: fs::read_to_string("tnc.html").unwrap_or_else(|_| String::from("")),
         }
     }
 }
@@ -77,7 +77,7 @@ impl ServerConfig {
             fee: get_env_or_config("fee", "FEE"),
             delay: get_env_or_config("delay", "DELAY").parse::<u64>().unwrap(),
             connection_string: get_env_or_config("connection_string", "CONNECTION_STRING"),
-            tnc: fs::read_to_string("../tnc.html").unwrap_or_else(|_| String::from("")),
+            tnc: fs::read_to_string("tnc.html").unwrap_or_else(|_| String::from("")),
         }
     }
 }
