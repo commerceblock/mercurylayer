@@ -131,7 +131,7 @@ const sendTransferReceiverRequestPayload = async (clientConfig, transferReceiver
     
 }
 
-const processEncryptedMessage = async (clientConfig, coin, encMessage, network, serverInfo, activities) => {
+const processEncryptedMessage = async (clientConfig, coin, encMessage, network, serverInfo, blockheight, activities) => {
     let clientAuthKey = coin.auth_privkey;
     let newUserPubkey = coin.user_pubkey;
 
@@ -182,8 +182,10 @@ const processEncryptedMessage = async (clientConfig, coin, encMessage, network, 
         transferMsg,
         statechainInfo,
         tx0Hex,
+        blockheight,
         feeRateTolerance, 
         currentFeeRateSatsPerByte,
+        serverInfo.initlock,
         serverInfo.interval
     )
 
@@ -283,6 +285,9 @@ const execute = async (clientConfig, walletName) => {
     let tempCoins = [...wallet.coins];
     let tempActivities = [...wallet.activities];
 
+    const response = await axios.get(`${clientConfig.esploraServer}/api/blocks/tip/height`);
+    const blockheight = response.data;
+
     for (let [authPubkey, encMessages] of encMsgsPerAuthPubkey.entries()) {
 
         for (let encMessage of encMessages) {
@@ -291,7 +296,7 @@ const execute = async (clientConfig, walletName) => {
 
             if (coin) {
                 try {
-                    let messageResult = await processEncryptedMessage(clientConfig, coin, encMessage, wallet.network, serverInfo, tempActivities);
+                    let messageResult = await processEncryptedMessage(clientConfig, coin, encMessage, wallet.network, serverInfo, blockheight, tempActivities);
 
                     if (messageResult.isBatchLocked) {
                         isThereBatchLocked = true;
@@ -310,7 +315,7 @@ const execute = async (clientConfig, walletName) => {
                     let newCoin = await mercury_wasm.duplicateCoinToInitializedState(wallet, authPubkey);
 
                     if (newCoin) {
-                        let messageResult = await processEncryptedMessage(clientConfig, newCoin, encMessage, wallet.network, serverInfo, tempActivities);
+                        let messageResult = await processEncryptedMessage(clientConfig, newCoin, encMessage, wallet.network, serverInfo, blockheight, tempActivities);
 
                         if (messageResult.isBatchLocked) {
                             isThereBatchLocked = true;

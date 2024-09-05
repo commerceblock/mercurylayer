@@ -215,7 +215,7 @@ pub fn get_musig_session(
         input: vec![TxIn {
             previous_output: OutPoint { txid: input_txid, vout: input_vout },
             script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence(0xFFFFFFFF), // Ignore nSequence.
+            sequence: bitcoin::Sequence(0x0), // Ignore nSequence.
             witness: Witness::default(),
         }],
         output: outputs,

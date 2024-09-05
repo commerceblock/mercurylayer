@@ -59,6 +59,9 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
     let mut temp_coins = wallet.coins.clone();
     let mut temp_activities = wallet.activities.clone();
 
+    let block_header = client_config.electrum_client.block_headers_subscribe_raw()?;
+    let blockheight = block_header.height as u32;
+
     for (key, values) in &enc_msgs_per_auth_pubkey {
 
         let auth_pubkey = key.clone();
@@ -71,7 +74,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut coin = coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
@@ -99,7 +102,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut new_coin = new_coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
@@ -151,7 +154,7 @@ pub struct MessageResult {
     pub statechain_id: Option<String>,
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, activities: &mut Vec<Activity>) -> Result<MessageResult> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -208,8 +211,10 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
         &transfer_msg, 
         &statechain_info, 
         &tx0_hex, 
+        blockheight,
         client_config.fee_rate_tolerance, 
         current_fee_rate_sats_per_byte,
+        info_config.initlock,
         info_config.interval);
 
     if previous_lock_time.is_err() {
