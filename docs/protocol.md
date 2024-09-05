@@ -19,7 +19,7 @@ A user wants to create a shared key, and they request that the SE initialize the
 3. The SE then generates a private key: `s1` (the SE private key share), calculates the corresponding public key and sends it to Owner 1: `S1 = s1.G` along with a new random `statechain_id` (UUID - used for the server to reference this shared key). The SE then stores `s1`, `S1` and `A1` indexed with `statechain_id`. 
 4. Owner 1 then adds the public key they receive by their own public key to obtain the shared (aggregated) public key `P` (which corresponds to a shared private key of `p = o1 + s1`): `P = O1 + S1`
 5. Owner 1 creates and broadcasts a funding transaction (`Tx0`) to pay an amount `v` to the bitcoin address derived from `P`. This defines the UTXO `TxID:vout` (the coin outpoint). 
-6. Owner 1 creates an unsigned *backup transaction* (`Tx1`) that pays the `P` output of `Tx0` to an address `O1`, and sets the `nLocktime` to the initial future block height `h0` (where `h0 = cheight + hinit`, `cheight` is the current Bitcoin block height and `hinit` is the initial locktime specified by the server).
+6. Owner 1 creates an unsigned *backup transaction* (`Tx1`) that pays the `P` output of `Tx0` to an address `O1`, and sets the `nLocktime` to the initial future block height `h0` (where `h0 = cheight + hinit`, `cheight` is the current Bitcoin block height and `hinit` is the initial locktime specified by the server). The `nSequence` number is set to zero. 
 7. Owner 1 cooperates with SE to generate a valid signature on `Tx1` as follows (MuSig2):
 
 > To generate a signature on `Tx1`, the owner first computes the sighash `m1`. 
@@ -41,7 +41,7 @@ Owner 1 wishes to transfer the value of the UTXO `TxID:vout` `v` to a new owner 
 
 1. The receiver (Owner 2) generates a private key `o2`. They then compute the corresponding public key `O2 = o2.G`. They also generate an authentication key `a2` and corresponding public key `A2 = a2.G`.
 2. `O2 || A2` is the Owner 2 'mercury address' and is communicated to Owner 1 (or published) in order for them to send the statecoin to it.
-3. Owner 1 then creates a new unsigned backup transaction `Tx2` paying the output of `Tx0` to the bitcoin address defined from `O2`, and sets the `nLocktime` to `h0 - (n-1)*c` where `c` is the confirmation interval and `n` is the owner number (i.e. 2). 
+3. Owner 1 then creates a new unsigned backup transaction `Tx2` paying the output of `Tx0` to the bitcoin address defined from `O2`, and sets the `nLocktime` to `h0 - (n-1)*c` where `c` is the confirmation interval and `n` is the owner number (i.e. 2).  The `nSequence` number is set to zero. 
 4. Owner 1 cooperates with SE to generate a valid signature on `Tx2` as follows:
 
 > To generate a signature on `Tx2`, the owner first computes the sighash `m2`. 
@@ -80,9 +80,13 @@ Owner 1 wishes to transfer the value of the UTXO `TxID:vout` `v` to a new owner 
 
 	b. The `nLocktimes` are decremented correctly (i.e. the latest `TxK` has the lowest).
 
-5. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE public key share. 3) The public point `X1 = x1.G`
-6. Owner 2 then verifies that `K = N` and that `t1.G = O1 + X1`. This check verifies that the value `t1` has been computed correctly from the sender private key. 
-7. Owner 2 verifies the signature `SC_sig_1` verifies against `O1` and that `P = S1 + O1`. This check mitigates the key cancellation vulnerability. 
+	c. The transaction has been constructed exactly according to the sender implimentation.
+
+	d. That the latest `nLocktimes` is not expired accordning to the current block height. 
+
+6. Owner 2 queries SE for 1) The total number of signatures generated for `statechain_id`: `N` and 2) Current SE public key share. 3) The public point `X1 = x1.G`
+7. Owner 2 then verifies that `K = N` and that `t1.G = O1 + X1`. This check verifies that the value `t1` has been computed correctly from the sender private key. 
+8. Owner 2 verifies the signature `SC_sig_1` verifies against `O1` and that `P = S1 + O1`. This check mitigates the key cancellation vulnerability. 
 
 The SE key share update then proceeds as follows:
 

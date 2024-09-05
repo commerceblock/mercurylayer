@@ -842,16 +842,20 @@ export function duplicateCoinToInitializedState(walletJson, authPubkey) {
 * @param {any} transfer_msg
 * @param {any} statechain_info
 * @param {string} tx0_hex
+* @param {number} current_blockheight
 * @param {number} fee_rate_tolerance
 * @param {number} current_fee_rate_sats_per_byte
+* @param {number} lockheight_init
 * @param {number} interval
 * @returns {any}
 */
-export function validateSignatureScheme(transfer_msg, statechain_info, tx0_hex, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval) {
+export function validateSignatureScheme(transfer_msg, statechain_info, tx0_hex, current_blockheight, fee_rate_tolerance, current_fee_rate_sats_per_byte, lockheight_init, interval) {
     const ptr0 = passStringToWasm0(tx0_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
+    _assertNum(current_blockheight);
+    _assertNum(lockheight_init);
     _assertNum(interval);
-    const ret = wasm.validateSignatureScheme(addHeapObject(transfer_msg), addHeapObject(statechain_info), ptr0, len0, fee_rate_tolerance, current_fee_rate_sats_per_byte, interval);
+    const ret = wasm.validateSignatureScheme(addHeapObject(transfer_msg), addHeapObject(statechain_info), ptr0, len0, current_blockheight, fee_rate_tolerance, current_fee_rate_sats_per_byte, lockheight_init, interval);
     return takeObject(ret);
 }
 
@@ -1156,15 +1160,15 @@ function __wbg_get_imports() {
         const ret = getObject(arg0).buffer;
         return addHeapObject(ret);
     }, arguments) };
+    imports.wbg.__wbg_get_97b561fb56f034b5 = function() { return handleError(function (arg0, arg1) {
+        const ret = Reflect.get(getObject(arg0), getObject(arg1));
+        return addHeapObject(ret);
+    }, arguments) };
     imports.wbg.__wbindgen_is_function = function(arg0) {
         const ret = typeof(getObject(arg0)) === 'function';
         _assertBoolean(ret);
         return ret;
     };
-    imports.wbg.__wbg_get_97b561fb56f034b5 = function() { return handleError(function (arg0, arg1) {
-        const ret = Reflect.get(getObject(arg0), getObject(arg1));
-        return addHeapObject(ret);
-    }, arguments) };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {
         const ret = debugString(getObject(arg1));
         const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);

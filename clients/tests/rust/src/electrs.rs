@@ -25,3 +25,8 @@ pub async fn check_address(client_config: &ClientConfig, address: &str, amount: 
 
     Ok(true)
 }
+
+pub async fn get_blockheight(client_config: &ClientConfig) -> Result<usize> {
+    let blockheight = client_config.electrum_client.block_headers_subscribe()?.height;
+    Ok(blockheight)
+}

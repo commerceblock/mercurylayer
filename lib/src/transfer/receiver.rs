@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use bitcoin::{PrivateKey, Transaction, hashes::{sha256, Hash}, Txid, Address, sighash::{TapSighashType, SighashCache, self}, TxOut, taproot::TapTweakHash};
+use bitcoin::{hashes::{sha256, Hash}, sighash::{self, SighashCache, TapSighashType}, taproot::TapTweakHash, Address, PrivateKey, Sequence, Transaction, TxOut, Txid};
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 
@@ -265,8 +265,10 @@ pub fn validate_signature_scheme(
     transfer_msg: &TransferMsg, 
     statechain_info: &StatechainInfoResponsePayload, 
     tx0_hex: &str, 
+    current_blockheight: u32,
     fee_rate_tolerance: f64, 
     current_fee_rate_sats_per_byte: f64,
+    lockheight_init: u32,
     interval: u32) -> Result<u32, MercuryError> {
 
     let mut previous_lock_time: Option<u32> = None;
@@ -287,6 +289,24 @@ pub fn validate_signature_scheme(
         let is_blinded_musig_scheme_valid = verify_blinded_musig_scheme(&backup_tx, &tx0_hex, statechain_info);
         if is_blinded_musig_scheme_valid.is_err() {
             println!("{}", is_blinded_musig_scheme_valid.err().unwrap().to_string());
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if verify_transaction_sequence(&backup_tx.tx).is_err() {
+            println!("transaction sequence is not correct");
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if verify_if_locktime_is_reasonable_tx_version_and_output_size(&backup_tx.tx, current_blockheight, lockheight_init).is_err() {
+            println!("locktime is not reasonable");
+            sig_scheme_validation = false;
+            break;
+        }
+
+        if reconstruct_transaction(&backup_tx.tx).is_err() {
+            println!("reconstruction failed");
             sig_scheme_validation = false;
             break;
         }
@@ -337,7 +357,7 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
 
     let xonly_pubkey = XOnlyPublicKey::from_slice(tx0_output.script_pubkey[2..].as_bytes()).unwrap();
 
-    let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned()).unwrap();
+    let sighash_type = TapSighashType::All;
 
     let hash = SighashCache::new(tx_n.clone()).taproot_key_spend_signature_hash(
         0,
@@ -369,6 +389,81 @@ pub fn verify_transaction_signature(tx_n_hex: &str, tx0_hex: &str, fee_rate_tole
 
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn verify_transaction_sequence(tx_n_hex: &str) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    if tx_n.input.is_empty() {
+        return Err(MercuryError::EmptyInput);
+    }
+
+    if tx_n.input.len() > 1 {
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
+    }
+
+    let input = tx_n.input.first().unwrap();
+
+    if input.sequence != Sequence(0) {
+        return Err(MercuryError::TransactionSequenceDifferentThanZeroError);
+    }
+
+    Ok(())
+}
+
+pub fn verify_if_locktime_is_reasonable_tx_version_and_output_size(tx_n_hex: &str, current_blockheight: u32, lockheight_init:u32) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    if tx_n.version != 2 {
+        return Err(MercuryError::TransactionVersionError);
+    }
+
+    if tx_n.output.len() > 1 {
+        return Err(MercuryError::TxHasMoreThanOneOutput);
+    }
+
+    let lock_time = tx_n.lock_time;
+
+    if !(lock_time.is_block_height()) {
+        return Err(MercuryError::LocktimeNotBlockHeightError);
+    }
+
+    if lock_time.to_consensus_u32() <= current_blockheight {
+        return Err(MercuryError::LocktimeTooLow);
+    }
+
+    if current_blockheight + lockheight_init < lock_time.to_consensus_u32() {
+        return Err(MercuryError::LocktimeTooHigh);
+    }
+
+    Ok(())
+}
+
+pub fn reconstruct_transaction(tx_n_hex: &str) -> Result<(), MercuryError> {
+
+    let tx_n: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx_n_hex)?)?;
+
+    // this assumes that the transaction has only one input and one output (suposedly checked before)
+    let output = tx_n.output[0].clone();
+    let input = tx_n.input[0].clone();
+    let locktime = tx_n.lock_time;
+
+    let new_tx = Transaction {
+        version: 2,
+        lock_time: locktime,
+        input: [input].to_vec(),
+        output: [output].to_vec(),
+    };
+
+    let serialized_new_tx = hex::encode(bitcoin::consensus::encode::serialize(&new_tx));
+
+    if tx_n_hex != serialized_new_tx {
+        return Err(MercuryError::TransactionReconstructionError);
+    }
+
+    Ok(())
+}
 
 fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message, MercuryError> {
 
