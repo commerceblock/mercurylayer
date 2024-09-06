@@ -1,12 +1,13 @@
-Users of the api.mercurylayer.com blind key service should carefully read the terms of use detailed below. By completing token_init with the supplied token_id or accessing our services a User agrees to be bound by these Terms of Use. These Terms of User are not assignable by the user to anyone else.
+Users of the api.mercurylayer.com blind key service should carefully read the terms of use detailed below. By completing token_init with the supplied token_id or accessing our services a User agrees to be bound by these Terms of Use. These Terms of use are not assignable by the user to anyone else.
 
 Mercury layer is an implementation of a system the uses a blind co-signing and key-update service that enables statechains. 
-The Mercury blind key service generates and updates key shares (or key fragments) on request in addition to a count of partial blinded signatures. The blind key-update server never has control or custody, and is never aware of the identity of any shared key.
+The Mercury blind key service generates and updates key shares on request in addition to partial blinded signatures. The blind key-update server never has control or custody, and is never aware of the identity of any shared key.
 
-Mercury layer service
+Mercury layer service:
+
 The mercury layer service generates a private key share s1 on initialisation of a session. In order to initialise a session, a client must provide a valid token_id which controls access to the service.
 
-The client then initialises a session with an auth_pubkey which is used to authenticate all subsequent messages with the server. The server responds with the public elliptic curve point corresponding to the session private key share s1.
+The client then initialises a session with an auth_pubkey which is used to authenticate all subsequent messages with the server. The server responds with the public key corresponding to the session private key share s1.
 
 Once initialised, the server can then perform two operations using the key share:
 
