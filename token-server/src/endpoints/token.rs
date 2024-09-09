@@ -99,12 +99,41 @@ pub struct PODStatus {
 }
 
 
-#[get("/token/token_init")]
-pub async fn token_init(token_server: &State<TokenServer>) -> status::Custom<Json<Value>>  {
+#[get("/token/token_init/<token_id>")]
+pub async fn token_init(token_server: &State<TokenServer>, token_id: String) -> status::Custom<Json<Value>>  {
+
+    set_tnc_accepted(&token_server.pool, &token_id).await;
+
+    let row = sqlx::query(
+        "SELECT token_id, invoice, onchain_address, processor_id \
+        FROM public.tokens \
+        WHERE token_id = $1")
+        .bind(&token_id)
+        .fetch_one(&token_server.pool)
+        .await;
+
+    let row = row.unwrap();
+
+    let pod_info = PODInfo {
+        token_id: row.get(0),
+        fee: token_server.config.fee.clone(),
+        lightning_invoice: row.get(1),
+        btc_payment_address: row.get(2),
+        processor_id: row.get(3),
+    };
+
+    let response_body = json!(pod_info);
+
+    return status::Custom(Status::Ok, Json(response_body));
+}
+
+#[get("/token/token_gen")]
+pub async fn token_gen(token_server: &State<TokenServer>) -> status::Custom<Json<Value>>  {
 
     let token_id = uuid::Uuid::new_v4().to_string();   
 
     let invoice: Invoice = get_lightning_invoice(token_server, token_id.clone()).await;
+
     let pod_info = PODInfo {
         token_id: token_id.clone(),
         fee: token_server.config.fee.clone(),
@@ -115,7 +144,12 @@ pub async fn token_init(token_server: &State<TokenServer>) -> status::Custom<Jso
 
     insert_new_token(&token_server.pool, &token_id, &invoice.pr.clone(), &invoice.onChainAddr, &invoice.id).await;
 
-    let response_body = json!(pod_info);
+    let config = crate::server_config::ServerConfig::load();
+
+    let response_body = json!({
+        "pod_info": pod_info,
+        "tnc": config.tnc.clone(),
+    });
 
     return status::Custom(Status::Ok, Json(response_body));
 }
@@ -254,6 +288,23 @@ pub async fn set_token_confirmed(pool: &sqlx::PgPool, token_id: &str)  {
 
     let query = "UPDATE tokens \
         SET confirmed = true \
+        WHERE token_id = $1";
+
+    let _ = sqlx::query(query)
+        .bind(token_id)
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
+    transaction.commit().await.unwrap();
+}
+
+pub async fn set_tnc_accepted(pool: &sqlx::PgPool, token_id: &str)  {
+
+    let mut transaction = pool.begin().await.unwrap();
+
+    let query = "UPDATE tokens \
+        SET accepted = true \
         WHERE token_id = $1";
 
     let _ = sqlx::query(query)

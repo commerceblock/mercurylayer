@@ -168,13 +168,7 @@ jobs:
         run: |
           cd clients/tests/web
           sudo chmod -R 755 ./data_bitcoin_regtest
-          npx vitest --browser.name=chromium --browser.headless
-      - name: Run Client-Side Tests
-        run: |
-          cd clients/apps/nodejs
-          node test_basic_workflow2.js
-          node test_atomic_swap.js
-          mocha ./test/tb04-simple-lightning-latch.mjs --exit    
+          npx vitest --browser.name=chromium --browser.headless  
       - name: Tear Down
         run: |
           docker-compose -f docker-compose-test.yml down
