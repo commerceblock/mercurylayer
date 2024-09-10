@@ -62,7 +62,11 @@ services:
       NETWORK: regtest
       LOCKHEIGHT_INIT: 1100
       LH_DECREMENT: 1
-      CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+      DB_USER: postgres
+      DB_PASSWORD: pgpassword
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgres
       BATCH_TIMEOUT: 20
       ENCLAVES: '[{"url": "http://mercurylayer-enclave-sgx-1:18080", "allow_deposit": true}]'
     ports:
@@ -80,7 +84,11 @@ services:
       FEE: 0.0001
       UNIT: BTC
       DELAY: 3600
-      CONNECTION_STRING: postgres://postgres:pgpassword@postgres:5432/postgres
+      DB_USER: postgres
+      DB_PASSWORD: pgpassword
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgres
     ports:
       - "8001:8001"
     depends_on:
