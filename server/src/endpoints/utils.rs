@@ -105,7 +105,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
         let mut keyinfo: mercurylib::utils::PubKeyInfo = mercurylib::utils::PubKeyInfo {
             server_pubkey: server_pubkey.to_string(),
             tx_n: 0,
-            updated_at: "".to_string(),
+            created_at: "".to_string(),
         };
 
         for row_sig in &rows_sigs {
@@ -115,7 +115,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
 
             if statechain_id == statechain_id_sig {
                 keyinfo.tx_n = tx_n_i as u32;
-                keyinfo.updated_at = updated_at;
+                keyinfo.created_at = updated_at;
             }
         }
         result.push(keyinfo);

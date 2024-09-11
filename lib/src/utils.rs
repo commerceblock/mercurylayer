@@ -27,7 +27,7 @@ pub struct InfoConfig {
 pub struct PubKeyInfo {
     pub server_pubkey: String,
     pub tx_n: u32,
-    pub updated_at: String,
+    pub created_at: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
