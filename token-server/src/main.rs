@@ -35,6 +35,7 @@ async fn main() {
         .mount("/", routes![
             endpoints::token::token_init,
             endpoints::token::token_verify,
+            endpoints::token::token_gen,
         ])
         .register("/", catchers![
             not_found,

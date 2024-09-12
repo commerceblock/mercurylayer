@@ -55,5 +55,6 @@ CREATE TABLE public.tokens (
 	onchain_address varchar NULL,
 	processor_id varchar NULL,
 	confirmed boolean DEFAULT false,
-	spent boolean DEFAULT false
+	spent boolean DEFAULT false,
+	accepted boolean DEFAULT false
 );

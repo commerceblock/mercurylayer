@@ -59,10 +59,13 @@ pub async fn info_config() -> status::Custom<Json<Value>> {
 
     let config = crate::server_config::ServerConfig::load();
 
+    let version: &str = env!("CARGO_PKG_VERSION");
+
     let server_config = mercurylib::utils::ServerConfig {
         initlock: config.lockheight_init,
         interval: config.lh_decrement,
         batchtimeout: config.batch_timeout,
+        version: version.to_string(),
     };
 
     let response_body = json!(server_config);
@@ -102,7 +105,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
         let mut keyinfo: mercurylib::utils::PubKeyInfo = mercurylib::utils::PubKeyInfo {
             server_pubkey: server_pubkey.to_string(),
             tx_n: 0,
-            updated_at: "".to_string(),
+            created_at: "".to_string(),
         };
 
         for row_sig in &rows_sigs {
@@ -112,7 +115,7 @@ pub async fn info_keylist(statechain_entity: &State<StateChainEntity>) -> status
 
             if statechain_id == statechain_id_sig {
                 keyinfo.tx_n = tx_n_i as u32;
-                keyinfo.updated_at = updated_at;
+                keyinfo.created_at = updated_at;
             }
         }
         result.push(keyinfo);

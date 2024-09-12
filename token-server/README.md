@@ -4,6 +4,6 @@ Mercury layer token server is a RESTful HTTP service exposing an API for the cre
 
 # Running
 
-1. Set the Postgres `connection_string` property in `Setting.toml`.
+1. Set the Postgres `db_user`, `db_password`, `db_host`, `db_port` and `db_name` properties in `Setting.toml`.
 2. Set the payment processor URL and API key in `Setting.toml`.
 3. `cargo run`

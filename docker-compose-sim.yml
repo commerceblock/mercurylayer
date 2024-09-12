@@ -22,7 +22,11 @@ services:
       - BITCOIN_NETWORK=testnet
       - LOCKHEIGHT_INIT=1000
       - LH_DECREMENT=10
-      - CONNECTION_STRING=postgres://postgres:postgres@db_server:5432/mercury
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db_server
+      - DB_PORT=5432
+      - DB_NAME=mercury
     ports:
       - "8000:8000"
 
