@@ -59,7 +59,7 @@ services:
       context: .
       dockerfile: ./server/Dockerfile
     environment:
-      NETWORK: regtest
+      BITCOIN_NETWORK: regtest
       LOCKHEIGHT_INIT: 1100
       LH_DECREMENT: 1
       DB_USER: postgres
