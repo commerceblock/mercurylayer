@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use rocket::{serde::json::Json, response::status, State, http::Status};
 use serde::{Serialize, Deserialize};
@@ -40,6 +40,8 @@ pub struct RTLInvoice{
     pub pr: String,
     pub checkoutUrl: String,
     pub onChainAddr: String,
+    #[serde(flatten)]
+    additional_fields: HashMap<String, serde_json::Value>, // Capture arbitrary additional fields
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -58,29 +60,31 @@ pub struct RTLData{
 pub struct RTLQuery{
     pub createdAt: u64,
     pub delay: u64,
-    pub pr: String,
-    pub amount: u64,
-    pub btcAmount: String,
-    pub unit: String,
+    pub pr: Option<String>,
+    pub amount: Option<u64>,
+    pub btcAmount: Option<String>,
+    pub unit: Option<String>,
     pub isPaid: bool,
-    pub updatePrice: bool,
-    pub isHodled: bool,
-    pub isInit: bool,
-    pub isFixedSatPrice: bool,
-    pub deleteExpiredInvoice: bool,
-    pub isExpired: bool,
+    pub updatePrice: Option<bool>,
+    pub isHodled: Option<bool>,
+    pub isInit: Option<bool>,
+    pub isFixedSatPrice: Option<bool>,
+    pub deleteExpiredInvoice: Option<bool>,
+    pub isExpired: Option<bool>,
     pub paymentMethod: Option<String>,
     pub paidAt: Option<String>,
-    pub title: String,
-    pub hash: String,
-    pub fiatAmount: f64,
-    pub fiatUnit: String,
-    pub onChainAddr: String,
-    pub minConfirmations: u64,
-    pub confirmations: u64,
+    pub title: Option<String>,
+    pub hash: Option<String>,
+    pub fiatAmount: Option<f64>,
+    pub fiatUnit: Option<String>,
+    pub onChainAddr: Option<String>,
+    pub minConfirmations: Option<u64>,
+    pub confirmations: Option<u64>,
     pub txId: Option<String>,
-    pub isPending: bool,
-    pub extra: Extra,
+    pub isPending: Option<bool>,
+    pub extra: Option<Extra>,
+    #[serde(flatten)]
+    additional_fields: HashMap<String, serde_json::Value>, // Capture arbitrary additional fields
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
