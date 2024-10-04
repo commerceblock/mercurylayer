@@ -72,7 +72,7 @@ pub struct RTLQuery{
     pub deleteExpiredInvoice: Option<bool>,
     pub isExpired: Option<bool>,
     pub paymentMethod: Option<String>,
-    pub paidAt: Option<String>,
+    pub paidAt: Option<u64>,
     pub title: Option<String>,
     pub hash: Option<String>,
     pub fiatAmount: Option<f64>,
