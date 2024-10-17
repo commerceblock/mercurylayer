@@ -158,7 +158,7 @@ async fn ta01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, None, batch_id).await;
 
     assert!(result.is_ok());
 

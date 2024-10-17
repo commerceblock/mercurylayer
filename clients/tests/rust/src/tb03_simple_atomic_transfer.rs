@@ -48,7 +48,7 @@ pub async fn tb03(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wall
     
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet3_transfer_adress, &wallet1.name, &statechain_id_1, force_send, batch_id.clone()).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet3_transfer_adress, &wallet1.name, &statechain_id_1, force_send, None, batch_id.clone()).await;
 
     assert!(result.is_ok());
 
@@ -57,7 +57,7 @@ pub async fn tb03(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wall
     let new_coin = wallet2.coins.iter().find(|&coin| coin.aggregated_address == Some(wallet2_address.clone()) && coin.status == CoinStatus::CONFIRMED).unwrap();
     let statechain_id_2 = new_coin.statechain_id.as_ref().unwrap();
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet4_transfer_adress, &wallet2.name, &statechain_id_2, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet4_transfer_adress, &wallet2.name, &statechain_id_2, force_send, None, batch_id).await;
 
     assert!(result.is_ok());
 

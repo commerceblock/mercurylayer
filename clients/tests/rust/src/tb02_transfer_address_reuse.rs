@@ -56,7 +56,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
         let statechain_id = coin.statechain_id.as_ref().unwrap();
 
-        let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+        let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, None, batch_id).await;
 
         assert!(result.is_ok());
     }
@@ -112,7 +112,7 @@ async fn tb02(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet) 
 
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet1_transfer_adress, &wallet2.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet1_transfer_adress, &wallet2.name, &statechain_id, force_send, None, batch_id).await;
 
     assert!(result.is_ok());
 

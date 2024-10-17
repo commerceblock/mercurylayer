@@ -10,6 +10,7 @@ pub async fn execute(
     wallet_name: &str, 
     statechain_id: &str,
     force_send: bool,
+    duplicated_indexes: Option<Vec<u32>>,
     batch_id: Option<String>) -> Result<()> 
 {
 

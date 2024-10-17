@@ -39,7 +39,7 @@ async fn w1_transfer_to_w2(client_config: &ClientConfig, wallet1: &Wallet, walle
     let batch_id = None;
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, None, batch_id).await;
     assert!(result.is_ok());
 
     let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet2.name).await?;

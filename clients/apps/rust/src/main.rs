@@ -54,8 +54,11 @@ enum Commands {
         wallet_name: String, 
         statechain_id: String, 
         to_address: String,
-        // Force send (required when the coin is duplicated)
+        /// Force send (required when the coin is duplicated)
         force_send: Option<bool>,
+        /// Optionally used together with force_send when the user wants 
+        /// to send multiple duplicated coins with the same statechain_id
+        duplicated_indexes: Option<Vec<u32>>,
         /// Batch id for atomic transfers
         batch_id: Option<String>,
     },
@@ -158,12 +161,12 @@ async fn main() -> Result<()> {
 
             println!("{}", serde_json::to_string_pretty(&obj).unwrap());
         },
-        Commands::TransferSend { wallet_name, statechain_id, to_address, force_send, batch_id } => {
+        Commands::TransferSend { wallet_name, statechain_id, to_address, force_send, duplicated_indexes, batch_id } => {
             mercuryrustlib::coin_status::update_coins(&client_config, &wallet_name).await?;
 
             let force_send = force_send.unwrap_or(false);
 
-            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, force_send, batch_id).await?;
+            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, force_send, duplicated_indexes, batch_id).await?;
 
             let obj = json!({"Transfer": "sent"});
 
