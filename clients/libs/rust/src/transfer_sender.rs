@@ -14,6 +14,10 @@ pub async fn execute(
     batch_id: Option<String>) -> Result<()> 
 {
 
+    if !force_send && duplicated_indexes.is_some() {
+        return Err(anyhow::anyhow!("The '--force, -f' option is required when using the '--duplicated-index, -d' option"));
+    }
+
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let is_address_valid = mercurylib::validate_address(recipient_address, &wallet.network)?;
@@ -66,6 +70,33 @@ pub async fn execute(
         }
     }
 
+    let mut duplicated_coin_indexes = Vec::new();
+
+    if duplicated_indexes.is_some() {
+        let duplicated_indexes = duplicated_indexes.unwrap();
+        let duplicated_indexes = duplicated_indexes.iter().map(|i| *i).collect::<Vec<u32>>();
+
+        for duplicated_index in duplicated_indexes {
+            let mut min_dup_locktime = u32::MAX;
+            let mut min_dup_index = None;
+
+            for (index, c) in wallet.coins.iter().enumerate() {
+                if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED && c.duplicate_index == duplicated_index {
+                    let locktime = c.locktime.unwrap_or(u32::MAX);
+                    if locktime < min_dup_locktime {
+                        min_dup_locktime = locktime;
+                        min_dup_index = Some(index);
+                    }
+                }
+            }
+
+            if min_dup_index.is_none() {
+                return Err(anyhow::anyhow!("No duplicated coin with index {} was found", duplicated_index));
+            }
+            duplicated_coin_indexes.push(min_dup_index.unwrap());
+        }
+    }
+
     let coin = min_index.map(|index| &mut wallet.coins[index]);
     
     if coin.is_none() {
@@ -77,10 +108,6 @@ pub async fn execute(
     if is_coin_duplicated && !force_send {
         return Err(anyhow::anyhow!("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. \
         You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds."));
-    }
-
-    if !force_send && duplicated_indexes.is_some() {
-        return Err(anyhow::anyhow!("The '--force, -f' option is required when using the '--duplicated-index, -d' option"));
     }
 
     if coin.amount.is_none() {
@@ -133,22 +160,7 @@ pub async fn execute(
     // TODO
     // if duplicated_indexes is some and not empt
     
-/*     let coins = &wallet.coins;
-
-    if duplicated_indexes.is_some() {
-        let duplicated_indexes = duplicated_indexes.unwrap();
-        let duplicated_indexes = duplicated_indexes.iter().map(|i| *i).collect::<Vec<u32>>();
-
-        for duplicated_index in duplicated_indexes {
-            let duplicated_coin = wallet.coins.iter_mut().find(|c| c.statechain_id == Some(statechain_id.to_string()) && c.duplicate_index == duplicated_index);
-
-            if duplicated_coin.is_none() {
-                return Err(anyhow::anyhow!("No duplicated coin with index {} was found", duplicated_index));
-            }
-
-            let duplicated_coin = duplicated_coin.unwrap();
-        }
-    } */
+     //let coins = &wallet.coins;
 
     let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
 
