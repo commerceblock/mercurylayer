@@ -53,11 +53,21 @@ pub async fn execute(
 
     // If the user sends to himself, he will have two coins with same statechain_id
     // In this case, we need to find the one with the lowest locktime
-    let coin = wallet.coins
-        .iter_mut()
-        .filter(|c| c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED) // Filter coins with the specified statechain_id
-        .min_by_key(|c| c.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
+    let mut min_locktime = u32::MAX;
+    let mut min_index = None;
 
+    for (index, c) in wallet.coins.iter().enumerate() {
+        if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED {
+            let locktime = c.locktime.unwrap_or(u32::MAX);
+            if locktime < min_locktime {
+                min_locktime = locktime;
+                min_index = Some(index);
+            }
+        }
+    }
+
+    let coin = min_index.map(|index| &mut wallet.coins[index]);
+    
     if coin.is_none() {
         return Err(anyhow!("No coins associated with this statechain ID were found"));
     }
@@ -67,6 +77,10 @@ pub async fn execute(
     if is_coin_duplicated && !force_send {
         return Err(anyhow::anyhow!("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. \
         You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds."));
+    }
+
+    if !force_send && duplicated_indexes.is_some() {
+        return Err(anyhow::anyhow!("The '--force, -f' option is required when using the '--duplicated-index, -d' option"));
     }
 
     if coin.amount.is_none() {
@@ -115,6 +129,26 @@ pub async fn execute(
     let client_seckey = coin.user_privkey.as_ref();
 
     let transfer_signature = create_transfer_signature(recipient_address, input_txid, input_vout, client_seckey)?; 
+
+    // TODO
+    // if duplicated_indexes is some and not empt
+    
+/*     let coins = &wallet.coins;
+
+    if duplicated_indexes.is_some() {
+        let duplicated_indexes = duplicated_indexes.unwrap();
+        let duplicated_indexes = duplicated_indexes.iter().map(|i| *i).collect::<Vec<u32>>();
+
+        for duplicated_index in duplicated_indexes {
+            let duplicated_coin = wallet.coins.iter_mut().find(|c| c.statechain_id == Some(statechain_id.to_string()) && c.duplicate_index == duplicated_index);
+
+            if duplicated_coin.is_none() {
+                return Err(anyhow::anyhow!("No duplicated coin with index {} was found", duplicated_index));
+            }
+
+            let duplicated_coin = duplicated_coin.unwrap();
+        }
+    } */
 
     let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
 
