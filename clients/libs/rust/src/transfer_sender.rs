@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
 use electrum_client::ElectrumApi;
 
 pub async fn execute(
@@ -123,7 +123,7 @@ pub async fn execute(
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
     let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
 
-    let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
@@ -131,11 +131,23 @@ pub async fn execute(
 
     let qt_backup_tx = backup_transactions.len() as u32;
 
-    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+    let mut filtered_transactions: Vec<BackupTx> = Vec::new();
 
-    let new_tx_n = backup_transactions.len() as u32 + 1;
+    for backup_tx in backup_transactions {
+        if let Ok(tx_outpoint) = get_previous_outpoint(&backup_tx) {
+            if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                if tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout {
+                    filtered_transactions.push(backup_tx);
+                }
+            }
+        }
+    }
 
-    let bkp_tx1 = &backup_transactions[0];
+    filtered_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+
+    let new_tx_n = filtered_transactions.len() as u32 + 1;
+
+    let bkp_tx1 = &filtered_transactions[0];
 
     let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
 
@@ -149,7 +161,7 @@ pub async fn execute(
         blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
     };
 
-    backup_transactions.push(backup_tx);
+    filtered_transactions.push(backup_tx);
 
     let input_txid = coin.utxo_txid.as_ref().unwrap();
     let input_vout = coin.utxo_vout.unwrap();
@@ -162,7 +174,7 @@ pub async fn execute(
     
      //let coins = &wallet.coins;
 
-    let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
+    let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &filtered_transactions)?;
 
     let endpoint = client_config.statechain_entity.clone();
     let path = "transfer/update_msg";
@@ -176,7 +188,7 @@ pub async fn execute(
         return Err(anyhow::anyhow!("Failed to update transfer message".to_string()));
     }
 
-    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
+    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &filtered_transactions).await?;
 
     let date = Utc::now(); // This will get the current date and time in UTC
     let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
