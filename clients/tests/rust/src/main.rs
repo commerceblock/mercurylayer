@@ -15,14 +15,14 @@ use anyhow::{Result, Ok};
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
 
-    // tb01_simple_transfer::execute().await?;
-    // tb02_transfer_address_reuse::execute().await?;
-    // tb03_simple_atomic_transfer::execute().await?;
-    // tb04_simple_lightning_latch::execute().await?;
-    // tm01_sender_double_spends::execute().await?;
-    // ta01_sign_second_not_called::execute().await?;
-    // ta02_duplicate_deposits::execute().await?;
-    // tv05::execute().await?;
+    tb01_simple_transfer::execute().await?;
+    tb02_transfer_address_reuse::execute().await?;
+    tb03_simple_atomic_transfer::execute().await?;
+    tb04_simple_lightning_latch::execute().await?;
+    tm01_sender_double_spends::execute().await?;
+    ta01_sign_second_not_called::execute().await?;
+    ta02_duplicate_deposits::execute().await?;
+    tv05::execute().await?;
 
     ta02_multiple_deposits::execute().await?;
     

@@ -11,7 +11,7 @@ pub async fn include_duplicated_utxo(
     // wallet: &mut Wallet,
     wallet_name: &str,
     statechain_id: &str,
-    duplicated_index: u32,
+    duplicated_index: usize,
     previous_bkup_txs: &Vec<BackupTx>) -> Result<Vec<BackupTx>> {
 
     let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
@@ -20,7 +20,7 @@ pub async fn include_duplicated_utxo(
         .iter_mut()
         .filter(|c| c.statechain_id == Some(statechain_id.to_string())
                 && c.status == CoinStatus::DUPLICATED_EXCLUDED
-                && c.duplicate_index == duplicated_index)
+                && c.duplicate_index as usize == duplicated_index)
         .min_by_key(|c| c.locktime);
 
     if coin.is_none() {
@@ -85,7 +85,7 @@ pub async fn include_duplicated_utxo(
     let mut updated_backup_txs = previous_bkup_txs.clone();
     updated_backup_txs.extend(filtered_transactions);
 
-    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &updated_backup_txs).await?;
+    // update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &updated_backup_txs).await?;
 
     coin.status = CoinStatus::DUPLICATED_INCLUDED;
 
@@ -207,7 +207,7 @@ pub async fn execute(
         return Err(anyhow::anyhow!("The coin is expired. Coin locktime is {} and current blockheight is {}", coin.locktime.unwrap(), current_blockheight));
     }
 
-    let statechain_id = coin.statechain_id.as_ref().unwrap();
+    // let statechain_id = coin.statechain_id.as_ref().unwrap();
     let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap();
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
@@ -252,6 +252,11 @@ pub async fn execute(
     };
 
     filtered_transactions.push(backup_tx);
+
+    for duplicated_index in duplicated_coin_indexes {
+        let updated_backup_txs = include_duplicated_utxo(client_config, recipient_address, wallet_name, statechain_id, duplicated_index, &filtered_transactions).await?;
+        filtered_transactions = updated_backup_txs;
+    }
 
     let input_txid = coin.utxo_txid.as_ref().unwrap();
     let input_vout = coin.utxo_vout.unwrap();
