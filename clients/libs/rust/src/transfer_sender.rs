@@ -1,13 +1,103 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
+use crate::{client_config::ClientConfig, deposit::create_tx1, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
+use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus, Wallet}};
 use electrum_client::ElectrumApi;
+
+
+pub async fn include_duplicated_utxo(
+    client_config: &ClientConfig, 
+    recipient_address: &str,
+    // wallet: &mut Wallet,
+    wallet_name: &str,
+    statechain_id: &str,
+    duplicated_index: u32,
+    previous_bkup_txs: &Vec<BackupTx>) -> Result<Vec<BackupTx>> {
+
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let coin: Option<&mut mercurylib::wallet::Coin> = wallet.coins
+        .iter_mut()
+        .filter(|c| c.statechain_id == Some(statechain_id.to_string())
+                && c.status == CoinStatus::DUPLICATED_EXCLUDED
+                && c.duplicate_index == duplicated_index)
+        .min_by_key(|c| c.locktime);
+
+    if coin.is_none() {
+        return Err(anyhow!("No duplicated and excluded coins associated with the statechain ID {} and index {} were found", statechain_id, duplicated_index));
+    }
+
+    let coin = coin.unwrap();
+
+    if coin.amount.is_none() {
+        return Err(anyhow::anyhow!("coin.amount is None"));
+    }
+
+    if coin.status != CoinStatus::DUPLICATED_EXCLUDED {
+        return Err(anyhow::anyhow!("Coin status must be DUPLICATED_EXCLUDED to be added to the statechain package. The current status is {}", coin.status));
+    }
+
+    let backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+
+    if backup_transactions.len() == 0 {
+        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
+    }
+
+    let mut filtered_transactions: Vec<BackupTx> = Vec::new();
+
+    for backup_tx in backup_transactions {
+        if let Ok(tx_outpoint) = get_previous_outpoint(&backup_tx) {
+            if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                if tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout {
+                    filtered_transactions.push(backup_tx);
+                }
+            }
+        }
+    }
+
+    filtered_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+
+    let qt_backup_tx = filtered_transactions.len() as u32;
+
+    let new_tx_n = qt_backup_tx as u32 + 1;
+
+    if qt_backup_tx == 0 {
+        let bkp_tx1 = create_tx1(client_config, coin, &wallet.network).await?;
+        filtered_transactions.push(bkp_tx1);
+    }
+
+    let bkp_tx1 = &filtered_transactions[0];
+
+    let signed_tx = create_backup_tx_to_receiver(client_config, coin, &bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
+
+    let backup_tx = BackupTx {
+        tx_n: new_tx_n,
+        tx: signed_tx.clone(),
+        client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+        server_public_nonce: coin.server_public_nonce.as_ref().unwrap().to_string(),
+        client_public_key: coin.user_pubkey.clone(),
+        server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
+        blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
+    };
+
+    filtered_transactions.push(backup_tx);
+
+    let mut updated_backup_txs = previous_bkup_txs.clone();
+    updated_backup_txs.extend(filtered_transactions);
+
+    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &updated_backup_txs).await?;
+
+    coin.status = CoinStatus::DUPLICATED_INCLUDED;
+
+    update_wallet(&client_config.pool, &wallet).await?;
+
+    Ok(updated_backup_txs)
+}
 
 pub async fn execute(
     client_config: &ClientConfig, 
     recipient_address: &str, 
-    wallet_name: &str, 
+    wallet_name: &str,
     statechain_id: &str,
     force_send: bool,
     duplicated_indexes: Option<Vec<u32>>,
