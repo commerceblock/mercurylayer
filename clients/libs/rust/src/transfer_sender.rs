@@ -26,18 +26,6 @@ pub async fn execute(
         return Err(anyhow!("Invalid address"));
     }
 
-    let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
-
-    if backup_transactions.len() == 0 {
-        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
-    }
-
-    let qt_backup_tx = backup_transactions.len() as u32;
-
-    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
-
-    let new_tx_n = backup_transactions.len() as u32 + 1;
-
     let is_coin_duplicated = wallet.coins.iter().any(|c| {
         c.statechain_id == Some(statechain_id.to_string()) &&
         c.status == CoinStatus::DUPLICATED
@@ -134,6 +122,18 @@ pub async fn execute(
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
     let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
+
+    let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+
+    if backup_transactions.len() == 0 {
+        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
+    }
+
+    let qt_backup_tx = backup_transactions.len() as u32;
+
+    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+
+    let new_tx_n = backup_transactions.len() as u32 + 1;
 
     let bkp_tx1 = &backup_transactions[0];
 

@@ -4,9 +4,9 @@ use bitcoin::{hashes::{sha256, Hash}, sighash::{self, SighashCache, TapSighashTy
 use secp256k1_zkp::{PublicKey, schnorr::Signature, Secp256k1, Message, XOnlyPublicKey, musig::{MusigPubNonce, BlindingFactor, blinded_musig_pubkey_xonly_tweak_add, MusigAggNonce, MusigSession}, SecretKey, Scalar, KeyPair};
 use serde::{Serialize, Deserialize};
 
-use crate::{error::MercuryError, utils::get_network, wallet::{BackupTx, Coin, CoinStatus, Wallet}};
+use crate::{error::MercuryError, utils::get_network, wallet::{get_previous_outpoint, BackupTx, Coin, CoinStatus, Wallet}};
 
-use super::TransferMsg;
+use super::{TransferMsg, TxOutpoint};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -75,13 +75,6 @@ pub struct StatechainInfoResponsePayload {
     pub num_sigs: u32,
     pub statechain_info: Vec<StatechainInfo>,
     pub x1_pub: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
-pub struct TxOutpoint {
-    pub txid: String,
-    pub vout: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -159,20 +152,7 @@ pub fn get_tx0_outpoint(backup_transactions: &Vec<BackupTx>) -> Result<TxOutpoin
 
     let bkp_tx1 = backup_transactions.first().ok_or(MercuryError::NoBackupTransactionFound)?;
 
-    let tx1: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&bkp_tx1.tx)?)?;
-
-    if tx1.input.len() > 1 {
-        return Err(MercuryError::Tx1HasMoreThanOneInput);
-    }
-
-    if tx1.output.len() > 1 {
-        return Err(MercuryError::Tx1HasMoreThanOneInput);
-    }
-
-    let tx0_txid = tx1.input[0].previous_output.txid;
-    let tx0_vout = tx1.input[0].previous_output.vout as u32;
-
-    Ok(TxOutpoint{ txid: tx0_txid.to_string(), vout: tx0_vout })
+    get_previous_outpoint(bkp_tx1)
 }
 
 pub fn verify_transfer_signature(new_user_pubkey: &str, tx0_outpoint: &TxOutpoint, transfer_msg: &TransferMsg) -> Result<bool, MercuryError> {

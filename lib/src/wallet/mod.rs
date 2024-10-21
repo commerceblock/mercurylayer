@@ -4,10 +4,11 @@ pub mod cpfp_tx;
 use std::{fmt, str::FromStr};
 
 use bip39::{Mnemonic, Language};
+use bitcoin::Transaction;
 use secp256k1_zkp::rand::{self, Rng};
 use serde::{Serialize, Deserialize};
 
-use crate::{utils::ServerConfig, MercuryError};
+use crate::{transfer::TxOutpoint, utils::ServerConfig, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]
@@ -186,7 +187,26 @@ pub struct BackupTx {
     pub client_public_key: String,
     pub server_public_key: String,
     pub blinding_factor: String,
-} 
+}
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_previous_outpoint(backup_tx: &BackupTx) -> Result<TxOutpoint, MercuryError> {
+    
+    let tx1: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(backup_tx.tx.clone())?)?;
+
+    if tx1.input.len() > 1 {
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
+    }
+
+    if tx1.output.len() > 1 {
+        return Err(MercuryError::Tx1HasMoreThanOneInput);
+    }
+
+    let tx0_txid = tx1.input[0].previous_output.txid;
+    let tx0_vout = tx1.input[0].previous_output.vout as u32;
+
+    Ok(TxOutpoint{ txid: tx0_txid.to_string(), vout: tx0_vout })
+}
 
 pub fn set_config(wallet: &mut Wallet, config: &ServerConfig) {
     wallet.initlock = config.initlock;

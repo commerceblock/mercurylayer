@@ -135,6 +135,7 @@ async fn main() -> Result<()> {
                     "coin.amount": coin.amount.unwrap_or(0),
                     "coin.status": coin.status,
                     "coin.locktime": coin.locktime.unwrap_or(0),
+                    "coin.duplicate_index": coin.duplicate_index,
                 });
 
                 coins_json.push(obj);
