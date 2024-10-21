@@ -28,7 +28,7 @@ pub async fn execute(
 
     let is_coin_duplicated = wallet.coins.iter().any(|c| {
         c.statechain_id == Some(statechain_id.to_string()) &&
-        c.status == CoinStatus::DUPLICATED
+        c.status == CoinStatus::DUPLICATED_EXCLUDED
     });
 
     let are_there_duplicate_coins_withdrawn = wallet.coins.iter().any(|c| {
@@ -49,7 +49,7 @@ pub async fn execute(
     let mut min_index = None;
 
     for (index, c) in wallet.coins.iter().enumerate() {
-        if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED {
+        if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED_EXCLUDED {
             let locktime = c.locktime.unwrap_or(u32::MAX);
             if locktime < min_locktime {
                 min_locktime = locktime;
@@ -69,7 +69,7 @@ pub async fn execute(
             let mut min_dup_index = None;
 
             for (index, c) in wallet.coins.iter().enumerate() {
-                if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED && c.duplicate_index == duplicated_index {
+                if c.statechain_id == Some(statechain_id.to_string()) && c.status != CoinStatus::DUPLICATED_EXCLUDED && c.duplicate_index == duplicated_index {
                     let locktime = c.locktime.unwrap_or(u32::MAX);
                     if locktime < min_dup_locktime {
                         min_dup_locktime = locktime;

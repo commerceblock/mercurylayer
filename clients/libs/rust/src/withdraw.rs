@@ -32,13 +32,13 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         Some(index) => wallet.coins
             .iter_mut()
             .filter(|c| c.statechain_id == Some(statechain_id.to_string())
-                  && c.status == CoinStatus::DUPLICATED
+                  && c.status == CoinStatus::DUPLICATED_EXCLUDED
                   && c.duplicate_index == index)
             .min_by_key(|c| c.locktime),
         None => wallet.coins
             .iter_mut()
             .filter(|c| c.statechain_id == Some(statechain_id.to_string())
-                    && c.status != CoinStatus::DUPLICATED)
+                    && c.status != CoinStatus::DUPLICATED_EXCLUDED)
             .min_by_key(|c| c.locktime) // Find the one with the lowest locktime
     };
 
@@ -56,7 +56,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow::anyhow!("coin.amount is None"));
     }
 
-    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER && coin.status != CoinStatus::DUPLICATED {
+    if coin.status != CoinStatus::CONFIRMED && coin.status != CoinStatus::IN_TRANSFER && coin.status != CoinStatus::DUPLICATED_EXCLUDED {
         return Err(anyhow::anyhow!("Coin status must be CONFIRMED or IN_TRANSFER or DUPLICATED to withdraw it. The current status is {}", coin.status));
     }
 
@@ -134,7 +134,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
     update_wallet(&client_config.pool, &wallet).await?;
 
     let is_there_more_duplicated_coins = wallet.coins.iter().any(|coin| {
-        (coin.status == CoinStatus::DUPLICATED || coin.status == CoinStatus::CONFIRMED) &&
+        (coin.status == CoinStatus::DUPLICATED_EXCLUDED || coin.status == CoinStatus::CONFIRMED) &&
         duplicated_index.map_or(true, |index| coin.duplicate_index != index)
     });
 

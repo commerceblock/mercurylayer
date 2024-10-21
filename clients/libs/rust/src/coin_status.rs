@@ -207,7 +207,7 @@ async fn check_for_duplicated(client_config: &ClientConfig, existing_coins: &Vec
             max_duplicated_index = max_duplicated_index + 1;
 
             let mut duplicated_coin = coin.clone();
-            duplicated_coin.status = CoinStatus::DUPLICATED;
+            duplicated_coin.status = CoinStatus::DUPLICATED_EXCLUDED;
             duplicated_coin.utxo_txid = Some(unspent.tx_hash.to_string());
             duplicated_coin.utxo_vout = Some(unspent.tx_pos as u32);
             duplicated_coin.amount = Some(unspent.value as u32);

@@ -3,6 +3,7 @@ pub mod electrs;
 pub mod bitcoin_core;
 pub mod ta01_sign_second_not_called;
 pub mod ta02_duplicate_deposits;
+pub mod ta02_multiple_deposits;
 pub mod tb01_simple_transfer;
 pub mod tb02_transfer_address_reuse;
 pub mod tb03_simple_atomic_transfer;
@@ -22,6 +23,8 @@ async fn main() -> Result<()> {
     ta01_sign_second_not_called::execute().await?;
     ta02_duplicate_deposits::execute().await?;
     tv05::execute().await?;
+
+    ta02_multiple_deposits::execute().await?;
     
     Ok(())
 }

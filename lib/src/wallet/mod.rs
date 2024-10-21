@@ -120,7 +120,8 @@ pub enum CoinStatus {
     WITHDRAWING, // withdrawal tx signed and broadcast but not yet confirmed
     TRANSFERRED, // the coin was transferred
     WITHDRAWN, // the coin was withdrawn
-    DUPLICATED, // the coin was duplicated
+    DUPLICATED_EXCLUDED, // the coin was duplicated, but not included in a package
+    DUPLICATED_INCLUDED, // the coin was duplicated and included in a package
 }
 
 impl fmt::Display for CoinStatus {
@@ -135,7 +136,8 @@ impl fmt::Display for CoinStatus {
             Self::WITHDRAWING => "WITHDRAWING",
             Self::TRANSFERRED => "TRANSFERRED",
             Self::WITHDRAWN => "WITHDRAWN",
-            Self::DUPLICATED => "DUPLICATED",
+            Self::DUPLICATED_EXCLUDED => "DUPLICATED_EXCLUDED",
+            Self::DUPLICATED_INCLUDED => "DUPLICATED_INCLUDED",
         })
     }
 }
@@ -165,7 +167,8 @@ impl FromStr for CoinStatus {
             "WITHDRAWING" => Ok(CoinStatus::WITHDRAWING),
             "TRANSFERRED" => Ok(CoinStatus::TRANSFERRED),
             "WITHDRAWN" => Ok(CoinStatus::WITHDRAWN),
-            "DUPLICATED" => Ok(CoinStatus::DUPLICATED),
+            "DUPLICATED_EXCLUDED" => Ok(CoinStatus::DUPLICATED_EXCLUDED),
+            "DUPLICATED_INCLUDED" => Ok(CoinStatus::DUPLICATED_INCLUDED),
             _ => Err(CoinStatusParseError {}),
         }
     }
