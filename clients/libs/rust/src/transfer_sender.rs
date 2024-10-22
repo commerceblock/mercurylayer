@@ -4,17 +4,51 @@ use chrono::Utc;
 use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus, Wallet}};
 use electrum_client::ElectrumApi;
 
+pub async fn retrieve_backup_transaction_list_duplicated_excluded_indexes(
+    client_config: &ClientConfig, 
+    recipient_address: &str,
+    // wallet_name: &str,
+    wallet: &mut Wallet,
+    statechain_id: &str,
+    duplicated_indexes: Vec<u32>) -> Result<Vec<BackupTx>> {
 
-pub async fn include_duplicated_utxo(
+    // let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let mut duplicated_coin_indexes = Vec::new();
+
+    for duplicated_index in duplicated_indexes {
+        let mut min_dup_index = None;
+
+        for (index, c) in wallet.coins.iter().enumerate() {
+            if c.statechain_id == Some(statechain_id.to_string()) && c.status == CoinStatus::DUPLICATED_EXCLUDED && c.duplicate_index == duplicated_index {
+                min_dup_index = Some(index);
+                break;
+            }
+        }
+
+        if min_dup_index.is_none() {
+            return Err(anyhow::anyhow!("No duplicated coin with index {} and status DUPLICATED_EXCLUDED was found.", duplicated_index));
+        }
+        duplicated_coin_indexes.push(min_dup_index.unwrap());
+    }
+    
+    let mut duplicated_backup_txs = Vec::new();
+
+    for duplicated_index in duplicated_coin_indexes {
+        let updated_backup_txs = create_backup_transaction_to_duplicated_excluded_index(client_config, recipient_address, wallet, statechain_id, duplicated_index, &duplicated_backup_txs).await?;
+        duplicated_backup_txs = updated_backup_txs;
+    }
+
+    Ok(duplicated_backup_txs)
+}
+
+async fn create_backup_transaction_to_duplicated_excluded_index(
     client_config: &ClientConfig, 
     recipient_address: &str,
     wallet: &mut Wallet,
-    // wallet_name: &str,
     statechain_id: &str,
     duplicated_index: usize,
     previous_bkup_txs: &Vec<BackupTx>) -> Result<Vec<BackupTx>> {
-
-    // let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let coin: Option<&mut mercurylib::wallet::Coin> = wallet.coins
         .iter_mut()
@@ -85,11 +119,7 @@ pub async fn include_duplicated_utxo(
     let mut updated_backup_txs = previous_bkup_txs.clone();
     updated_backup_txs.extend(filtered_transactions);
 
-    // update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &updated_backup_txs).await?;
-
     coin.status = CoinStatus::DUPLICATED_INCLUDED;
-
-    // update_wallet(&client_config.pool, &wallet).await?;
 
     Ok(updated_backup_txs)
 }
@@ -133,41 +163,18 @@ pub async fn execute(
         This coin can be withdrawn, however."));
     }
 
-    let mut duplicated_coin_indexes = Vec::new();
-
-    if duplicated_indexes.is_some() {
+    let duplicated_backup_txs = if duplicated_indexes.is_some() {
         let duplicated_indexes = duplicated_indexes.unwrap();
-
-        for duplicated_index in duplicated_indexes {
-            //let mut min_dup_locktime = u32::MAX;
-            let mut min_dup_index = None;
-
-            for (index, c) in wallet.coins.iter().enumerate() {
-                if c.statechain_id == Some(statechain_id.to_string()) && c.status == CoinStatus::DUPLICATED_EXCLUDED && c.duplicate_index == duplicated_index {
-                    // let locktime = c.locktime.unwrap_or(u32::MAX);
-                    // if locktime < min_dup_locktime {
-                    //     min_dup_locktime = locktime;
-                    //     min_dup_index = Some(index);
-                    // }
-                    min_dup_index = Some(index);
-                    break;
-                }
-            }
-
-            if min_dup_index.is_none() {
-                return Err(anyhow::anyhow!("No duplicated coin with index {} and status DUPLICATED_EXCLUDED was found.", duplicated_index));
-            }
-            duplicated_coin_indexes.push(min_dup_index.unwrap());
-        }
-    }
+         retrieve_backup_transaction_list_duplicated_excluded_indexes(
+            &client_config, 
+            recipient_address,
+            &mut wallet,
+            statechain_id,
+            duplicated_indexes).await?
+    } else {
+        Vec::new()
+    };
     
-    let mut duplicated_backup_txs = Vec::new();
-
-    for duplicated_index in duplicated_coin_indexes {
-        let updated_backup_txs = include_duplicated_utxo(client_config, recipient_address, &mut wallet, statechain_id, duplicated_index, &duplicated_backup_txs).await?;
-        duplicated_backup_txs = updated_backup_txs;
-    }
-
     // If the user sends to himself, he will have two coins with same statechain_id
     // In this case, we need to find the one with the lowest locktime
     let mut min_locktime = u32::MAX;
