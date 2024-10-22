@@ -59,7 +59,20 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
     assert!(duplicated_coin_1.duplicate_index == 1);
     assert!(duplicated_coin_2.duplicate_index == 2);
 
-    mercuryrustlib::transfer_sender::include_duplicated_utxo(&client_config, &deposit_address, &wallet1.name, &new_coin.statechain_id.as_ref().unwrap(), 1, &vec![]).await?;
+    let statechain_id = new_coin.statechain_id.as_ref().unwrap();
+
+    let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
+
+    let batch_id = None;
+
+    let force_send = true;
+
+    let duplicated_indexes = vec![1];
+
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, Some(duplicated_indexes), batch_id).await;
+
+    result.unwrap();
+    // assert!(result.is_ok());
 
     let wallet1: mercuryrustlib::Wallet = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet1.name).await?;
 
@@ -72,6 +85,10 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
             assert!(coin.status == CoinStatus::DUPLICATED_EXCLUDED);
         }
     }
+
+    let backup_txs = mercuryrustlib::sqlite_manager::get_backup_txs(&client_config.pool, &wallet1.name, &new_coin.statechain_id.as_ref().unwrap()).await?;
+
+    assert!(backup_txs.len() == 4);
 
     /* let mut coins_json = Vec::new();
 
@@ -92,10 +109,6 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
 
     let coins_json_string = serde_json::to_string_pretty(&coins_json).unwrap();
     println!("{}", coins_json_string); */
-
-    // let statechain_id = new_coin.statechain_id.as_ref().unwrap();
-
-    // let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
 
     Ok(())
 }
