@@ -25,6 +25,81 @@ async fn deposit(amount_in_sats: u32, client_config: &ClientConfig, deposit_addr
     Ok(())
 }
 
+async fn add_duplicated_utxo_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet)  -> Result<()> {
+
+    let amount = 1000;
+
+    let token_id = mercuryrustlib::deposit::get_token(client_config).await?;
+
+    let deposit_address = mercuryrustlib::deposit::get_deposit_bitcoin_address(&client_config, &wallet1.name, &token_id, amount).await?;
+
+    deposit(amount, &client_config, &deposit_address).await?;
+
+    let amount = 2000;
+
+    deposit(amount, &client_config, &deposit_address).await?;
+
+    deposit(amount, &client_config, &deposit_address).await?;
+
+    mercuryrustlib::coin_status::update_coins(&client_config, &wallet1.name).await?;
+    let wallet1: mercuryrustlib::Wallet = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet1.name).await?;
+
+    let new_coin = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 0 && coin.status == CoinStatus::CONFIRMED);
+    let duplicated_coin_1 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 1 && coin.status == CoinStatus::DUPLICATED_EXCLUDED);
+    let duplicated_coin_2 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 2 && coin.status == CoinStatus::DUPLICATED_EXCLUDED);
+
+    assert!(new_coin.is_some());
+    assert!(duplicated_coin_1.is_some());
+
+    let new_coin = new_coin.unwrap();
+    let duplicated_coin_1 = duplicated_coin_1.unwrap();
+    let duplicated_coin_2 = duplicated_coin_2.unwrap();
+
+    assert!(new_coin.duplicate_index == 0);
+    assert!(duplicated_coin_1.duplicate_index == 1);
+    assert!(duplicated_coin_2.duplicate_index == 2);
+
+    let statechain_id = new_coin.statechain_id.as_ref().unwrap();
+
+    let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
+
+    let duplicated_indexes = vec![1];
+  
+ /*   let batch_id = None;
+
+    let force_send = true;
+
+    
+
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, Some(duplicated_indexes), batch_id).await;
+
+    result.unwrap();
+    // assert!(result.is_ok());
+ */
+
+    let result = mercuryrustlib::transfer_sender::add_duplicated_utxo_to_statecoin(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, duplicated_indexes).await;
+
+    assert!(result.is_ok());
+
+    let wallet1: mercuryrustlib::Wallet = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet1.name).await?;
+
+    for coin in wallet1.coins.iter() {
+        if coin.statechain_id == new_coin.statechain_id && coin.duplicate_index == 1 {
+            assert!(coin.status == CoinStatus::DUPLICATED_INCLUDED);
+        }
+
+        if coin.statechain_id == new_coin.statechain_id && coin.duplicate_index == 2 {
+            assert!(coin.status == CoinStatus::DUPLICATED_EXCLUDED);
+        }
+    }
+
+    let backup_txs = mercuryrustlib::sqlite_manager::get_backup_txs(&client_config.pool, &wallet1.name, &new_coin.statechain_id.as_ref().unwrap()).await?;
+
+    assert!(backup_txs.len() == 3);
+
+    Ok(())
+}
+
 async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet)  -> Result<()> {
 
     let amount = 1000;
@@ -133,7 +208,25 @@ pub async fn execute() -> Result<()> {
 
     mercuryrustlib::sqlite_manager::insert_wallet(&client_config.pool, &wallet2).await?;
 
-    basic_workflow(&client_config, &wallet1, &wallet2).await?;
+    add_duplicated_utxo_workflow(&client_config, &wallet1, &wallet2).await?;
+
+    // --
+
+    let wallet1a = mercuryrustlib::wallet::create_wallet(
+        "wallet1a", 
+        &client_config).await?;
+
+    mercuryrustlib::sqlite_manager::insert_wallet(&client_config.pool, &wallet1a).await?;
+
+    let wallet2a = mercuryrustlib::wallet::create_wallet(
+        "wallet2a", 
+        &client_config).await?;
+
+    mercuryrustlib::sqlite_manager::insert_wallet(&client_config.pool, &wallet2a).await?;
+
+    basic_workflow(&client_config, &wallet1a, &wallet2a).await?;
+
+    // --
 
     println!("TA02 - Test \"Multiple Deposits in the Same Adress\" completed successfully");
 

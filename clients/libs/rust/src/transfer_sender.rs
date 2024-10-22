@@ -4,6 +4,35 @@ use chrono::Utc;
 use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus, Wallet}};
 use electrum_client::ElectrumApi;
 
+pub async fn add_duplicated_utxo_to_statecoin(
+    client_config: &ClientConfig, 
+    recipient_address: &str,
+    wallet_name: &str,
+    statechain_id: &str,
+    duplicated_indexes: Vec<u32>
+) -> Result<()> {
+
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
+
+    let duplicated_backup_txs = retrieve_backup_transaction_list_duplicated_excluded_indexes(
+        &client_config, 
+        recipient_address,
+        &mut wallet,
+        statechain_id,
+        duplicated_indexes).await?;
+
+    let mut new_backup_txs = backup_transactions.clone();
+    new_backup_txs.extend(duplicated_backup_txs.clone());
+
+    update_backup_txs(&client_config.pool, &wallet.name, statechain_id, &new_backup_txs).await?;
+
+    update_wallet(&client_config.pool, &wallet).await?;
+
+    Ok(())
+}
+
 pub async fn retrieve_backup_transaction_list_duplicated_excluded_indexes(
     client_config: &ClientConfig, 
     recipient_address: &str,
@@ -11,8 +40,6 @@ pub async fn retrieve_backup_transaction_list_duplicated_excluded_indexes(
     wallet: &mut Wallet,
     statechain_id: &str,
     duplicated_indexes: Vec<u32>) -> Result<Vec<BackupTx>> {
-
-    // let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     let mut duplicated_coin_indexes = Vec::new();
 
