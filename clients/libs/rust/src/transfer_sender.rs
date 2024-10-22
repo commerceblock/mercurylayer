@@ -1,7 +1,7 @@
 use crate::{client_config::ClientConfig, deposit::create_tx1, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus, Wallet}};
+use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
 use electrum_client::ElectrumApi;
 
 
@@ -37,7 +37,7 @@ pub async fn include_duplicated_utxo(
         return Err(anyhow::anyhow!("Coin status must be DUPLICATED_EXCLUDED to be added to the statechain package. The current status is {}", coin.status));
     }
 
-    let backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
@@ -213,7 +213,7 @@ pub async fn execute(
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
     let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
 
-    let backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
@@ -283,7 +283,7 @@ pub async fn execute(
         return Err(anyhow::anyhow!("Failed to update transfer message".to_string()));
     }
 
-    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &filtered_transactions).await?;
+    update_backup_txs(&client_config.pool, &wallet.name, &coin.statechain_id.as_ref().unwrap(), &filtered_transactions).await?;
 
     let date = Utc::now(); // This will get the current date and time in UTC
     let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string

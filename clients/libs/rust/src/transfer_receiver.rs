@@ -74,7 +74,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut coin = coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &info_config, blockheight, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
@@ -102,7 +102,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut new_coin = new_coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &info_config, blockheight, &mut temp_activities).await;
+                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
@@ -154,7 +154,7 @@ pub struct MessageResult {
     pub statechain_id: Option<String>,
 }
 
-async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult> {
+async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, wallet_name: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult> {
 
     let client_auth_key = coin.auth_privkey.clone();
     let new_user_pubkey = coin.user_pubkey.clone();
@@ -278,7 +278,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
 
     activities.push(activity);
 
-    insert_or_update_backup_txs(&client_config.pool, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
+    insert_or_update_backup_txs(&client_config.pool, wallet_name, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
 
     Ok(MessageResult {
         is_batch_locked: false,

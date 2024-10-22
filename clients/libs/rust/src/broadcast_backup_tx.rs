@@ -16,7 +16,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         }
     }
 
-    let backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let backup_txs = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
     
     // If the user sends to himself, he will have two coins with same statechain_id
     // In this case, we need to find the one with the lowest locktime
