@@ -1,8 +1,7 @@
 use std::{env, process::Command, thread, time::Duration};
 
 use anyhow::{Result, Ok};
-use mercuryrustlib::{broadcast_backup_tx, client_config::ClientConfig, CoinStatus, Wallet};
-use serde_json::json;
+use mercuryrustlib::{client_config::ClientConfig, BackupTx, Coin, CoinStatus, Wallet};
 
 use crate::{bitcoin_core, electrs};
 
@@ -20,6 +19,38 @@ async fn deposit(amount_in_sats: u32, client_config: &ClientConfig, deposit_addr
     while !is_tx_indexed {
         is_tx_indexed = electrs::check_address(client_config, &deposit_address, 1000).await?;
         thread::sleep(Duration::from_secs(1));
+    }
+
+    Ok(())
+}
+
+fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_coin: &Coin) -> Result<()> {
+    let first_backup_outpoint = mercuryrustlib::get_previous_outpoint(&backup_transactions[0])?;
+
+    assert!(first_backup_outpoint.txid == confirmed_coin.utxo_txid.clone().unwrap() && first_backup_outpoint.vout == confirmed_coin.utxo_vout.unwrap());
+
+    let mut current_txid = String::new();
+    let mut current_vout = 0u32;
+    let mut current_tx_n = 0u32;
+
+    for backup_tx in backup_transactions {
+        let outpoint = mercuryrustlib::get_previous_outpoint(&backup_tx)?;
+        
+        if backup_tx.tx_n > 1 {
+            assert!(current_txid == outpoint.txid && current_vout == outpoint.vout);
+        } else {
+            assert!(current_txid != outpoint.txid || current_vout != outpoint.vout);
+        }
+
+        if current_txid == outpoint.txid && current_vout == outpoint.vout {
+            assert!(backup_tx.tx_n == current_tx_n + 1);
+        } else {
+            assert!(backup_tx.tx_n == 1);
+        }
+
+        current_txid = outpoint.txid;
+        current_vout = outpoint.vout;
+        current_tx_n = backup_tx.tx_n;
     }
 
     Ok(())
@@ -59,9 +90,9 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
     assert!(duplicated_coin_3.is_some());
 
     let new_coin = new_coin.unwrap();
-    let duplicated_coin_1 = duplicated_coin_1.unwrap();
-    let duplicated_coin_2 = duplicated_coin_2.unwrap();
-    let duplicated_coin_3 = duplicated_coin_3.unwrap();
+    // let duplicated_coin_1 = duplicated_coin_1.unwrap();
+    // let duplicated_coin_2 = duplicated_coin_2.unwrap();
+    // let duplicated_coin_3 = duplicated_coin_3.unwrap();
 
     let statechain_id = new_coin.statechain_id.as_ref().unwrap();
 
@@ -94,33 +125,7 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
 
     let backup_transactions = mercuryrustlib::sqlite_manager::get_backup_txs(&client_config.pool, &wallet1.name, &statechain_id).await?;
 
-    let first_backup_outpoint = mercuryrustlib::get_previous_outpoint(&backup_transactions[0])?;
-
-    assert!(first_backup_outpoint.txid == new_coin.utxo_txid.clone().unwrap() && first_backup_outpoint.vout == new_coin.utxo_vout.unwrap());
-
-    let mut current_txid = String::new();
-    let mut current_vout = 0u32;
-    let mut current_tx_n = 0u32;
-
-    for backup_tx in backup_transactions {
-        let outpoint = mercuryrustlib::get_previous_outpoint(&backup_tx)?;
-        
-        if backup_tx.tx_n > 1 {
-            assert!(current_txid == outpoint.txid && current_vout == outpoint.vout);
-        } else {
-            assert!(current_txid != outpoint.txid || current_vout != outpoint.vout);
-        }
-
-        if current_txid == outpoint.txid && current_vout == outpoint.vout {
-            assert!(backup_tx.tx_n == current_tx_n + 1);
-        } else {
-            assert!(backup_tx.tx_n == 1);
-        }
-
-        current_txid = outpoint.txid;
-        current_vout = outpoint.vout;
-        current_tx_n = backup_tx.tx_n;
-    }
+    validate_backup_transactions(&backup_transactions, &new_coin)?;
 
     /* let mut coins_json = Vec::new();
 
