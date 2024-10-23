@@ -69,7 +69,7 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
 
     let duplicated_indexes = vec![1];
 
-    mercuryrustlib::transfer_sender::create_backup_transaction2(
+    mercuryrustlib::transfer_sender::create_backup_transaction(
         &client_config,
         &wallet2_transfer_adress,
         &wallet1.name,
