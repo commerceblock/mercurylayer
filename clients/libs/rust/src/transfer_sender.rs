@@ -102,12 +102,12 @@ pub async fn create_backup_transaction(
 
         filtered_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
 
-        let qt_backup_tx = filtered_transactions.len() as u32;
-
-        if qt_backup_tx == 0 {
+        if filtered_transactions.len() == 0 {
             let bkp_tx1 = create_tx1(client_config, coin, &wallet.network).await?;
             filtered_transactions.push(bkp_tx1);
-        }    
+        }
+
+        let qt_backup_tx = filtered_transactions.len() as u32;
 
         let new_tx_n = qt_backup_tx as u32 + 1;
 

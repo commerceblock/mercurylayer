@@ -41,46 +41,86 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
 
     deposit(amount, &client_config, &deposit_address).await?;
 
+    let amount = 1000;
+
+    deposit(amount, &client_config, &deposit_address).await?;
+
     mercuryrustlib::coin_status::update_coins(&client_config, &wallet1.name).await?;
     let wallet1: mercuryrustlib::Wallet = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet1.name).await?;
 
     let new_coin = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 0 && coin.status == CoinStatus::CONFIRMED);
     let duplicated_coin_1 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 1 && coin.status == CoinStatus::DUPLICATED);
     let duplicated_coin_2 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 2 && coin.status == CoinStatus::DUPLICATED);
+    let duplicated_coin_3 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 3 && coin.status == CoinStatus::DUPLICATED);
 
     assert!(new_coin.is_some());
     assert!(duplicated_coin_1.is_some());
+    assert!(duplicated_coin_2.is_some());
+    assert!(duplicated_coin_3.is_some());
 
     let new_coin = new_coin.unwrap();
     let duplicated_coin_1 = duplicated_coin_1.unwrap();
     let duplicated_coin_2 = duplicated_coin_2.unwrap();
-
-    assert!(new_coin.duplicate_index == 0);
-    assert!(duplicated_coin_1.duplicate_index == 1);
-    assert!(duplicated_coin_2.duplicate_index == 2);
+    let duplicated_coin_3 = duplicated_coin_3.unwrap();
 
     let statechain_id = new_coin.statechain_id.as_ref().unwrap();
 
     let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
 
-    // let batch_id = None;
+    let batch_id = None;
 
-    // let force_send = true;
+    let force_send = true;
 
-    let duplicated_indexes = vec![1];
+    let duplicated_indexes = vec![1, 3];
 
-    // mercuryrustlib::transfer_sender::create_backup_transaction(
-    //     &client_config,
-    //     &wallet2_transfer_adress,
-    //     &wallet1.name,
-    //     &statechain_id,
-    //     Some(duplicated_indexes),
-    // ).await?;
-/*
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, Some(duplicated_indexes), batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, Some(duplicated_indexes), force_send, batch_id).await;
 
-    result.unwrap(); */
-    // assert!(result.is_ok());
+    // result.unwrap();
+    assert!(result.is_ok());
+
+    let wallet1 = mercuryrustlib::sqlite_manager::get_wallet(&client_config.pool, &wallet1.name).await?;
+
+    let new_coin = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 0 && coin.status == CoinStatus::IN_TRANSFER);
+    let duplicated_coin_1 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 1 && coin.status == CoinStatus::IN_TRANSFER);
+    let duplicated_coin_2 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 2 && coin.status == CoinStatus::DUPLICATED);
+    let duplicated_coin_3 = wallet1.coins.iter().find(|&coin| coin.aggregated_address == Some(deposit_address.clone()) && coin.duplicate_index == 3 && coin.status == CoinStatus::IN_TRANSFER);
+
+    assert!(new_coin.is_some());
+    assert!(duplicated_coin_1.is_some());
+    assert!(duplicated_coin_2.is_some());
+    assert!(duplicated_coin_3.is_some());
+
+    let new_coin = new_coin.unwrap();
+
+    let backup_transactions = mercuryrustlib::sqlite_manager::get_backup_txs(&client_config.pool, &wallet1.name, &statechain_id).await?;
+
+    let first_backup_outpoint = mercuryrustlib::get_previous_outpoint(&backup_transactions[0])?;
+
+    assert!(first_backup_outpoint.txid == new_coin.utxo_txid.clone().unwrap() && first_backup_outpoint.vout == new_coin.utxo_vout.unwrap());
+
+    let mut current_txid = String::new();
+    let mut current_vout = 0u32;
+    let mut current_tx_n = 0u32;
+
+    for backup_tx in backup_transactions {
+        let outpoint = mercuryrustlib::get_previous_outpoint(&backup_tx)?;
+        
+        if backup_tx.tx_n > 1 {
+            assert!(current_txid == outpoint.txid && current_vout == outpoint.vout);
+        } else {
+            assert!(current_txid != outpoint.txid || current_vout != outpoint.vout);
+        }
+
+        if current_txid == outpoint.txid && current_vout == outpoint.vout {
+            assert!(backup_tx.tx_n == current_tx_n + 1);
+        } else {
+            assert!(backup_tx.tx_n == 1);
+        }
+
+        current_txid = outpoint.txid;
+        current_vout = outpoint.vout;
+        current_tx_n = backup_tx.tx_n;
+    }
 
     /* let mut coins_json = Vec::new();
 

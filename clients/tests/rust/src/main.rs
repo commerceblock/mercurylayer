@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
     ta02_duplicate_deposits::execute().await?;
     tv05::execute().await?;
 
-    // ta02_multiple_deposits::execute().await?;
+    ta02_multiple_deposits::execute().await?;
     
     Ok(())
 }

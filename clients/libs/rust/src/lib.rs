@@ -16,6 +16,7 @@ pub use mercurylib::wallet::CoinStatus;
 pub use mercurylib::wallet::Coin;
 pub use mercurylib::wallet::BackupTx;
 pub use mercurylib::wallet::Activity;
+pub use mercurylib::wallet::get_previous_outpoint;
 
 pub use mercurylib::transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg};
 pub use mercurylib::transaction::{SignFirstRequestPayload, SignFirstResponsePayload, create_and_commit_nonces};
