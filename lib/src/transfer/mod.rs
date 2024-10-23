@@ -98,3 +98,10 @@ pub struct TransferMsg {
     pub t1: [u8; 32],
     pub user_public_key: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(uniffi::Record))]
+pub struct TxOutpoint {
+    pub txid: String,
+    pub vout: u32,
+}

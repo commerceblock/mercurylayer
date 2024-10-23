@@ -2,7 +2,7 @@
 
 mod utils;
 
-use mercurylib::{decode_transfer_address, deposit::DepositMsg1Response, transfer::{receiver::{create_transfer_receiver_request_payload, decrypt_transfer_msg, get_new_key_info, StatechainInfo, StatechainInfoResponsePayload, TxOutpoint}, sender::create_transfer_signature, TransferMsg}, utils::ServerConfig, wallet::{Activity, BackupTx, Coin, Settings, Token, Wallet}};
+use mercurylib::{decode_transfer_address, deposit::DepositMsg1Response, transfer::{receiver::{create_transfer_receiver_request_payload, decrypt_transfer_msg, get_new_key_info, StatechainInfo, StatechainInfoResponsePayload}, sender::create_transfer_signature, TransferMsg, TxOutpoint}, utils::ServerConfig, wallet::{Activity, BackupTx, Coin, Settings, Token, Wallet}};
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use bip39::Mnemonic;

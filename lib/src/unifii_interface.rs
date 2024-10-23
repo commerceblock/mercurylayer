@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{decode_transfer_address, transfer::{receiver::{StatechainInfoResponsePayload, TransferReceiverRequestPayload, TxOutpoint}, TransferMsg}, wallet::{BackupTx, Coin, Wallet}, MercuryError};
+use crate::{decode_transfer_address, transfer::{receiver::{StatechainInfoResponsePayload, TransferReceiverRequestPayload}, TransferMsg, TxOutpoint}, wallet::{BackupTx, Coin, Wallet}, MercuryError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "bindings", derive(uniffi::Record))]

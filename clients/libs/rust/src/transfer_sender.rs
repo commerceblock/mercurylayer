@@ -1,8 +1,190 @@
 use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercurylib::{wallet::{Coin, BackupTx, Activity, CoinStatus}, utils::get_blockheight, decode_transfer_address, transfer::sender::{TransferSenderRequestPayload, TransferSenderResponsePayload, create_transfer_signature, create_transfer_update_msg}};
+use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
 use electrum_client::ElectrumApi;
+
+
+pub async fn create_backup_transaction2(
+    client_config: &ClientConfig, 
+    recipient_address: &str,
+    wallet_name: &str,
+    statechain_id: &str,
+    duplicated_indexes: Option<Vec<u32>>,
+) -> Result<()> {
+
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    // throw error if duplicated_indexes contains an index that does not exist in wallet.coins
+    // this can be moved to the caller function
+    if duplicated_indexes.is_some() {
+        for index in duplicated_indexes.as_ref().unwrap() {
+            if *index as usize >= wallet.coins.len() {
+                return Err(anyhow!("Index {} does not exist in wallet.coins", index));
+            }
+        }
+    }
+
+    let mut coin_list: Vec<&mut Coin> = Vec::new();
+
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
+
+    // Get coins that already have a backup transaction
+    for coin in wallet.coins.iter_mut() {
+        // Check if coin matches any backup transaction
+        let has_matching_tx = backup_transactions.iter().any(|backup_tx| {
+            if let Ok(tx_outpoint) = get_previous_outpoint(backup_tx) {
+                if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                    tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        });
+
+        let mut coin_to_add = false;
+
+        if duplicated_indexes.is_some() {
+            if coin.statechain_id == Some(statechain_id.to_string()) && 
+            (coin.status == CoinStatus::CONFIRMED || coin.status == CoinStatus::IN_TRANSFER) {
+                coin_to_add = true;
+            }
+
+            if coin.statechain_id == Some(statechain_id.to_string()) && coin.status == CoinStatus::DUPLICATED && 
+                duplicated_indexes.is_some() && duplicated_indexes.as_ref().unwrap().contains(&coin.duplicate_index) {
+                coin_to_add = true;
+            }
+        }
+
+        // If coin matches a transaction, check it's not already in our list
+        if has_matching_tx || coin_to_add {
+            let is_duplicate = coin_list.iter().any(|existing_coin| {
+                if let (Some(existing_txid), Some(existing_vout)) = (&existing_coin.utxo_txid, existing_coin.utxo_vout) {
+                    if let (Some(coin_txid), Some(coin_vout)) = (&coin.utxo_txid, coin.utxo_vout) {
+                        existing_txid == coin_txid && existing_vout == coin_vout
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            });
+
+            if !is_duplicate {
+                coin_list.push(coin);
+            }
+        }
+    }
+
+    // The backup transaction for the CONFIRMED coin is created when it is detected in the mempool
+    // So it is exepcted that the coin with duplicate_index == 0 is in the list since it must have at least one backup transaction
+    let coins_with_zero_index = coin_list
+        .iter()
+        .filter(|coin| coin.duplicate_index == 0 && (coin.status == CoinStatus::CONFIRMED || coin.status == CoinStatus::IN_TRANSFER))
+        .collect::<Vec<_>>();
+
+    if coins_with_zero_index.len() != 1 {
+        return Err(anyhow!("There must be at least one coin with duplicate_index == 0"));
+    }
+
+    Ok(())
+}
+
+pub async fn create_backup_transactions(
+    client_config: &ClientConfig, 
+    recipient_address: &str,
+    wallet_name: &str,
+    statechain_id: &str,
+    duplicated_indexes: Option<Vec<u32>>,
+) -> Result<()> {
+
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let mut coin_list = Vec::new();
+
+    // throw error if duplicated_indexes contains an index that does not exist in wallet.coins
+    // this can be moved to the caller function
+    if duplicated_indexes.is_some() {
+        for index in duplicated_indexes.as_ref().unwrap() {
+            if *index as usize >= wallet.coins.len() {
+                return Err(anyhow!("Index {} does not exist in wallet.coins", index));
+            }
+        }
+    }
+
+    for (index, c) in wallet.coins.iter().enumerate() {
+
+        if c.status == CoinStatus::CONFIRMED && c.duplicate_index != 0 {
+            return Err(anyhow!("Coin with status CONFIRMED must have duplicate_index 0. Confirmed coin with duplicate_index {} found", c.duplicate_index));
+        }
+
+        if c.statechain_id == Some(statechain_id.to_string()) && (c.status == CoinStatus::CONFIRMED || c.status == CoinStatus::IN_TRANSFER) {
+            coin_list.push(c);
+        }
+
+        if c.statechain_id == Some(statechain_id.to_string()) && c.status == CoinStatus::DUPLICATED && 
+            duplicated_indexes.is_some() && duplicated_indexes.as_ref().unwrap().contains(&c.duplicate_index) {
+            coin_list.push(c);
+        }
+    }
+
+    if coin_list.len() == 0 {
+        return Err(anyhow!("No coins associated with this statechain ID were found"));
+    }
+
+    let coins_with_zero_index = coin_list
+        .iter()
+        .filter(|coin| coin.duplicate_index == 0 && (coin.status == CoinStatus::CONFIRMED || coin.status == CoinStatus::IN_TRANSFER))
+        .collect::<Vec<_>>();
+
+    if coins_with_zero_index.len() != 1 {
+        return Err(anyhow!("There must be exactly one coin with duplicate_index == 0"));
+    }
+
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
+
+    /* let mut filtered_transactions: Vec<BackupTx> = Vec::new();
+
+    for coin in coin_list {
+        for backup_tx in &backup_transactions {
+            if let Ok(tx_outpoint) = get_previous_outpoint(&backup_tx) {
+                if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                    if tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout {
+                        filtered_transactions.push(backup_tx.clone());
+                    }
+                }
+            }
+        }
+    } */
+
+    // the remaining_transactions below refers to backup transaction
+    let remaining_transactions: Vec<BackupTx> = backup_transactions
+        .into_iter()
+        .filter(|backup_tx| {
+            // Get the outpoint of the backup transaction
+            if let Ok(tx_outpoint) = get_previous_outpoint(backup_tx) {
+                // Check if any coin in coin_list matches this transaction's outpoint
+                !coin_list.iter().any(|coin| {
+                    if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                        // Return true if this coin matches the transaction (meaning we should filter it out)
+                        tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout
+                    } else {
+                        false // If coin doesn't have valid txid/vout, it's not a match
+                    }
+                })
+            } else {
+                true // Keep transactions where we couldn't get outpoint (error case)
+            }
+        })
+        .collect();
+
+    // for each coin in coin_list, retrieve the original list from backup_transactions and adds a new backup transaction
+
+
+    Ok(())
+}  
 
 pub async fn execute(
     client_config: &ClientConfig, 
@@ -20,18 +202,6 @@ pub async fn execute(
     if !is_address_valid {
         return Err(anyhow!("Invalid address"));
     }
-
-    let mut backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
-
-    if backup_transactions.len() == 0 {
-        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
-    }
-
-    let qt_backup_tx = backup_transactions.len() as u32;
-
-    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
-
-    let new_tx_n = backup_transactions.len() as u32 + 1;
 
     let is_coin_duplicated = wallet.coins.iter().any(|c| {
         c.statechain_id == Some(statechain_id.to_string()) &&
@@ -92,6 +262,18 @@ pub async fn execute(
 
     let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
     let x1 = get_new_x1(&client_config,  statechain_id, signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
+
+    let mut backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
+
+    if backup_transactions.len() == 0 {
+        return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
+    }
+
+    let qt_backup_tx = backup_transactions.len() as u32;
+
+    backup_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+
+    let new_tx_n = backup_transactions.len() as u32 + 1;
 
     let bkp_tx1 = &backup_transactions[0];
 
