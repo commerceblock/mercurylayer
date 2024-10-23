@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result, Ok};
-use mercurylib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, CoinStatus, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
+use mercurylib::{deposit::{create_deposit_msg1, create_aggregated_address}, wallet::{Wallet, BackupTx, Coin}, transaction:: get_user_backup_address, utils::get_blockheight};
 
 use crate::{client_config::ClientConfig, sqlite_manager::{get_wallet, update_wallet}, transaction::new_transaction, utils::info_config};
 

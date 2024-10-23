@@ -69,7 +69,7 @@ async fn withdraw_flow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: 
 
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, force_send, batch_id.clone()).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, None, force_send, batch_id.clone()).await;
 
     assert!(result.is_err());
 
@@ -86,7 +86,7 @@ async fn withdraw_flow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: 
 
     mercuryrustlib::coin_status::update_coins(&client_config, &wallet1.name).await?;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_err());
 
@@ -167,7 +167,7 @@ async fn transfer_flow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: 
 
     let force_send = true;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, force_send, batch_id.clone()).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, statechain_id, None, force_send, batch_id.clone()).await;
 
     assert!(result.is_ok());
     

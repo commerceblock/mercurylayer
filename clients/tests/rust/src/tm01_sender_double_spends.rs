@@ -40,7 +40,7 @@ async fn tm01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet, 
 
     let wallet2_transfer_adress = mercuryrustlib::transfer_receiver::new_transfer_address(&client_config, &wallet2.name).await?;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_ok());
 
@@ -49,7 +49,7 @@ async fn tm01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet, 
     let batch_id = None;
 
     // this first "double spend" is legitimate, as it will overwrite the previous transaction
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet3_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet3_transfer_adress, &wallet1.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_ok());
 
@@ -63,7 +63,7 @@ async fn tm01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet, 
     let batch_id = None;
 
     // this second "double spend" is not legitimate, as the statecoin has already been received by wallet3
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_err());
 
@@ -77,11 +77,11 @@ async fn tm01(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet, 
 
     let batch_id = None;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet1.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_err());
 
-    assert!(result.err().unwrap().to_string().contains("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is TRANSFERRED"));
+    assert!(result.err().unwrap().to_string().contains("No coins with status CONFIRMED or IN_TRANSFER associated with this statechain ID were found"));
 
     Ok(())
 }

@@ -163,7 +163,7 @@ async fn main() -> Result<()> {
 
             let force_send = force_send.unwrap_or(false);
 
-            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, force_send, batch_id).await?;
+            mercuryrustlib::transfer_sender::execute(&client_config, &to_address, &wallet_name, &statechain_id, None, force_send, batch_id).await?;
 
             let obj = json!({"Transfer": "sent"});
 

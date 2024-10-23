@@ -6,19 +6,19 @@ use mercuryrustlib::{client_config::ClientConfig, CoinStatus, Wallet};
 
 use crate::{bitcoin_core, electrs};
 
-async fn try_to_send_unconfirmed_coin(client_config: &ClientConfig, to_address: &str, wallet: &Wallet, statechain_id: &str, current_status: &str) -> Result<()> {
+async fn try_to_send_unconfirmed_coin(client_config: &ClientConfig, to_address: &str, wallet: &Wallet, statechain_id: &str) -> Result<()> {
 
     let batch_id = None;
 
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, to_address, &wallet.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, to_address, &wallet.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_err());
 
     let error = result.err().unwrap();
 
-    let error_message = format!("Coin status must be CONFIRMED or IN_TRANSFER to transfer it. The current status is {}", current_status);
+    let error_message = format!("No coins with status CONFIRMED or IN_TRANSFER associated with this statechain ID were found");
 
     assert!(error.to_string() == error_message);
 
@@ -90,7 +90,7 @@ async fn sucessfully_transfer(client_config: &ClientConfig, wallet1: &Wallet, wa
 
     let statechain_id = new_coin.statechain_id.as_ref().unwrap();
 
-    try_to_send_unconfirmed_coin(&client_config, &wallet2_transfer_adress, &wallet1, statechain_id, &CoinStatus::IN_MEMPOOL.to_string()).await?;
+    try_to_send_unconfirmed_coin(&client_config, &wallet2_transfer_adress, &wallet1, statechain_id).await?;
 
     let core_wallet_address = bitcoin_core::getnewaddress()?;
     let _ = bitcoin_core::generatetoaddress(1, &core_wallet_address)?;
@@ -103,7 +103,7 @@ async fn sucessfully_transfer(client_config: &ClientConfig, wallet1: &Wallet, wa
 
     assert!(new_coin.status == CoinStatus::UNCONFIRMED);
 
-    try_to_send_unconfirmed_coin(&client_config, &wallet2_transfer_adress, &wallet1, statechain_id, &CoinStatus::UNCONFIRMED.to_string()).await?;
+    try_to_send_unconfirmed_coin(&client_config, &wallet2_transfer_adress, &wallet1, statechain_id).await?;
 
     let remaining_blocks = client_config.confirmation_target - 1;
     let _ = bitcoin_core::generatetoaddress(remaining_blocks, &core_wallet_address)?;
@@ -120,7 +120,7 @@ async fn sucessfully_transfer(client_config: &ClientConfig, wallet1: &Wallet, wa
 
     let force_send = false;
 
-    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet.name, &statechain_id, force_send, batch_id).await;
+    let result = mercuryrustlib::transfer_sender::execute(&client_config, &wallet2_transfer_adress, &wallet.name, &statechain_id, None, force_send, batch_id).await;
 
     assert!(result.is_ok());
 
