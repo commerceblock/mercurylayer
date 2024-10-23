@@ -23,19 +23,7 @@ pub async fn get_deposit_bitcoin_address(client_config: &ClientConfig, wallet_na
     Ok(aggregated_public_key.aggregate_address)
 }
 
-pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_netwotk: &str, tx0_hash: &str, tx0_vout: u32) -> Result<BackupTx> {
-
-    if coin.status != CoinStatus::INITIALISED {
-        return Err(anyhow!("The coin with the public key {} is not in the INITIALISED state", coin.user_pubkey.to_string()));
-    }
-
-    if coin.utxo_txid.is_some() && coin.utxo_vout.is_some() {
-        return Err(anyhow!("The coin with the public key {} has already been deposited", coin.user_pubkey.to_string()));
-    }
-    coin.utxo_txid = Some(tx0_hash.to_string());
-    coin.utxo_vout = Some(tx0_vout);
-
-    coin.status = CoinStatus::IN_MEMPOOL;
+pub async fn create_tx1(client_config: &ClientConfig, coin: &mut Coin, wallet_netwotk: &str) -> Result<BackupTx> {
 
     let to_address = get_user_backup_address(&coin, wallet_netwotk.to_string())?;
 

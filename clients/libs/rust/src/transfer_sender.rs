@@ -1,4 +1,4 @@
-use crate::{client_config::ClientConfig, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
+use crate::{client_config::ClientConfig, deposit::create_tx1, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
@@ -58,23 +58,23 @@ pub async fn create_backup_transaction2(
             }
         }
 
-        // If coin matches a transaction, check it's not already in our list
         if has_matching_tx || coin_to_add {
-            let is_duplicate = coin_list.iter().any(|existing_coin| {
-                if let (Some(existing_txid), Some(existing_vout)) = (&existing_coin.utxo_txid, existing_coin.utxo_vout) {
-                    if let (Some(coin_txid), Some(coin_vout)) = (&coin.utxo_txid, coin.utxo_vout) {
-                        existing_txid == coin_txid && existing_vout == coin_vout
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            });
+            // let is_duplicate = coin_list.iter().any(|existing_coin| {
+            //     if let (Some(existing_txid), Some(existing_vout)) = (&existing_coin.utxo_txid, existing_coin.utxo_vout) {
+            //         if let (Some(coin_txid), Some(coin_vout)) = (&coin.utxo_txid, coin.utxo_vout) {
+            //             existing_txid == coin_txid && existing_vout == coin_vout
+            //         } else {
+            //             false
+            //         }
+            //     } else {
+            //         false
+            //     }
+            // });
 
-            if !is_duplicate {
-                coin_list.push(coin);
-            }
+            // if !is_duplicate {
+            //     coin_list.push(coin);
+            // }
+            coin_list.push(coin);
         }
     }
 
@@ -88,6 +88,62 @@ pub async fn create_backup_transaction2(
     if coins_with_zero_index.len() != 1 {
         return Err(anyhow!("There must be at least one coin with duplicate_index == 0"));
     }
+
+    println!("coin_list.len(): {}", coin_list.len());
+
+    let mut new_backup_transactions = Vec::new();
+
+    // create backup transaction for every coin
+    let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
+
+    for coin in coin_list {
+        let mut filtered_transactions: Vec<BackupTx> = Vec::new();
+
+        for backup_tx in &backup_transactions {
+            if let Ok(tx_outpoint) = get_previous_outpoint(&backup_tx) {
+                if let (Some(utxo_txid), Some(utxo_vout)) = (coin.utxo_txid.clone(), coin.utxo_vout) {
+                    if tx_outpoint.txid == utxo_txid && tx_outpoint.vout == utxo_vout {
+                        filtered_transactions.push(backup_tx.clone());
+                    }
+                }
+            }
+        }
+
+        filtered_transactions.sort_by(|a, b| a.tx_n.cmp(&b.tx_n));
+
+        let qt_backup_tx = filtered_transactions.len() as u32;
+
+        if qt_backup_tx == 0 {
+            let bkp_tx1 = create_tx1(client_config, coin, &wallet.network).await?;
+            filtered_transactions.push(bkp_tx1);
+        }    
+
+        let new_tx_n = qt_backup_tx as u32 + 1;
+
+        let bkp_tx1 = &filtered_transactions[0];
+
+        let signed_tx = create_backup_tx_to_receiver(client_config, coin, bkp_tx1, recipient_address, qt_backup_tx, &wallet.network).await?;
+
+        let backup_tx = BackupTx {
+            tx_n: new_tx_n,
+            tx: signed_tx.clone(),
+            client_public_nonce: coin.public_nonce.as_ref().unwrap().to_string(),
+            server_public_nonce: coin.server_public_nonce.as_ref().unwrap().to_string(),
+            client_public_key: coin.user_pubkey.clone(),
+            server_public_key: coin.server_pubkey.as_ref().unwrap().to_string(),
+            blinding_factor: coin.blinding_factor.as_ref().unwrap().to_string(),
+        };
+
+        filtered_transactions.push(backup_tx);
+
+        if coin.duplicate_index == 0 {
+            new_backup_transactions.splice(0..0, filtered_transactions);
+        } else {
+            new_backup_transactions.extend(filtered_transactions);
+        }
+    }
+
+    println!("new_backup_transactions.len(): {}", new_backup_transactions.len());
 
     Ok(())
 }

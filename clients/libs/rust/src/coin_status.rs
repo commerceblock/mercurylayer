@@ -59,7 +59,16 @@ async fn check_deposit(client_config: &ClientConfig, coin: &mut Coin, wallet_net
         let utxo_txid = utxo.tx_hash.to_string();
         let utxo_vout = utxo.tx_pos as u32;
 
-        let backup_tx = create_tx1(client_config, coin, wallet_netwotk, &utxo_txid, utxo_vout).await?;
+        if coin.status != CoinStatus::INITIALISED {
+            return Err(anyhow!("The coin with the public key {} is not in the INITIALISED state", coin.user_pubkey.to_string()));
+        }
+    
+        coin.utxo_txid = Some(utxo_txid.to_string());
+        coin.utxo_vout = Some(utxo_vout);
+    
+        coin.status = CoinStatus::IN_MEMPOOL;
+
+        let backup_tx = create_tx1(client_config, coin, wallet_netwotk).await?;
 
         let activity_utxo = format!("{}:{}", utxo.tx_hash.to_string(), utxo.tx_pos);
 
