@@ -1,18 +1,18 @@
 use crate::{client_config::ClientConfig, deposit::create_tx1, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
+use mercurylib::{decode_transfer_address, transfer::sender::{create_transfer_signature, create_transfer_update_msg, TransferSenderRequestPayload, TransferSenderResponsePayload}, utils::get_blockheight, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus, Wallet}};
 use electrum_client::ElectrumApi;
 
 pub async fn create_backup_transaction(
     client_config: &ClientConfig, 
     recipient_address: &str,
-    wallet_name: &str,
+    wallet: &mut Wallet,
     statechain_id: &str,
     duplicated_indexes: Option<Vec<u32>>,
-) -> Result<()> {
+) -> Result<Vec<BackupTx>> {
 
-    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+    //let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
 
     // throw error if duplicated_indexes contains an index that does not exist in wallet.coins
     // this can be moved to the caller function
@@ -142,8 +142,114 @@ pub async fn create_backup_transaction(
 
     println!("new_backup_transactions.len(): {}", new_backup_transactions.len());
 
+    Ok(new_backup_transactions)
+}
+
+
+pub async fn execute2(
+    client_config: &ClientConfig, 
+    recipient_address: &str, 
+    wallet_name: &str, 
+    statechain_id: &str,
+    duplicated_indexes: Option<Vec<u32>>,
+    force_send: bool,
+    batch_id: Option<String>) -> Result<()> 
+{
+    let mut wallet: mercurylib::wallet::Wallet = get_wallet(&client_config.pool, &wallet_name).await?;
+
+    let is_address_valid = mercurylib::validate_address(recipient_address, &wallet.network)?;
+
+    if !is_address_valid {
+        return Err(anyhow!("Invalid address"));
+    }
+
+    let is_coin_duplicated = wallet.coins.iter().any(|c| {
+        c.statechain_id == Some(statechain_id.to_string()) &&
+        c.status == CoinStatus::DUPLICATED
+    });
+
+    if is_coin_duplicated && !force_send {
+        return Err(anyhow::anyhow!("Coin is duplicated. If you want to proceed, use the command '--force, -f' option. \
+        You will no longer be able to move other duplicate coins with the same statechain_id and this will cause PERMANENT LOSS of these duplicate coin funds."));
+    }
+
+    let are_there_duplicate_coins_withdrawn = wallet.coins.iter().any(|c| {
+        c.statechain_id == Some(statechain_id.to_string()) &&
+        (c.status == CoinStatus::WITHDRAWING || c.status == CoinStatus::WITHDRAWING) &&
+        c.duplicate_index > 0
+    });
+
+    if are_there_duplicate_coins_withdrawn {
+        return Err(anyhow::anyhow!("There have been withdrawals of other coins with this same statechain_id (possibly duplicates).\
+        This transfer cannot be performed because the recipient would reject it due to the difference in signature count.\
+        This coin can be withdrawn, however."));
+    }
+
+    let coin = &wallet.coins
+        .iter()
+        .filter(|c| 
+            c.statechain_id == Some(statechain_id.to_string()) && 
+            (c.status == CoinStatus::CONFIRMED || c.status == CoinStatus::IN_TRANSFER) && 
+            c.duplicate_index == 0) // Filter coins with the specified statechain_id
+        .min_by_key(|c| c.locktime.unwrap_or(u32::MAX)); // Find the one with the lowest locktime
+
+    if coin.is_none() {
+        return Err(anyhow!("No coins associated with this statechain ID were found"));
+    }
+
+    let coin = coin.unwrap().clone();
+
+    let statechain_id = coin.statechain_id.as_ref().unwrap().clone();
+    let signed_statechain_id = coin.signed_statechain_id.as_ref().unwrap().clone();
+
+    let (_, _, recipient_auth_pubkey) = decode_transfer_address(recipient_address)?;  
+    let x1 = get_new_x1(&client_config, &statechain_id, &signed_statechain_id, &recipient_auth_pubkey.to_string(), batch_id).await?;
+
+    let input_txid = coin.utxo_txid.as_ref().unwrap();
+    let input_vout = coin.utxo_vout.unwrap();
+    let client_seckey = coin.user_privkey.as_ref();
+
+    let coin_amount = coin.amount.unwrap();
+
+    let transfer_signature = create_transfer_signature(recipient_address, &input_txid, input_vout, &client_seckey)?; 
+
+    let backup_transactions = create_backup_transaction(client_config, recipient_address, &mut wallet, &statechain_id, duplicated_indexes).await?;
+
+    let transfer_update_msg_request_payload = create_transfer_update_msg(&x1, recipient_address, &coin, &transfer_signature, &backup_transactions)?;
+
+    let endpoint = client_config.statechain_entity.clone();
+    let path = "transfer/update_msg";
+
+    let client = client_config.get_reqwest_client()?;
+    let request = client.post(&format!("{}/{}", endpoint, path));
+
+    let status = request.json(&transfer_update_msg_request_payload).send().await?.status();
+
+    if !status.is_success() {
+        return Err(anyhow::anyhow!("Failed to update transfer message".to_string()));
+    }
+
+    update_backup_txs(&client_config.pool, &wallet.name, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
+
+    let date = Utc::now(); // This will get the current date and time in UTC
+    let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
+
+    let utxo = format!("{}:{}", input_txid, input_vout);
+
+    let activity = Activity {
+        utxo,
+        amount: coin_amount,
+        action: "Transfer".to_string(),
+        date: iso_string
+    };
+
+    wallet.activities.push(activity);
+
+    update_wallet(&client_config.pool, &wallet).await?;
+
     Ok(())
 }
+
 
 pub async fn execute(
     client_config: &ClientConfig, 
