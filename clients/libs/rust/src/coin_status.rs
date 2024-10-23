@@ -238,7 +238,7 @@ pub async fn update_coins(client_config: &ClientConfig, wallet_name: &str) -> Re
                 let backup_tx = deposit_result.backup_tx;
 
                 wallet.activities.push(activity);
-                insert_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
+                insert_backup_txs(&client_config.pool, &wallet.name, &coin.statechain_id.as_ref().unwrap(), &[backup_tx].to_vec()).await?;
             }
         } else if coin.status == CoinStatus::IN_TRANSFER {
 

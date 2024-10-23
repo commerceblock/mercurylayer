@@ -15,7 +15,7 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str, statechain
         return Err(anyhow!("Invalid address"));
     }
 
-    let backup_txs = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let backup_txs = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
     
     if backup_txs.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));

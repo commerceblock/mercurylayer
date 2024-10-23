@@ -21,7 +21,7 @@ pub async fn execute(
         return Err(anyhow!("Invalid address"));
     }
 
-    let mut backup_transactions = get_backup_txs(&client_config.pool, &statechain_id).await?;
+    let mut backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
 
     if backup_transactions.len() == 0 {
         return Err(anyhow!("No backup transaction associated with this statechain ID were found"));
@@ -129,7 +129,7 @@ pub async fn execute(
         return Err(anyhow::anyhow!("Failed to update transfer message".to_string()));
     }
 
-    update_backup_txs(&client_config.pool, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
+    update_backup_txs(&client_config.pool, &wallet.name, &coin.statechain_id.as_ref().unwrap(), &backup_transactions).await?;
 
     let date = Utc::now(); // This will get the current date and time in UTC
     let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
