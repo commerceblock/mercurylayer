@@ -61,6 +61,31 @@ fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_c
     Ok(())
 }
 
+fn validate_split_backup_transactions(
+    backup_transactions: &[BackupTx],
+    split_backup_transactions: &[Vec<BackupTx>]
+) -> Result<()> {
+    // Flatten nested iterations using Iterator::flatten()
+    split_backup_transactions
+        .iter()
+        .flatten()
+        .zip(backup_transactions)
+        .try_for_each(|(split_tx, original_tx)| {
+            // Get both outpoints
+            let original_outpoint = mercuryrustlib::get_previous_outpoint(original_tx)?;
+            let split_outpoint = mercuryrustlib::get_previous_outpoint(split_tx)?;
+
+            // Validate outpoints match
+            assert!(
+                original_outpoint.txid == split_outpoint.txid 
+                && original_outpoint.vout == split_outpoint.vout
+            );
+            assert!(split_tx.tx_n == original_tx.tx_n);
+            
+            Ok(())
+        })
+}
+
 async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2: &Wallet)  -> Result<()> {
 
     let amount = 1000;
@@ -133,6 +158,9 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
     let info_config = mercuryrustlib::utils::info_config(&client_config).await?;
 
     validate_backup_transactions(&backup_transactions, &new_coin, info_config.interval)?;
+
+    let split_backup_transactions = mercuryrustlib::transfer_receiver::split_backup_transactions(&backup_transactions);
+    validate_split_backup_transactions(&backup_transactions, &split_backup_transactions)?;
 
     /* let mut coins_json = Vec::new();
 

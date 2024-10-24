@@ -154,7 +154,7 @@ pub struct MessageResult {
     pub statechain_id: Option<String>,
 }
 
-pub fn split_backup_transactions(backup_transactions: Vec<BackupTx>) -> Vec<Vec<BackupTx>> {
+pub fn split_backup_transactions(backup_transactions: &Vec<BackupTx>) -> Vec<Vec<BackupTx>> {
     // HashMap to store grouped transactions
     let mut grouped_txs: HashMap<(String, u32), Vec<BackupTx>> = HashMap::new();
     
@@ -177,7 +177,7 @@ pub fn split_backup_transactions(backup_transactions: Vec<BackupTx>) -> Vec<Vec<
         }
         
         // Add the transaction to its group
-        grouped_txs.entry(key).or_insert_with(Vec::new).push(tx);
+        grouped_txs.entry(key).or_insert_with(Vec::new).push(tx.clone());
     }
     
     // Create result vector maintaining order of first appearance
