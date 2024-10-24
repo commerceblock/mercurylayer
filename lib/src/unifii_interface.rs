@@ -97,7 +97,7 @@ pub fn fii_create_transfer_receiver_request_payload(statechain_info: &Statechain
     crate::transfer::receiver::create_transfer_receiver_request_payload(statechain_info, &transfer_msg, coin)
 }
 
-#[cfg_attr(feature = "bindings", uniffi::export)]
+/* #[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn ffi_validate_signature_scheme(
     ffi_transfer_msg: &FFITransferMsg, 
     statechain_info: &StatechainInfoResponsePayload, 
@@ -110,4 +110,4 @@ pub fn ffi_validate_signature_scheme(
 
     let transfer_msg = ffi_to_transfer_msg(ffi_transfer_msg.clone())?;
     crate::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, tx0_hex, current_blockheight, fee_rate_tolerance, current_fee_rate_sats_per_byte, lockheight_init, interval)
-}
+} */

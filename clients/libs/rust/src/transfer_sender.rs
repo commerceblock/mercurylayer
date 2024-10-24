@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{client_config::ClientConfig, deposit::create_tx1, sqlite_manager::{get_backup_txs, get_wallet, update_backup_txs, update_wallet}, transaction::new_transaction, utils::info_config};
 use anyhow::{anyhow, Result};
 use chrono::Utc;
@@ -82,12 +84,31 @@ pub async fn create_backup_transaction(
         return Err(anyhow!("There must be at least one coin with duplicate_index == 0"));
     }
 
+    // Move the coin with CONFIRMED status to the last position
+    // coin_list.sort_by(|a, b| {
+    //     match (&a.status, &b.status) {
+    //         (CoinStatus::CONFIRMED, _) => Ordering::Greater,
+    //         (_, CoinStatus::CONFIRMED) => Ordering::Less,
+    //         _ => Ordering::Equal,
+    //     }
+    // });
+
+    // Move the coin with CONFIRMED status to the first position
+    coin_list.sort_by(|a, b| {
+        match (&a.status, &b.status) {
+            (CoinStatus::CONFIRMED, _) => Ordering::Less,
+            (_, CoinStatus::CONFIRMED) => Ordering::Greater,
+            _ => Ordering::Equal,
+        }
+    });
+
     let mut new_backup_transactions = Vec::new();
 
     // create backup transaction for every coin
     let backup_transactions = get_backup_txs(&client_config.pool, &wallet.name, &statechain_id).await?;
 
     for coin in coin_list {
+
         let mut filtered_transactions: Vec<BackupTx> = Vec::new();
 
         for backup_tx in &backup_transactions {

@@ -162,6 +162,20 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
     let split_backup_transactions = mercuryrustlib::transfer_receiver::split_backup_transactions(&backup_transactions);
     validate_split_backup_transactions(&backup_transactions, &split_backup_transactions)?;
 
+    // for backup_tx in backup_transactions.iter() {
+    //     let tx_outpoint = mercuryrustlib::get_previous_outpoint(&backup_tx)?;
+    //     println!("txid: {} vout: {}", tx_outpoint.txid, tx_outpoint.vout);
+    //     println!("tx_n: {}", backup_tx.tx_n);
+    //     println!("client_public_nonce: {}", backup_tx.client_public_nonce);
+    //     println!("server_public_nonce: {}", backup_tx.server_public_nonce);
+    //     println!("client_public_key: {}", backup_tx.client_public_key);
+    //     println!("server_public_key: {}", backup_tx.server_public_key);
+    //     println!("blinding_factor: {}", backup_tx.blinding_factor);
+    //     println!("----------------------");
+    // }
+
+    let transfer_receive_result = mercuryrustlib::transfer_receiver::execute(&client_config, &wallet2.name).await?;
+
     /* let mut coins_json = Vec::new();
 
     for coin in wallet1.coins.iter() {

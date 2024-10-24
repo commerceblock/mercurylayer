@@ -28,6 +28,19 @@ pub struct TransferReceiveResult {
     pub received_statechain_ids: Vec<String>,
 }
 
+pub struct DuplicatedCoinData {
+    pub txid: String,
+    pub vout: u32,
+    pub amount: u64,
+}
+
+pub struct MessageResult2 {
+    pub is_batch_locked: bool,
+    pub statechain_id: Option<String>,
+    pub duplicated_coins: Vec<DuplicatedCoinData>,
+}
+
+
 pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<TransferReceiveResult>{
 
     let mut wallet = get_wallet(&client_config.pool, &wallet_name).await?;
@@ -74,10 +87,24 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut coin = coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
+                /*let message_result = process_encrypted_message(client_config, &mut coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
+                    continue;
+                }*/
+
+                let is_msg_valid = validate_encrypted_message(client_config, &coin, enc_message, &wallet.network).await;
+
+                if is_msg_valid.is_err() {
+                    println!("Validation error: {}", is_msg_valid.err().unwrap().to_string());
+                    continue;
+                }
+
+                let message_result = process_encrypted_message2(client_config, &mut coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
+
+                if message_result.is_err() {
+                    println!("Processing error: {}", message_result.err().unwrap().to_string());
                     continue;
                 }
 
@@ -102,10 +129,24 @@ pub async fn execute(client_config: &ClientConfig, wallet_name: &str) -> Result<
 
                 let mut new_coin = new_coin.unwrap();
 
-                let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
+                /* let message_result = process_encrypted_message(client_config, &mut new_coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
 
                 if message_result.is_err() {
                     println!("Error: {}", message_result.err().unwrap().to_string());
+                    continue;
+                } */
+
+                let is_msg_valid = validate_encrypted_message(client_config, &new_coin, enc_message, &wallet.network).await;
+
+                if is_msg_valid.is_err() {
+                    println!("Validation error: {}", is_msg_valid.err().unwrap().to_string());
+                    continue;
+                }
+
+                let message_result = process_encrypted_message2(client_config, &mut new_coin, enc_message, &wallet.network, &wallet.name, &info_config, blockheight, &mut temp_activities).await;
+
+                if message_result.is_err() {
+                    println!("Processing error: {}", message_result.err().unwrap().to_string());
                     continue;
                 }
 
@@ -195,6 +236,196 @@ pub fn split_backup_transactions(backup_transactions: &Vec<BackupTx>) -> Vec<Vec
     result
 }
 
+async fn validate_encrypted_message(client_config: &ClientConfig, coin: &Coin, enc_message: &str, network: &str) -> Result<()> {
+
+    let client_auth_key = coin.auth_privkey.clone();
+    let new_user_pubkey = coin.user_pubkey.clone();
+
+    let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
+
+    let grouped_backup_transactions = split_backup_transactions(&transfer_msg.backup_transactions);
+
+    for (index, backup_transactions) in grouped_backup_transactions.iter().enumerate() {
+
+        // println!("index: {}", index);
+            
+        let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(backup_transactions)?;
+
+        let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
+
+        if index == 0 {
+            let is_transfer_signature_valid = mercurylib::transfer::receiver::verify_transfer_signature(&new_user_pubkey, &tx0_outpoint, &transfer_msg)?; 
+
+            if !is_transfer_signature_valid {
+                return Err(anyhow::anyhow!("Invalid transfer signature".to_string()));
+            }
+        }
+
+        let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;
+
+        if statechain_info.is_none() {
+            return Err(anyhow::anyhow!("Statechain info not found".to_string()));
+        }
+
+        let statechain_info = statechain_info.unwrap();
+
+        let is_tx0_output_pubkey_valid = mercurylib::transfer::receiver::validate_tx0_output_pubkey(&statechain_info.enclave_public_key, &transfer_msg, &tx0_outpoint, &tx0_hex, network)?;
+
+        if !is_tx0_output_pubkey_valid {
+            return Err(anyhow::anyhow!("Invalid tx0 output pubkey".to_string()));
+        }
+
+        let latest_backup_tx_pays_to_user_pubkey = mercurylib::transfer::receiver::verify_latest_backup_tx_pays_to_user_pubkey(&transfer_msg, &new_user_pubkey, network)?;
+
+        if !latest_backup_tx_pays_to_user_pubkey {
+            return Err(anyhow::anyhow!("Latest Backup Tx does not pay to the expected public key".to_string()));
+        }
+
+        if statechain_info.num_sigs != transfer_msg.backup_transactions.len() as u32 {
+            return Err(anyhow::anyhow!("num_sigs is not correct".to_string()));
+        }
+
+        let (is_tx0_output_unspent, _) = verify_tx0_output_is_unspent_and_confirmed(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network, client_config.confirmation_target).await?;
+
+        if !is_tx0_output_unspent {
+            return Err(anyhow::anyhow!("tx0 output is spent or not confirmed".to_string()));
+        }
+    }
+
+    Ok(())
+}
+
+async fn process_encrypted_message2(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, wallet_name: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult2> {
+
+    let mut transfer_receive_result = MessageResult2 {
+        is_batch_locked: false,
+        statechain_id: None,
+        duplicated_coins: Vec::new(),
+    };
+
+    let client_auth_key = coin.auth_privkey.clone();
+
+    let transfer_msg = mercurylib::transfer::receiver::decrypt_transfer_msg(enc_message, &client_auth_key)?;
+
+    let grouped_backup_transactions = split_backup_transactions(&transfer_msg.backup_transactions);
+
+    for (index, backup_transactions) in grouped_backup_transactions.iter().enumerate() {
+
+        if index == 0 {
+
+            let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(backup_transactions)?;
+            let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
+
+            let statechain_info = utils::get_statechain_info(&transfer_msg.statechain_id, &client_config).await?;   
+            let statechain_info = statechain_info.unwrap();
+
+            let current_fee_rate_sats_per_byte = if info_config.fee_rate_sats_per_byte > client_config.max_fee_rate {
+                client_config.max_fee_rate
+            } else {
+                info_config.fee_rate_sats_per_byte
+            };
+
+            let (_, tx0_status) = verify_tx0_output_is_unspent_and_confirmed(&client_config.electrum_client, &tx0_outpoint, &tx0_hex, &network, client_config.confirmation_target).await?;
+
+            let previous_lock_time = mercurylib::transfer::receiver::validate_signature_scheme(
+                backup_transactions, 
+                &statechain_info, 
+                &tx0_hex, 
+                blockheight,
+                client_config.fee_rate_tolerance, 
+                current_fee_rate_sats_per_byte,
+                info_config.initlock,
+                info_config.interval);
+        
+            if previous_lock_time.is_err() {
+                let error = previous_lock_time.err().unwrap();
+                return Err(anyhow!("Signature scheme validation failed. Error {}", error.to_string()));
+            }
+
+            let previous_lock_time = previous_lock_time.unwrap();
+
+            let transfer_receiver_request_payload = mercurylib::transfer::receiver::create_transfer_receiver_request_payload(&statechain_info, &transfer_msg, &coin)?;
+
+            // unlock the statecoin - it might be part of a batch
+
+            // the pub_auth_key has not been updated yet in the server (it will be updated after the transfer/receive call)
+            // So we need to manually sign the statechain_id with the client_auth_key
+            let signed_statechain_id_for_unlock = mercurylib::transfer::receiver::sign_message(&transfer_msg.statechain_id, &coin)?;
+
+            unlock_statecoin(&client_config, &transfer_msg.statechain_id, &signed_statechain_id_for_unlock, &coin.auth_pubkey).await?;
+
+            let transfer_receiver_result = send_transfer_receiver_request_payload(&client_config, &transfer_receiver_request_payload).await;
+
+            let server_public_key_hex = match transfer_receiver_result {
+                std::result::Result::Ok(server_public_key_hex) => {
+        
+                    if server_public_key_hex.is_batch_locked {
+                        return Ok(MessageResult2 {
+                            is_batch_locked: true,
+                            statechain_id: None,
+                            duplicated_coins: Vec::new(),
+                        });
+                    }
+        
+                    server_public_key_hex.server_pubkey.unwrap()
+                },
+                Err(err) => {
+                    return Err(anyhow::anyhow!("Error: {}", err.to_string()));
+                }
+            };
+
+            let new_key_info = mercurylib::transfer::receiver::get_new_key_info(&server_public_key_hex, &coin, &transfer_msg.statechain_id, &tx0_outpoint, &tx0_hex, network)?;
+
+            coin.server_pubkey = Some(server_public_key_hex);
+            coin.aggregated_pubkey = Some(new_key_info.aggregate_pubkey);
+            coin.aggregated_address = Some(new_key_info.aggregate_address);
+            coin.statechain_id = Some(transfer_msg.statechain_id.clone());
+            coin.signed_statechain_id = Some(new_key_info.signed_statechain_id.clone());
+            coin.amount = Some(new_key_info.amount);
+            coin.utxo_txid = Some(tx0_outpoint.txid.clone());
+            coin.utxo_vout = Some(tx0_outpoint.vout);
+            coin.locktime = Some(previous_lock_time);
+            coin.status = tx0_status;
+
+            let date = Utc::now(); // This will get the current date and time in UTC
+            let iso_string = date.to_rfc3339(); // Converts the date to an ISO 8601 string
+
+            let activity = Activity {
+                utxo: tx0_outpoint.txid.clone(),
+                amount: new_key_info.amount,
+                action: "Receive".to_string(),
+                date: iso_string
+            };
+
+            activities.push(activity);
+
+            insert_or_update_backup_txs(&client_config.pool, wallet_name, &transfer_msg.statechain_id, &transfer_msg.backup_transactions).await?;
+
+            transfer_receive_result.is_batch_locked = false;
+            transfer_receive_result.statechain_id = Some(transfer_msg.statechain_id.clone());
+        } else {
+
+            let tx0_outpoint = mercurylib::transfer::receiver::get_tx0_outpoint(backup_transactions)?;
+            let tx0_hex = get_tx0(&client_config.electrum_client, &tx0_outpoint.txid).await?;
+
+            let first_backup_tx = backup_transactions.first().unwrap();
+
+            let tx_outpoint = get_previous_outpoint(&first_backup_tx)?;
+            // let amount = first_backup_tx.amount;
+
+            let amount = mercurylib::transfer::receiver::get_amount_from_tx0(&tx0_hex, &tx_outpoint)?;
+
+            transfer_receive_result.duplicated_coins.push(DuplicatedCoinData {
+                txid: tx_outpoint.txid,
+                vout: tx_outpoint.vout,
+                amount,
+            });
+        }
+    }
+
+    Ok(transfer_receive_result)
+}
+
 async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, wallet_name: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult> {
 
     let client_auth_key = coin.auth_privkey.clone();
@@ -249,7 +480,7 @@ async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin
     };
 
     let previous_lock_time = mercurylib::transfer::receiver::validate_signature_scheme(
-        &transfer_msg, 
+        &transfer_msg.backup_transactions, 
         &statechain_info, 
         &tx0_hex, 
         blockheight,

@@ -473,7 +473,7 @@ pub fn validateSignatureScheme(transfer_msg: JsValue, statechain_info: JsValue, 
     let statechain_info: StatechainInfoResponsePayload = serde_wasm_bindgen::from_value(statechain_info).unwrap();
     let transfer_msg: TransferMsg = serde_wasm_bindgen::from_value(transfer_msg).unwrap();
 
-    let result = mercurylib::transfer::receiver::validate_signature_scheme(&transfer_msg, &statechain_info, &tx0_hex, current_blockheight, fee_rate_tolerance as f64, current_fee_rate_sats_per_byte as f64, lockheight_init, interval);
+    let result = mercurylib::transfer::receiver::validate_signature_scheme(&transfer_msg.backup_transactions, &statechain_info, &tx0_hex, current_blockheight, fee_rate_tolerance as f64, current_fee_rate_sats_per_byte as f64, lockheight_init, interval);
 
     #[derive(Serialize, Deserialize)]
     struct ValidationResult {

@@ -241,8 +241,19 @@ pub fn get_output_address_from_tx0(tx0_outpoint: &TxOutpoint, tx0_hex: &str, net
     Ok(address.to_string())
 }
 
+#[cfg_attr(feature = "bindings", uniffi::export)]
+pub fn get_amount_from_tx0(tx0_hex: &str, tx0_outpoint: &TxOutpoint,) -> Result<u64, MercuryError> {
+
+    let tx0: Transaction = bitcoin::consensus::encode::deserialize(&hex::decode(&tx0_hex)?)?;
+
+    assert!(tx0_outpoint.txid == tx0.txid().to_string());
+
+    Ok(tx0.output[tx0_outpoint.vout as usize].value)
+}
+
+#[cfg_attr(feature = "bindings", uniffi::export)]
 pub fn validate_signature_scheme(
-    transfer_msg: &TransferMsg, 
+    backup_transactions: &Vec<BackupTx>, 
     statechain_info: &StatechainInfoResponsePayload, 
     tx0_hex: &str, 
     current_blockheight: u32,
@@ -255,7 +266,7 @@ pub fn validate_signature_scheme(
 
     let mut sig_scheme_validation = true;
 
-    for (index, backup_tx) in transfer_msg.backup_transactions.iter().enumerate() {
+    for (index, backup_tx) in backup_transactions.iter().enumerate() {
 
         let statechain_info = statechain_info.statechain_info.get(index).unwrap();
 
@@ -463,7 +474,8 @@ fn get_tx_hash(tx_0: &Transaction, tx_n: &Transaction) -> Result<Message, Mercur
         return Err(MercuryError::EmptyWitnessData);
     }
 
-    let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned())?;
+    // let sighash_type = TapSighashType::from_consensus_u8(witness_data.last().unwrap().to_owned())?;
+    let sighash_type = TapSighashType::All;
 
     let hash = SighashCache::new(tx_n).taproot_key_spend_signature_hash(
         0,
