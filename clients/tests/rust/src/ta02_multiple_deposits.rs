@@ -24,7 +24,7 @@ async fn deposit(amount_in_sats: u32, client_config: &ClientConfig, deposit_addr
     Ok(())
 }
 
-fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_coin: &Coin) -> Result<()> {
+fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_coin: &Coin, interval: u32) -> Result<()> {
     let first_backup_outpoint = mercuryrustlib::get_previous_outpoint(&backup_transactions[0])?;
 
     assert!(first_backup_outpoint.txid == confirmed_coin.utxo_txid.clone().unwrap() && first_backup_outpoint.vout == confirmed_coin.utxo_vout.unwrap());
@@ -32,12 +32,16 @@ fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_c
     let mut current_txid = String::new();
     let mut current_vout = 0u32;
     let mut current_tx_n = 0u32;
+    let mut previous_lock_time = 0u32;
 
     for backup_tx in backup_transactions {
         let outpoint = mercuryrustlib::get_previous_outpoint(&backup_tx)?;
+
+        let current_lock_time = mercuryrustlib::get_blockheight(&backup_tx)?;
         
         if backup_tx.tx_n > 1 {
             assert!(current_txid == outpoint.txid && current_vout == outpoint.vout);
+            assert!(current_lock_time == previous_lock_time - interval);
         } else {
             assert!(current_txid != outpoint.txid || current_vout != outpoint.vout);
         }
@@ -51,6 +55,7 @@ fn validate_backup_transactions(backup_transactions: &Vec<BackupTx>, confirmed_c
         current_txid = outpoint.txid;
         current_vout = outpoint.vout;
         current_tx_n = backup_tx.tx_n;
+        previous_lock_time = current_lock_time;
     }
 
     Ok(())
@@ -125,7 +130,9 @@ async fn basic_workflow(client_config: &ClientConfig, wallet1: &Wallet, wallet2:
 
     let backup_transactions = mercuryrustlib::sqlite_manager::get_backup_txs(&client_config.pool, &wallet1.name, &statechain_id).await?;
 
-    validate_backup_transactions(&backup_transactions, &new_coin)?;
+    let info_config = mercuryrustlib::utils::info_config(&client_config).await?;
+
+    validate_backup_transactions(&backup_transactions, &new_coin, info_config.interval)?;
 
     /* let mut coins_json = Vec::new();
 

@@ -5,7 +5,7 @@ use anyhow::{anyhow, Ok, Result};
 use bitcoin::{Txid, Address};
 use chrono::Utc;
 use electrum_client::ElectrumApi;
-use mercurylib::{utils::{get_network, InfoConfig}, wallet::{Activity, Coin, CoinStatus}};
+use mercurylib::{utils::{get_network, InfoConfig}, wallet::{get_previous_outpoint, Activity, BackupTx, Coin, CoinStatus}};
 use reqwest::StatusCode;
 
 pub async fn new_transfer_address(client_config: &ClientConfig, wallet_name: &str) -> Result<String>{
@@ -152,6 +152,47 @@ async fn get_msg_addr(auth_pubkey: &str, client_config: &ClientConfig) -> Result
 pub struct MessageResult {
     pub is_batch_locked: bool,
     pub statechain_id: Option<String>,
+}
+
+pub fn split_backup_transactions(backup_transactions: Vec<BackupTx>) -> Vec<Vec<BackupTx>> {
+    // HashMap to store grouped transactions
+    let mut grouped_txs: HashMap<(String, u32), Vec<BackupTx>> = HashMap::new();
+    
+    // Vector to keep track of order of appearance of outpoints
+    let mut order_of_appearance: Vec<(String, u32)> = Vec::new();
+    // HashSet to track which outpoints we've seen
+    let mut seen_outpoints: HashSet<(String, u32)> = HashSet::new();
+    
+    // Process each transaction
+    for tx in backup_transactions {
+        // Get the outpoint for this transaction
+        let outpoint = get_previous_outpoint(&tx).expect("Valid outpoint");
+        
+        // Create a key tuple from txid and vout
+        let key = (outpoint.txid, outpoint.vout);
+        
+        // If we haven't seen this outpoint before, record its order
+        if seen_outpoints.insert(key.clone()) {
+            order_of_appearance.push(key.clone());
+        }
+        
+        // Add the transaction to its group
+        grouped_txs.entry(key).or_insert_with(Vec::new).push(tx);
+    }
+    
+    // Create result vector maintaining order of first appearance
+    let mut result: Vec<Vec<BackupTx>> = Vec::with_capacity(order_of_appearance.len());
+    
+    // Add vectors to result in order of first appearance
+    for key in order_of_appearance {
+        if let Some(mut transactions) = grouped_txs.remove(&key) {
+            // Sort each group by tx_n
+            transactions.sort_by_key(|tx| tx.tx_n);
+            result.push(transactions);
+        }
+    }
+    
+    result
 }
 
 async fn process_encrypted_message(client_config: &ClientConfig, coin: &mut Coin, enc_message: &str, network: &str, wallet_name: &str, info_config: &InfoConfig, blockheight: u32, activities: &mut Vec<Activity>) -> Result<MessageResult> {
